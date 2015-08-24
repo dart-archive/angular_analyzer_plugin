@@ -1,5 +1,7 @@
 .DS_Store
 
+.project
+
 .idea
 angular2-dart-analyzer.iml
 

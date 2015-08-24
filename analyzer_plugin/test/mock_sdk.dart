@@ -2,13 +2,18 @@ library test.src.mock_sdk;
 
 import 'package:analyzer/file_system/file_system.dart' as resource;
 import 'package:analyzer/file_system/memory_file_system.dart' as resource;
-import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/context/cache.dart';
+import 'package:analyzer/src/context/context.dart';
+import 'package:analyzer/src/generated/engine.dart'
+    show AnalysisEngine, ChangeSet;
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 
 class MockSdk implements DartSdk {
-  static const _MockSdkLibrary LIB_CORE = const _MockSdkLibrary('dart:core',
-      '/lib/core/core.dart', '''
+  static const _MockSdkLibrary LIB_CORE = const _MockSdkLibrary(
+      'dart:core',
+      '/lib/core/core.dart',
+      '''
 library dart.core;
 
 import 'dart:async';
@@ -101,8 +106,10 @@ class _Override {
 const Object override = const _Override();
 ''');
 
-  static const _MockSdkLibrary LIB_ASYNC = const _MockSdkLibrary('dart:async',
-      '/lib/async/async.dart', '''
+  static const _MockSdkLibrary LIB_ASYNC = const _MockSdkLibrary(
+      'dart:async',
+      '/lib/async/async.dart',
+      '''
 library dart.async;
 
 import 'dart:math';
@@ -118,14 +125,18 @@ abstract class StreamTransformer<S, T> {}
 ''');
 
   static const _MockSdkLibrary LIB_COLLECTION = const _MockSdkLibrary(
-      'dart:collection', '/lib/collection/collection.dart', '''
+      'dart:collection',
+      '/lib/collection/collection.dart',
+      '''
 library dart.collection;
 
 abstract class HashMap<K, V> implements Map<K, V> {}
 ''');
 
   static const _MockSdkLibrary LIB_CONVERT = const _MockSdkLibrary(
-      'dart:convert', '/lib/convert/convert.dart', '''
+      'dart:convert',
+      '/lib/convert/convert.dart',
+      '''
 library dart.convert;
 
 import 'dart:async';
@@ -134,8 +145,10 @@ abstract class Converter<S, T> implements StreamTransformer {}
 class JsonDecoder extends Converter<String, Object> {}
 ''');
 
-  static const _MockSdkLibrary LIB_MATH = const _MockSdkLibrary('dart:math',
-      '/lib/math/math.dart', '''
+  static const _MockSdkLibrary LIB_MATH = const _MockSdkLibrary(
+      'dart:math',
+      '/lib/math/math.dart',
+      '''
 library dart.math;
 const double E = 2.718281828459045;
 const double PI = 3.1415926535897932;
@@ -152,8 +165,10 @@ class Random {
 }
 ''');
 
-  static const _MockSdkLibrary LIB_HTML = const _MockSdkLibrary('dart:html',
-      '/lib/html/dartium/html_dartium.dart', '''
+  static const _MockSdkLibrary LIB_HTML = const _MockSdkLibrary(
+      'dart:html',
+      '/lib/html/dartium/html_dartium.dart',
+      '''
 library dart.html;
 class HtmlElement {}
 ''');
@@ -173,7 +188,7 @@ class HtmlElement {}
   /**
    * The [AnalysisContext] which is used for all of the sources.
    */
-  InternalAnalysisContext _analysisContext;
+  AnalysisContextImpl _analysisContext;
 
   MockSdk() {
     LIBRARIES.forEach((_MockSdkLibrary library) {
@@ -182,9 +197,9 @@ class HtmlElement {}
   }
 
   @override
-  AnalysisContext get context {
+  AnalysisContextImpl get context {
     if (_analysisContext == null) {
-      _analysisContext = new SdkAnalysisContext();
+      _analysisContext = new _SdkAnalysisContext(this);
       SourceFactory factory = new SourceFactory([new DartUriResolver(this)]);
       _analysisContext.sourceFactory = factory;
       ChangeSet changeSet = new ChangeSet();
@@ -308,4 +323,23 @@ class _MockSdkLibrary implements SdkLibrary {
   bool get isVmLibrary => throw unimplemented;
 
   UnimplementedError get unimplemented => new UnimplementedError();
+}
+
+/**
+ * An [AnalysisContextImpl] that only contains sources for a Dart SDK.
+ */
+class _SdkAnalysisContext extends AnalysisContextImpl {
+  final DartSdk sdk;
+
+  _SdkAnalysisContext(this.sdk);
+
+  @override
+  AnalysisCache createCacheFromSourceFactory(SourceFactory factory) {
+    if (factory == null) {
+      return super.createCacheFromSourceFactory(factory);
+    }
+    return new AnalysisCache(<CachePartition>[
+      AnalysisEngine.instance.partitionManager_new.forSdk(sdk)
+    ]);
+  }
 }
