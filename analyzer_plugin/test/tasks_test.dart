@@ -493,8 +493,8 @@ class ComponentB {
 @Component(selector: 'my-ccc')
 @View(template: r"""
 <div>
-  <my-aaa></my-aaa>
-  <my-bbb></my-bbb>
+  <my-aaa></my-aaa>1
+  <my-bbb></my-bbb>2
 </div>
 """, directives: [ComponentA, ComponentB])
 class ComponentC {
@@ -523,28 +523,26 @@ class ComponentC {
     {
       Template template = _getDartTemplateByClassName(templates, 'ComponentC');
       List<ResolvedRange> ranges = template.ranges;
-      expect(ranges, hasLength(2));
+      expect(ranges, hasLength(4));
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'my-aaa></');
-        expect(resolvedRange.range.length, 'my-aaa'.length);
-        {
-          AngularElement element = resolvedRange.element;
-          expect(element.source, componentA.source);
-          expect(element.name, 'my-aaa');
-          expect(element.nameOffset, code.indexOf("my-aaa')"));
-        }
+        assertComponentReference(resolvedRange, componentA);
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'my-aaa>1');
+        assertComponentReference(resolvedRange, componentA);
       }
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'my-bbb></');
-        expect(resolvedRange.range.length, 'my-bbb'.length);
-        {
-          AngularElement element = resolvedRange.element;
-          expect(element.source, componentB.source);
-          expect(element.name, 'my-bbb');
-          expect(element.nameOffset, code.indexOf("my-bbb')"));
-        }
+        assertComponentReference(resolvedRange, componentB);
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'my-bbb>2');
+        assertComponentReference(resolvedRange, componentB);
       }
     }
     // no errors
@@ -571,6 +569,14 @@ class ComponentA {
     _fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener
         .assertErrorsWithCodes(<ErrorCode>[AngularWarningCode.UNRESOLVED_TAG]);
+  }
+
+  static void assertComponentReference(
+      ResolvedRange resolvedRange, Component component) {
+    ElementNameSelector selector = component.selector;
+    AngularElement element = resolvedRange.element;
+    expect(element, selector.nameElement);
+    expect(resolvedRange.range.length, selector.nameElement.name.length);
   }
 
   static Template _getDartTemplateByClassName(

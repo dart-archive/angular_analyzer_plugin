@@ -42,6 +42,7 @@ class AngularElementImpl implements AngularElement {
 
   AngularElementImpl(this.name, this.nameOffset, this.source);
 
+  @override
   int get hashCode {
     return JenkinsSmiHash.hash3(name.hashCode, nameOffset, source.hashCode);
   }
@@ -53,6 +54,9 @@ class AngularElementImpl implements AngularElement {
         other.name == name &&
         other.source == source;
   }
+
+  @override
+  String toString() => name;
 }
 
 /// The model of an Angular component.

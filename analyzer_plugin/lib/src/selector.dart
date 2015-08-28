@@ -16,10 +16,20 @@ class ElementNameSelector implements Selector {
   bool match(html.Element element, Template template) {
     String name = nameElement.name;
     if (element.localName == name) {
-      SourceSpan span = element.sourceSpan;
-      int offset = span.start.offset + '<'.length;
-      SourceRange range = new SourceRange(offset, name.length);
-      template.addRange(range, nameElement);
+      {
+        SourceSpan span = element.sourceSpan;
+        int offset = span.start.offset + '<'.length;
+        SourceRange range = new SourceRange(offset, name.length);
+        template.addRange(range, nameElement);
+      }
+      {
+        SourceSpan span = element.endSourceSpan;
+        if (span != null) {
+          int offset = span.start.offset + '</'.length;
+          SourceRange range = new SourceRange(offset, name.length);
+          template.addRange(range, nameElement);
+        }
+      }
       return true;
     }
     return false;
