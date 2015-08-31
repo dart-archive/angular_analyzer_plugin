@@ -110,16 +110,80 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       if (selector == null) {
         return null;
       }
-      return new Component(classElement, selector: selector);
+      List<PropertyElement> properties = _parseProperties(classElement, node);
+      return new Component(classElement,
+          selector: selector, properties: properties);
     }
     if (_isAngularAnnotation(node, 'Directive')) {
       Selector selector = _parseSelector(node);
       if (selector == null) {
         return null;
       }
-      return new Directive(classElement, selector: selector);
+      List<PropertyElement> properties = _parseProperties(classElement, node);
+      return new Directive(classElement,
+          selector: selector, properties: properties);
     }
     return null;
+  }
+
+  List<PropertyElement> _parseProperties(
+      ClassElement classElement, ast.Annotation node) {
+    ast.Expression expression = _getNamedArgument(node, 'properties');
+    if (expression == null || expression is! ast.ListLiteral) {
+      return PropertyElement.EMPTY_LIST;
+    }
+    ast.ListLiteral descList = expression;
+    // Create a property for each element;
+    List<PropertyElement> properties = <PropertyElement>[];
+    for (ast.Expression element in descList.elements) {
+      PropertyElement property = _parseProperty(classElement, element);
+      if (property != null) {
+        properties.add(property);
+      }
+    }
+    return properties;
+  }
+
+  PropertyElement _parseProperty(
+      ClassElement classElement, ast.Expression element) {
+    if (element is ast.SimpleStringLiteral) {
+      int offset = element.contentsOffset;
+      String value = element.value;
+      // TODO(scheglov) support for pipes
+      int colonIndex = value.indexOf(':');
+      if (colonIndex == -1) {
+        String name = value;
+        // TODO(scheglov) test that a valid property name
+        PropertyAccessorElement setter =
+            classElement.lookUpSetter(name, classElement.library);
+        // TODO(scheglov) test that "setter" was found
+        return new PropertyElement(name, offset, target.source, setter,
+            new SourceRange(offset, name.length));
+      } else {
+        String setterName = value.substring(0, colonIndex).trimRight();
+        PropertyAccessorElement setter =
+            classElement.lookUpSetter(setterName, classElement.library);
+        // TODO(scheglov) test that "setter" was found
+        int propertyOffset = colonIndex;
+        while (true) {
+          propertyOffset++;
+          if (propertyOffset >= value.length) {
+            // TODO(scheglov) report a warning
+            return null;
+          }
+          if (value.substring(propertyOffset, propertyOffset + 1) != ' ') {
+            break;
+          }
+        }
+        String propertyName = value.substring(propertyOffset);
+        // TODO(scheglov) test that a valid property name
+        return new PropertyElement(propertyName, offset + propertyOffset,
+            target.source, setter, new SourceRange(offset, setterName.length));
+      }
+    } else {
+      // TODO(scheglov) report a warning
+      return null;
+    }
   }
 
   Selector _parseSelector(ast.Annotation node) {

@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver;
 
 import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
@@ -55,6 +56,22 @@ class DartTemplateResolver {
         view.source, span.start.offset, span.length, errorCode, arguments));
   }
 
+  /// Resolve the given [node] attributes to properties of [directive].
+  void _resolveAttributes(html.Element node, AbstractDirective directive) {
+    node.attributes.forEach((key, String value) {
+      if (key is String) {
+        for (PropertyElement property in directive.properties) {
+          if (key == property.name) {
+            SourceSpan span = node.attributeSpans[key];
+            template.addRange(
+                new SourceRange(span.start.offset, span.length), property);
+            break;
+          }
+        }
+      }
+    });
+  }
+
   /// Resolve the given [node] in [template].
   void _resolveNode(html.Node node) {
     if (node is html.Element) {
@@ -63,9 +80,11 @@ class DartTemplateResolver {
       bool tagIsResolved = false;
       for (AbstractDirective directive in view.directives) {
         Selector selector = directive.selector;
-        bool match = selector.match(element, template);
-        if (match && selector is ElementNameSelector) {
-          tagIsResolved = true;
+        if (selector.match(element, template)) {
+          if (selector is ElementNameSelector) {
+            tagIsResolved = true;
+          }
+          _resolveAttributes(node, directive);
         }
       }
       if (!tagIsStandard && !tagIsResolved) {

@@ -14,8 +14,9 @@ abstract class AbstractDirective {
   final dart.ClassElement classElement;
 
   final Selector selector;
+  final List<PropertyElement> properties;
 
-  AbstractDirective(this.classElement, {this.selector});
+  AbstractDirective(this.classElement, {this.selector, this.properties});
 
   /// The source that contains this directive.
   Source get source => classElement.source;
@@ -61,8 +62,9 @@ class AngularElementImpl implements AngularElement {
 
 /// The model of an Angular component.
 class Component extends AbstractDirective {
-  Component(dart.ClassElement classElement, {Selector selector})
-      : super(classElement, selector: selector);
+  Component(dart.ClassElement classElement,
+      {Selector selector, List<PropertyElement> properties})
+      : super(classElement, selector: selector, properties: properties);
 }
 
 /// An [AngularElement] representing a Dart [Element].
@@ -76,8 +78,25 @@ class DartElement extends AngularElementImpl {
 
 /// The model of an Angular directive.
 class Directive extends AbstractDirective {
-  Directive(dart.ClassElement classElement, {Selector selector})
-      : super(classElement, selector: selector);
+  Directive(dart.ClassElement classElement,
+      {Selector selector, List<PropertyElement> properties})
+      : super(classElement, selector: selector, properties: properties);
+}
+
+/// The model for an Angular property.
+class PropertyElement extends AngularElementImpl {
+  static const List<PropertyElement> EMPTY_LIST = const <PropertyElement>[];
+
+  final dart.PropertyAccessorElement setter;
+
+  /// The [SourceRange] where [setter] is referenced in the property
+  /// declaration. May be the same as this element offset/length in shorthand
+  /// variants where names of a property and the setter are the same.
+  final SourceRange setterRange;
+
+  PropertyElement(
+      String name, int nameOffset, Source source, this.setter, this.setterRange)
+      : super(name, nameOffset, source);
 }
 
 /// A pair of an [SourceRange] and the referenced [AngularElement].

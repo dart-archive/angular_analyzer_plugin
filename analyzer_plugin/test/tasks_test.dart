@@ -208,6 +208,48 @@ class B {}
     List<AbstractDirective> directives = outputs[DIRECTIVES];
     expect(directives, isEmpty);
   }
+
+  void test_properties_OK() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'my-component', properties: const ['aaa', 'bbb: myBbb'])
+class MyComponent {
+  int aaa;
+  String bbb;
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DIRECTIVES);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES];
+    Component component = directives.single;
+    List<PropertyElement> properties = component.properties;
+    expect(properties, hasLength(2));
+    {
+      PropertyElement property = properties[0];
+      expect(property.name, 'aaa');
+      expect(property.nameOffset, code.indexOf("aaa',"));
+      expect(property.setterRange.offset, property.nameOffset);
+      expect(property.setterRange.length, 'aaa'.length);
+      expect(property.setter, isNotNull);
+      expect(property.setter.isSetter, isTrue);
+      expect(property.setter.displayName, 'aaa');
+    }
+    {
+      PropertyElement property = properties[1];
+      expect(property.name, 'myBbb');
+      expect(property.nameOffset, code.indexOf("myBbb']"));
+      expect(property.setterRange.offset, code.indexOf("bbb: "));
+      expect(property.setterRange.length, 'bbb'.length);
+      expect(property.setter, isNotNull);
+      expect(property.setter.isSetter, isTrue);
+      expect(property.setter.displayName, 'bbb');
+    }
+  }
 }
 
 @reflectiveTest
@@ -475,6 +517,18 @@ class GatheringErrorListener implements AnalysisErrorListener {
 
 @reflectiveTest
 class ResolveDartTemplatesTaskTest extends _AbstractDartTaskTest {
+  void assertPropertyReference(
+      ResolvedRange resolvedRange, AbstractDirective directive, String name) {
+    var element = resolvedRange.element;
+    for (PropertyElement property in directive.properties) {
+      if (property.name == name) {
+        expect(element, same(property));
+        return;
+      }
+    }
+    fail('Expected property "$name", but ${element} found.');
+  }
+
   void test_componentReference() {
     _addAngularSources();
     var code = r'''
@@ -569,6 +623,58 @@ class ComponentA {
     _fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener
         .assertErrorsWithCodes(<ErrorCode>[AngularWarningCode.UNRESOLVED_TAG]);
+  }
+
+  void test_property_OK_reference_text() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'comp-a', properties: const ['first', 'vtoroy: second'])
+@View(template: r"<div>AAA</div>")
+class ComponentA {
+  int first;
+  int vtoroy;
+}
+
+@Component(selector: 'comp-b')
+@View(template: r"""
+<div>
+  <comp-a first='1' second='2'></comp-a>
+</div>
+""", directives: [ComponentA])
+class ComponentB {
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // prepare directives
+    List<AbstractDirective> directives =
+        context.analysisCache.getValue(target, DIRECTIVES);
+    Component componentA = _getComponentByClassName(directives, 'ComponentA');
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(2));
+    {
+      Template template = _getDartTemplateByClassName(templates, 'ComponentB');
+      List<ResolvedRange> ranges = template.ranges;
+      expect(ranges, hasLength(4));
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'first=');
+        assertPropertyReference(resolvedRange, componentA, 'first');
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'second=');
+        assertPropertyReference(resolvedRange, componentA, 'second');
+      }
+    }
+    // no errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   static void assertComponentReference(
