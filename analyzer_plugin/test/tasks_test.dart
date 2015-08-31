@@ -4,6 +4,7 @@ import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/context/context.dart';
+import 'package:analyzer/src/generated/element.dart';
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -625,6 +626,158 @@ class ComponentA {
         .assertErrorsWithCodes(<ErrorCode>[AngularWarningCode.UNRESOLVED_TAG]);
   }
 
+  void test_property_hasError_expression() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel', properties: const ['text'])
+@View(template: r"<div>some text</div>")
+class TextPanel {
+  String text;
+}
+
+@Component(selector: 'UserPanel')
+@View(template: r"""
+<div>
+  <text-panel [text]='noSuchName'></text-panel>
+</div>
+""", directives: [TextPanel])
+class UserPanel {
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // has errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener
+        .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
+  }
+
+  void test_property_OK_event() {
+    _addAngularSources();
+    String code = r'''
+import 'dart:html';
+import '/angular2/metadata.dart';
+
+@Component(selector: 'UserPanel')
+@View(template: r"""
+<div>
+  <input (keyup)='doneTyping($event)'>
+</div>
+""")
+class TodoList {
+  doneTyping(KeyboardEvent event) {}
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    {
+      Template template = _getDartTemplateByClassName(templates, 'TodoList');
+      List<ResolvedRange> ranges = template.ranges;
+      expect(ranges, hasLength(2));
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, r'doneTyping($');
+        expect(resolvedRange.range.length, 'doneTyping'.length);
+        Element element = (resolvedRange.element as DartElement).element;
+        expect(element, new isInstanceOf<MethodElement>());
+        expect(element.name, 'doneTyping');
+        expect(element.nameOffset,
+            code.indexOf('doneTyping(KeyboardEvent event)'));
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, r"$event)'>");
+        expect(resolvedRange.range.length, r'$event'.length);
+        Element element = (resolvedRange.element as DartElement).element;
+        expect(element, new isInstanceOf<LocalVariableElement>());
+        expect(element.name, r'$event');
+        expect(element.nameOffset, -1);
+      }
+    }
+    // no errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_property_OK_reference_expression() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel', properties: const ['text'])
+@View(template: r"<div>some text</div>")
+class TextPanel {
+  String text;
+}
+
+@Component(selector: 'UserPanel')
+@View(template: r"""
+<div>
+  <text-panel [text]='user.name'></text-panel>
+</div>
+""", directives: [TextPanel])
+class UserPanel {
+  User user; // 1
+}
+
+class User {
+  String name; // 2
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // prepare directives
+    List<AbstractDirective> directives =
+        context.analysisCache.getValue(target, DIRECTIVES);
+    Component textPanel = _getComponentByClassName(directives, 'TextPanel');
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(2));
+    {
+      Template template = _getDartTemplateByClassName(templates, 'UserPanel');
+      List<ResolvedRange> ranges = template.ranges;
+      expect(ranges, hasLength(5));
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'text]=');
+        expect(resolvedRange.range.length, 'text'.length);
+        assertPropertyReference(resolvedRange, textPanel, 'text');
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'user.');
+        expect(resolvedRange.range.length, 'user'.length);
+        Element element = (resolvedRange.element as DartElement).element;
+        expect(element, new isInstanceOf<PropertyAccessorElement>());
+        expect(element.name, 'user');
+        expect(element.nameOffset, code.indexOf('user; // 1'));
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, "name'>");
+        expect(resolvedRange.range.length, 'name'.length);
+        Element element = (resolvedRange.element as DartElement).element;
+        expect(element, new isInstanceOf<PropertyAccessorElement>());
+        expect(element.name, 'name');
+        expect(element.nameOffset, code.indexOf('name; // 2'));
+      }
+    }
+    // no errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   void test_property_OK_reference_text() {
     _addAngularSources();
     String code = r'''
@@ -664,11 +817,13 @@ class ComponentB {
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'first=');
+        expect(resolvedRange.range.length, 'first'.length);
         assertPropertyReference(resolvedRange, componentA, 'first');
       }
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'second=');
+        expect(resolvedRange.range.length, 'second'.length);
         assertPropertyReference(resolvedRange, componentA, 'second');
       }
     }

@@ -4,6 +4,7 @@ import 'package:analyzer/src/generated/ast.dart' as ast;
 import 'package:analyzer/src/generated/element.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/src/task/general.dart';
@@ -384,6 +385,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
 
 /// A task that builds [Template]s of a [LibrarySpecificUnit].
 class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
+  static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String VIEWS_INPUT = 'VIEWS_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -405,6 +407,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     //
     // Prepare inputs.
     //
+    TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     List<View> views = getRequiredInput(VIEWS_INPUT);
     //
     // Resolve inline view templates.
@@ -412,7 +415,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     List<Template> templates = <Template>[];
     for (View view in views) {
       Template template =
-          new DartTemplateResolver(view, errorListener).resolve();
+          new DartTemplateResolver(typeProvider, view, errorListener).resolve();
       if (template != null) {
         templates.add(template);
       }
@@ -428,7 +431,10 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   /// task input descriptors describing those inputs for a task with the
   /// given [target].
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
-    return <String, TaskInput>{VIEWS_INPUT: VIEWS.of(target),};
+    return <String, TaskInput>{
+      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
+      VIEWS_INPUT: VIEWS.of(target),
+    };
   }
 
   /// Create a task based on the given [target] in the given [context].
