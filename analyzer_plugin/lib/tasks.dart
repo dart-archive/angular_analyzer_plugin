@@ -1,11 +1,22 @@
 library angular2.src.analysis.analyzer_plugin.tasks;
 
 import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/src/generated/source.dart' show Source;
 import 'package:analyzer/task/model.dart';
 
 /// The analysis errors associated with a target.
 /// The value combines errors represented by multiple other results.
-final ListResultDescriptor<AnalysisError> HTML_ERRORS =
+///
+/// The result is only available for Dart [Source]s.
+final ListResultDescriptor<AnalysisError> ANGULAR_DART_ERRORS =
+    new ListResultDescriptor<AnalysisError>(
+        'ANGULAR_DART_ERRORS', AnalysisError.NO_ERRORS);
+
+/// The analysis errors associated with a target.
+/// The value combines errors represented by multiple other results.
+///
+/// The result is only available for HTML [Source]s.
+final ListResultDescriptor<AnalysisError> ANGULAR_HTML_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_HTML_ERRORS', AnalysisError.NO_ERRORS);
 

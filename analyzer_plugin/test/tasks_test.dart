@@ -23,6 +23,7 @@ import 'mock_sdk.dart';
 
 main() {
   groupSep = ' | ';
+  defineReflectiveTests(AngularDartErrorsTaskTest);
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
@@ -48,6 +49,40 @@ View _getViewByClassName(List<View> views, String className) {
     fail('View with the class "$className" was not found.');
     return null;
   });
+}
+
+@reflectiveTest
+class AngularDartErrorsTaskTest extends _AbstractDartTaskTest {
+  void test_perform() {
+    _addAngularSources();
+    Source source = _newSource(
+        '/test.dart',
+        r'''
+import '/angular2/metadata.dart';
+
+@View(template: 'AAA')
+class ViewWithoutComponent {}
+
+@Component(selector: 'UserPanel')
+@View(template: "<name-panel [name]='noSuchGetter'></name-panel>")
+class UserPanel {
+}
+''');
+    _ensureDartAnalyzed(source);
+    _computeResult(source, ANGULAR_DART_ERRORS);
+    expect(task, new isInstanceOf<AngularDartErrorsTask>());
+    // validate
+    _fillErrorListener(ANGULAR_DART_ERRORS);
+    errorListener.assertErrorsWithCodes(<ErrorCode>[
+      AngularWarningCode.COMPONENT_ANNOTATION_MISSING,
+      AngularWarningCode.UNRESOLVED_TAG,
+      StaticWarningCode.UNDEFINED_IDENTIFIER
+    ]);
+  }
+
+  void _ensureDartAnalyzed(Source source) {
+    _computeResult(source, DART_ERRORS);
+  }
 }
 
 @reflectiveTest
@@ -518,18 +553,6 @@ class GatheringErrorListener implements AnalysisErrorListener {
 
 @reflectiveTest
 class ResolveDartTemplatesTaskTest extends _AbstractDartTaskTest {
-  void assertPropertyReference(
-      ResolvedRange resolvedRange, AbstractDirective directive, String name) {
-    var element = resolvedRange.element;
-    for (PropertyElement property in directive.properties) {
-      if (property.name == name) {
-        expect(element, same(property));
-        return;
-      }
-    }
-    fail('Expected property "$name", but ${element} found.');
-  }
-
   void test_componentReference() {
     _addAngularSources();
     var code = r'''
@@ -840,6 +863,18 @@ class ComponentB {
     expect(resolvedRange.range.length, selector.nameElement.name.length);
   }
 
+  static void assertPropertyReference(
+      ResolvedRange resolvedRange, AbstractDirective directive, String name) {
+    var element = resolvedRange.element;
+    for (PropertyElement property in directive.properties) {
+      if (property.name == name) {
+        expect(element, same(property));
+        return;
+      }
+    }
+    fail('Expected property "$name", but ${element} found.');
+  }
+
   static Template _getDartTemplateByClassName(
       List<Template> templates, String className) {
     return templates.firstWhere(
@@ -886,6 +921,8 @@ class _AbstractDartTaskTest {
     // TODO(scheglov) Make tasks pluggable.
     // TODO(scheglov) Don't change the global instance of TakManager.
     analysisDriver = context.driver;
+    analysisDriver.taskManager
+        .addTaskDescriptor(AngularDartErrorsTask.DESCRIPTOR);
     analysisDriver.taskManager
         .addTaskDescriptor(BuildUnitDirectivesTask.DESCRIPTOR);
     analysisDriver.taskManager.addTaskDescriptor(BuildUnitViewsTask.DESCRIPTOR);

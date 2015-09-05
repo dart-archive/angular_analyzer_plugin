@@ -19,7 +19,7 @@ import 'package:angular2_analyzer_plugin/tasks.dart';
 /// This result is produced for templates specified directly in Dart files.
 final ListResultDescriptor<Template> DART_TEMPLATES =
     new ListResultDescriptor<Template>(
-        'ANGULAR_DART_TEMPLATE_RANGES', Template.EMPTY_LIST);
+        'ANGULAR_DART_TEMPLATES', Template.EMPTY_LIST);
 
 /// The errors produced while building [DART_TEMPLATES].
 /// This result is produced for templates specified directly in Dart files.
@@ -53,6 +53,87 @@ final ListResultDescriptor<View> VIEWS =
 final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'VIEWS_ERRORS', AnalysisError.NO_ERRORS);
+
+/**
+ * A task that merges all of the errors for a single source into a single list
+ * of errors.
+ */
+class AngularDartErrorsTask extends SourceBasedAnalysisTask {
+  /**
+   * The name of the [DIRECTIVES_ERRORS] input.
+   */
+  static const String DIRECTIVES_ERRORS_INPUT = 'DIRECTIVES_ERRORS';
+
+  /**
+   * The name of the [VIEWS_ERRORS] input.
+   */
+  static const String VIEWS_ERRORS_INPUT = 'VIEWS_ERRORS';
+
+  /**
+   * The name of the [DART_TEMPLATES_ERRORS] input.
+   */
+  static const String DART_TEMPLATES_ERRORS_INPUT = 'DART_TEMPLATES_ERRORS';
+
+  /**
+   * The task descriptor describing this kind of task.
+   */
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'AngularDartErrorsTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[ANGULAR_DART_ERRORS]);
+
+  AngularDartErrorsTask(InternalAnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  void internalPerform() {
+    //
+    // Prepare inputs.
+    //
+    List<List<AnalysisError>> errorLists = <List<AnalysisError>>[];
+    void addMapLibraryErrors(Map<Source, List<AnalysisError>> unitErrors) {
+      unitErrors.values.forEach(errorLists.add);
+    }
+    addMapLibraryErrors(getRequiredInput(DIRECTIVES_ERRORS_INPUT));
+    addMapLibraryErrors(getRequiredInput(VIEWS_ERRORS_INPUT));
+    addMapLibraryErrors(getRequiredInput(DART_TEMPLATES_ERRORS_INPUT));
+    //
+    // Record outputs.
+    //
+    outputs[ANGULAR_DART_ERRORS] = AnalysisError.mergeLists(errorLists);
+  }
+
+  /**
+   * Return a map from the names of the inputs of this kind of task to the task
+   * input descriptors describing those inputs for a task with the
+   * given [target].
+   */
+  static Map<String, TaskInput> buildInputs(Source source) {
+    TaskInput buildMapLibraryInput(ResultDescriptor result) =>
+        CONTAINING_LIBRARIES.of(source).toMap((Source library) {
+          LibrarySpecificUnit unit = new LibrarySpecificUnit(library, source);
+          return result.of(unit);
+        });
+    return <String, TaskInput>{
+      DIRECTIVES_ERRORS_INPUT: buildMapLibraryInput(DIRECTIVES_ERRORS),
+      VIEWS_ERRORS_INPUT: buildMapLibraryInput(VIEWS_ERRORS),
+      DART_TEMPLATES_ERRORS_INPUT: buildMapLibraryInput(DART_TEMPLATES_ERRORS)
+    };
+  }
+
+  /**
+   * Create a [AngularDartErrorsTask] based on the given [target] in the given
+   * [context].
+   */
+  static AngularDartErrorsTask createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new AngularDartErrorsTask(context, target);
+  }
+}
 
 /// A task that builds [AbstractDirective]s of a [CompilationUnit].
 class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
