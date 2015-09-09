@@ -10,5 +10,7 @@ dependencies:
   analysis_server: any
   plugin: '^0.1.0'
 dependency_overrides:
+  analyzer:
+     path: ../../sdk/pkg/analyzer
   analysis_server:
-     path: ../../workspace/sdk/pkg/analysis_server
+     path: ../../sdk/pkg/analysis_server

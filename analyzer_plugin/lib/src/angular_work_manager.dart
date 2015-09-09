@@ -13,9 +13,9 @@ import 'package:analyzer/src/generated/engine.dart'
         InternalAnalysisContext;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
-import 'package:analyzer/task/dart.dart';
 
 /**
  * The manager for Angular specific analysis.
@@ -29,8 +29,7 @@ class AngularWorkManager implements WorkManager {
   /**
    * The Dart sources with resolved units.
    */
-  final LinkedHashSet<LibrarySpecificUnit> dartUnitQueue =
-      new LinkedHashSet<LibrarySpecificUnit>();
+  final LinkedHashSet<Source> dartUnitQueue = new LinkedHashSet<Source>();
 
   /**
    * Initialize a newly created manager.
@@ -38,7 +37,8 @@ class AngularWorkManager implements WorkManager {
   AngularWorkManager(this.context) {
     analysisCache.onResultInvalidated.listen((InvalidatedResult result) {
       if (result.descriptor == RESOLVED_UNIT) {
-        dartUnitQueue.remove(result.entry.target);
+        LibrarySpecificUnit unitTarget = result.entry.target;
+        dartUnitQueue.remove(unitTarget.unit);
       }
     });
   }
@@ -65,14 +65,14 @@ class AngularWorkManager implements WorkManager {
   TargetedResult getNextResult() {
     // Try to find a new target to analyze.
     while (dartUnitQueue.isNotEmpty) {
-      LibrarySpecificUnit target = dartUnitQueue.first;
+      Source source = dartUnitQueue.first;
       // Maybe done with this target.
-      if (!_needsComputing(target, ANGULAR_DART_ERRORS)) {
-        dartUnitQueue.remove(target);
+      if (!_needsComputing(source, ANGULAR_DART_ERRORS)) {
+        dartUnitQueue.remove(source);
         continue;
       }
       // Analyze this target.
-      return new TargetedResult(target, ANGULAR_DART_ERRORS);
+      return new TargetedResult(source, ANGULAR_DART_ERRORS);
     }
     // No results to compute.
     return null;
@@ -96,7 +96,7 @@ class AngularWorkManager implements WorkManager {
   void resultsComputed(AnalysisTarget target, Map outputs) {
     if (target is LibrarySpecificUnit) {
       if (outputs.containsKey(RESOLVED_UNIT)) {
-        dartUnitQueue.add(target);
+        dartUnitQueue.add(target.unit);
       }
     }
   }

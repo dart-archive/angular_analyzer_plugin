@@ -48,21 +48,19 @@ class AngularWorkManagerTest {
   }
 
   void test_getNextResult_hasDartUnit() {
-    LibrarySpecificUnit unit = new LibrarySpecificUnit(source1, source2);
-    manager.dartUnitQueue.add(unit);
+    manager.dartUnitQueue.add(source1);
     // new result should be computed
     TargetedResult nextResult = manager.getNextResult();
     expect(nextResult, isNotNull);
-    expect(nextResult.target, unit);
+    expect(nextResult.target, source1);
     expect(nextResult.result, ANGULAR_DART_ERRORS);
   }
 
   void test_getNextResult_hasDartUnit_alreadyComputed() {
-    LibrarySpecificUnit unit = new LibrarySpecificUnit(source1, source2);
     context
-        .getCacheEntry(unit)
+        .getCacheEntry(source1)
         .setValue(ANGULAR_DART_ERRORS, AnalysisError.NO_ERRORS, []);
-    manager.dartUnitQueue.add(unit);
+    manager.dartUnitQueue.add(source1);
     // already computed
     TargetedResult nextResult = manager.getNextResult();
     expect(nextResult, isNull);
@@ -74,8 +72,7 @@ class AngularWorkManagerTest {
   }
 
   void test_getNextResultPriority_hasResolvedDartUnit() {
-    LibrarySpecificUnit unit = new LibrarySpecificUnit(source1, source2);
-    manager.dartUnitQueue.add(unit);
+    manager.dartUnitQueue.add(source1);
     WorkOrderPriority priority = manager.getNextResultPriority();
     expect(priority, WorkOrderPriority.NORMAL);
   }
@@ -87,7 +84,7 @@ class AngularWorkManagerTest {
 
   void test_onResultInvalidated() {
     LibrarySpecificUnit unit = new LibrarySpecificUnit(source1, source2);
-    manager.dartUnitQueue.add(unit);
+    manager.dartUnitQueue.add(source2);
     // invalidate RESOLVED_UNIT
     {
       CacheEntry cacheEntry = context.getCacheEntry(unit);
@@ -101,7 +98,7 @@ class AngularWorkManagerTest {
   void test_resultsComputed() {
     LibrarySpecificUnit unit = new LibrarySpecificUnit(source1, source2);
     manager.resultsComputed(unit, {RESOLVED_UNIT: null});
-    expect(manager.dartUnitQueue, contains(unit));
+    expect(manager.dartUnitQueue, contains(source2));
   }
 }
 
