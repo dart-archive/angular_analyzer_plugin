@@ -5,6 +5,7 @@ import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/context/context.dart';
 import 'package:analyzer/src/generated/element.dart';
+import 'package:analyzer/src/generated/engine.dart' show AnalysisEngine;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -12,6 +13,7 @@ import 'package:analyzer/src/task/driver.dart';
 import 'package:analyzer/src/task/manager.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:angular2_analyzer_plugin/plugin.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
@@ -23,7 +25,6 @@ import 'mock_sdk.dart';
 
 main() {
   groupSep = ' | ';
-  defineReflectiveTests(AngularDartErrorsTaskTest);
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
@@ -49,40 +50,6 @@ View _getViewByClassName(List<View> views, String className) {
     fail('View with the class "$className" was not found.');
     return null;
   });
-}
-
-@reflectiveTest
-class AngularDartErrorsTaskTest extends _AbstractDartTaskTest {
-  void test_perform() {
-    _addAngularSources();
-    Source source = _newSource(
-        '/test.dart',
-        r'''
-import '/angular2/metadata.dart';
-
-@View(template: 'AAA')
-class ViewWithoutComponent {}
-
-@Component(selector: 'UserPanel')
-@View(template: "<name-panel [name]='noSuchGetter'></name-panel>")
-class UserPanel {
-}
-''');
-    _ensureDartAnalyzed(source);
-    _computeResult(source, ANGULAR_DART_ERRORS);
-    expect(task, new isInstanceOf<AngularDartErrorsTask>());
-    // validate
-    _fillErrorListener(ANGULAR_DART_ERRORS);
-    errorListener.assertErrorsWithCodes(<ErrorCode>[
-      AngularWarningCode.COMPONENT_ANNOTATION_MISSING,
-      AngularWarningCode.UNRESOLVED_TAG,
-      StaticWarningCode.UNDEFINED_IDENTIFIER
-    ]);
-  }
-
-  void _ensureDartAnalyzed(Source source) {
-    _computeResult(source, DART_ERRORS);
-  }
 }
 
 @reflectiveTest
@@ -910,6 +877,7 @@ class _AbstractDartTaskTest {
   GatheringErrorListener errorListener = new GatheringErrorListener();
 
   void setUp() {
+    AnalysisEngine.instance.userDefinedPlugins = [new AngularAnalyzerPlugin()];
     emptySource = _newSource('/test.dart');
     // prepare AnalysisContext
     context = new AnalysisContextImpl();
@@ -918,16 +886,11 @@ class _AbstractDartTaskTest {
       new ResourceUriResolver(resourceProvider)
     ]);
     // configure AnalysisDriver
-    // TODO(scheglov) Make tasks pluggable.
-    // TODO(scheglov) Don't change the global instance of TakManager.
     analysisDriver = context.driver;
-    analysisDriver.taskManager
-        .addTaskDescriptor(AngularDartErrorsTask.DESCRIPTOR);
-    analysisDriver.taskManager
-        .addTaskDescriptor(BuildUnitDirectivesTask.DESCRIPTOR);
-    analysisDriver.taskManager.addTaskDescriptor(BuildUnitViewsTask.DESCRIPTOR);
-    analysisDriver.taskManager
-        .addTaskDescriptor(ResolveDartTemplatesTask.DESCRIPTOR);
+  }
+
+  void tearDown() {
+    AnalysisEngine.instance.userDefinedPlugins = null;
   }
 
   void _addAngularSources() {

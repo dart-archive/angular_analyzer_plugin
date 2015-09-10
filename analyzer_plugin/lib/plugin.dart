@@ -22,12 +22,20 @@ class AngularAnalyzerPlugin implements Plugin {
 
   @override
   void registerExtensions(RegisterExtension registerExtension) {
+    // errors for Dart sources
+    {
+      String id = DART_ERRORS_FOR_UNIT_EXTENSION_POINT_ID;
+      registerExtension(id, DIRECTIVES_ERRORS);
+      registerExtension(id, VIEWS_ERRORS);
+      registerExtension(id, DART_TEMPLATES_ERRORS);
+    }
     // tasks
-    String taskId = TASK_EXTENSION_POINT_ID;
-    registerExtension(taskId, AngularDartErrorsTask.DESCRIPTOR);
-    registerExtension(taskId, BuildUnitDirectivesTask.DESCRIPTOR);
-    registerExtension(taskId, BuildUnitViewsTask.DESCRIPTOR);
-    registerExtension(taskId, ResolveDartTemplatesTask.DESCRIPTOR);
+    {
+      String id = TASK_EXTENSION_POINT_ID;
+      registerExtension(id, BuildUnitDirectivesTask.DESCRIPTOR);
+      registerExtension(id, BuildUnitViewsTask.DESCRIPTOR);
+      registerExtension(id, ResolveDartTemplatesTask.DESCRIPTOR);
+    }
     // work manager
     registerExtension(WORK_MANAGER_EXTENSION_POINT_ID,
         (InternalAnalysisContext context) {

@@ -1,7 +1,5 @@
 library angular2.src.analysis.analyzer_plugin.src.angular_work_manager;
 
-import 'dart:collection';
-
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/generated/engine.dart'
     show
@@ -13,9 +11,7 @@ import 'package:analyzer/src/generated/engine.dart'
         InternalAnalysisContext;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
-import 'package:angular2_analyzer_plugin/tasks.dart';
 
 /**
  * The manager for Angular specific analysis.
@@ -27,21 +23,9 @@ class AngularWorkManager implements WorkManager {
   final InternalAnalysisContext context;
 
   /**
-   * The Dart sources with resolved units.
-   */
-  final LinkedHashSet<Source> dartUnitQueue = new LinkedHashSet<Source>();
-
-  /**
    * Initialize a newly created manager.
    */
-  AngularWorkManager(this.context) {
-    analysisCache.onResultInvalidated.listen((InvalidatedResult result) {
-      if (result.descriptor == RESOLVED_UNIT) {
-        LibrarySpecificUnit unitTarget = result.entry.target;
-        dartUnitQueue.remove(unitTarget.unit);
-      }
-    });
-  }
+  AngularWorkManager(this.context);
 
   /**
    * Returns the correctly typed result of `context.analysisCache`.
@@ -57,32 +41,16 @@ class AngularWorkManager implements WorkManager {
 
   @override
   List<AnalysisError> getErrors(Source source) {
-    // TODO: implement getErrors
     return AnalysisError.NO_ERRORS;
   }
 
   @override
   TargetedResult getNextResult() {
-    // Try to find a new target to analyze.
-    while (dartUnitQueue.isNotEmpty) {
-      Source source = dartUnitQueue.first;
-      // Maybe done with this target.
-      if (!_needsComputing(source, ANGULAR_DART_ERRORS)) {
-        dartUnitQueue.remove(source);
-        continue;
-      }
-      // Analyze this target.
-      return new TargetedResult(source, ANGULAR_DART_ERRORS);
-    }
-    // No results to compute.
     return null;
   }
 
   @override
   WorkOrderPriority getNextResultPriority() {
-    if (dartUnitQueue.isNotEmpty) {
-      return WorkOrderPriority.NORMAL;
-    }
     return WorkOrderPriority.NONE;
   }
 
@@ -93,20 +61,5 @@ class AngularWorkManager implements WorkManager {
   void onSourceFactoryChanged() {}
 
   @override
-  void resultsComputed(AnalysisTarget target, Map outputs) {
-    if (target is LibrarySpecificUnit) {
-      if (outputs.containsKey(RESOLVED_UNIT)) {
-        dartUnitQueue.add(target.unit);
-      }
-    }
-  }
-
-  /**
-   * Returns `true` if the given [result] of the given [target] needs
-   * computing, i.e. it is not in the valid and not in the error state.
-   */
-  bool _needsComputing(AnalysisTarget target, ResultDescriptor result) {
-    CacheState state = analysisCache.getState(target, result);
-    return state != CacheState.VALID && state != CacheState.ERROR;
-  }
+  void resultsComputed(AnalysisTarget target, Map outputs) {}
 }
