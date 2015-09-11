@@ -62,6 +62,11 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode UNRESOLVED_TAG =
       const AngularWarningCode('UNRESOLVED_TAG', 'Unresolved tag "{0}"');
 
+  /// An error code indicating that the embedded expression is not terminated.
+  static const AngularWarningCode UNTERMINATED_MUSTACHE =
+      const AngularWarningCode(
+          'UNTERMINATED_MUSTACHE', 'Unterminated mustache');
+
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given
   /// [message] template. The correction associated with the error will be

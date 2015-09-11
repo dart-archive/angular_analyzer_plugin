@@ -163,6 +163,8 @@ class DartTemplateResolver {
             AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
       }
       _resolveAttributeValues(node);
+    }
+    if (node is html.Text) {
       _resolveTextExpressions(node);
     }
     node.nodes.forEach(_resolveNode);
@@ -170,22 +172,27 @@ class DartTemplateResolver {
 
   /// Scan the text of the given [node] and resolve all of its embedded
   /// expressions.
-  void _resolveTextExpressions(html.Element node) {
-    int textOffset = node.sourceSpan.end.offset;
+  void _resolveTextExpressions(html.Text node) {
+    int offset = node.sourceSpan.start.offset;
     String text = node.text;
     int lastEnd = 0;
     while (true) {
+      // begin
       int begin = text.indexOf('{{', lastEnd);
       if (begin == -1) {
         break;
       }
-      begin += 2;
+      // end
       lastEnd = text.indexOf('}}', begin);
       if (lastEnd == -1) {
+        errorListener.onError(new AnalysisError(view.source, offset + begin, 2,
+            AngularWarningCode.UNTERMINATED_MUSTACHE));
         break;
       }
+      // resolve
+      begin += 2;
       String code = text.substring(begin, lastEnd);
-      _resolveExpression(textOffset + begin, code);
+      _resolveExpression(offset + begin, code);
     }
   }
 

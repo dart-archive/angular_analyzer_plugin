@@ -616,6 +616,25 @@ class ComponentA {
         .assertErrorsWithCodes(<ErrorCode>[AngularWarningCode.UNRESOLVED_TAG]);
   }
 
+  void test_htmlParsing_hasError() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel')
+@View(template: r"<div> <h2> Expected closing H2 </h3> </div>")
+class TextPanel {
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // has errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes([HtmlErrorCode.PARSE_ERROR]);
+  }
+
   void test_property_hasError_expression() {
     _addAngularSources();
     String code = r'''
@@ -822,13 +841,36 @@ class ComponentB {
     errorListener.assertNoErrors();
   }
 
+  void test_textExpression_hasError_UnterminatedMustache() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel')
+@View(template: r"<div> {{text </div>")
+class TextPanel {
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
+  }
+
   void test_textExpression_OK() {
     _addAngularSources();
     String code = r'''
 import '/angular2/metadata.dart';
 
 @Component(selector: 'text-panel', properties: const ['text'])
-@View(template: r"<div> {{text}} and {{text.length}} </div>")
+@View(template: r"<div> <h2> {{text}}  </h2> and {{text.length}} </div>")
 class TextPanel {
   String text; // 1
 }
