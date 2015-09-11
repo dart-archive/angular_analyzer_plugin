@@ -13,6 +13,7 @@ import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
+import 'package:analyzer/src/generated/error_verifier.dart';
 
 /// [DartTemplateResolver]s resolve inline [View] templates.
 class DartTemplateResolver {
@@ -57,11 +58,12 @@ class DartTemplateResolver {
   }
 
   void _defineBuiltInVariable(Scope nameScope, DartType type, String name) {
-    ClassElement classElement = view.classElement;
+    MethodElementImpl methodElement = new MethodElementImpl('angularVars', -1);
+    (view.classElement as ElementImpl).encloseElement(methodElement);
     LocalVariableElementImpl localVariable =
         new LocalVariableElementImpl(name, -1);
-    localVariable.type = typeProvider.dynamicType;
-    (classElement as ElementImpl).encloseElement(localVariable);
+    localVariable.type = type;
+    methodElement.encloseElement(localVariable);
     nameScope.define(localVariable);
   }
 
@@ -121,8 +123,9 @@ class DartTemplateResolver {
     Expression expression = _parseDartExpression(offset, code);
     if (expression != null) {
       ClassElement classElement = view.classElement;
+      LibraryElement library = classElement.library;
       ResolverVisitor resolver = new ResolverVisitor(
-          classElement.library, view.source, typeProvider, errorListener);
+          library, view.source, typeProvider, errorListener);
       // fill the name scope
       Scope nameScope = resolver.pushNameScope();
       classElement.methods.forEach(nameScope.define);
@@ -130,6 +133,14 @@ class DartTemplateResolver {
       _defineBuiltInVariable(nameScope, typeProvider.dynamicType, r'$event');
       // do resolve
       expression.accept(resolver);
+      // verify
+      ErrorVerifier verifier = new ErrorVerifier(
+          new ErrorReporter(errorListener, view.source),
+          library,
+          typeProvider,
+          new InheritanceManager(library),
+          false);
+      expression.accept(verifier);
     }
     return expression;
   }

@@ -595,6 +595,57 @@ class ComponentC {
     errorListener.assertNoErrors();
   }
 
+  void test_hasError_expression_ArgumentTypeNotAssignable() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel')
+@View(template: r"<div> {{text.length + text}} </div>")
+class TextPanel {
+  String text;
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // has errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        [StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE]);
+  }
+
+  void test_hasError_expression_UndefinedIdentifier() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel', properties: const ['text'])
+@View(template: r"<div>some text</div>")
+class TextPanel {
+  String text;
+}
+
+@Component(selector: 'UserPanel')
+@View(template: r"""
+<div>
+  <text-panel [text]='noSuchName'></text-panel>
+</div>
+""", directives: [TextPanel])
+class UserPanel {
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // has errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener
+        .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
+  }
+
   void test_hasError_UnresolvedTag() {
     _addAngularSources();
     Source source = _newSource(
@@ -633,36 +684,6 @@ class TextPanel {
     // has errors
     _fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener.assertErrorsWithCodes([HtmlErrorCode.PARSE_ERROR]);
-  }
-
-  void test_property_hasError_expression() {
-    _addAngularSources();
-    String code = r'''
-import '/angular2/metadata.dart';
-
-@Component(selector: 'text-panel', properties: const ['text'])
-@View(template: r"<div>some text</div>")
-class TextPanel {
-  String text;
-}
-
-@Component(selector: 'UserPanel')
-@View(template: r"""
-<div>
-  <text-panel [text]='noSuchName'></text-panel>
-</div>
-""", directives: [TextPanel])
-class UserPanel {
-}
-''';
-    Source source = _newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    _computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // has errors
-    _fillErrorListener(DART_TEMPLATES_ERRORS);
-    errorListener
-        .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
   }
 
   void test_property_OK_event() {
