@@ -1,5 +1,6 @@
 library angular2.src.analysis.analyzer_plugin.src.model;
 
+import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:analyzer/src/generated/element.dart' as dart;
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
@@ -114,7 +115,7 @@ class ResolvedRange {
 }
 
 /// An Angular template.
-/// Templates can be embedded into Dart or be separate HTML files.
+/// Templates can be embedded into Dart.
 class Template {
   static const List<Template> EMPTY_LIST = const <Template>[];
 
@@ -135,8 +136,19 @@ class Template {
   }
 }
 
+/// An Angular template in a HTML file
+class HtmlTemplate extends Template {
+  static const List<HtmlTemplate> EMPTY_LIST = const <HtmlTemplate>[];
+
+  /// The [Source] of the template.
+  final Source source;
+
+  HtmlTemplate(View view, DocumentFragment document, this.source)
+      : super(view, document);
+}
+
 /// The model of an Angular view.
-class View {
+class View implements AnalysisTarget {
   static const List<View> EMPTY_LIST = const <View>[];
 
   /// The [ClassElement] this view is associated with.
@@ -146,13 +158,13 @@ class View {
   final List<AbstractDirective> directives;
   final String templateText;
   final int templateOffset;
-  final String templateUrl;
+  final Source templateSource;
 
   /// The [Template] of this view, `null` until built.
   Template template;
 
   View(this.classElement, this.component, this.directives,
-      {this.templateText, this.templateOffset: 0, this.templateUrl});
+      {this.templateText, this.templateOffset: 0, this.templateSource});
 
   /// The source that contains this view.
   Source get source => classElement.source;

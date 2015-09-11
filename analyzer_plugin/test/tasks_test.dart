@@ -28,6 +28,8 @@ main() {
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
+  defineReflectiveTests(ResolveHtmlTemplateTaskTest);
+  defineReflectiveTests(ResolveViewsTaskTest);
 }
 
 Component _getComponentByClassName(
@@ -342,6 +344,11 @@ class ComponentA {
 
   void test_hasTemplate() {
     _addAngularSources();
+    _newSource(
+        '/compB.html',
+        r'''
+BBB''');
+
     Source source = _newSource(
         '/test.dart',
         r'''
@@ -372,7 +379,7 @@ class ComponentB {
     {
       View view = _getViewByClassName(views, 'ComponentA');
       expect(view.templateText, 'AAA');
-      expect(view.templateUrl, isNull);
+      expect(view.templateSource, isNull);
       expect(view.directives, isEmpty);
       expect(
           view.component, _getComponentByClassName(directives, 'ComponentA'));
@@ -380,12 +387,20 @@ class ComponentB {
     {
       View view = _getViewByClassName(views, 'ComponentB');
       expect(view.templateText, isNull);
-      expect(view.templateUrl, 'compB.html');
+      expect(view.templateSource, isNotNull);
+      expect(view.templateSource.contents.data, 'BBB');
       expect(view.directives, hasLength(2));
       List<String> directiveNames = view.directives
           .map((directive) => directive.classElement.name)
           .toList();
       expect(directiveNames, unorderedEquals(['ComponentA', 'DirectiveA']));
+    }
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    expect(templateViews, hasLength(1));
+    {
+      View view = templateViews[0];
+      expect(view.templateSource, isNotNull);
+      expect(view.templateSource.contents.data, 'BBB');
     }
   }
 }
@@ -979,6 +994,91 @@ class TextPanel {
       fail('ResolvedRange at $offset was not found.');
       return null;
     });
+  }
+}
+
+@reflectiveTest
+class ResolveHtmlTemplateTaskTest extends _AbstractDartTaskTest {
+  void test_hasViewWithTemplate() {
+    _addAngularSources();
+    Source source = _newSource(
+        '/test.dart',
+        r'''
+import 'dart:html';
+import '/angular2/metadata.dart';
+
+@Component(selector: 'UserPanel')
+@View(templateUrl:'compB.html')
+class TodoList {
+  doneTyping(KeyboardEvent event) {}
+}
+''');
+
+    _newSource(
+        '/compB.html',
+        r"""
+<div>
+ <input (keyup)='doneTyping($event)'>
+</div>
+""");
+
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    expect(templateViews, hasLength(1));
+    {
+      View view = templateViews[0];
+      expect(view.templateSource, isNotNull);
+      expect(view.templateSource.contents.data, contains('doneTyping'));
+
+      _computeResult(view, HTML_TEMPLATE);
+      expect(task, new isInstanceOf<ResolveHtmlTemplateTask>());
+      Template template = outputs[HTML_TEMPLATE];
+      expect(template, isNotNull);
+      expect(template.view, view);
+      expect(template.ranges, hasLength(2));
+    }
+  }
+}
+
+@reflectiveTest
+class ResolveViewsTaskTest extends _AbstractDartTaskTest {
+  void test_getTemplate() {
+    _addAngularSources();
+    Source source = _newSource(
+        '/test.dart',
+        r'''
+import 'dart:html';
+import '/angular2/metadata.dart';
+
+@Component(selector: 'UserPanel')
+@View(templateUrl:'todoList.html')
+class TodoList {
+  doneTyping(KeyboardEvent event) {}
+}
+''');
+
+    _newSource(
+        '/todoList.html',
+        r"""
+<div>
+ <input (keyup)='doneTyping($event)'>
+</div>
+""");
+
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, ALL_HTML_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveViewsTask>());
+    // validate
+    {
+      List<Template> templates = outputs[ALL_HTML_TEMPLATES];
+
+      expect(templates, hasLength(1));
+      expect(templates[0].ranges, hasLength(2));
+      expect(templates[0].ranges[0].element.name, 'doneTyping');
+    }
   }
 }
 
