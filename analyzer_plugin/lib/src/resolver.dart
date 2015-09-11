@@ -163,8 +163,30 @@ class DartTemplateResolver {
             AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
       }
       _resolveAttributeValues(node);
+      _resolveTextExpressions(node);
     }
     node.nodes.forEach(_resolveNode);
+  }
+
+  /// Scan the text of the given [node] and resolve all of its embedded
+  /// expressions.
+  void _resolveTextExpressions(html.Element node) {
+    int textOffset = node.sourceSpan.end.offset;
+    String text = node.text;
+    int lastEnd = 0;
+    while (true) {
+      int begin = text.indexOf('{{', lastEnd);
+      if (begin == -1) {
+        break;
+      }
+      begin += 2;
+      lastEnd = text.indexOf('}}', begin);
+      if (lastEnd == -1) {
+        break;
+      }
+      String code = text.substring(begin, lastEnd);
+      _resolveExpression(textOffset + begin, code);
+    }
   }
 
   /// Scan the given Dart [code] that starts at [offset].

@@ -822,6 +822,64 @@ class ComponentB {
     errorListener.assertNoErrors();
   }
 
+  void test_textExpression_OK() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel', properties: const ['text'])
+@View(template: r"<div> {{text}} and {{text.length}} </div>")
+class TextPanel {
+  String text; // 1
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    {
+      Template template = _getDartTemplateByClassName(templates, 'TextPanel');
+      List<ResolvedRange> ranges = template.ranges;
+      expect(ranges, hasLength(3));
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'text}}');
+        expect(resolvedRange.range.length, 'text'.length);
+        PropertyAccessorElement element =
+            (resolvedRange.element as DartElement).element;
+        expect(element.isGetter, isTrue);
+        expect(element.name, 'text');
+        expect(element.nameOffset, code.indexOf('text; // 1'));
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'text.length');
+        expect(resolvedRange.range.length, 'text'.length);
+        PropertyAccessorElement element =
+            (resolvedRange.element as DartElement).element;
+        expect(element.isGetter, isTrue);
+        expect(element.name, 'text');
+        expect(element.nameOffset, code.indexOf('text; // 1'));
+      }
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(code, ranges, 'length}}');
+        expect(resolvedRange.range.length, 'length'.length);
+        PropertyAccessorElement element =
+            (resolvedRange.element as DartElement).element;
+        expect(element.isGetter, isTrue);
+        expect(element.name, 'length');
+        expect(element.enclosingElement.name, 'String');
+      }
+    }
+    // no errors
+    _fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   static void assertComponentReference(
       ResolvedRange resolvedRange, Component component) {
     ElementNameSelector selector = component.selector;
