@@ -32,6 +32,14 @@ main() {
   defineReflectiveTests(ResolveViewsTaskTest);
 }
 
+PropertyAccessorElement _assertPropertyAccessorElement(
+    ResolvedRange resolvedRange) {
+  PropertyAccessorElement element =
+      (resolvedRange.element as DartElement).element;
+  expect(element.isGetter, isTrue);
+  return element;
+}
+
 Component _getComponentByClassName(
     List<AbstractDirective> directives, String className) {
   return _getDirectiveByClassName(directives, className);
@@ -42,6 +50,15 @@ AbstractDirective _getDirectiveByClassName(
   return directives.firstWhere(
       (directive) => directive.classElement.name == className, orElse: () {
     fail('DirectiveMetadata with the class "$className" was not found.');
+    return null;
+  });
+}
+
+ResolvedRange _getResolvedRangeAtString(
+    String code, List<ResolvedRange> ranges, String str) {
+  int offset = code.indexOf(str);
+  return ranges.firstWhere((_) => _.range.offset == offset, orElse: () {
+    fail('ResolvedRange at $offset was not found.');
     return null;
   });
 }
@@ -927,8 +944,7 @@ class TextPanel {
             _getResolvedRangeAtString(code, ranges, 'text}}');
         expect(resolvedRange.range.length, 'text'.length);
         PropertyAccessorElement element =
-            (resolvedRange.element as DartElement).element;
-        expect(element.isGetter, isTrue);
+            _assertPropertyAccessorElement(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, code.indexOf('text; // 1'));
       }
@@ -937,8 +953,7 @@ class TextPanel {
             _getResolvedRangeAtString(code, ranges, 'text.length');
         expect(resolvedRange.range.length, 'text'.length);
         PropertyAccessorElement element =
-            (resolvedRange.element as DartElement).element;
-        expect(element.isGetter, isTrue);
+            _assertPropertyAccessorElement(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, code.indexOf('text; // 1'));
       }
@@ -947,8 +962,7 @@ class TextPanel {
             _getResolvedRangeAtString(code, ranges, 'length}}');
         expect(resolvedRange.range.length, 'length'.length);
         PropertyAccessorElement element =
-            (resolvedRange.element as DartElement).element;
-        expect(element.isGetter, isTrue);
+            _assertPropertyAccessorElement(resolvedRange);
         expect(element.name, 'length');
         expect(element.enclosingElement.name, 'String');
       }
@@ -986,59 +1000,56 @@ class TextPanel {
       return null;
     });
   }
-
-  static ResolvedRange _getResolvedRangeAtString(
-      String code, List<ResolvedRange> ranges, String str) {
-    int offset = code.indexOf(str);
-    return ranges.firstWhere((_) => _.range.offset == offset, orElse: () {
-      fail('ResolvedRange at $offset was not found.');
-      return null;
-    });
-  }
 }
 
 @reflectiveTest
 class ResolveHtmlTemplateTaskTest extends _AbstractDartTaskTest {
   void test_hasViewWithTemplate() {
     _addAngularSources();
-    Source source = _newSource(
-        '/test.dart',
-        r'''
-import 'dart:html';
+    String dartCode = r'''
 import '/angular2/metadata.dart';
 
-@Component(selector: 'UserPanel')
-@View(templateUrl:'compB.html')
-class TodoList {
-  doneTyping(KeyboardEvent event) {}
+@Component(selector: 'text-panel')
+@View(templateUrl: 'text_panel.html')
+class TextPanel {
+  String text; // 1
 }
-''');
-
-    _newSource(
-        '/compB.html',
-        r"""
+''';
+    String htmlCode = r"""
 <div>
- <input (keyup)='doneTyping($event)'>
+  {{text}}
 </div>
-""");
-
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+""";
+    Source dartSource = _newSource('/test.dart', dartCode);
+    _newSource('/text_panel.html', htmlCode);
+    // compute
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
     _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
     expect(task, new isInstanceOf<BuildUnitViewsTask>());
     // validate
-    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
-    expect(templateViews, hasLength(1));
+    List<View> views = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    expect(views, hasLength(1));
     {
-      View view = templateViews[0];
+      View view = _getViewByClassName(views, 'TextPanel');
       expect(view.templateSource, isNotNull);
-      expect(view.templateSource.contents.data, contains('doneTyping'));
-
+      // resolve this View
       _computeResult(view, HTML_TEMPLATE);
       expect(task, new isInstanceOf<ResolveHtmlTemplateTask>());
+      expect(
+          outputs.keys, unorderedEquals([HTML_TEMPLATE, HTML_TEMPLATE_ERRORS]));
       Template template = outputs[HTML_TEMPLATE];
       expect(template, isNotNull);
       expect(template.view, view);
-      expect(template.ranges, hasLength(2));
+      expect(template.ranges, hasLength(1));
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
+        PropertyAccessorElement element =
+            _assertPropertyAccessorElement(resolvedRange);
+        expect(element.name, 'text');
+        expect(element.nameOffset, dartCode.indexOf('text; // 1'));
+      }
     }
   }
 }

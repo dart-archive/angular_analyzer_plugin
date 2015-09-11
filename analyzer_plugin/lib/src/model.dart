@@ -1,11 +1,11 @@
 library angular2.src.analysis.analyzer_plugin.src.model;
 
-import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:analyzer/src/generated/element.dart' as dart;
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
+import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:html/dom.dart' show DocumentFragment;
+import 'package:html/dom.dart' as html;
 
 /// An abstract model of an Angular directive.
 abstract class AbstractDirective {
@@ -84,6 +84,17 @@ class Directive extends AbstractDirective {
       : super(classElement, selector: selector, properties: properties);
 }
 
+/// An Angular template in a HTML file
+class HtmlTemplate extends Template {
+  static const List<HtmlTemplate> EMPTY_LIST = const <HtmlTemplate>[];
+
+  /// The [Source] of the template.
+  final Source source;
+
+  HtmlTemplate(View view, html.Element element, this.source)
+      : super(view, element);
+}
+
 /// The model for an Angular property.
 class PropertyElement extends AngularElementImpl {
   static const List<PropertyElement> EMPTY_LIST = const <PropertyElement>[];
@@ -122,29 +133,18 @@ class Template {
   /// The [View] that describes the template.
   final View view;
 
-  /// The [Document] of the template.
-  final DocumentFragment document;
+  /// The [html.Element] of the template.
+  final html.Element element;
 
   /// The [ResolvedRange]s of the template.
   final List<ResolvedRange> ranges = <ResolvedRange>[];
 
-  Template(this.view, this.document);
+  Template(this.view, this.element);
 
   /// Records that the given [element] is referenced at the given [range].
   void addRange(SourceRange range, AngularElement element) {
     ranges.add(new ResolvedRange(range, element));
   }
-}
-
-/// An Angular template in a HTML file
-class HtmlTemplate extends Template {
-  static const List<HtmlTemplate> EMPTY_LIST = const <HtmlTemplate>[];
-
-  /// The [Source] of the template.
-  final Source source;
-
-  HtmlTemplate(View view, DocumentFragment document, this.source)
-      : super(view, document);
 }
 
 /// The model of an Angular view.

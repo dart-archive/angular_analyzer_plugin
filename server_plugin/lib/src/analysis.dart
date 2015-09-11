@@ -1,7 +1,7 @@
 library angular2.src.analysis.server_plugin.index;
 
 import 'package:analysis_server/analysis/analysis_domain.dart';
-import 'package:analysis_server/analysis/navigation/navigation_core.dart';
+import 'package:analysis_server/analysis/navigation_core.dart';
 import 'package:analysis_server/src/protocol.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';

@@ -9,11 +9,18 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
+import 'package:analyzer/task/html.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
+import 'package:html/dom.dart' as html;
+
+/// The [HtmlTemplate]s of a resolved [View]s
+final ListResultDescriptor<HtmlTemplate> ALL_HTML_TEMPLATES =
+    new ListResultDescriptor<HtmlTemplate>(
+        'ALL_HTML_TEMPLATES', HtmlTemplate.EMPTY_LIST);
 
 /// The [Template]s of a [LibrarySpecificUnit].
 /// This result is produced for templates specified directly in Dart files.
@@ -26,22 +33,6 @@ final ListResultDescriptor<Template> DART_TEMPLATES =
 final ListResultDescriptor<AnalysisError> DART_TEMPLATES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'DART_TEMPLATES_ERRORS', AnalysisError.NO_ERRORS);
-
-/// The [HtmlTemplate] of a HTML [Source].
-/// This result is produced for templates in html files
-final ResultDescriptor<HtmlTemplate> HTML_TEMPLATE =
-    new ResultDescriptor('ANGULAR_HTML_TEMPLATE', null);
-
-/// The errors produced while building a [HTML_TEMPLATE].
-/// This result is produced for templates specified in html files.
-final ListResultDescriptor<AnalysisError> HTML_TEMPLATE_ERRORS =
-    new ListResultDescriptor<AnalysisError>(
-        'HTML_TEMPLATE_ERRORS', AnalysisError.NO_ERRORS);
-
-/// The [HtmlTemplate]s of a resolved [View]s
-final ListResultDescriptor<HtmlTemplate> ALL_HTML_TEMPLATES =
-    new ListResultDescriptor<HtmlTemplate>(
-        'ALL_HTML_TEMPLATES', HtmlTemplate.EMPTY_LIST);
 
 /// The Angular [AbstractDirective]s of a [LibrarySpecificUnit].
 final ListResultDescriptor<AbstractDirective> DIRECTIVES =
@@ -57,14 +48,20 @@ final ListResultDescriptor<AnalysisError> DIRECTIVES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_DIRECTIVES_ERRORS', AnalysisError.NO_ERRORS);
 
+/// The [HtmlTemplate] of a HTML [Source].
+/// This result is produced for templates in html files
+final ResultDescriptor<HtmlTemplate> HTML_TEMPLATE =
+    new ResultDescriptor('ANGULAR_HTML_TEMPLATE', null);
+
+/// The errors produced while building a [HTML_TEMPLATE].
+/// This result is produced for templates specified in html files.
+final ListResultDescriptor<AnalysisError> HTML_TEMPLATE_ERRORS =
+    new ListResultDescriptor<AnalysisError>(
+        'HTML_TEMPLATE_ERRORS', AnalysisError.NO_ERRORS);
+
 /// The [View]s of a [LibrarySpecificUnit].
 final ListResultDescriptor<View> VIEWS =
     new ListResultDescriptor<View>('ANGULAR_VIEWS', View.EMPTY_LIST);
-
-/// The [View]s with templates in separate HTML files.
-final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
-    new ListResultDescriptor<View>(
-        'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /// The errors produced while building [VIEWS].
 ///
@@ -74,6 +71,11 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
 final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'VIEWS_ERRORS', AnalysisError.NO_ERRORS);
+
+/// The [View]s with templates in separate HTML files.
+final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
+    new ListResultDescriptor<View>(
+        'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /// A task that builds [AbstractDirective]s of a [CompilationUnit].
 class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
@@ -416,57 +418,6 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   }
 }
 
-/// A task that resolves a [HtmlTemplate] of a [Source].
-class ResolveHtmlTemplateTask extends SourceBasedAnalysisTask {
-  static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
-
-  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
-      'ResolveHtmlTemplateTask',
-      createTask,
-      buildInputs,
-      <ResultDescriptor>[HTML_TEMPLATE, HTML_TEMPLATE_ERRORS]);
-
-  RecordingErrorListener errorListener = new RecordingErrorListener();
-
-  ResolveHtmlTemplateTask(AnalysisContext context, AnalysisTarget target)
-      : super(context, target);
-
-  @override
-  TaskDescriptor get descriptor => DESCRIPTOR;
-
-  @override
-  void internalPerform() {
-    //
-    // Prepare inputs.
-    //
-    TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
-
-    View view = target;
-    Template template = new HtmlTemplateResolver(
-        typeProvider, view.templateSource, view, errorListener).resolve();
-    //
-    // Record outputs.
-    //
-    outputs[HTML_TEMPLATE] = template;
-    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors;
-  }
-
-  /// Return a map from the names of the inputs of this kind of task to the
-  /// task input descriptors describing those inputs for a task with the
-  /// given [target].
-  static Map<String, TaskInput> buildInputs(View target) {
-    return <String, TaskInput>{
-      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
-    };
-  }
-
-  /// Create a task based on the given [target] in the given [context].
-  static ResolveHtmlTemplateTask createTask(
-      AnalysisContext context, View target) {
-    return new ResolveHtmlTemplateTask(context, target);
-  }
-}
-
 /// A task that builds [Template]s of a [LibrarySpecificUnit].
 class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
@@ -500,7 +451,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     for (View view in views) {
       if (view.templateText != null) {
         Template template = new DartTemplateResolver(
-            typeProvider, view, errorListener).resolve();
+            typeProvider, errorListener, view).resolve();
         if (template != null) {
           templates.add(template);
         }
@@ -527,6 +478,62 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static ResolveDartTemplatesTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new ResolveDartTemplatesTask(context, target);
+  }
+}
+
+/// A task that resolves a [HtmlTemplate] of a [Source].
+class ResolveHtmlTemplateTask extends SourceBasedAnalysisTask {
+  static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
+  static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'ResolveHtmlTemplateTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[HTML_TEMPLATE, HTML_TEMPLATE_ERRORS]);
+
+  RecordingErrorListener errorListener = new RecordingErrorListener();
+
+  ResolveHtmlTemplateTask(AnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  void internalPerform() {
+    //
+    // Prepare inputs.
+    //
+    TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
+    html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
+    //
+    // Resolve.
+    //
+    View view = target;
+    Template template = new HtmlTemplateResolver(
+        typeProvider, errorListener, view, document).resolve();
+    //
+    // Record outputs.
+    //
+    outputs[HTML_TEMPLATE] = template;
+    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors;
+  }
+
+  /// Return a map from the names of the inputs of this kind of task to the
+  /// task input descriptors describing those inputs for a task with the
+  /// given [target].
+  static Map<String, TaskInput> buildInputs(View target) {
+    return <String, TaskInput>{
+      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
+      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateSource),
+    };
+  }
+
+  /// Create a task based on the given [target] in the given [context].
+  static ResolveHtmlTemplateTask createTask(
+      AnalysisContext context, View target) {
+    return new ResolveHtmlTemplateTask(context, target);
   }
 }
 
