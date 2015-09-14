@@ -11,6 +11,8 @@ import 'package:analyzer/src/generated/engine.dart'
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/src/angular_work_manager.dart';
+import 'package:angular2_analyzer_plugin/src/model.dart';
+import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';
@@ -52,6 +54,38 @@ class AngularWorkManagerTest {
   void test_getNextResultPriority_none() {
     WorkOrderPriority priority = manager.getNextResultPriority();
     expect(priority, WorkOrderPriority.NONE);
+  }
+
+  void test_resultsComputed_viewsWithHtmlTemplates() {
+    Source templateSource = source2;
+    var view1 = new View(null, null, [], templateSource: templateSource);
+    var view2 = new View(null, null, [], templateSource: templateSource);
+    var view3 = new View(null, null, [], templateSource: templateSource);
+    // no views for "source2"
+    expect(cache.getValue(templateSource, TEMPLATE_VIEWS), isEmpty);
+    // add "view1"
+    manager.resultsComputed(source1, {
+      VIEWS_WITH_HTML_TEMPLATES: [view1]
+    });
+    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+        unorderedEquals([view1]));
+    // add "view2" from "source3"
+    entry3.setValue(VIEWS_WITH_HTML_TEMPLATES, [view2], []);
+    manager.resultsComputed(source3, {
+      VIEWS_WITH_HTML_TEMPLATES: [view2]
+    });
+    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+        unorderedEquals([view1, view2]));
+    // add "view3"
+    manager.resultsComputed(source1, {
+      VIEWS_WITH_HTML_TEMPLATES: [view3]
+    });
+    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+        unorderedEquals([view1, view2, view3]));
+    // invalidate [view2]
+    entry3.setState(VIEWS_WITH_HTML_TEMPLATES, CacheState.INVALID);
+    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+        unorderedEquals([view1, view3]));
   }
 }
 

@@ -29,14 +29,19 @@ class AngularAnalyzerPlugin implements Plugin {
       registerExtension(id, VIEWS_ERRORS);
       registerExtension(id, DART_TEMPLATES_ERRORS);
     }
+    // errors for HTML sources
+    {
+      String id = HTML_ERRORS_EXTENSION_POINT_ID;
+      registerExtension(id, HTML_TEMPLATES_ERRORS);
+    }
     // tasks
     {
       String id = TASK_EXTENSION_POINT_ID;
       registerExtension(id, BuildUnitDirectivesTask.DESCRIPTOR);
       registerExtension(id, BuildUnitViewsTask.DESCRIPTOR);
       registerExtension(id, ResolveDartTemplatesTask.DESCRIPTOR);
+      registerExtension(id, ResolveHtmlTemplatesTask.DESCRIPTOR);
       registerExtension(id, ResolveHtmlTemplateTask.DESCRIPTOR);
-      registerExtension(id, ResolveViewsTask.DESCRIPTOR);
     }
     // work manager
     registerExtension(WORK_MANAGER_EXTENSION_POINT_ID,

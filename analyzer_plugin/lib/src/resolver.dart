@@ -91,8 +91,9 @@ class HtmlTemplateResolver {
   HtmlTemplateResolver(
       this.typeProvider, this.errorListener, this.view, this.document);
 
-  Template resolve() {
-    Template template = new Template(view, _firstElement(document));
+  HtmlTemplate resolve() {
+    HtmlTemplate template =
+        new HtmlTemplate(view, _firstElement(document), view.templateSource);
     view.template = template;
     new TemplateResolver(typeProvider, errorListener).resolve(template);
     return template;

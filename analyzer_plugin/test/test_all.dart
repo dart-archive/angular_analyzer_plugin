@@ -9,7 +9,7 @@ import 'tasks_test.dart' as tasks_test;
 main() {
   groupSep = ' | ';
   group('Angular tests', () {
-    tasks_test.main();
     angular_work_manager_test.main();
+    tasks_test.main();
   });
 }

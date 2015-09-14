@@ -12,6 +12,8 @@ import 'package:analyzer/src/generated/engine.dart'
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:angular2_analyzer_plugin/src/model.dart';
+import 'package:angular2_analyzer_plugin/src/tasks.dart';
 
 /**
  * The manager for Angular specific analysis.
@@ -25,7 +27,16 @@ class AngularWorkManager implements WorkManager {
   /**
    * Initialize a newly created manager.
    */
-  AngularWorkManager(this.context);
+  AngularWorkManager(this.context) {
+    analysisCache.onResultInvalidated.listen((InvalidatedResult result) {
+      if (result.descriptor == VIEWS_WITH_HTML_TEMPLATES) {
+        List<View> views = result.value;
+        for (View view in views) {
+          _updateTemplateViews(view, false);
+        }
+      }
+    });
+  }
 
   /**
    * Returns the correctly typed result of `context.analysisCache`.
@@ -61,5 +72,28 @@ class AngularWorkManager implements WorkManager {
   void onSourceFactoryChanged() {}
 
   @override
-  void resultsComputed(AnalysisTarget target, Map outputs) {}
+  void resultsComputed(AnalysisTarget target, Map outputs) {
+    List<View> newViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    if (newViews != null) {
+      for (View newView in newViews) {
+        _updateTemplateViews(newView, true);
+      }
+    }
+  }
+
+  void _updateTemplateViews(View view, bool addView) {
+    Source templateSource = view.templateSource;
+    if (templateSource != null) {
+      CacheEntry templateEntry = context.getCacheEntry(templateSource);
+      // incrementally update the list of the template views
+      List<View> templateViews = templateEntry.getValue(TEMPLATE_VIEWS);
+      templateViews = templateViews.toList();
+      if (addView) {
+        templateViews.add(view);
+      } else {
+        templateViews.remove(view);
+      }
+      templateEntry.setValueIncremental(TEMPLATE_VIEWS, templateViews);
+    }
+  }
 }

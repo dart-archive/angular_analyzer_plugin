@@ -28,8 +28,8 @@ main() {
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
+  defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplateTaskTest);
-  defineReflectiveTests(ResolveViewsTaskTest);
 }
 
 PropertyAccessorElement _assertPropertyAccessorElement(
@@ -1003,6 +1003,73 @@ class TextPanel {
 }
 
 @reflectiveTest
+class ResolveHtmlTemplatesTaskTest extends _AbstractDartTaskTest {
+  void test_multipleViewsWithTemplate() {
+    _addAngularSources();
+    String dartCode = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panelA')
+@View(templateUrl: 'text_panel.html')
+class TextPanelA {
+  String text; // A
+}
+
+@Component(selector: 'text-panelB')
+@View(templateUrl: 'text_panel.html')
+class TextPanelB {
+  String text; // B
+}
+''';
+    String htmlCode = r"""
+<div>
+  {{text}}
+</div>
+""";
+    Source dartSource = _newSource('/test.dart', dartCode);
+    Source htmlSource = _newSource('/text_panel.html', htmlCode);
+    // compute views, so that we have the TEMPLATE_VIEWS result
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    // compute Angular templates
+    _computeResult(htmlSource, HTML_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveHtmlTemplatesTask>());
+    // validate
+    List<HtmlTemplate> templates = outputs[HTML_TEMPLATES];
+    expect(templates, hasLength(2));
+    // validate templates
+    bool hasTextPanelA = false;
+    bool hasTextPanelB = false;
+    for (HtmlTemplate template in templates) {
+      String viewClassName = template.view.classElement.name;
+      String textTargetPattern;
+      if (viewClassName == 'TextPanelA') {
+        hasTextPanelA = true;
+        textTargetPattern = 'text; // A';
+      }
+      if (viewClassName == 'TextPanelB') {
+        hasTextPanelB = true;
+        textTargetPattern = 'text; // B';
+      }
+      expect(template.ranges, hasLength(1));
+      {
+        ResolvedRange resolvedRange =
+            _getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
+        PropertyAccessorElement element =
+            _assertPropertyAccessorElement(resolvedRange);
+        expect(element.name, 'text');
+        expect(element.nameOffset, dartCode.indexOf(textTargetPattern));
+      }
+    }
+    expect(hasTextPanelA, isTrue);
+    expect(hasTextPanelB, isTrue);
+  }
+}
+
+@reflectiveTest
 class ResolveHtmlTemplateTaskTest extends _AbstractDartTaskTest {
   void test_hasViewWithTemplate() {
     _addAngularSources();
@@ -1050,45 +1117,6 @@ class TextPanel {
         expect(element.name, 'text');
         expect(element.nameOffset, dartCode.indexOf('text; // 1'));
       }
-    }
-  }
-}
-
-@reflectiveTest
-class ResolveViewsTaskTest extends _AbstractDartTaskTest {
-  void test_getTemplate() {
-    _addAngularSources();
-    Source source = _newSource(
-        '/test.dart',
-        r'''
-import 'dart:html';
-import '/angular2/metadata.dart';
-
-@Component(selector: 'UserPanel')
-@View(templateUrl:'todoList.html')
-class TodoList {
-  doneTyping(KeyboardEvent event) {}
-}
-''');
-
-    _newSource(
-        '/todoList.html',
-        r"""
-<div>
- <input (keyup)='doneTyping($event)'>
-</div>
-""");
-
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    _computeResult(target, ALL_HTML_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveViewsTask>());
-    // validate
-    {
-      List<Template> templates = outputs[ALL_HTML_TEMPLATES];
-
-      expect(templates, hasLength(1));
-      expect(templates[0].ranges, hasLength(2));
-      expect(templates[0].ranges[0].element.name, 'doneTyping');
     }
   }
 }
