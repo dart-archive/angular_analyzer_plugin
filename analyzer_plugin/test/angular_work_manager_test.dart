@@ -28,10 +28,10 @@ class AngularWorkManagerTest {
   AnalysisCache cache;
   AngularWorkManager manager;
 
-  Source source1 = new _MockSource('1.dart');
-  Source source2 = new _MockSource('2.dart');
-  Source source3 = new _MockSource('3.dart');
-  Source source4 = new _MockSource('4.dart');
+  Source source1 = new _MockSource('1.html');
+  Source source2 = new _MockSource('2.html');
+  Source source3 = new _MockSource('3.html');
+  Source source4 = new _MockSource('4.html');
   CacheEntry entry1;
   CacheEntry entry2;
   CacheEntry entry3;
@@ -44,6 +44,12 @@ class AngularWorkManagerTest {
     entry2 = context.getCacheEntry(source2);
     entry3 = context.getCacheEntry(source3);
     entry4 = context.getCacheEntry(source4);
+  }
+
+  void test_applyChange_addHtml_emptyTemplateViews() {
+    manager.applyChange(<Source>[source1], [], []);
+    expect(entry1.getState(TEMPLATE_VIEWS), CacheState.VALID);
+    expect(entry1.getValue(TEMPLATE_VIEWS), isEmpty);
   }
 
   void test_getNextResult_null() {
@@ -115,21 +121,12 @@ class _InternalAnalysisContextMock extends TypedMock
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _MockSource extends _StringTypedMock implements Source {
-  _MockSource([String name = 'mocked.dart']) : super(name);
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _StringTypedMock extends TypedMock {
-  String _toString;
-
-  _StringTypedMock(this._toString);
-
+class _MockSource extends TypedMock implements Source {
+  final String shortName;
+  _MockSource(this.shortName);
   @override
-  String toString() {
-    if (_toString != null) {
-      return _toString;
-    }
-    return super.toString();
-  }
+  String get fullName => '/' + shortName;
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  @override
+  String toString() => fullName;
 }

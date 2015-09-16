@@ -5,7 +5,8 @@ import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/context/context.dart';
 import 'package:analyzer/src/generated/element.dart';
-import 'package:analyzer/src/generated/engine.dart' show AnalysisEngine;
+import 'package:analyzer/src/generated/engine.dart'
+    show AnalysisEngine, ChangeSet;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -1066,6 +1067,48 @@ class TextPanelB {
     }
     expect(hasTextPanelA, isTrue);
     expect(hasTextPanelB, isTrue);
+  }
+
+  void test_priorityHtmlTemplate() {
+    _addAngularSources();
+    String dartCode = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel')
+@View(templateUrl: 'text_panel.html')
+class TextPanel {}
+''';
+    String htmlCode = '<div></div>';
+    Source dartSource = _newSource('/test.dart', dartCode);
+    Source htmlSource = _newSource('/text_panel.html', htmlCode);
+    context.applyChanges(
+        new ChangeSet()..addedSource(dartSource)..addedSource(htmlSource));
+    context.analysisPriorityOrder = <Source>[htmlSource];
+    // analyze all
+    _analyzeAll_assertFinished();
+    // success
+    CacheEntry htmlEntry = context.getCacheEntry(htmlSource);
+    expect(htmlEntry.exception, isNull);
+    // has HTML_TEMPLATES with 1 item
+    List<HtmlTemplate> templates = htmlEntry.getValue(HTML_TEMPLATES);
+    expect(templates, hasLength(1));
+  }
+
+  /**
+   * Perform analysis tasks up to [maxIterations] times and assert that it
+   * was enough.
+   */
+  void _analyzeAll_assertFinished([int maxIterations = 512]) {
+    for (int i = 0; i < maxIterations; i++) {
+      var notice = context.performAnalysisTask().changeNotices;
+      if (notice == null) {
+        bool inconsistent = context.validateCacheConsistency();
+        if (!inconsistent) {
+          return;
+        }
+      }
+    }
+    fail("performAnalysisTask failed to terminate after analyzing all sources");
   }
 }
 

@@ -45,7 +45,14 @@ class AngularWorkManager implements WorkManager {
 
   @override
   void applyChange(List<Source> addedSources, List<Source> changedSources,
-      List<Source> removedSources) {}
+      List<Source> removedSources) {
+    for (Source source in addedSources) {
+      if (_isHtmlSource(source)) {
+        CacheEntry entry = context.getCacheEntry(source);
+        entry.setValueIncremental(TEMPLATE_VIEWS, <View>[]);
+      }
+    }
+  }
 
   @override
   void applyPriorityTargets(List<AnalysisTarget> targets) {}
@@ -95,5 +102,12 @@ class AngularWorkManager implements WorkManager {
       }
       templateEntry.setValueIncremental(TEMPLATE_VIEWS, templateViews);
     }
+  }
+
+  /**
+   * Return `true` if the given target is an HTML source.
+   */
+  static bool _isHtmlSource(AnalysisTarget target) {
+    return target is Source && AnalysisEngine.isHtmlFileName(target.fullName);
   }
 }
