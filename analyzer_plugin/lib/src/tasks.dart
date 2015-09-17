@@ -61,7 +61,7 @@ final ListResultDescriptor<AnalysisError> HTML_TEMPLATE_ERRORS =
 ///
 /// This result is produced for HTML [Source]s.
 final ListResultDescriptor<HtmlTemplate> HTML_TEMPLATES =
-    new ListResultDescriptor('ANGULAR_HTML_TEMPLATES', null);
+    new ListResultDescriptor('ANGULAR_HTML_TEMPLATES', HtmlTemplate.EMPTY_LIST);
 
 /// The errors produced while building a [HTML_TEMPLATE]s.
 ///

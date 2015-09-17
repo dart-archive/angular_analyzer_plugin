@@ -16,16 +16,19 @@ import 'package:angular2_analyzer_plugin/src/tasks.dart';
 class AnalysisDomainContributor {
   AnalysisDomain analysisDomain;
 
+  void onResult(ComputedResult result) {
+    AnalysisContext context = result.context;
+    Source source = result.target.source;
+    analysisDomain.scheduleNotification(
+        context, source, protocol.AnalysisService.NAVIGATION);
+    analysisDomain.scheduleNotification(
+        context, source, protocol.AnalysisService.OCCURRENCES);
+  }
+
   void setAnalysisDomain(AnalysisDomain analysisDomain) {
     this.analysisDomain = analysisDomain;
-    analysisDomain.onResultComputed(DART_TEMPLATES).listen((result) {
-      AnalysisContext context = result.context;
-      Source source = result.target.source;
-      analysisDomain.scheduleNotification(
-          context, source, protocol.AnalysisService.NAVIGATION);
-      analysisDomain.scheduleNotification(
-          context, source, protocol.AnalysisService.OCCURRENCES);
-    });
+    analysisDomain.onResultComputed(DART_TEMPLATES).listen(onResult);
+    analysisDomain.onResultComputed(HTML_TEMPLATES).listen(onResult);
   }
 }
 
@@ -34,11 +37,22 @@ class AngularNavigationContributor implements NavigationContributor {
   void computeNavigation(NavigationCollector collector, AnalysisContext context,
       Source source, int offset, int length) {
     LineInfo lineInfo = context.getResult(source, LINE_INFO);
-    List<Source> librarySources = context.getLibrariesContaining(source);
-    for (Source librarySource in librarySources) {
-      List<Template> templates = context.getResult(
-          new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
-      for (Template template in templates) {
+    // in Dart
+    {
+      List<Source> librarySources = context.getLibrariesContaining(source);
+      for (Source librarySource in librarySources) {
+        List<Template> templates = context.getResult(
+            new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
+        for (Template template in templates) {
+          _addTemplateRegions(collector, lineInfo, template);
+        }
+      }
+    }
+    // in HTML
+    {
+      List<HtmlTemplate> templates = context.getResult(source, HTML_TEMPLATES);
+      if (templates.isNotEmpty) {
+        HtmlTemplate template = templates.first;
         _addTemplateRegions(collector, lineInfo, template);
       }
     }
