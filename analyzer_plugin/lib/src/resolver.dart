@@ -183,9 +183,8 @@ class TemplateResolver {
     if (expression != null) {
       ClassElement classElement = view.classElement;
       LibraryElement library = classElement.library;
-      TypeSystem typeSystem = TypeSystem.create(library.context);
       ResolverVisitor resolver = new ResolverVisitor(
-          library, view.source, typeProvider, typeSystem, errorListener);
+          library, view.source, typeProvider, errorListener);
       // fill the name scope
       Scope nameScope = resolver.pushNameScope();
       classElement.methods.forEach(nameScope.define);
@@ -198,7 +197,6 @@ class TemplateResolver {
           new ErrorReporter(errorListener, view.source),
           library,
           typeProvider,
-          typeSystem,
           new InheritanceManager(library),
           false);
       expression.accept(verifier);

@@ -49,7 +49,7 @@ class AngularWorkManager implements WorkManager {
     for (Source source in addedSources) {
       if (_isHtmlSource(source)) {
         CacheEntry entry = context.getCacheEntry(source);
-        entry.setValueIncremental(TEMPLATE_VIEWS, <View>[]);
+        entry.setValueIncremental(TEMPLATE_VIEWS, <View>[], true);
       }
     }
   }
@@ -100,7 +100,7 @@ class AngularWorkManager implements WorkManager {
       } else {
         templateViews.remove(view);
       }
-      templateEntry.setValueIncremental(TEMPLATE_VIEWS, templateViews);
+      templateEntry.setValueIncremental(TEMPLATE_VIEWS, templateViews, true);
     }
   }
 
