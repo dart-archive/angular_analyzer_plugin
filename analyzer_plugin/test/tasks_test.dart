@@ -216,6 +216,46 @@ class ComponentA {
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
   }
 
+  void test_hasError_UndefinedSetter_fullSyntax() {
+    _addAngularSources();
+    Source source = _newSource(
+        '/test.dart',
+        r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'my-component', properties: const ['noSetter: no-setter'])
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DIRECTIVES);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    _fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
+  void test_hasError_UndefinedSetter_shortSyntax() {
+    _addAngularSources();
+    Source source = _newSource(
+        '/test.dart',
+        r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'my-component', properties: const ['noSetter'])
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DIRECTIVES);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    _fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
   void test_noDirectives() {
     _addAngularSources();
     Source source = _newSource(

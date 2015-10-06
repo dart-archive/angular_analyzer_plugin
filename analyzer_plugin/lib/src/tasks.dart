@@ -176,7 +176,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       return PropertyElement.EMPTY_LIST;
     }
     ast.ListLiteral descList = expression;
-    // Create a property for each element;
+    // Create a property for each element.
     List<PropertyElement> properties = <PropertyElement>[];
     for (ast.Expression element in descList.elements) {
       PropertyElement property = _parseProperty(classElement, element);
@@ -188,25 +188,24 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   }
 
   PropertyElement _parseProperty(
-      ClassElement classElement, ast.Expression element) {
-    if (element is ast.SimpleStringLiteral) {
-      int offset = element.contentsOffset;
-      String value = element.value;
+      ClassElement classElement, ast.Expression expression) {
+    if (expression is ast.SimpleStringLiteral) {
+      int offset = expression.contentsOffset;
+      String value = expression.value;
       // TODO(scheglov) support for pipes
       int colonIndex = value.indexOf(':');
       if (colonIndex == -1) {
         String name = value;
-        // TODO(scheglov) test that a valid property name
         PropertyAccessorElement setter =
-            classElement.lookUpSetter(name, classElement.library);
-        // TODO(scheglov) test that "setter" was found
+            _resolveSetter(classElement, expression, name);
         return new PropertyElement(name, offset, target.source, setter,
             new SourceRange(offset, name.length));
       } else {
+        // Resolve the setter.
         String setterName = value.substring(0, colonIndex).trimRight();
         PropertyAccessorElement setter =
-            classElement.lookUpSetter(setterName, classElement.library);
-        // TODO(scheglov) test that "setter" was found
+            _resolveSetter(classElement, expression, setterName);
+        // Find the property name.
         int propertyOffset = colonIndex;
         while (true) {
           propertyOffset++;
@@ -220,6 +219,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         }
         String propertyName = value.substring(propertyOffset);
         // TODO(scheglov) test that a valid property name
+        // Create the property.
         return new PropertyElement(propertyName, offset + propertyOffset,
             target.source, setter, new SourceRange(offset, setterName.length));
       }
@@ -257,6 +257,19 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       return null;
     }
     return selector;
+  }
+
+  /// Resolve the property setter with the given [name] in [classElement].
+  /// If undefined, report a warning and return `null`.
+  PropertyAccessorElement _resolveSetter(
+      ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
+    PropertyAccessorElement setter =
+        classElement.lookUpSetter(name, classElement.library);
+    if (setter == null) {
+      errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_SETTER,
+          literal, [name, classElement.displayName]);
+    }
+    return setter;
   }
 
   /// Return a map from the names of the inputs of this kind of task to the
