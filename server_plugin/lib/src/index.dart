@@ -1,8 +1,8 @@
 library angular2.src.analysis.server_plugin.index;
 
-import 'package:analysis_server/analysis/index/index_core.dart';
-import 'package:analyzer/src/generated/engine.dart';
+import 'package:analysis_server/analysis/index_core.dart';
 import 'package:analyzer/src/generated/element.dart' show ElementKind;
+import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 
@@ -24,12 +24,6 @@ class IndexableAngularElement implements IndexableObject {
 
   @override
   IndexableObjectKind get kind => IndexableElementKind.forElement(element);
-
-  @override
-  int get length => element.name.length;
-
-  @override
-  String get name => element.name;
 
   @override
   int get offset => element.nameOffset;
@@ -60,6 +54,12 @@ class IndexableElementKind implements IndexableObjectKind {
   IndexableObject decode(AnalysisContext context, String filePath, int offset) {
     // TODO: get the IndexableElement
     return null;
+  }
+
+  @override
+  int encodeHash(StringToInt stringToInt, IndexableObject indexable) {
+    // TODO: implement encodeHash
+    return 0;
   }
 
   static IndexableElementKind forElement(AngularElement element) {

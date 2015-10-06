@@ -9,3 +9,5 @@ angular2-dart-analyzer.iml
 .pub
 packages
 pubspec.lock
+
+server_plugin/bin/server.snapshot
