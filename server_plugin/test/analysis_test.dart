@@ -1,0 +1,378 @@
+library angular2.src.analysis.server_plugin.analysis_test;
+
+import 'dart:async';
+
+import 'package:analysis_server/analysis/analysis_domain.dart';
+import 'package:analysis_server/analysis/navigation_core.dart';
+import 'package:analysis_server/src/protocol.dart' as protocol;
+import 'package:analyzer/file_system/file_system.dart';
+import 'package:analyzer/file_system/memory_file_system.dart';
+import 'package:analyzer/src/context/context.dart' show AnalysisContextImpl;
+import 'package:analyzer/src/generated/engine.dart'
+    show AnalysisContext, AnalysisEngine, ComputedResult;
+import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/src/generated/sdk.dart';
+import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/task/driver.dart';
+import 'package:analyzer/src/task/manager.dart';
+import 'package:analyzer/task/dart.dart';
+import 'package:analyzer/task/model.dart';
+import 'package:angular2_analyzer_plugin/plugin.dart';
+import 'package:angular2_analyzer_plugin/src/tasks.dart';
+import 'package:angular2_server_plugin/src/analysis.dart';
+import 'package:test_reflective_loader/test_reflective_loader.dart';
+import 'package:typed_mock/typed_mock.dart';
+import 'package:unittest/unittest.dart';
+
+import 'mock_sdk.dart';
+
+main() {
+  groupSep = ' | ';
+  defineReflectiveTests(AnalysisDomainContributorTest);
+  defineReflectiveTests(AngularNavigationContributorTest);
+}
+
+class AnalysisContextMock extends TypedMock implements AnalysisContext {
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+@reflectiveTest
+class AnalysisDomainContributorTest {
+  AnalysisDomainContributor contributor = new AnalysisDomainContributor();
+
+  AnalysisContext analysisContext = new AnalysisContextMock();
+
+  Source source1 = new SourceMock('/a.dart');
+  AnalysisTarget target1 = new AnalysisTargetMock();
+
+  StreamController<ComputedResult> dartTemplatesController =
+      new StreamController<ComputedResult>.broadcast(sync: true);
+  StreamController<ComputedResult> htmlTemplatesController =
+      new StreamController<ComputedResult>.broadcast(sync: true);
+  AnalysisDomain analysisDomain = new AnalysisDomainMock();
+
+  void setUp() {
+    when(target1.source).thenReturn(source1);
+    // configure AnalysisDomain mock
+    when(analysisDomain.onResultComputed(DART_TEMPLATES))
+        .thenReturn(dartTemplatesController.stream);
+    when(analysisDomain.onResultComputed(HTML_TEMPLATES))
+        .thenReturn(htmlTemplatesController.stream);
+    contributor.setAnalysisDomain(analysisDomain);
+  }
+
+  void test_onResult_htmlTemplates() {
+    dartTemplatesController
+        .add(new ComputedResult(analysisContext, HTML_TEMPLATES, target1, []));
+    verify(analysisDomain.scheduleNotification(
+            analysisContext, source1, protocol.AnalysisService.NAVIGATION))
+        .times(1);
+    verify(analysisDomain.scheduleNotification(
+            analysisContext, source1, protocol.AnalysisService.OCCURRENCES))
+        .times(1);
+  }
+
+  void test_setAnalysisDomain() {
+    verify(analysisDomain.onResultComputed(DART_TEMPLATES)).times(1);
+    verify(analysisDomain.onResultComputed(HTML_TEMPLATES)).times(1);
+  }
+}
+
+class AnalysisDomainMock extends TypedMock implements AnalysisDomain {
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class AnalysisTargetMock extends TypedMock implements AnalysisTarget {
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+@reflectiveTest
+class AngularNavigationContributorTest extends _AbstractAngularTaskTest {
+  String code;
+
+  List<_RecordedNavigationRegion> regions = <_RecordedNavigationRegion>[];
+  NavigationCollector collector = new NavigationCollectorMock();
+
+  _RecordedNavigationRegion region;
+  protocol.Location targetLocation;
+
+  void setUp() {
+    super.setUp();
+    when(collector.addRegion(anyInt, anyInt, anyObject, anyObject)).thenInvoke(
+        (int offset, int length, protocol.ElementKind targetKind,
+            protocol.Location targetLocation) {
+      regions.add(new _RecordedNavigationRegion(
+          offset, length, targetKind, targetLocation));
+    });
+  }
+
+  void test_dart_templates() {
+    _addAngularSources();
+    code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel', properties: const ['text: my-text'])
+@View(template: r"<div>some text</div>")
+class TextPanel {
+  String text; // 1
+}
+
+@Component(selector: 'UserPanel')
+@View(template: r"""
+<div>
+  <text-panel [my-text]='user.name'></text-panel> // close
+</div>
+""", directives: [TextPanel])
+class UserPanel {
+  User user; // 2
+}
+
+class User {
+  String name; // 3
+}
+''';
+    Source source = _newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    _computeResult(target, DART_TEMPLATES);
+    // compute navigation regions
+    new AngularNavigationContributor()
+        .computeNavigation(collector, context, source, null, null);
+    // property references setter
+    {
+      _findRegionString('text', ': my-text');
+      expect(region.targetKind, protocol.ElementKind.SETTER);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('text; // 1'));
+    }
+    // template references component (open tag)
+    {
+      _findRegionString('text-panel', ' [my-text]');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf("text-panel', properties"));
+    }
+    // template references component (close tag)
+    {
+      _findRegionString('text-panel', '> // close');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf("text-panel', properties"));
+    }
+    // template references property
+    {
+      _findRegionString('my-text', ']=');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf("my-text'])"));
+    }
+    // template references field
+    {
+      _findRegionString('user', ".name'><");
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf("user; // 2"));
+    }
+    // template references field
+    {
+      _findRegionString('name', "'><");
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf("name; // 3"));
+    }
+  }
+
+  void test_html_templates() {
+    _addAngularSources();
+    String dartCode = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel')
+@View(templateUrl: 'text_panel.html')
+class TextPanelA {
+  String text; // 1
+}
+''';
+    String htmlCode = r"""
+<div>
+  {{text}}
+</div>
+""";
+    Source dartSource = _newSource('/test.dart', dartCode);
+    Source htmlSource = _newSource('/text_panel.html', htmlCode);
+    // compute views, so that we have the TEMPLATE_VIEWS result
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    // compute Angular templates
+    _computeResult(htmlSource, HTML_TEMPLATES);
+    // compute navigation regions
+    new AngularNavigationContributor()
+        .computeNavigation(collector, context, htmlSource, null, null);
+    // template references field
+    {
+      _findRegionString('text', "}}", codeOverride: htmlCode);
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, dartCode.indexOf("text; // 1"));
+    }
+  }
+
+  void _findRegion(int offset, int length) {
+    for (_RecordedNavigationRegion region in regions) {
+      if (region.offset == offset && region.length == length) {
+        this.region = region;
+        this.targetLocation = region.targetLocation;
+        return;
+      }
+    }
+    String regionsString = regions.join('\n');
+    fail('Unable to find a region at ($offset, $length) in $regionsString');
+  }
+
+  void _findRegionString(String str, String suffix, {String codeOverride}) {
+    String code = codeOverride != null ? codeOverride : this.code;
+    String search = str + suffix;
+    int offset = code.indexOf(search);
+    expect(offset, isNonNegative, reason: 'Cannot find |$search| in |$code|');
+    _findRegion(offset, str.length);
+  }
+}
+
+/**
+ * Instances of the class [GatheringErrorListener] implement an error listener
+ * that collects all of the errors passed to it for later examination.
+ */
+class GatheringErrorListener implements AnalysisErrorListener {
+  /**
+   * A list containing the errors that were collected.
+   */
+  List<AnalysisError> _errors = new List<AnalysisError>();
+
+  @override
+  void onError(AnalysisError error) {
+    _errors.add(error);
+  }
+}
+
+class NavigationCollectorMock extends TypedMock implements NavigationCollector {
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class SourceMock extends TypedMock implements Source {
+  @override
+  final String fullPath;
+
+  SourceMock([String name = 'mocked.dart']) : fullPath = name;
+
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
+  String toString() => fullPath;
+}
+
+class _AbstractAngularTaskTest {
+  MemoryResourceProvider resourceProvider = new MemoryResourceProvider();
+  Source emptySource;
+
+  DartSdk sdk = new MockSdk();
+  AnalysisContextImpl context;
+
+  TaskManager taskManager = new TaskManager();
+  AnalysisDriver analysisDriver;
+
+  AnalysisTask task;
+  Map<ResultDescriptor<dynamic>, dynamic> outputs;
+  GatheringErrorListener errorListener = new GatheringErrorListener();
+
+  void setUp() {
+    AnalysisEngine.instance.userDefinedPlugins = [new AngularAnalyzerPlugin()];
+    emptySource = _newSource('/test.dart');
+    // prepare AnalysisContext
+    context = new AnalysisContextImpl();
+    context.sourceFactory = new SourceFactory(<UriResolver>[
+      new DartUriResolver(sdk),
+      new ResourceUriResolver(resourceProvider)
+    ]);
+    // configure AnalysisDriver
+    analysisDriver = context.driver;
+  }
+
+  void tearDown() {
+    AnalysisEngine.instance.userDefinedPlugins = null;
+  }
+
+  void _addAngularSources() {
+    _newSource(
+        '/angular2/metadata.dart',
+        r'''
+library angular2.src.core.metadata;
+
+abstract class Directive {
+  final String selector;
+  final dynamic properties;
+  final dynamic hostListeners;
+  final List lifecycle;
+  const Directive({selector, properties, hostListeners, lifecycle})
+  : selector = selector,
+    properties = properties,
+    hostListeners = hostListeners,
+    lifecycle = lifecycle,
+    super();
+}
+
+class Component extends Directive {
+  final String changeDetection;
+  final List injectables;
+  const Component({selector, properties, events, hostListeners,
+      injectables, lifecycle, changeDetection: 'DEFAULT'})
+      : changeDetection = changeDetection,
+        injectables = injectables,
+        super(
+            selector: selector,
+            properties: properties,
+            events: events,
+            hostListeners: hostListeners,
+            lifecycle: lifecycle);
+}
+
+class View {
+  const View(
+      {String templateUrl,
+      String template,
+      dynamic directives,
+      dynamic pipes,
+      ViewEncapsulation encapsulation,
+      List<String> styles,
+      List<String> styleUrls});
+}
+''');
+  }
+
+  void _computeResult(AnalysisTarget target, ResultDescriptor result) {
+    task = analysisDriver.computeResult(target, result);
+    expect(task.caughtException, isNull);
+    outputs = task.outputs;
+  }
+
+  Source _newSource(String path, [String content = '']) {
+    File file = resourceProvider.newFile(path, content);
+    return file.createSource();
+  }
+}
+
+class _RecordedNavigationRegion {
+  final int offset;
+  final int length;
+  final protocol.ElementKind targetKind;
+  final protocol.Location targetLocation;
+
+  _RecordedNavigationRegion(
+      this.offset, this.length, this.targetKind, this.targetLocation);
+
+  @override
+  String toString() {
+    return '$offset $length $targetKind $targetLocation';
+  }
+}

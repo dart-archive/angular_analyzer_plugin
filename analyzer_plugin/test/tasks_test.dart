@@ -73,7 +73,7 @@ View _getViewByClassName(List<View> views, String className) {
 }
 
 @reflectiveTest
-class BuildUnitDirectivesTaskTest extends _AbstractDartTaskTest {
+class BuildUnitDirectivesTaskTest extends _AbstractAngularTaskTest {
   void test_Component() {
     _addAngularSources();
     Source source = _newSource(
@@ -316,7 +316,7 @@ class MyComponent {
 }
 
 @reflectiveTest
-class BuildUnitViewsTaskTest extends _AbstractDartTaskTest {
+class BuildUnitViewsTaskTest extends _AbstractAngularTaskTest {
   void test_hasError_ComponentAnnotationMissing() {
     _addAngularSources();
     Source source = _newSource(
@@ -592,7 +592,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
 }
 
 @reflectiveTest
-class ResolveDartTemplatesTaskTest extends _AbstractDartTaskTest {
+class ResolveDartTemplatesTaskTest extends _AbstractAngularTaskTest {
   void test_componentReference() {
     _addAngularSources();
     var code = r'''
@@ -1044,7 +1044,7 @@ class TextPanel {
 }
 
 @reflectiveTest
-class ResolveHtmlTemplatesTaskTest extends _AbstractDartTaskTest {
+class ResolveHtmlTemplatesTaskTest extends _AbstractAngularTaskTest {
   void test_multipleViewsWithTemplate() {
     _addAngularSources();
     String dartCode = r'''
@@ -1153,7 +1153,7 @@ class TextPanel {}
 }
 
 @reflectiveTest
-class ResolveHtmlTemplateTaskTest extends _AbstractDartTaskTest {
+class ResolveHtmlTemplateTaskTest extends _AbstractAngularTaskTest {
   void test_hasViewWithTemplate() {
     _addAngularSources();
     String dartCode = r'''
@@ -1204,13 +1204,12 @@ class TextPanel {
   }
 }
 
-class _AbstractDartTaskTest {
+class _AbstractAngularTaskTest {
   MemoryResourceProvider resourceProvider = new MemoryResourceProvider();
   Source emptySource;
 
   DartSdk sdk = new MockSdk();
   AnalysisContextImpl context;
-  Map<AnalysisTarget, CacheEntry> entryMap = <AnalysisTarget, CacheEntry>{};
 
   TaskManager taskManager = new TaskManager();
   AnalysisDriver analysisDriver;

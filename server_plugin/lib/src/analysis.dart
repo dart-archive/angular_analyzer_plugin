@@ -1,4 +1,4 @@
-library angular2.src.analysis.server_plugin.index;
+library angular2.src.analysis.server_plugin.analysis;
 
 import 'package:analysis_server/analysis/analysis_domain.dart';
 import 'package:analysis_server/analysis/navigation_core.dart';
