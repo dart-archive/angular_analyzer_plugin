@@ -188,9 +188,6 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
   }
 
   engine.Element _canonicalizeElement(engine.Element element) {
-    if (element is engine.FieldFormalParameterElement) {
-      element = (element as engine.FieldFormalParameterElement).field;
-    }
     if (element is engine.PropertyAccessorElement) {
       element = (element as engine.PropertyAccessorElement).variable;
     }
