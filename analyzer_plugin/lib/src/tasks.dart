@@ -198,8 +198,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         String name = value;
         PropertyAccessorElement setter =
             _resolveSetter(classElement, expression, name);
-        return new PropertyElement(name, offset, target.source, setter,
-            new SourceRange(offset, name.length));
+        SourceRange setterRange = new SourceRange(offset, name.length);
+        return new PropertyElement(
+            name, offset, target.source, setter, setterRange);
       } else {
         // Resolve the setter.
         String setterName = value.substring(0, colonIndex).trimRight();

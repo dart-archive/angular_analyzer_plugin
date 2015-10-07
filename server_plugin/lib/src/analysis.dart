@@ -41,10 +41,21 @@ class AngularNavigationContributor implements NavigationContributor {
     {
       List<Source> librarySources = context.getLibrariesContaining(source);
       for (Source librarySource in librarySources) {
-        List<Template> templates = context.getResult(
-            new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
-        for (Template template in templates) {
-          _addTemplateRegions(collector, lineInfo, template);
+        // directives
+        {
+          List<AbstractDirective> directives = context.getResult(
+              new LibrarySpecificUnit(librarySource, source), DIRECTIVES);
+          for (AbstractDirective template in directives) {
+            _addDirectiveRegions(collector, lineInfo, template);
+          }
+        }
+        // templates
+        {
+          List<Template> templates = context.getResult(
+              new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
+          for (Template template in templates) {
+            _addTemplateRegions(collector, lineInfo, template);
+          }
         }
       }
     }
@@ -54,6 +65,30 @@ class AngularNavigationContributor implements NavigationContributor {
       if (templates.isNotEmpty) {
         HtmlTemplate template = templates.first;
         _addTemplateRegions(collector, lineInfo, template);
+      }
+    }
+  }
+
+  void _addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
+      AbstractDirective directive) {
+    for (PropertyElement property in directive.properties) {
+      engine.PropertyAccessorElement setter = property.setter;
+      if (setter == null) {
+        continue;
+      }
+      LineInfo_Location offsetLineLocation =
+          lineInfo.getLocation(setter.nameOffset);
+      if (setter != null) {
+        collector.addRegion(
+            property.setterRange.offset,
+            property.setterRange.length,
+            protocol.newElementKind_fromEngine(setter.kind),
+            new protocol.Location(
+                setter.source.fullName,
+                setter.nameOffset,
+                setter.nameLength,
+                offsetLineLocation.lineNumber,
+                offsetLineLocation.columnNumber));
       }
     }
   }
@@ -84,12 +119,49 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
       OccurrencesCollector collector, AnalysisContext context, Source source) {
     List<Source> librarySources = context.getLibrariesContaining(source);
     for (Source librarySource in librarySources) {
-      List<Template> templates = context.getResult(
-          new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
-      for (Template template in templates) {
-        _addTemplateOccurrences(collector, template);
+      // directives
+      {
+        List<AbstractDirective> directives = context.getResult(
+            new LibrarySpecificUnit(librarySource, source), DIRECTIVES);
+        for (AbstractDirective directive in directives) {
+          _addDirectiveOccurrences(collector, directive);
+        }
+      }
+      // templates
+      {
+        List<Template> templates = context.getResult(
+            new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
+        for (Template template in templates) {
+          _addTemplateOccurrences(collector, template);
+        }
       }
     }
+  }
+
+  void _addDirectiveOccurrences(
+      OccurrencesCollector collector, AbstractDirective directive) {
+    Map<engine.PropertyAccessorElement, List<int>> elementsOffsets =
+        <engine.PropertyAccessorElement, List<int>>{};
+    for (PropertyElement property in directive.properties) {
+      engine.PropertyAccessorElement setter = property.setter;
+      if (setter == null) {
+        continue;
+      }
+      List<int> offsets = elementsOffsets[setter];
+      if (offsets == null) {
+        offsets = <int>[setter.nameOffset];
+        elementsOffsets[setter] = offsets;
+      }
+      offsets.add(property.setterRange.offset);
+    }
+    // convert map into Occurrences
+    elementsOffsets.forEach((setter, offsets) {
+      protocol.Element protocolElement = _newProtocolElement_forEngine(setter);
+      int length = protocolElement.location.length;
+      protocol.Occurrences occurrences =
+          new protocol.Occurrences(protocolElement, offsets, length);
+      collector.addOccurrences(occurrences);
+    });
   }
 
   void _addTemplateOccurrences(
@@ -133,11 +205,15 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
     int length = name.length;
     if (angularElement is DartElement) {
       engine.Element dartElement = angularElement.element;
-      dartElement = _canonicalizeElement(dartElement);
-      return protocol.newElement_fromEngine(dartElement);
+      return _newProtocolElement_forEngine(dartElement);
     }
     return new protocol.Element(protocol.ElementKind.UNKNOWN, name, 0,
         location: new protocol.Location(angularElement.source.fullName,
             angularElement.nameOffset, length, -1, -1));
+  }
+
+  protocol.Element _newProtocolElement_forEngine(engine.Element dartElement) {
+    dartElement = _canonicalizeElement(dartElement);
+    return protocol.newElement_fromEngine(dartElement);
   }
 }
