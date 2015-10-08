@@ -41,20 +41,28 @@ class AngularNavigationContributor implements NavigationContributor {
     {
       List<Source> librarySources = context.getLibrariesContaining(source);
       for (Source librarySource in librarySources) {
+        LibrarySpecificUnit target =
+            new LibrarySpecificUnit(librarySource, source);
         // directives
         {
-          List<AbstractDirective> directives = context.getResult(
-              new LibrarySpecificUnit(librarySource, source), DIRECTIVES);
+          List<AbstractDirective> directives =
+              context.getResult(target, DIRECTIVES);
           for (AbstractDirective template in directives) {
             _addDirectiveRegions(collector, lineInfo, template);
           }
         }
         // templates
         {
-          List<Template> templates = context.getResult(
-              new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
+          List<Template> templates = context.getResult(target, DART_TEMPLATES);
           for (Template template in templates) {
             _addTemplateRegions(collector, lineInfo, template);
+          }
+        }
+        // views
+        {
+          List<View> views = context.getResult(target, VIEWS);
+          for (View view in views) {
+            _addViewRegions(collector, lineInfo, view);
           }
         }
       }
@@ -109,6 +117,17 @@ class AngularNavigationContributor implements NavigationContributor {
               element.nameLength,
               offsetLineLocation.lineNumber,
               offsetLineLocation.columnNumber));
+    }
+  }
+
+  void _addViewRegions(
+      NavigationCollector collector, LineInfo lineInfo, View view) {
+    if (view.templateSource != null) {
+      collector.addRegion(
+          view.templateUrlRange.offset,
+          view.templateUrlRange.length,
+          protocol.ElementKind.UNKNOWN,
+          new protocol.Location(view.templateSource.fullName, 0, 0, 1, 1));
     }
   }
 }

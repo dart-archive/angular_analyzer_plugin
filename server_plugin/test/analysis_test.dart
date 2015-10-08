@@ -183,6 +183,37 @@ class User {
     }
   }
 
+  void test_dart_view_templateUrl() {
+    _addAngularSources();
+    code = r'''
+import '/angular2/metadata.dart';
+
+@Component(selector: 'text-panel')
+@View(templateUrl: 'text_panel.html')
+class TextPanel {}
+''';
+    Source dartSource = _newSource('/test.dart', code);
+    Source htmlSource = _newSource('/text_panel.html', "");
+    // compute views, so that we have the TEMPLATE_VIEWS result
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    // compute Angular templates
+    _computeResult(htmlSource, HTML_TEMPLATES);
+    // compute navigation regions
+    new AngularNavigationContributor()
+        .computeNavigation(collector, context, dartSource, null, null);
+    // property references setter
+    {
+      _findRegionString("'text_panel.html'", ')');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/text_panel.html');
+      expect(targetLocation.offset, 0);
+    }
+  }
+
   void test_html_templates() {
     _addAngularSources();
     String dartCode = r'''
@@ -190,7 +221,7 @@ import '/angular2/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
-class TextPanelA {
+class TextPanel {
   String text; // 1
 }
 ''';
