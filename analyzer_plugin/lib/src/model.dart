@@ -159,12 +159,16 @@ class View implements AnalysisTarget {
   final String templateText;
   final int templateOffset;
   final Source templateSource;
+  final SourceRange templateUrlRange;
 
   /// The [Template] of this view, `null` until built.
   Template template;
 
   View(this.classElement, this.component, this.directives,
-      {this.templateText, this.templateOffset: 0, this.templateSource});
+      {this.templateText,
+      this.templateOffset: 0,
+      this.templateSource,
+      this.templateUrlRange});
 
   /// The source that contains this view.
   Source get source => classElement.source;

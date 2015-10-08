@@ -400,66 +400,85 @@ class ComponentA {
         <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
   }
 
-  void test_hasTemplate() {
+  void test_templateExternal() {
     _addAngularSources();
-    _newSource(
-        '/compB.html',
-        r'''
-BBB''');
-
-    Source source = _newSource(
-        '/test.dart',
-        r'''
+    String code = r'''
 import '/angular2/metadata.dart';
 
-@Component(selector: 'compA')
-@View(template: 'AAA')
-class ComponentA {
-}
+@Component(selector: 'my-component')
+@View(templateUrl: 'my-template.html')
+class MyComponent {}
+''';
+    Source dartSource = _newSource('/test.dart', code);
+    Source htmlSource = _newSource('/my-template.html', '');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    _computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    List<AbstractDirective> directives =
+        context.analysisCache.getValue(target, DIRECTIVES);
+    // validate views
+    List<View> views = outputs[VIEWS];
+    expect(views, hasLength(1));
+    // MyComponent
+    View view = _getViewByClassName(views, 'MyComponent');
+    expect(view.component, _getComponentByClassName(directives, 'MyComponent'));
+    expect(view.templateText, isNull);
+    expect(view.templateSource, isNotNull);
+    expect(view.templateSource, htmlSource);
+    {
+      String url = "'my-template.html'";
+      expect(view.templateUrlRange,
+          new SourceRange(code.indexOf(url), url.length));
+    }
+    // has a single view
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    expect(templateViews, unorderedEquals([view]));
+  }
 
-@Directive(selector: 'dirA')
-class DirectiveA {
-}
+  void test_templateInline() {
+    _addAngularSources();
+    String code = r'''
+import '/angular2/metadata.dart';
 
-@Component(selector: 'compB')
-@View(templateUrl: 'compB.html', directives: [ComponentA, DirectiveA])
-class ComponentB {
-}
-''');
+@Directive(selector: 'my-directive')
+class MyDirective {}
+
+@Component(selector: 'other-component')
+@View(template: 'Other template')
+class OtherComponent {}
+
+@Component(selector: 'my-component')
+@View(template: 'My template', directives: [MyDirective, OtherComponent])
+class MyComponent {}
+''';
+    Source source = _newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     _computeResult(target, VIEWS);
     expect(task, new isInstanceOf<BuildUnitViewsTask>());
     List<AbstractDirective> directives =
         context.analysisCache.getValue(target, DIRECTIVES);
-    // validate
+    // validate views
     List<View> views = outputs[VIEWS];
     expect(views, hasLength(2));
     {
-      View view = _getViewByClassName(views, 'ComponentA');
-      expect(view.templateText, 'AAA');
-      expect(view.templateSource, isNull);
-      expect(view.directives, isEmpty);
+      View view = _getViewByClassName(views, 'MyComponent');
       expect(
-          view.component, _getComponentByClassName(directives, 'ComponentA'));
+          view.component, _getComponentByClassName(directives, 'MyComponent'));
+      expect(view.templateText, 'My template');
+      expect(view.templateSource, isNull);
+      {
+        expect(view.directives, hasLength(2));
+        List<String> directiveClassNames = view.directives
+            .map((directive) => directive.classElement.name)
+            .toList();
+        expect(directiveClassNames,
+            unorderedEquals(['OtherComponent', 'MyDirective']));
+      }
     }
-    {
-      View view = _getViewByClassName(views, 'ComponentB');
-      expect(view.templateText, isNull);
-      expect(view.templateSource, isNotNull);
-      expect(view.templateSource.contents.data, 'BBB');
-      expect(view.directives, hasLength(2));
-      List<String> directiveNames = view.directives
-          .map((directive) => directive.classElement.name)
-          .toList();
-      expect(directiveNames, unorderedEquals(['ComponentA', 'DirectiveA']));
-    }
+    // no view with external templates
     List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
-    expect(templateViews, hasLength(1));
-    {
-      View view = templateViews[0];
-      expect(view.templateSource, isNotNull);
-      expect(view.templateSource.contents.data, 'BBB');
-    }
+    expect(templateViews, hasLength(0));
   }
 }
 

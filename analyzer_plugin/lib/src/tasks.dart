@@ -366,13 +366,20 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   /// Create a new [View] for the given [annotation], may return `null`
   /// if [annotation] or [classElement] don't provide enough information.
   View _createView(ClassElement classElement, ast.Annotation annotation) {
-    String templateUrl = _getNamedArgumentString(annotation, 'templateUrl');
+    // Template in a separate HTML file.
     Source templateSource = null;
-    // template is in a separate HTML file
-    if (templateUrl != null) {
-      //TODO: report a warning if it cannot be resolved.
-      templateSource =
-          context.sourceFactory.resolveUri(target.source, templateUrl);
+    SourceRange templateUrlRange = null;
+    {
+      ast.Expression templateUrlExpression =
+          _getNamedArgument(annotation, 'templateUrl');
+      String templateUrl = _getExpressionString(templateUrlExpression);
+      if (templateUrl != null) {
+        SourceFactory sourceFactory = context.sourceFactory;
+        templateSource = sourceFactory.resolveUri(target.source, templateUrl);
+        // TODO: report a warning if it cannot be resolved.
+        templateUrlRange = new SourceRange(
+            templateUrlExpression.offset, templateUrlExpression.length);
+      }
     }
     // Try to find inline "template".
     String templateText;
@@ -416,7 +423,8 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     return new View(classElement, component, directives,
         templateText: templateText,
         templateOffset: templateOffset,
-        templateSource: templateSource);
+        templateSource: templateSource,
+        templateUrlRange: templateUrlRange);
   }
 
   Component _findComponentAnnotationOrReportError(ClassElement classElement) {
@@ -664,14 +672,6 @@ class _AnnotationProcessorMixin {
       }
     }
     return null;
-  }
-
-  /// Returns the [String] value of the argument with the given [name].
-  /// If the argument does not have a [String] value, reports an error
-  /// and returns `null`.
-  Object _getNamedArgumentString(ast.Annotation node, String name) {
-    ast.Expression expression = _getNamedArgument(node, name);
-    return _getExpressionString(expression);
   }
 
   /// Returns `true` is the given [node] is resolved to a creation of an Angular
