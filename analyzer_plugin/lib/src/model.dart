@@ -32,27 +32,41 @@ abstract class AngularElement {
   /// the declaration of this element.
   int get nameOffset;
 
+  /// Return the length of the name of this element in the file that contains
+  /// the declaration of this element.
+  int get nameLength;
+
   /// Return the [Source] of this element.
   Source get source;
 }
 
 /// The base class for concrete implementations of an [AngularElement].
 class AngularElementImpl implements AngularElement {
+  @override
   final String name;
+
+  @override
   final int nameOffset;
+
+  @override
+  final int nameLength;
+
+  @override
   final Source source;
 
-  AngularElementImpl(this.name, this.nameOffset, this.source);
+  AngularElementImpl(this.name, this.nameOffset, this.nameLength, this.source);
 
   @override
   int get hashCode {
-    return JenkinsSmiHash.hash3(name.hashCode, nameOffset, source.hashCode);
+    return JenkinsSmiHash.hash4(
+        name.hashCode, nameOffset, nameLength, source.hashCode);
   }
 
   bool operator ==(Object other) {
     return other is AngularElement &&
         other.runtimeType == runtimeType &&
         other.nameOffset == nameOffset &&
+        other.nameLength == nameLength &&
         other.name == name &&
         other.source == source;
   }
@@ -73,7 +87,8 @@ class DartElement extends AngularElementImpl {
   final dart.Element element;
 
   DartElement(dart.Element element)
-      : super(element.name, element.nameOffset, element.source),
+      : super(element.name, element.nameOffset, element.nameLength,
+            element.source),
         element = element;
 }
 
@@ -106,9 +121,9 @@ class PropertyElement extends AngularElementImpl {
   /// variants where names of a property and the setter are the same.
   final SourceRange setterRange;
 
-  PropertyElement(
-      String name, int nameOffset, Source source, this.setter, this.setterRange)
-      : super(name, nameOffset, source);
+  PropertyElement(String name, int nameOffset, int nameLength, Source source,
+      this.setter, this.setterRange)
+      : super(name, nameOffset, nameLength, source);
 }
 
 /// A pair of an [SourceRange] and the referenced [AngularElement].

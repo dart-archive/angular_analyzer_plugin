@@ -16,6 +16,7 @@ import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
+import 'package:angular2_analyzer_plugin/src/strings.dart';
 
 /// The [Template]s of a [LibrarySpecificUnit].
 /// This result is produced for templates specified directly in Dart files.
@@ -195,12 +196,15 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       // TODO(scheglov) support for pipes
       int colonIndex = value.indexOf(':');
       if (colonIndex == -1) {
-        String name = value;
+        String setterName = value;
+        String propertyName = getCamelWords(setterName)
+            .map((word) => word.toLowerCase())
+            .join('-');
         PropertyAccessorElement setter =
-            _resolveSetter(classElement, expression, name);
-        SourceRange setterRange = new SourceRange(offset, name.length);
-        return new PropertyElement(
-            name, offset, target.source, setter, setterRange);
+            _resolveSetter(classElement, expression, setterName);
+        SourceRange setterRange = new SourceRange(offset, setterName.length);
+        return new PropertyElement(propertyName, offset, setterName.length,
+            target.source, setter, setterRange);
       } else {
         // Resolve the setter.
         String setterName = value.substring(0, colonIndex).trimRight();
@@ -221,8 +225,13 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         String propertyName = value.substring(propertyOffset);
         // TODO(scheglov) test that a valid property name
         // Create the property.
-        return new PropertyElement(propertyName, offset + propertyOffset,
-            target.source, setter, new SourceRange(offset, setterName.length));
+        return new PropertyElement(
+            propertyName,
+            offset + propertyOffset,
+            propertyName.length,
+            target.source,
+            setter,
+            new SourceRange(offset, setterName.length));
       }
     } else {
       // TODO(scheglov) report a warning

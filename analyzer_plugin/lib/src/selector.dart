@@ -54,7 +54,7 @@ abstract class Selector {
     if (str == null) return null;
     if (_elementNameRegExp.matchAsPrefix(str) != null) {
       return new ElementNameSelector(
-          new AngularElementImpl(str, offset, source));
+          new AngularElementImpl(str, offset, str.length, source));
     }
     return null;
   }

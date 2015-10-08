@@ -277,10 +277,12 @@ class B {}
     String code = r'''
 import '/angular2/metadata.dart';
 
-@Component(selector: 'my-component', properties: const ['aaa', 'bbb: myBbb'])
+@Component(
+    selector: 'my-component',
+    properties: const ['leadingText', 'trailingText: trailing-text'])
 class MyComponent {
-  int aaa;
-  String bbb;
+  String leadingText;
+  String trailingText;
 }
 ''';
     Source source = _newSource('/test.dart', code);
@@ -294,23 +296,23 @@ class MyComponent {
     expect(properties, hasLength(2));
     {
       PropertyElement property = properties[0];
-      expect(property.name, 'aaa');
-      expect(property.nameOffset, code.indexOf("aaa',"));
+      expect(property.name, 'leading-text');
+      expect(property.nameOffset, code.indexOf("leadingText',"));
       expect(property.setterRange.offset, property.nameOffset);
-      expect(property.setterRange.length, 'aaa'.length);
+      expect(property.setterRange.length, 'leadingText'.length);
       expect(property.setter, isNotNull);
       expect(property.setter.isSetter, isTrue);
-      expect(property.setter.displayName, 'aaa');
+      expect(property.setter.displayName, 'leadingText');
     }
     {
       PropertyElement property = properties[1];
-      expect(property.name, 'myBbb');
-      expect(property.nameOffset, code.indexOf("myBbb']"));
-      expect(property.setterRange.offset, code.indexOf("bbb: "));
-      expect(property.setterRange.length, 'bbb'.length);
+      expect(property.name, 'trailing-text');
+      expect(property.nameOffset, code.indexOf("trailing-text']"));
+      expect(property.setterRange.offset, code.indexOf("trailingText: "));
+      expect(property.setterRange.length, 'trailingText'.length);
       expect(property.setter, isNotNull);
       expect(property.setter.isSetter, isTrue);
-      expect(property.setter.displayName, 'bbb');
+      expect(property.setter.displayName, 'trailingText');
     }
   }
 }
@@ -905,17 +907,19 @@ class User {
     String code = r'''
 import '/angular2/metadata.dart';
 
-@Component(selector: 'comp-a', properties: const ['first', 'vtoroy: second'])
+@Component(
+    selector: 'comp-a',
+    properties: const ['firstValue', 'vtoroy: second'])
 @View(template: r"<div>AAA</div>")
 class ComponentA {
-  int first;
+  int firstValue;
   int vtoroy;
 }
 
 @Component(selector: 'comp-b')
 @View(template: r"""
 <div>
-  <comp-a first='1' second='2'></comp-a>
+  <comp-a first-value='1' second='2'></comp-a>
 </div>
 """, directives: [ComponentA])
 class ComponentB {
@@ -938,9 +942,9 @@ class ComponentB {
       expect(ranges, hasLength(4));
       {
         ResolvedRange resolvedRange =
-            _getResolvedRangeAtString(code, ranges, 'first=');
-        expect(resolvedRange.range.length, 'first'.length);
-        assertPropertyReference(resolvedRange, componentA, 'first');
+            _getResolvedRangeAtString(code, ranges, 'first-value=');
+        expect(resolvedRange.range.length, 'first-value'.length);
+        assertPropertyReference(resolvedRange, componentA, 'first-value');
       }
       {
         ResolvedRange resolvedRange =

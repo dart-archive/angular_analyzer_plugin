@@ -106,7 +106,7 @@ class AngularNavigationContributor implements NavigationContributor {
           new protocol.Location(
               element.source.fullName,
               element.nameOffset,
-              element.name.length,
+              element.nameLength,
               offsetLineLocation.lineNumber,
               offsetLineLocation.columnNumber));
     }
@@ -179,7 +179,7 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
     }
     // convert map into Occurrences
     elementsOffsets.forEach((angularElement, offsets) {
-      int length = angularElement.name.length;
+      int length = angularElement.nameLength;
       protocol.Element protocolElement = _newProtocolElement(angularElement);
       protocol.Occurrences occurrences =
           new protocol.Occurrences(protocolElement, offsets, length);
