@@ -1,6 +1,6 @@
 library angular2.src.analysis.server_plugin.index;
 
-import 'package:analysis_server/analysis/index_core.dart';
+import 'package:analysis_server/plugin/index/index_core.dart';
 import 'package:analyzer/src/generated/element.dart' show ElementKind;
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';

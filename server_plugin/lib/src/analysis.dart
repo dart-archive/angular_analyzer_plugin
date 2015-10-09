@@ -1,8 +1,8 @@
 library angular2.src.analysis.server_plugin.analysis;
 
-import 'package:analysis_server/analysis/analysis_domain.dart';
-import 'package:analysis_server/analysis/navigation_core.dart';
-import 'package:analysis_server/analysis/occurrences_core.dart';
+import 'package:analysis_server/plugin/analysis/analysis_domain.dart';
+import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
+import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
 import 'package:analysis_server/src/protocol.dart' as protocol;
 import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/src/generated/element.dart' as engine;
