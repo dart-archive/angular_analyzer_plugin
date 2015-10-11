@@ -31,14 +31,22 @@ main() {
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplateTaskTest);
+  defineReflectiveTests(TemplateResolverTest);
 }
 
-PropertyAccessorElement _assertPropertyAccessorElement(
-    ResolvedRange resolvedRange) {
+PropertyAccessorElement _assertGetter(ResolvedRange resolvedRange) {
   PropertyAccessorElement element =
       (resolvedRange.element as DartElement).element;
   expect(element.isGetter, isTrue);
   return element;
+}
+
+MethodElement _assertMethod(ResolvedRange resolvedRange) {
+  AngularElement element = resolvedRange.element;
+  expect(element, new isInstanceOf<DartElement>());
+  Element dartElement = (element as DartElement).element;
+  expect(dartElement, new isInstanceOf<MethodElement>());
+  return dartElement;
 }
 
 Component _getComponentByClassName(
@@ -1007,8 +1015,7 @@ class TextPanel {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'text}}');
         expect(resolvedRange.range.length, 'text'.length);
-        PropertyAccessorElement element =
-            _assertPropertyAccessorElement(resolvedRange);
+        PropertyAccessorElement element = _assertGetter(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, code.indexOf('text; // 1'));
       }
@@ -1016,8 +1023,7 @@ class TextPanel {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'text.length');
         expect(resolvedRange.range.length, 'text'.length);
-        PropertyAccessorElement element =
-            _assertPropertyAccessorElement(resolvedRange);
+        PropertyAccessorElement element = _assertGetter(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, code.indexOf('text; // 1'));
       }
@@ -1025,8 +1031,7 @@ class TextPanel {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'length}}');
         expect(resolvedRange.range.length, 'length'.length);
-        PropertyAccessorElement element =
-            _assertPropertyAccessorElement(resolvedRange);
+        PropertyAccessorElement element = _assertGetter(resolvedRange);
         expect(element.name, 'length');
         expect(element.enclosingElement.name, 'String');
       }
@@ -1122,8 +1127,7 @@ class TextPanelB {
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
-        PropertyAccessorElement element =
-            _assertPropertyAccessorElement(resolvedRange);
+        PropertyAccessorElement element = _assertGetter(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, dartCode.indexOf(textTargetPattern));
       }
@@ -1196,9 +1200,7 @@ class TextPanel {
     Source dartSource = _newSource('/test.dart', dartCode);
     _newSource('/text_panel.html', htmlCode);
     // compute
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    _computeLibraryViews(dartSource);
     expect(task, new isInstanceOf<BuildUnitViewsTask>());
     // validate
     List<View> views = outputs[VIEWS_WITH_HTML_TEMPLATES];
@@ -1218,12 +1220,200 @@ class TextPanel {
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
-        PropertyAccessorElement element =
-            _assertPropertyAccessorElement(resolvedRange);
+        PropertyAccessorElement element = _assertGetter(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, dartCode.indexOf('text; // 1'));
       }
     }
+  }
+}
+
+@reflectiveTest
+class TemplateResolverTest extends _AbstractAngularTaskTest {
+  String dartCode;
+  String htmlCode;
+  Source dartSource;
+  Source htmlSource;
+
+  Template template;
+  List<ResolvedRange> ranges;
+
+  @override
+  void setUp() {
+    super.setUp();
+    _addAngularSources();
+  }
+
+  void test_eventBinding() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick()'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(1));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("handleClick()'>");
+      MethodElement element = _assertMethod(resolvedRange);
+      _assertDartElementAt(element, 'handleClick(MouseEvent');
+    }
+  }
+
+  void test_eventBinding_on() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div on-click='handleClick()'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(1));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("handleClick()'>");
+      MethodElement element = _assertMethod(resolvedRange);
+      _assertDartElementAt(element, 'handleClick(MouseEvent');
+    }
+  }
+
+  void test_propertyBinding() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    _addHtmlSource(r"""
+<span [title]='text'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(1));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("text'>");
+      PropertyAccessorElement element = _assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'text; // 1');
+    }
+  }
+
+  void test_propertyBinding_bind() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    _addHtmlSource(r"""
+<span bind-title='text'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(1));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("text'>");
+      PropertyAccessorElement element = _assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'text; // 1');
+    }
+  }
+
+  void test_propertyInterpolation() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String aaa; // 1
+  String bbb; // 2
+}
+''');
+    _addHtmlSource(r"""
+<span title='Hello {{aaa}} and {{bbb}}!'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(2));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('aaa}}');
+      PropertyAccessorElement element = _assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'aaa; // 1');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
+      PropertyAccessorElement element = _assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'bbb; // 2');
+    }
+  }
+
+  void test_textInterpolation() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String aaa; // 1
+  String bbb; // 2
+}
+''');
+    _addHtmlSource(r"""
+<div>
+  Hello {{aaa}} and {{bbb}}!
+</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(2));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('aaa}}');
+      PropertyAccessorElement element = _assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'aaa; // 1');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
+      PropertyAccessorElement element = _assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'bbb; // 2');
+    }
+  }
+
+  void _addDartSource(String code) {
+    dartCode = '''
+import '/angular2/metadata.dart';
+$code
+''';
+    dartSource = _newSource('/test_panel.dart', dartCode);
+  }
+
+  void _addHtmlSource(String code) {
+    htmlCode = code;
+    htmlSource = _newSource('/test_panel.html', htmlCode);
+  }
+
+  void _assertDartElementAt(Element element, String search) {
+    expect(element.nameOffset, dartCode.indexOf(search));
+  }
+
+  ResolvedRange _findResolvedRange(String search) {
+    return _getResolvedRangeAtString(htmlCode, ranges, search);
+  }
+
+  /**
+   * Compute all the views declared in the given [dartSource], and resolve the
+   * external template of the last one.
+   */
+  void _resolveSingleTemplate(Source dartSource) {
+    List<View> views = _computeLibraryViews(dartSource);
+    View view = views.last;
+    // resolve this View
+    _computeResult(view, HTML_TEMPLATE);
+    template = outputs[HTML_TEMPLATE];
+    ranges = template.ranges;
   }
 }
 
@@ -1303,6 +1493,13 @@ class View {
       List<String> styleUrls});
 }
 ''');
+  }
+
+  List<View> _computeLibraryViews(Source dartSource) {
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    return outputs[VIEWS_WITH_HTML_TEMPLATES];
   }
 
   void _computeResult(AnalysisTarget target, ResultDescriptor result) {

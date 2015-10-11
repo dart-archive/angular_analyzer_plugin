@@ -168,10 +168,14 @@ class TemplateResolver {
   void _resolveAttributeValues(html.Element node) {
     node.attributes.forEach((key, String value) {
       if (key is String) {
+        int valueOffset = node.attributeValueSpans[key].start.offset;
         if (key.startsWith('[') && key.endsWith(']') ||
-            key.startsWith('(') && key.endsWith(')')) {
-          int valueOffset = node.attributeValueSpans[key].start.offset;
+            key.startsWith('(') && key.endsWith(')') ||
+            key.startsWith('bind-') ||
+            key.startsWith('on-')) {
           _resolveExpression(valueOffset, value);
+        } else {
+          _resolveTextExpressions(valueOffset, value);
         }
       }
     });
@@ -235,16 +239,16 @@ class TemplateResolver {
       _resolveAttributeValues(node);
     }
     if (node is html.Text) {
-      _resolveTextExpressions(node);
+      int offset = node.sourceSpan.start.offset;
+      String text = node.text;
+      _resolveTextExpressions(offset, text);
     }
     node.nodes.forEach(_resolveNode);
   }
 
-  /// Scan the text of the given [node] and resolve all of its embedded
-  /// expressions.
-  void _resolveTextExpressions(html.Text node) {
-    int offset = node.sourceSpan.start.offset;
-    String text = node.text;
+  /// Scan the given [text] staring at the given [offset] and resolve all of
+  /// its embedded expressions.
+  void _resolveTextExpressions(int offset, String text) {
     int lastEnd = 0;
     while (true) {
       // begin
