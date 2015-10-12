@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:analysis_server/plugin/analysis/analysis_domain.dart';
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
-import 'package:analysis_server/src/protocol.dart' as protocol;
+import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/context.dart' show AnalysisContextImpl;

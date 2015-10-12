@@ -3,8 +3,8 @@ library angular2.src.analysis.server_plugin.analysis;
 import 'package:analysis_server/plugin/analysis/analysis_domain.dart';
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
-import 'package:analysis_server/src/protocol.dart' as protocol;
-import 'package:analysis_server/src/protocol_server.dart' as protocol;
+import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
+import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
 import 'package:analyzer/src/generated/element.dart' as engine;
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -90,7 +90,7 @@ class AngularNavigationContributor implements NavigationContributor {
         collector.addRegion(
             property.setterRange.offset,
             property.setterRange.length,
-            protocol.newElementKind_fromEngine(setter.kind),
+            protocol.convertElementKind(setter.kind),
             new protocol.Location(
                 setter.source.fullName,
                 setter.nameOffset,
@@ -230,6 +230,6 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
 
   protocol.Element _newProtocolElement_forEngine(engine.Element dartElement) {
     dartElement = _canonicalizeElement(dartElement);
-    return protocol.newElement_fromEngine(dartElement);
+    return protocol.convertElement(dartElement);
   }
 }
