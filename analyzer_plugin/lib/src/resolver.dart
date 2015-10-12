@@ -148,6 +148,10 @@ class TemplateResolver {
         if (propertyName.startsWith('[') && propertyName.endsWith(']')) {
           rangeOffset += 1;
           propertyName = propertyName.substring(1, propertyName.length - 1);
+        } else if (propertyName.startsWith('bind-')) {
+          int bindLength = 'bind-'.length;
+          rangeOffset += bindLength;
+          propertyName = propertyName.substring(bindLength);
         } else if (propertyName.startsWith('(') && propertyName.endsWith(')')) {
           rangeOffset += 1;
           propertyName = propertyName.substring(1, propertyName.length - 1);

@@ -34,6 +34,14 @@ main() {
   defineReflectiveTests(TemplateResolverTest);
 }
 
+void _assertComponentReference(
+    ResolvedRange resolvedRange, Component component) {
+  ElementNameSelector selector = component.selector;
+  AngularElement element = resolvedRange.element;
+  expect(element, selector.nameElement);
+  expect(resolvedRange.range.length, selector.nameElement.name.length);
+}
+
 PropertyAccessorElement _assertGetter(ResolvedRange resolvedRange) {
   PropertyAccessorElement element =
       (resolvedRange.element as DartElement).element;
@@ -47,6 +55,18 @@ MethodElement _assertMethod(ResolvedRange resolvedRange) {
   Element dartElement = (element as DartElement).element;
   expect(dartElement, new isInstanceOf<MethodElement>());
   return dartElement;
+}
+
+void _assertPropertyReference(
+    ResolvedRange resolvedRange, AbstractDirective directive, String name) {
+  var element = resolvedRange.element;
+  for (PropertyElement property in directive.properties) {
+    if (property.name == name) {
+      expect(element, same(property));
+      return;
+    }
+  }
+  fail('Expected property "$name", but ${element} found.');
 }
 
 Component _getComponentByClassName(
@@ -674,22 +694,22 @@ class ComponentC {
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'my-aaa></');
-        assertComponentReference(resolvedRange, componentA);
+        _assertComponentReference(resolvedRange, componentA);
       }
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'my-aaa>1');
-        assertComponentReference(resolvedRange, componentA);
+        _assertComponentReference(resolvedRange, componentA);
       }
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'my-bbb></');
-        assertComponentReference(resolvedRange, componentB);
+        _assertComponentReference(resolvedRange, componentB);
       }
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'my-bbb>2');
-        assertComponentReference(resolvedRange, componentB);
+        _assertComponentReference(resolvedRange, componentB);
       }
     }
     // no errors
@@ -884,7 +904,7 @@ class User {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'text]=');
         expect(resolvedRange.range.length, 'text'.length);
-        assertPropertyReference(resolvedRange, textPanel, 'text');
+        _assertPropertyReference(resolvedRange, textPanel, 'text');
       }
       {
         ResolvedRange resolvedRange =
@@ -952,13 +972,13 @@ class ComponentB {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'first-value=');
         expect(resolvedRange.range.length, 'first-value'.length);
-        assertPropertyReference(resolvedRange, componentA, 'first-value');
+        _assertPropertyReference(resolvedRange, componentA, 'first-value');
       }
       {
         ResolvedRange resolvedRange =
             _getResolvedRangeAtString(code, ranges, 'second=');
         expect(resolvedRange.range.length, 'second'.length);
-        assertPropertyReference(resolvedRange, componentA, 'second');
+        _assertPropertyReference(resolvedRange, componentA, 'second');
       }
     }
     // no errors
@@ -1039,26 +1059,6 @@ class TextPanel {
     // no errors
     _fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener.assertNoErrors();
-  }
-
-  static void assertComponentReference(
-      ResolvedRange resolvedRange, Component component) {
-    ElementNameSelector selector = component.selector;
-    AngularElement element = resolvedRange.element;
-    expect(element, selector.nameElement);
-    expect(resolvedRange.range.length, selector.nameElement.name.length);
-  }
-
-  static void assertPropertyReference(
-      ResolvedRange resolvedRange, AbstractDirective directive, String name) {
-    var element = resolvedRange.element;
-    for (PropertyElement property in directive.properties) {
-      if (property.name == name) {
-        expect(element, same(property));
-        return;
-      }
-    }
-    fail('Expected property "$name", but ${element} found.');
   }
 
   static Template _getDartTemplateByClassName(
@@ -1235,6 +1235,8 @@ class TemplateResolverTest extends _AbstractAngularTaskTest {
   Source dartSource;
   Source htmlSource;
 
+  List<AbstractDirective> directives;
+
   Template template;
   List<ResolvedRange> ranges;
 
@@ -1244,7 +1246,7 @@ class TemplateResolverTest extends _AbstractAngularTaskTest {
     _addAngularSources();
   }
 
-  void test_eventBinding() {
+  void test_expression_eventBinding() {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1266,7 +1268,7 @@ class TestPanel {
     }
   }
 
-  void test_eventBinding_on() {
+  void test_expression_eventBinding_on() {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1288,7 +1290,7 @@ class TestPanel {
     }
   }
 
-  void test_propertyBinding() {
+  void test_expression_propertyBinding() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -1308,7 +1310,7 @@ class TestPanel {
     }
   }
 
-  void test_propertyBinding_bind() {
+  void test_expression_propertyBinding_bind() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -1351,6 +1353,43 @@ class TestPanel {
       ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
       PropertyAccessorElement element = _assertGetter(resolvedRange);
       _assertDartElementAt(element, 'bbb; // 2');
+    }
+  }
+
+  void test_propertyReference() {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+    properties: const ['aaa', 'bbb', 'ccc'])
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  int aaa;
+  int bbb;
+  int ccc;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NamePanel])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    Component namePanel = _getComponentByClassName(directives, 'NamePanel');
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('aaa=');
+      expect(resolvedRange.range.length, 3);
+      _assertPropertyReference(resolvedRange, namePanel, 'aaa');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('bbb]=');
+      expect(resolvedRange.range.length, 3);
+      _assertPropertyReference(resolvedRange, namePanel, 'bbb');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('ccc=');
+      expect(resolvedRange.range.length, 3);
+      _assertPropertyReference(resolvedRange, namePanel, 'ccc');
     }
   }
 
@@ -1408,6 +1447,7 @@ $code
    * external template of the last one.
    */
   void _resolveSingleTemplate(Source dartSource) {
+    directives = _computeLibraryDirectives(dartSource);
     List<View> views = _computeLibraryViews(dartSource);
     View view = views.last;
     // resolve this View
@@ -1454,6 +1494,8 @@ class _AbstractAngularTaskTest {
         r'''
 library angular2.src.core.metadata;
 
+import 'dart:async';
+
 abstract class Directive {
   final String selector;
   final dynamic properties;
@@ -1492,7 +1534,17 @@ class View {
       List<String> styles,
       List<String> styleUrls});
 }
+
+class EventEmitter extends Stream {
+}
 ''');
+  }
+
+  List<AbstractDirective> _computeLibraryDirectives(Source dartSource) {
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    _computeResult(target, DIRECTIVES);
+    return outputs[DIRECTIVES];
   }
 
   List<View> _computeLibraryViews(Source dartSource) {
