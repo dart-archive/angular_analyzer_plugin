@@ -197,6 +197,7 @@ class TemplateResolver {
       Scope nameScope = resolver.pushNameScope();
       classElement.methods.forEach(nameScope.define);
       classElement.accessors.forEach(nameScope.define);
+      // TODO(scheglov) hack, use actual variables
       _defineBuiltInVariable(nameScope, typeProvider.dynamicType, r'$event');
       // do resolve
       expression.accept(resolver);
@@ -213,7 +214,7 @@ class TemplateResolver {
   }
 
   /// Resolve the given Angular [code] at the given [offset].
-  /// Currently implemented as resolving as Dart code.
+  /// Record [ResolvedRange]s.
   void _resolveExpression(int offset, String code) {
     Expression expression = _resolveDartExpression(offset, code);
     if (expression != null) {
