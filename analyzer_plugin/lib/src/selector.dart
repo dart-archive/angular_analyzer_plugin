@@ -26,6 +26,9 @@ class AndSelector implements Selector {
     }
     return true;
   }
+
+  @override
+  String toString() => selectors.join(' && ');
 }
 
 /**
@@ -46,12 +49,24 @@ class AttributeSelector implements Selector {
     if (val == null) {
       return false;
     }
-    // match actual value against required
-    if (value != null) {
-      // TODO(scheglov)
+    // match the actual value against the required
+    if (value != null && val != value) {
+      return false;
     }
-    // TODO: implement resolve
+    // OK
+    SourceSpan nameSpan = element.attributeSpans[name];
+    template.addRange(
+        new SourceRange(nameSpan.start.offset, name.length), nameElement);
     return true;
+  }
+
+  @override
+  String toString() {
+    String name = nameElement.name;
+    if (value != null) {
+      return '[$name=$value]';
+    }
+    return '[$name]';
   }
 }
 
@@ -65,9 +80,34 @@ class ClassSelector implements Selector {
 
   @override
   bool match(html.Element element, Template template) {
-    // TODO: implement resolve
+    String name = nameElement.name;
+    String val = element.attributes['class'];
+    // no 'class' attribute
+    if (val == null) {
+      return false;
+    }
+    // no such class
+    if (!val.split(' ').contains(name)) {
+      return false;
+    }
+    // prepare index of "name" int the "class" attribute value
+    int index;
+    if (val == name || val.startsWith('$name ')) {
+      index = 0;
+    } else if (val.endsWith(' $name')) {
+      index = val.length - name.length;
+    } else {
+      index = val.indexOf(' $name ') + 1;
+    }
+    // add resolved range
+    int valueOffset = element.attributeValueSpans['class'].start.offset;
+    int offset = valueOffset + index;
+    template.addRange(new SourceRange(offset, name.length), nameElement);
     return true;
   }
+
+  @override
+  String toString() => '.' + nameElement.name;
 }
 
 /// The element name based selector.
@@ -126,6 +166,9 @@ class OrSelector implements Selector {
     }
     return false;
   }
+
+  @override
+  String toString() => selectors.join(' || ');
 }
 
 /// The base class for all Angular selectors.
