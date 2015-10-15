@@ -24,6 +24,20 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
+/**
+ * Information about an attribute that may be bound to a property.
+ */
+class AttributePropertyInfo {
+  final String name;
+  final int offset;
+  final int length;
+
+  AttributePropertyInfo(this.name, this.offset, this.length);
+
+  @override
+  String toString() => '($name, $offset, $length)';
+}
+
 /// [DartTemplateResolver]s resolve inline [View] templates.
 class DartTemplateResolver {
   final TypeProvider typeProvider;
@@ -81,6 +95,27 @@ class DartTemplateResolver {
   }
 }
 
+/**
+ * The [html.Element] implementation of [ElementView].
+ */
+class HtmlElementView implements ElementView {
+  final html.Element element;
+
+  @override
+  final Map<String, String> attributes = <String, String>{};
+
+  HtmlElementView(this.element) {
+    element.attributes.forEach((key, String value) {
+      if (key is String) {
+        attributes[key] = value;
+      }
+    });
+  }
+
+  @override
+  String get localName => element.localName;
+}
+
 /// [HtmlTemplateResolver]s resolve templates in separate Html files.
 class HtmlTemplateResolver {
   final TypeProvider typeProvider;
@@ -100,6 +135,20 @@ class HtmlTemplateResolver {
   }
 }
 
+/**
+ * The implementation of [ElementView] for the short form of an inline template.
+ *
+ * The following template declares two attributes - `ng-for` and `ng-for-of`.
+ *     <li template="ng-for #item of items; #i = index">...</li>
+ */
+class ShortTemplateElementView implements ElementView {
+  @override
+  String localName;
+
+  @override
+  final Map<String, String> attributes = <String, String>{};
+}
+
 /// [TemplateResolver]s resolve [Template]s.
 class TemplateResolver {
   final TypeProvider typeProvider;
@@ -116,6 +165,24 @@ class TemplateResolver {
     _resolveNode(template.element);
   }
 
+  void _addElementTagRanges(html.Element element, AngularElement nameElement) {
+    String name = nameElement.name;
+    {
+      SourceSpan span = element.sourceSpan;
+      int offset = span.start.offset + '<'.length;
+      SourceRange range = new SourceRange(offset, name.length);
+      template.addRange(range, nameElement);
+    }
+    {
+      SourceSpan span = element.endSourceSpan;
+      if (span != null) {
+        int offset = span.start.offset + '</'.length;
+        SourceRange range = new SourceRange(offset, name.length);
+        template.addRange(range, nameElement);
+      }
+    }
+  }
+
   void _defineBuiltInVariable(Scope nameScope, DartType type, String name) {
     MethodElementImpl methodElement = new MethodElementImpl('angularVars', -1);
     (view.classElement as ElementImpl).encloseElement(methodElement);
@@ -126,11 +193,43 @@ class TemplateResolver {
     nameScope.define(localVariable);
   }
 
-  /// Resolve the given Dart [code] that starts at [offset].
+  AttributePropertyInfo _getAttributeProperty(int offset, String name) {
+    if (name.startsWith('[') && name.endsWith(']')) {
+      offset += 1;
+      name = name.substring(1, name.length - 1);
+    } else if (name.startsWith('bind-')) {
+      int bindLength = 'bind-'.length;
+      offset += bindLength;
+      name = name.substring(bindLength);
+    } else if (name.startsWith('(') && name.endsWith(')')) {
+      offset += 1;
+      name = name.substring(1, name.length - 1);
+    }
+    int length = name.length;
+    return new AttributePropertyInfo(name, offset, length);
+  }
+
+  /// Parse the given Dart [code] that starts at [offset].
   Expression _parseDartExpression(int offset, String code) {
     Token token = _scanDartCode(offset, code);
+    return _parseDartExpressionAtToken(token);
+  }
+
+  /**
+   * Parse the Dart expression starting at the given [token].
+   */
+  Expression _parseDartExpressionAtToken(Token token) {
     Parser parser = new Parser(view.source, errorListener);
     return parser.parseExpression(token);
+  }
+
+  /**
+   * Record [ResolvedRange]s for the given [expression].
+   */
+  void _recordExpressionResolvedRanges(Expression expression) {
+    if (expression != null) {
+      expression.accept(new _DartReferencesRecorder(template));
+    }
   }
 
   void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
@@ -139,29 +238,16 @@ class TemplateResolver {
         view.source, span.start.offset, span.length, errorCode, arguments));
   }
 
-  /// Resolve the given [node] attributes to properties of [directive].
-  void _resolveAttributes(html.Element node, AbstractDirective directive) {
+  /// Resolve the given [node] attribute names to properties of [directive].
+  void _resolveAttributeNames(html.Element node, AbstractDirective directive) {
     node.attributes.forEach((key, String value) {
       if (key is String) {
-        String propertyName = key;
-        int rangeOffset = node.attributeSpans[key].start.offset;
-        if (propertyName.startsWith('[') && propertyName.endsWith(']')) {
-          rangeOffset += 1;
-          propertyName = propertyName.substring(1, propertyName.length - 1);
-        } else if (propertyName.startsWith('bind-')) {
-          int bindLength = 'bind-'.length;
-          rangeOffset += bindLength;
-          propertyName = propertyName.substring(bindLength);
-        } else if (propertyName.startsWith('(') && propertyName.endsWith(')')) {
-          rangeOffset += 1;
-          propertyName = propertyName.substring(1, propertyName.length - 1);
-        }
+        int attrOffset = node.attributeSpans[key].start.offset;
+        AttributePropertyInfo info = _getAttributeProperty(attrOffset, key);
         for (PropertyElement property in directive.properties) {
-          if (propertyName == property.name) {
-            int rangeLength = property.name.length;
-            SourceRange range = new SourceRange(rangeOffset, rangeLength);
+          if (info.name == property.name) {
+            SourceRange range = new SourceRange(info.offset, info.length);
             template.addRange(range, property);
-            break;
           }
         }
       }
@@ -173,7 +259,9 @@ class TemplateResolver {
     node.attributes.forEach((key, String value) {
       if (key is String) {
         int valueOffset = node.attributeValueSpans[key].start.offset;
-        if (key.startsWith('[') && key.endsWith(']') ||
+        if (key == 'template') {
+          _resolveTemplateAttribute(valueOffset, value);
+        } else if (key.startsWith('[') && key.endsWith(']') ||
             key.startsWith('(') && key.endsWith(')') ||
             key.startsWith('bind-') ||
             key.startsWith('on-')) {
@@ -185,30 +273,37 @@ class TemplateResolver {
     });
   }
 
+  /**
+   * Resolve the given [expression] and report errors.
+   */
+  void _resolveDartExpression(Expression expression) {
+    ClassElement classElement = view.classElement;
+    LibraryElement library = classElement.library;
+    ResolverVisitor resolver =
+        new ResolverVisitor(library, view.source, typeProvider, errorListener);
+    // fill the name scope
+    Scope nameScope = resolver.pushNameScope();
+    classElement.methods.forEach(nameScope.define);
+    classElement.accessors.forEach(nameScope.define);
+    // TODO(scheglov) hack, use actual variables
+    _defineBuiltInVariable(nameScope, typeProvider.dynamicType, r'$event');
+    // do resolve
+    expression.accept(resolver);
+    // verify
+    ErrorVerifier verifier = new ErrorVerifier(
+        new ErrorReporter(errorListener, view.source),
+        library,
+        typeProvider,
+        new InheritanceManager(library),
+        false);
+    expression.accept(verifier);
+  }
+
   /// Resolve the Dart expression with the given [code] at [offset].
-  Expression _resolveDartExpression(int offset, String code) {
+  Expression _resolveDartExpressionAt(int offset, String code) {
     Expression expression = _parseDartExpression(offset, code);
     if (expression != null) {
-      ClassElement classElement = view.classElement;
-      LibraryElement library = classElement.library;
-      ResolverVisitor resolver = new ResolverVisitor(
-          library, view.source, typeProvider, errorListener);
-      // fill the name scope
-      Scope nameScope = resolver.pushNameScope();
-      classElement.methods.forEach(nameScope.define);
-      classElement.accessors.forEach(nameScope.define);
-      // TODO(scheglov) hack, use actual variables
-      _defineBuiltInVariable(nameScope, typeProvider.dynamicType, r'$event');
-      // do resolve
-      expression.accept(resolver);
-      // verify
-      ErrorVerifier verifier = new ErrorVerifier(
-          new ErrorReporter(errorListener, view.source),
-          library,
-          typeProvider,
-          new InheritanceManager(library),
-          false);
-      expression.accept(verifier);
+      _resolveDartExpression(expression);
     }
     return expression;
   }
@@ -216,10 +311,8 @@ class TemplateResolver {
   /// Resolve the given Angular [code] at the given [offset].
   /// Record [ResolvedRange]s.
   void _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpression(offset, code);
-    if (expression != null) {
-      expression.accept(new _DartReferencesRecorder(template));
-    }
+    Expression expression = _resolveDartExpressionAt(offset, code);
+    _recordExpressionResolvedRanges(expression);
   }
 
   /// Resolve the given [node] in [template].
@@ -228,13 +321,15 @@ class TemplateResolver {
       html.Element element = node;
       bool tagIsStandard = _isStandardTag(element);
       bool tagIsResolved = false;
+      ElementView elementView = new HtmlElementView(element);
       for (AbstractDirective directive in view.directives) {
         Selector selector = directive.selector;
-        if (selector.match(element, template)) {
+        if (selector.match(elementView)) {
           if (selector is ElementNameSelector) {
+            _addElementTagRanges(element, selector.nameElement);
             tagIsResolved = true;
           }
-          _resolveAttributes(node, directive);
+          _resolveAttributeNames(node, directive);
         }
       }
       if (!tagIsStandard && !tagIsResolved) {
@@ -249,6 +344,57 @@ class TemplateResolver {
       _resolveTextExpressions(offset, text);
     }
     node.nodes.forEach(_resolveNode);
+  }
+
+  /**
+   * Resolve the given `template` attribute [code] at [offset].
+   */
+  void _resolveTemplateAttribute(int offset, String code) {
+    // TODO(scheglov) add support for multiple keys, variables
+    ShortTemplateElementView elementView = new ShortTemplateElementView();
+    List<AttributePropertyInfo> infoList = <AttributePropertyInfo>[];
+    Token token = _scanDartCode(offset, code);
+    String key = null;
+    while (token.type != TokenType.EOF) {
+      // key
+      if (key == null && token.type == TokenType.IDENTIFIER) {
+        int keyOffset = token.offset;
+        // scan for a full attribute name
+        key = '';
+        int lastEnd = token.offset;
+        while (token.offset == lastEnd) {
+          key += token.lexeme;
+          lastEnd = token.end;
+          token = token.next;
+        }
+        // register the attribute
+        elementView.attributes[key] = 'some-value';
+        // add the attribute to resolve to property
+        infoList.add(new AttributePropertyInfo(key, keyOffset, key.length));
+        continue;
+      }
+      // expression
+      if (key != null) {
+        Expression expression = _parseDartExpressionAtToken(token);
+        _resolveDartExpression(expression);
+        _recordExpressionResolvedRanges(expression);
+        token = expression.endToken.next;
+      }
+    }
+    // match directives
+    for (AbstractDirective directive in view.directives) {
+      if (directive.selector.match(elementView)) {
+        for (PropertyElement property in directive.properties) {
+          for (AttributePropertyInfo info in infoList) {
+            if (info.name == property.name) {
+              SourceRange range = new SourceRange(info.offset, info.length);
+              template.addRange(range, property);
+            }
+          }
+        }
+        break;
+      }
+    }
   }
 
   /// Scan the given [text] staring at the given [offset] and resolve all of

@@ -31,7 +31,7 @@ class BuildUnitDirectivesTaskTest extends AbstractAngularTest {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'comp-a')
 class ComponentA {
@@ -71,7 +71,7 @@ class ComponentB {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Directive(selector: 'dir-a')
 class DirectiveA {
@@ -111,7 +111,7 @@ class DirectiveB {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component()
 class ComponentA {
@@ -130,7 +130,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: '+bad')
 class ComponentA {
@@ -149,7 +149,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'comp' + '-a')
 class ComponentA {
@@ -168,7 +168,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'my-component', properties: const ['noSetter: no-setter'])
 class ComponentA {
@@ -187,7 +187,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'my-component', properties: const ['noSetter'])
 class ComponentA {
@@ -219,7 +219,7 @@ class B {}
 
   void test_properties_OK() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
@@ -267,7 +267,7 @@ class BuildUnitViewsTaskTest extends AbstractAngularTest {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @View(template: 'AAA')
 class ComponentA {
@@ -286,7 +286,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'aaa')
 @View(template: 'AAA', directives: [int])
@@ -306,7 +306,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'aaa')
 @View(template: 'bad' + 'template')
@@ -326,7 +326,7 @@ class ComponentA {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'aaa')
 @View(template: 'AAA', directives: [42])
@@ -344,7 +344,7 @@ class ComponentA {
 
   void test_templateExternal() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'my-component')
 @View(templateUrl: 'my-template.html')
@@ -379,7 +379,7 @@ class MyComponent {}
 
   void test_templateInline() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Directive(selector: 'my-directive')
 class MyDirective {}
@@ -426,7 +426,7 @@ class MyComponent {}
 class ResolveDartTemplatesTaskTest extends AbstractAngularTest {
   void test_componentReference() {
     var code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'my-aaa')
 @View(template: '<div>AAA</div>')
@@ -500,7 +500,7 @@ class ComponentC {
 
   void test_hasError_expression_ArgumentTypeNotAssignable() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel')
 @View(template: r"<div> {{text.length + text}} </div>")
@@ -520,7 +520,7 @@ class TextPanel {
 
   void test_hasError_expression_UndefinedIdentifier() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', properties: const ['text'])
 @View(template: r"<div>some text</div>")
@@ -551,7 +551,7 @@ class UserPanel {
     Source source = newSource(
         '/test.dart',
         r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'my-aaa')
 @View(template: '<unresolved-tag></unresolved-tag>')
@@ -569,7 +569,7 @@ class ComponentA {
 
   void test_htmlParsing_hasError() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel')
 @View(template: r"<div> <h2> Expected closing H2 </h3> </div>")
@@ -588,7 +588,7 @@ class TextPanel {
   void test_property_OK_event() {
     String code = r'''
 import 'dart:html';
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'UserPanel')
 @View(template: r"""
@@ -638,7 +638,7 @@ class TodoList {
 
   void test_property_OK_reference_expression() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', properties: const ['text'])
 @View(template: r"<div>some text</div>")
@@ -707,7 +707,7 @@ class User {
 
   void test_property_OK_reference_text() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(
     selector: 'comp-a',
@@ -762,7 +762,7 @@ class ComponentB {
 
   void test_textExpression_hasError_UnterminatedMustache() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel')
 @View(template: r"<div> {{text </div>")
@@ -784,7 +784,7 @@ class TextPanel {
 
   void test_textExpression_OK() {
     String code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', properties: const ['text'])
 @View(template: r"<div> <h2> {{text}}  </h2> and {{text.length}} </div>")
@@ -847,7 +847,7 @@ class TextPanel {
 class ResolveHtmlTemplatesTaskTest extends AbstractAngularTest {
   void test_multipleViewsWithTemplate() {
     String dartCode = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panelA')
 @View(templateUrl: 'text_panel.html')
@@ -909,7 +909,7 @@ class TextPanelB {
 
   void test_priorityHtmlTemplate() {
     String dartCode = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -953,7 +953,7 @@ class TextPanel {}
 class ResolveHtmlTemplateTaskTest extends AbstractAngularTest {
   void test_hasViewWithTemplate() {
     String dartCode = r'''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')

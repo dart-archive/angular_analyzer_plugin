@@ -56,6 +56,13 @@ void assertPropertyReference(
   fail('Expected property "$name", but ${element} found.');
 }
 
+PropertyAccessorElement assertSetter(ResolvedRange resolvedRange) {
+  PropertyAccessorElement element =
+      (resolvedRange.element as DartElement).element;
+  expect(element.isSetter, isTrue);
+  return element;
+}
+
 Component getComponentByClassName(
     List<AbstractDirective> directives, String className) {
   return getDirectiveByClassName(directives, className);
@@ -74,7 +81,7 @@ ResolvedRange getResolvedRangeAtString(
     String code, List<ResolvedRange> ranges, String str) {
   int offset = code.indexOf(str);
   return ranges.firstWhere((_) => _.range.offset == offset, orElse: () {
-    fail('ResolvedRange at $offset was not found.');
+    fail('ResolvedRange at $offset was not found in [\n${ranges.join('\n')}]');
     return null;
   });
 }
@@ -154,6 +161,15 @@ class AbstractAngularTest {
 
   void _addAngularSources() {
     newSource(
+        '/angular2/angular2.dart',
+        r'''
+library angular2;
+
+export 'metadata.dart';
+export 'ng_if.dart';
+export 'ng_for.dart';
+''');
+    newSource(
         '/angular2/metadata.dart',
         r'''
 library angular2.src.core.metadata;
@@ -200,6 +216,30 @@ class View {
 }
 
 class EventEmitter extends Stream {
+}
+''');
+    newSource(
+        '/angular2/ng_if.dart',
+        r'''
+library angular2.ng_if;
+import 'metadata.dart';
+
+@Directive(selector: "[ng-if]", properties: const ["ngIf"])
+class NgIf {
+  set ngIf(newCondition) {}
+}
+''');
+    newSource(
+        '/angular2/ng_for.dart',
+        r'''
+library angular2.ng_for;
+import 'metadata.dart';
+
+@Directive(
+    selector: "[ng-for][ng-for-of]",
+    properties: const ["ngForOf"])
+class NgFor {
+  set ngForOf(dynamic value) {}
 }
 ''');
   }

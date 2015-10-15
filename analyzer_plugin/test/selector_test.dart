@@ -3,8 +3,6 @@ library angular2.src.analysis.analyzer_plugin.src.selector_test;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:html/dom.dart' as html;
-import 'package:source_span/source_span.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';
@@ -30,32 +28,32 @@ class AndSelectorTest extends _SelectorTest {
   void setUp() {
     super.setUp();
     selector = new AndSelector(<Selector>[selector1, selector2, selector3]);
-    when(selector1.match(anyObject, anyObject)).thenReturn(true);
-    when(selector2.match(anyObject, anyObject)).thenReturn(true);
-    when(selector3.match(anyObject, anyObject)).thenReturn(true);
+    when(selector1.match(anyObject)).thenReturn(true);
+    when(selector2.match(anyObject)).thenReturn(true);
+    when(selector3.match(anyObject)).thenReturn(true);
   }
 
   void test_match() {
-    expect(selector.match(element, template), isTrue);
-    verify(selector1.match(anyObject, anyObject)).times(2);
-    verify(selector1.match(anyObject, anyObject)).times(2);
-    verify(selector1.match(anyObject, anyObject)).times(2);
+    expect(selector.match(element), isTrue);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector1.match(anyObject)).times(1);
   }
 
   void test_match_false1() {
-    when(selector1.match(anyObject, anyObject)).thenReturn(false);
-    expect(selector.match(element, template), isFalse);
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(0);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    when(selector1.match(anyObject)).thenReturn(false);
+    expect(selector.match(element), isFalse);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector2.match(anyObject)).times(0);
+    verify(selector3.match(anyObject)).times(0);
   }
 
   void test_match_false2() {
-    when(selector2.match(anyObject, anyObject)).thenReturn(false);
-    expect(selector.match(element, template), isFalse);
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    when(selector2.match(anyObject)).thenReturn(false);
+    expect(selector.match(element), isFalse);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector2.match(anyObject)).times(1);
+    verify(selector3.match(anyObject)).times(0);
   }
 
   void test_toString() {
@@ -71,23 +69,19 @@ class AttributeSelectorTest extends _SelectorTest {
   void test_match_notName() {
     AttributeSelector selector = new AttributeSelector(nameElement, null);
     when(element.attributes).thenReturn({'not-kind': 'no-matter'});
-    expect(selector.match(element, template), isFalse);
+    expect(selector.match(element), isFalse);
   }
 
   void test_match_notValue() {
     AttributeSelector selector = new AttributeSelector(nameElement, 'silly');
     when(element.attributes).thenReturn({'kind': 'strange'});
-    expect(selector.match(element, template), isFalse);
+    expect(selector.match(element), isFalse);
   }
 
   void test_match_noValue() {
     AttributeSelector selector = new AttributeSelector(nameElement, null);
     when(element.attributes).thenReturn({'kind': 'no-matter'});
-    when(element.attributeSpans)
-        .thenReturn({'kind': _newStringSpan(100, "kind='batty'")});
-    // verify
-    expect(selector.match(element, template), isTrue);
-    _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
+    expect(selector.match(element), isTrue);
   }
 
   void test_toString_hasValue() {
@@ -114,42 +108,30 @@ class ClassSelectorTest extends _SelectorTest {
 
   void test_match_false_noClass() {
     when(element.attributes).thenReturn({'not-class': 'no-matter'});
-    expect(selector.match(element, template), isFalse);
+    expect(selector.match(element), isFalse);
   }
 
   void test_match_false_noSuchClass() {
     when(element.attributes).thenReturn({'class': 'not-nice'});
-    expect(selector.match(element, template), isFalse);
+    expect(selector.match(element), isFalse);
   }
 
   void test_match_true_first() {
     String classValue = 'nice some other';
     when(element.attributes).thenReturn({'class': classValue});
-    when(element.attributeValueSpans)
-        .thenReturn({'class': _newStringSpan(100, classValue)});
-    expect(selector.match(element, template), isTrue);
-    expect(resolvedRanges, hasLength(1));
-    _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
+    expect(selector.match(element), isTrue);
   }
 
   void test_match_true_last() {
     String classValue = 'some other nice';
     when(element.attributes).thenReturn({'class': classValue});
-    when(element.attributeValueSpans)
-        .thenReturn({'class': _newStringSpan(100, classValue)});
-    expect(selector.match(element, template), isTrue);
-    expect(resolvedRanges, hasLength(1));
-    _assertRange(resolvedRanges[0], 111, 4, selector.nameElement);
+    expect(selector.match(element), isTrue);
   }
 
   void test_match_true_middle() {
     String classValue = 'some nice other';
     when(element.attributes).thenReturn({'class': classValue});
-    when(element.attributeValueSpans)
-        .thenReturn({'class': _newStringSpan(100, classValue)});
-    expect(selector.match(element, template), isTrue);
-    expect(resolvedRanges, hasLength(1));
-    _assertRange(resolvedRanges[0], 105, 4, selector.nameElement);
+    expect(selector.match(element), isTrue);
   }
 
   void test_toString() {
@@ -169,16 +151,12 @@ class ElementNameSelectorTest extends _SelectorTest {
 
   void test_match() {
     when(element.localName).thenReturn('panel');
-    when(element.sourceSpan).thenReturn(_newStringSpan(100, '<panel>'));
-    when(element.endSourceSpan).thenReturn(_newStringSpan(200, '</panel>'));
-    expect(selector.match(element, template), isTrue);
-    _assertRange(resolvedRanges[0], 101, 5, selector.nameElement);
-    _assertRange(resolvedRanges[1], 202, 5, selector.nameElement);
+    expect(selector.match(element), isTrue);
   }
 
   void test_match_not() {
     when(element.localName).thenReturn('not-panel');
-    expect(selector.match(element, template), isFalse);
+    expect(selector.match(element), isFalse);
   }
 
   void test_toString() {
@@ -197,32 +175,32 @@ class OrSelectorTest extends _SelectorTest {
   void setUp() {
     super.setUp();
     selector = new OrSelector(<Selector>[selector1, selector2, selector3]);
-    when(selector1.match(anyObject, anyObject)).thenReturn(false);
-    when(selector2.match(anyObject, anyObject)).thenReturn(false);
-    when(selector3.match(anyObject, anyObject)).thenReturn(false);
+    when(selector1.match(anyObject)).thenReturn(false);
+    when(selector2.match(anyObject)).thenReturn(false);
+    when(selector3.match(anyObject)).thenReturn(false);
   }
 
   void test_match1() {
-    when(selector1.match(anyObject, anyObject)).thenReturn(true);
-    expect(selector.match(element, template), isTrue);
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(0);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    when(selector1.match(anyObject)).thenReturn(true);
+    expect(selector.match(element), isTrue);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector2.match(anyObject)).times(0);
+    verify(selector3.match(anyObject)).times(0);
   }
 
   void test_match2() {
-    when(selector2.match(anyObject, anyObject)).thenReturn(true);
-    expect(selector.match(element, template), isTrue);
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    when(selector2.match(anyObject)).thenReturn(true);
+    expect(selector.match(element), isTrue);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector2.match(anyObject)).times(1);
+    verify(selector3.match(anyObject)).times(0);
   }
 
   void test_match_false() {
-    expect(selector.match(element, template), isFalse);
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(1);
+    expect(selector.match(element), isFalse);
+    verify(selector1.match(anyObject)).times(1);
+    verify(selector2.match(anyObject)).times(1);
+    verify(selector3.match(anyObject)).times(1);
   }
 
   void test_toString() {
@@ -330,7 +308,7 @@ class SelectorParserTest {
   }
 }
 
-class _ElementMock extends TypedMock implements html.Element {
+class _ElementViewMock extends TypedMock implements ElementView {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -346,36 +324,11 @@ class _SelectorMock extends TypedMock implements Selector {
 }
 
 class _SelectorTest {
-  html.Element element = new _ElementMock();
-  Template template = new _TemplateMock();
+  ElementView element = new _ElementViewMock();
 
-  List<ResolvedRange> resolvedRanges = <ResolvedRange>[];
-
-  void setUp() {
-    when(template.addRange(anyObject, anyObject))
-        .thenInvoke((SourceRange range, AngularElement element) {
-      resolvedRanges.add(new ResolvedRange(range, element));
-    });
-  }
-
-  void _assertRange(ResolvedRange resolvedRange, int offset, int length,
-      AngularElement element) {
-    SourceRange range = resolvedRange.range;
-    expect(range.offset, offset);
-    expect(range.length, length);
-    expect(resolvedRange.element, element);
-  }
-
-  SourceSpan _newStringSpan(int offset, String value) => new SourceSpan(
-      new SourceLocation(offset),
-      new SourceLocation(offset + value.length),
-      value);
+  void setUp() {}
 }
 
 class _SourceMock extends TypedMock implements Source {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _TemplateMock extends TypedMock implements Template {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

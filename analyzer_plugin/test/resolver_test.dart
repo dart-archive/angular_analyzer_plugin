@@ -14,6 +14,18 @@ main() {
   defineReflectiveTests(TemplateResolverTest);
 }
 
+void assertPropertyElement(AngularElement element,
+    {nameMatcher, sourceMatcher}) {
+  expect(element, new isInstanceOf<PropertyElement>());
+  PropertyElement propertyElement = element;
+  if (nameMatcher != null) {
+    expect(propertyElement.name, nameMatcher);
+  }
+  if (sourceMatcher != null) {
+    expect(propertyElement.source.fullName, sourceMatcher);
+  }
+}
+
 @reflectiveTest
 class TemplateResolverTest extends AbstractAngularTest {
   String dartCode;
@@ -110,6 +122,63 @@ class TestPanel {
     }
   }
 
+  void test_ngIf_templateAttribute() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NgIf])
+class TestPanel {
+  String text; // 1
+}
+''');
+    _addHtmlSource(r"""
+<span template='ng-if text.length != 0'></template>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('ng-if text');
+      expect(resolvedRange.range.length, 'ng-if'.length);
+      assertPropertyElement(resolvedRange.element,
+          nameMatcher: 'ng-if', sourceMatcher: endsWith('ng_if.dart'));
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('text.length');
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'text; // 1');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('length != 0');
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      expect(element.source.isInSystemLibrary, isTrue);
+    }
+  }
+
+  void test_ngIf_templateElement() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NgIf])
+class TestPanel {
+  String text; // 1
+}
+''');
+    _addHtmlSource(r"""
+<template [ng-if]='text.length != 0'></template>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("ng-if]");
+      expect(resolvedRange.range.length, 'ng-if'.length);
+      PropertyElement propertyElement = resolvedRange.element;
+      expect(propertyElement.name, 'ng-if');
+      expect(propertyElement.source.fullName, endsWith('ng_if.dart'));
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("text.length");
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'text; // 1');
+    }
+    _findResolvedRange("length !=");
+  }
+
   void test_propertyInterpolation() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -203,7 +272,7 @@ class TestPanel {
 
   void _addDartSource(String code) {
     dartCode = '''
-import '/angular2/metadata.dart';
+import '/angular2/angular2.dart';
 $code
 ''';
     dartSource = newSource('/test_panel.dart', dartCode);

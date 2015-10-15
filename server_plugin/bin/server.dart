@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:analysis_server/starter.dart';
-import 'package:analyzer/src/generated/engine.dart';
 import 'package:angular2_analyzer_plugin/plugin.dart';
 import 'package:angular2_server_plugin/plugin.dart';
 import 'package:plugin/plugin.dart';
@@ -12,10 +11,10 @@ import 'package:plugin/plugin.dart';
  * Create and run an analysis server with Angular plugins.
  */
 void main(List<String> args) {
-  AnalysisEngine.instance.userDefinedPlugins = <Plugin>[
-    new AngularAnalyzerPlugin()
-  ];
   ServerStarter starter = new ServerStarter();
-  starter.userDefinedPlugins = <Plugin>[new AngularServerPlugin()];
+  starter.userDefinedPlugins = <Plugin>[
+    new AngularAnalyzerPlugin(),
+    new AngularServerPlugin()
+  ];
   starter.start(args);
 }

@@ -15,14 +15,11 @@ class AndSelector implements Selector {
   AndSelector(this.selectors);
 
   @override
-  bool match(html.Element element, Template template) {
+  bool match(ElementView element) {
     for (Selector selector in selectors) {
-      if (!selector.match(element, null)) {
+      if (!selector.match(element)) {
         return false;
       }
-    }
-    for (Selector selector in selectors) {
-      selector.match(element, template);
     }
     return true;
   }
@@ -42,9 +39,12 @@ class AttributeSelector implements Selector {
   AttributeSelector(this.nameElement, this.value);
 
   @override
-  bool match(html.Element element, Template template) {
+  bool match(ElementView element) {
     String name = nameElement.name;
     String val = element.attributes[name];
+    if (val == null) {
+      val = element.attributes['[$name]'];
+    }
     // no attribute
     if (val == null) {
       return false;
@@ -53,10 +53,6 @@ class AttributeSelector implements Selector {
     if (value != null && val != value) {
       return false;
     }
-    // OK
-    SourceSpan nameSpan = element.attributeSpans[name];
-    template.addRange(
-        new SourceRange(nameSpan.start.offset, name.length), nameElement);
     return true;
   }
 
@@ -79,7 +75,7 @@ class ClassSelector implements Selector {
   ClassSelector(this.nameElement);
 
   @override
-  bool match(html.Element element, Template template) {
+  bool match(ElementView element) {
     String name = nameElement.name;
     String val = element.attributes['class'];
     // no 'class' attribute
@@ -90,19 +86,7 @@ class ClassSelector implements Selector {
     if (!val.split(' ').contains(name)) {
       return false;
     }
-    // prepare index of "name" int the "class" attribute value
-    int index;
-    if (val == name || val.startsWith('$name ')) {
-      index = 0;
-    } else if (val.endsWith(' $name')) {
-      index = val.length - name.length;
-    } else {
-      index = val.indexOf(' $name ') + 1;
-    }
-    // add resolved range
-    int valueOffset = element.attributeValueSpans['class'].start.offset;
-    int offset = valueOffset + index;
-    template.addRange(new SourceRange(offset, name.length), nameElement);
+    // OK
     return true;
   }
 
@@ -117,36 +101,18 @@ class ElementNameSelector implements Selector {
   ElementNameSelector(this.nameElement);
 
   @override
-  bool match(html.Element element, Template template) {
+  bool match(ElementView element) {
     String name = nameElement.name;
-    // match
-    if (element.localName != name) {
-      return false;
-    }
-    // done if no template
-    if (template == null) {
-      return true;
-    }
-    // record resolution
-    {
-      SourceSpan span = element.sourceSpan;
-      int offset = span.start.offset + '<'.length;
-      SourceRange range = new SourceRange(offset, name.length);
-      template.addRange(range, nameElement);
-    }
-    {
-      SourceSpan span = element.endSourceSpan;
-      if (span != null) {
-        int offset = span.start.offset + '</'.length;
-        SourceRange range = new SourceRange(offset, name.length);
-        template.addRange(range, nameElement);
-      }
-    }
-    return true;
+    return element.localName == name;
   }
 
   @override
   String toString() => nameElement.name;
+}
+
+abstract class ElementView {
+  Map<String, String> get attributes;
+  String get localName;
 }
 
 /**
@@ -158,9 +124,9 @@ class OrSelector implements Selector {
   OrSelector(this.selectors);
 
   @override
-  bool match(html.Element element, Template template) {
+  bool match(ElementView element) {
     for (Selector selector in selectors) {
-      if (selector.match(element, template)) {
+      if (selector.match(element)) {
         return true;
       }
     }
@@ -181,8 +147,7 @@ abstract class Selector {
       r'(\s*,\s*)');
 
   /// Check whether the given [element] matches this selector.
-  /// If yes, then record resolved ranges into [template].
-  bool match(html.Element element, Template template);
+  bool match(ElementView element);
 
   static Selector parse(Source source, int offset, String str) {
     if (str == null) {
