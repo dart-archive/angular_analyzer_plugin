@@ -28,13 +28,13 @@ abstract class AngularElement {
   /// Return the name of this element, not `null`.
   String get name;
 
-  /// Return the offset of the name of this element in the file that contains
-  /// the declaration of this element.
-  int get nameOffset;
-
   /// Return the length of the name of this element in the file that contains
   /// the declaration of this element.
   int get nameLength;
+
+  /// Return the offset of the name of this element in the file that contains
+  /// the declaration of this element.
+  int get nameOffset;
 
   /// Return the [Source] of this element.
   Source get source;

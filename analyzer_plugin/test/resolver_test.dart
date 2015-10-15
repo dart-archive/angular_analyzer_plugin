@@ -38,6 +38,11 @@ class TemplateResolverTest extends AbstractAngularTest {
   Template template;
   List<ResolvedRange> ranges;
 
+  void assertInterfaceTypeWithName(DartType type, String name) {
+    expect(type, new isInstanceOf<InterfaceType>());
+    expect(type.displayName, name);
+  }
+
   void test_expression_eventBinding() {
     _addDartSource(r'''
 import 'dart:html';
@@ -120,6 +125,49 @@ class TestPanel {
       PropertyAccessorElement element = assertGetter(resolvedRange);
       _assertDartElementAt(element, 'text; // 1');
     }
+  }
+
+  void test_ngFor_templateElement() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<template ng-for #item [ng-for-of]='items' #i='index'>
+  <li>{{i}} {{item.length}}</li>
+</template>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("ng-for-of]");
+      assertPropertyElement(resolvedRange.element,
+          nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("items'");
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'items = [];');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i}}");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      expect(element.name, 'i');
+      assertInterfaceTypeWithName(element.type, 'int');
+      _assertHtmlElementAt(element, "i='index");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("item.");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      expect(element.name, 'item');
+      assertInterfaceTypeWithName(element.type, 'String');
+      _assertHtmlElementAt(element, "item [");
+    }
+    _findResolvedRange("length}}");
   }
 
   void test_ngIf_templateAttribute() {
@@ -285,6 +333,10 @@ $code
 
   void _assertDartElementAt(Element element, String search) {
     expect(element.nameOffset, dartCode.indexOf(search));
+  }
+
+  void _assertHtmlElementAt(Element element, String search) {
+    expect(element.nameOffset, htmlCode.indexOf(search));
   }
 
   ResolvedRange _findResolvedRange(String search) {
