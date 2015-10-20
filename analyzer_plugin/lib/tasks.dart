@@ -48,6 +48,10 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode('DIRECTIVE_TYPE_LITERAL_EXPECTED',
           'A directive type literal expected');
 
+  /// An error code indicating that an identifier was expected, but not found.
+  static const AngularWarningCode EXPECTED_IDENTIFIER =
+      const AngularWarningCode('EXPECTED_IDENTIFIER', 'Expected identifier');
+
   /// An error code indicating that the value of an expression is not a string.
   static const AngularWarningCode STRING_VALUE_EXPECTED =
       const AngularWarningCode(

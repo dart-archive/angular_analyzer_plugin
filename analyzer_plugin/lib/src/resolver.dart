@@ -55,8 +55,9 @@ class AttributeInfo {
 
   @override
   String toString() {
-    return '([$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
-        '[$value, $valueOffset])';
+    return '([$name, $nameOffset],'
+        '[$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
+        '[$value, $valueOffset], [$expression])';
   }
 }
 
@@ -178,6 +179,7 @@ class TemplateResolver {
 
   Template template;
   View view;
+  ErrorReporter errorReporter;
 
   /**
    * The list of attributes of the current node.
@@ -208,6 +210,7 @@ class TemplateResolver {
   void resolve(Template template) {
     this.template = template;
     this.view = template.view;
+    this.errorReporter = new ErrorReporter(errorListener, view.source);
     _resolveNode(template.element);
   }
 
@@ -304,7 +307,7 @@ class TemplateResolver {
   /**
    * Define new local variables into [localVariables] for `#name` attributes.
    */
-  void _defineVariablesForAttributes(html.Element node) {
+  void _defineVariablesForAttributes() {
     for (AttributeInfo attribute in attributes) {
       String name = attribute.name;
       int offset = attribute.nameOffset;
@@ -376,8 +379,30 @@ class TemplateResolver {
         view.source, span.start.offset, span.length, errorCode, arguments));
   }
 
-  /// Resolve the given [node] attribute names to properties of [directive].
-  void _resolveAttributeNames(html.Element node, AbstractDirective directive) {
+  /**
+   * Resolve the `template` attribute in [attributes] and remove it.
+   */
+  void _resolveAndRemoveTemplateAttribute() {
+    for (AttributeInfo attribute in attributes) {
+      if (attribute.name == 'template') {
+        List<AttributeInfo> nodeAttributes = attributes.toList();
+        nodeAttributes.remove(attribute);
+        try {
+          attributes.clear();
+          int valueOffset = attribute.valueOffset;
+          String value = attribute.value;
+          _resolveTemplateAttribute(valueOffset, value);
+        } finally {
+          attributes.clear();
+          attributes.addAll(nodeAttributes);
+        }
+        break;
+      }
+    }
+  }
+
+  /// Resolve [attributes] names to properties of [directive].
+  void _resolveAttributeNames(AbstractDirective directive) {
     for (AttributeInfo attribute in attributes) {
       for (PropertyElement property in directive.properties) {
         if (attribute.propertyName == property.name) {
@@ -396,12 +421,24 @@ class TemplateResolver {
     for (AttributeInfo attribute in attributes) {
       int valueOffset = attribute.valueOffset;
       String value = attribute.value;
+      // already handled
       if (attribute.name == 'template') {
-        _resolveTemplateAttribute(valueOffset, value);
-      } else if (attribute.bound) {
-        Expression expression = _resolveExpression(valueOffset, value);
-        attribute.expression = expression;
-      } else if (value != null) {
+        continue;
+      }
+      // bound
+      if (attribute.bound) {
+        Expression expression = attribute.expression;
+        if (expression == null) {
+          expression = _resolveDartExpressionAt(valueOffset, value);
+          attribute.expression = expression;
+        }
+        if (expression != null) {
+          _recordExpressionResolvedRanges(expression);
+        }
+        continue;
+      }
+      // text interpolations
+      if (value != null) {
         _resolveTextExpressions(valueOffset, value);
       }
     }
@@ -425,12 +462,8 @@ class TemplateResolver {
     // do resolve
     expression.accept(resolver);
     // verify
-    ErrorVerifier verifier = new ErrorVerifier(
-        new ErrorReporter(errorListener, view.source),
-        library,
-        typeProvider,
-        new InheritanceManager(library),
-        false);
+    ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
+        typeProvider, new InheritanceManager(library), false);
     expression.accept(verifier);
   }
 
@@ -459,6 +492,7 @@ class TemplateResolver {
     if (node is html.Element) {
       html.Element element = node;
       _addAttributes(element);
+      _resolveAndRemoveTemplateAttribute();
       _resolveAttributeValues();
       bool tagIsStandard = _isStandardTag(element);
       bool tagIsResolved = false;
@@ -471,8 +505,8 @@ class TemplateResolver {
             tagIsResolved = true;
           }
           _defineDirectiveVariableTypes(directive);
-          _defineVariablesForAttributes(node);
-          _resolveAttributeNames(node, directive);
+          _defineVariablesForAttributes();
+          _resolveAttributeNames(directive);
         }
       }
       if (!tagIsStandard && !tagIsResolved) {
@@ -495,51 +529,101 @@ class TemplateResolver {
   void _resolveTemplateAttribute(int offset, String code) {
     // TODO(scheglov) add support for multiple keys, variables
     ShortTemplateElementView elementView = new ShortTemplateElementView();
-    List<AttributeInfo> infoList = <AttributeInfo>[];
     Token token = _scanDartCode(offset, code);
+    String prefix = null;
     String key = null;
     while (token.type != TokenType.EOF) {
+      // skip optional comma or semicolons
+      if (token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON) {
+        token = token.next;
+        continue;
+      }
+      // maybe a local variable
+      if (_isTemplateVarBeginToken(token)) {
+        token = token.next;
+        // get the local variable name
+        if (token.type != TokenType.IDENTIFIER) {
+          errorReporter.reportErrorForToken(
+              AngularWarningCode.EXPECTED_IDENTIFIER, token);
+          return;
+        }
+        int localVarOffset = token.offset;
+        String localVarName = token.lexeme;
+        token = token.next;
+        // get an optional internal variable
+        int internalVarOffset = -1;
+        String internalVarName;
+        if (token.type == TokenType.EQ) {
+          token = token.next;
+          // get the internal variable
+          if (token.type != TokenType.IDENTIFIER) {
+            errorReporter.reportErrorForToken(
+                AngularWarningCode.EXPECTED_IDENTIFIER, token);
+            return;
+          }
+          internalVarOffset = token.offset;
+          internalVarName = token.lexeme;
+          token = token.next;
+        }
+        // declare the local variable
+        attributes.add(new AttributeInfo('#$localVarName', localVarOffset - 1,
+            null, -1, -1, false, internalVarName, internalVarOffset));
+        continue;
+      }
       // key
-      if (key == null && token.type == TokenType.IDENTIFIER) {
-        int keyOffset = token.offset;
+      int keyOffset = token.offset;
+      if (token.type == TokenType.IDENTIFIER) {
         // scan for a full attribute name
         key = '';
         int lastEnd = token.offset;
-        while (token.offset == lastEnd) {
+        while (token.offset == lastEnd &&
+            (token.type == TokenType.KEYWORD ||
+                token.type == TokenType.IDENTIFIER ||
+                token.type == TokenType.MINUS)) {
           key += token.lexeme;
           lastEnd = token.end;
           token = token.next;
         }
+        // add the prefix
+        if (prefix == null) {
+          prefix = key;
+        } else {
+          key = '$prefix-$key';
+        }
         // register the attribute
         elementView.attributes[key] = 'some-value';
-        // add the attribute to resolve to property
-        infoList.add(new AttributeInfo(
-            key, keyOffset, key, keyOffset, key.length, false, null, -1));
-        continue;
+      } else {
+        errorReporter.reportErrorForToken(
+            AngularWarningCode.EXPECTED_IDENTIFIER, token);
+        return;
+      }
+      // skip optional ':' or '='
+      if (token.type == TokenType.COLON || token.type == TokenType.EQ) {
+        token = token.next;
       }
       // expression
-      if (key != null) {
-        Expression expression = _parseDartExpressionAtToken(token);
+      Expression expression;
+      if (!_isTemplateVarBeginToken(token)) {
+        expression = _parseDartExpressionAtToken(token);
         _resolveDartExpression(expression);
-        _recordExpressionResolvedRanges(expression);
         token = expression.endToken.next;
       }
+      // add the attribute to resolve to property
+      AttributeInfo attributeInfo = new AttributeInfo(key, keyOffset, key,
+          keyOffset, key.length, expression != null, null, -1);
+      attributeInfo.expression = expression;
+      attributes.add(attributeInfo);
     }
     // match directives
     for (AbstractDirective directive in view.directives) {
       if (directive.selector.match(elementView)) {
-        for (PropertyElement property in directive.properties) {
-          for (AttributeInfo info in infoList) {
-            if (info.name == property.name) {
-              SourceRange range = new SourceRange(
-                  info.propertyNameOffset, info.propertyNameLength);
-              template.addRange(range, property);
-            }
-          }
-        }
+        _defineDirectiveVariableTypes(directive);
+        _defineVariablesForAttributes();
+        _resolveAttributeNames(directive);
         break;
       }
     }
+    _resolveAttributeValues();
   }
 
   /// Scan the given [text] staring at the given [offset] and resolve all of
@@ -577,6 +661,11 @@ class TemplateResolver {
   /// Check whether the given [element] is a standard HTML5 tag.
   static bool _isStandardTag(html.Element element) {
     return !element.localName.contains('-');
+  }
+
+  static bool _isTemplateVarBeginToken(Token token) {
+    return token.type == TokenType.HASH ||
+        token is KeywordToken && token.keyword == Keyword.VAR;
   }
 }
 

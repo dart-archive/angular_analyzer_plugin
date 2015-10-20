@@ -127,6 +127,92 @@ class TestPanel {
     }
   }
 
+  void test_ngFor_templateAttribute() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<li template='ng-for #item of items; #i = index'>
+  {{i}} {{item.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("of items");
+      assertPropertyElement(resolvedRange.element,
+          nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("items;");
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'items = [];');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i}}");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      expect(element.name, 'i');
+      assertInterfaceTypeWithName(element.type, 'int');
+      _assertHtmlElementAt(element, "i = index");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("item.");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      expect(element.name, 'item');
+      assertInterfaceTypeWithName(element.type, 'String');
+      _assertHtmlElementAt(element, "item of");
+    }
+    _findResolvedRange("length}}");
+  }
+
+  void test_ngFor_templateAttribute2() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<li template='ng-for: #item, of = items, #i=index'>
+  {{i}} {{item.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("of = items");
+      assertPropertyElement(resolvedRange.element,
+          nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("items,");
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'items = [];');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i}}");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      expect(element.name, 'i');
+      assertInterfaceTypeWithName(element.type, 'int');
+      _assertHtmlElementAt(element, "i=index");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("item.");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      expect(element.name, 'item');
+      assertInterfaceTypeWithName(element.type, 'String');
+      _assertHtmlElementAt(element, "item, of");
+    }
+    _findResolvedRange("length}}");
+  }
+
   void test_ngFor_templateElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
