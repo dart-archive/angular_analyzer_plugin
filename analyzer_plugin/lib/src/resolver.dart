@@ -151,7 +151,7 @@ class HtmlTemplateResolver {
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
-        new HtmlTemplate(view, _firstElement(document), view.templateSource);
+        new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
     view.template = template;
     new TemplateResolver(typeProvider, errorListener).resolve(template);
     return template;
@@ -179,7 +179,12 @@ class TemplateResolver {
 
   Template template;
   View view;
+  Source templateSource;
   ErrorReporter errorReporter;
+
+  CompilationUnitElementImpl htmlCompilationUnitElement;
+  ClassElementImpl htmlClassElement;
+  MethodElementImpl htmlMethodElement;
 
   /**
    * The list of attributes of the current node.
@@ -210,7 +215,8 @@ class TemplateResolver {
   void resolve(Template template) {
     this.template = template;
     this.view = template.view;
-    this.errorReporter = new ErrorReporter(errorListener, view.source);
+    this.templateSource = view.templateSource;
+    this.errorReporter = new ErrorReporter(errorListener, templateSource);
     _resolveNode(template.element);
   }
 
@@ -341,12 +347,21 @@ class TemplateResolver {
 
   LocalVariableElement _newLocalVariableElement(
       int offset, String name, DartType type) {
-    MethodElementImpl methodElement = new MethodElementImpl('angularVars', -1);
-    (view.classElement as ElementImpl).encloseElement(methodElement);
+    // ensure artificial Dart elements in the template source
+    if (htmlMethodElement == null) {
+      htmlCompilationUnitElement =
+          new CompilationUnitElementImpl(templateSource.fullName);
+      htmlCompilationUnitElement.source = templateSource;
+      htmlClassElement = new ClassElementImpl('AngularTemplateClass', -1);
+      htmlCompilationUnitElement.types = <ClassElement>[htmlClassElement];
+      htmlMethodElement = new MethodElementImpl('angularTemplateMethod', -1);
+      htmlClassElement.methods = <MethodElement>[htmlMethodElement];
+    }
+    // add a new local variable
     LocalVariableElementImpl localVariable =
         new LocalVariableElementImpl(name, offset);
     localVariable.type = type;
-    methodElement.encloseElement(localVariable);
+    htmlMethodElement.encloseElement(localVariable);
     return localVariable;
   }
 
@@ -360,7 +375,7 @@ class TemplateResolver {
    * Parse the Dart expression starting at the given [token].
    */
   Expression _parseDartExpressionAtToken(Token token) {
-    Parser parser = new Parser(view.source, errorListener);
+    Parser parser = new Parser(templateSource, errorListener);
     return parser.parseExpression(token);
   }
 
@@ -376,7 +391,7 @@ class TemplateResolver {
   void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
       [List<Object> arguments]) {
     errorListener.onError(new AnalysisError(
-        view.source, span.start.offset, span.length, errorCode, arguments));
+        templateSource, span.start.offset, span.length, errorCode, arguments));
   }
 
   /**
@@ -450,8 +465,8 @@ class TemplateResolver {
   void _resolveDartExpression(Expression expression) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
-    ResolverVisitor resolver =
-        new ResolverVisitor(library, view.source, typeProvider, errorListener);
+    ResolverVisitor resolver = new ResolverVisitor(
+        library, templateSource, typeProvider, errorListener);
     // fill the name scope
     Scope nameScope = resolver.pushNameScope();
     classElement.methods.forEach(nameScope.define);
@@ -527,7 +542,6 @@ class TemplateResolver {
    * Resolve the given `template` attribute [code] at [offset].
    */
   void _resolveTemplateAttribute(int offset, String code) {
-    // TODO(scheglov) add support for multiple keys, variables
     ShortTemplateElementView elementView = new ShortTemplateElementView();
     Token token = _scanDartCode(offset, code);
     String prefix = null;
@@ -639,8 +653,8 @@ class TemplateResolver {
       // end
       lastEnd = text.indexOf('}}', begin);
       if (lastEnd == -1) {
-        errorListener.onError(new AnalysisError(view.source, offset + begin, 2,
-            AngularWarningCode.UNTERMINATED_MUSTACHE));
+        errorListener.onError(new AnalysisError(templateSource, offset + begin,
+            2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         break;
       }
       // resolve
@@ -654,7 +668,7 @@ class TemplateResolver {
   Token _scanDartCode(int offset, String code) {
     String text = ' ' * offset + code;
     CharSequenceReader reader = new CharSequenceReader(text);
-    Scanner scanner = new Scanner(view.source, reader, errorListener);
+    Scanner scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
   }
 

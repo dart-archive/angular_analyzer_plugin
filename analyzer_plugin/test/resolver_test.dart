@@ -419,10 +419,12 @@ $code
 
   void _assertDartElementAt(Element element, String search) {
     expect(element.nameOffset, dartCode.indexOf(search));
+    expect(element.source, dartSource);
   }
 
   void _assertHtmlElementAt(Element element, String search) {
     expect(element.nameOffset, htmlCode.indexOf(search));
+    expect(element.source, htmlSource);
   }
 
   ResolvedRange _findResolvedRange(String search) {

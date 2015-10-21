@@ -122,12 +122,12 @@ class AngularNavigationContributor implements NavigationContributor {
 
   void _addViewRegions(
       NavigationCollector collector, LineInfo lineInfo, View view) {
-    if (view.templateSource != null) {
+    if (view.templateUriSource != null) {
       collector.addRegion(
           view.templateUrlRange.offset,
           view.templateUrlRange.length,
           protocol.ElementKind.UNKNOWN,
-          new protocol.Location(view.templateSource.fullName, 0, 0, 1, 1));
+          new protocol.Location(view.templateUriSource.fullName, 0, 0, 1, 1));
     }
   }
 }

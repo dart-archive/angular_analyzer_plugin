@@ -14,9 +14,9 @@ import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
+import 'package:angular2_analyzer_plugin/src/strings.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
-import 'package:angular2_analyzer_plugin/src/strings.dart';
 
 /// The [Template]s of a [LibrarySpecificUnit].
 /// This result is produced for templates specified directly in Dart files.
@@ -342,7 +342,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
             View view = _createView(classElement, annotation);
             if (view != null) {
               views.add(view);
-              if (view.templateSource != null) {
+              if (view.templateUriSource != null) {
                 viewsWithTemplates.add(view);
               }
             }
@@ -376,7 +376,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   /// if [annotation] or [classElement] don't provide enough information.
   View _createView(ClassElement classElement, ast.Annotation annotation) {
     // Template in a separate HTML file.
-    Source templateSource = null;
+    Source templateUriSource = null;
     SourceRange templateUrlRange = null;
     {
       ast.Expression templateUrlExpression =
@@ -384,7 +384,8 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
       String templateUrl = _getExpressionString(templateUrlExpression);
       if (templateUrl != null) {
         SourceFactory sourceFactory = context.sourceFactory;
-        templateSource = sourceFactory.resolveUri(target.source, templateUrl);
+        templateUriSource =
+            sourceFactory.resolveUri(target.source, templateUrl);
         // TODO: report a warning if it cannot be resolved.
         templateUrlRange = new SourceRange(
             templateUrlExpression.offset, templateUrlExpression.length);
@@ -432,7 +433,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     return new View(classElement, component, directives,
         templateText: templateText,
         templateOffset: templateOffset,
-        templateSource: templateSource,
+        templateUriSource: templateUriSource,
         templateUrlRange: templateUrlRange);
   }
 
@@ -626,7 +627,7 @@ class ResolveHtmlTemplateTask extends SourceBasedAnalysisTask {
   static Map<String, TaskInput> buildInputs(View target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateSource),
+      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateUriSource),
     };
   }
 

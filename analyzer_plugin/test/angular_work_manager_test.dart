@@ -186,34 +186,34 @@ class AngularWorkManagerTest {
   }
 
   void test_resultsComputed_viewsWithHtmlTemplates() {
-    Source templateSource = source2;
-    var view1 = new View(null, null, [], templateSource: templateSource);
-    var view2 = new View(null, null, [], templateSource: templateSource);
-    var view3 = new View(null, null, [], templateSource: templateSource);
+    Source templateUriSource = source2;
+    var view1 = new View(null, null, [], templateUriSource: templateUriSource);
+    var view2 = new View(null, null, [], templateUriSource: templateUriSource);
+    var view3 = new View(null, null, [], templateUriSource: templateUriSource);
     // no views for "source2"
-    expect(cache.getValue(templateSource, TEMPLATE_VIEWS), isEmpty);
+    expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS), isEmpty);
     // add "view1"
     manager.resultsComputed(source1, {
       VIEWS_WITH_HTML_TEMPLATES: [view1]
     });
-    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+    expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1]));
     // add "view2" from "source3"
     entry3.setValue(VIEWS_WITH_HTML_TEMPLATES, [view2], []);
     manager.resultsComputed(source3, {
       VIEWS_WITH_HTML_TEMPLATES: [view2]
     });
-    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+    expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view2]));
     // add "view3"
     manager.resultsComputed(source1, {
       VIEWS_WITH_HTML_TEMPLATES: [view3]
     });
-    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+    expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view2, view3]));
     // invalidate [view2]
     entry3.setState(VIEWS_WITH_HTML_TEMPLATES, CacheState.INVALID);
-    expect(cache.getValue(templateSource, TEMPLATE_VIEWS),
+    expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view3]));
   }
 }

@@ -365,7 +365,8 @@ class MyComponent {}
     View view = getViewByClassName(views, 'MyComponent');
     expect(view.component, getComponentByClassName(directives, 'MyComponent'));
     expect(view.templateText, isNull);
-    expect(view.templateSource, isNotNull);
+    expect(view.templateUriSource, isNotNull);
+    expect(view.templateUriSource, htmlSource);
     expect(view.templateSource, htmlSource);
     {
       String url = "'my-template.html'";
@@ -406,7 +407,8 @@ class MyComponent {}
       expect(
           view.component, getComponentByClassName(directives, 'MyComponent'));
       expect(view.templateText, 'My template');
-      expect(view.templateSource, isNull);
+      expect(view.templateUriSource, isNull);
+      expect(view.templateSource, source);
       {
         expect(view.directives, hasLength(2));
         List<String> directiveClassNames = view.directives
@@ -976,7 +978,7 @@ class TextPanel {
     expect(views, hasLength(1));
     {
       View view = getViewByClassName(views, 'TextPanel');
-      expect(view.templateSource, isNotNull);
+      expect(view.templateUriSource, isNotNull);
       // resolve this View
       computeResult(view, HTML_TEMPLATE);
       expect(task, new isInstanceOf<ResolveHtmlTemplateTask>());

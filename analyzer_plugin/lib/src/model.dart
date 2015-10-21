@@ -173,7 +173,7 @@ class View implements AnalysisTarget {
   final List<AbstractDirective> directives;
   final String templateText;
   final int templateOffset;
-  final Source templateSource;
+  final Source templateUriSource;
   final SourceRange templateUrlRange;
 
   /// The [Template] of this view, `null` until built.
@@ -182,9 +182,14 @@ class View implements AnalysisTarget {
   View(this.classElement, this.component, this.directives,
       {this.templateText,
       this.templateOffset: 0,
-      this.templateSource,
+      this.templateUriSource,
       this.templateUrlRange});
 
   /// The source that contains this view.
   Source get source => classElement.source;
+
+  /**
+   * The source that contains this template, [source] or [templateUriSource].
+   */
+  Source get templateSource => templateUriSource ?? source;
 }

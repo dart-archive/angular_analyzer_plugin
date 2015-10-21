@@ -180,9 +180,9 @@ class AngularWorkManager implements WorkManager {
   }
 
   void _updateTemplateViews(View view, bool addView) {
-    Source templateSource = view.templateSource;
-    if (templateSource != null) {
-      CacheEntry templateEntry = context.getCacheEntry(templateSource);
+    Source templateUriSource = view.templateUriSource;
+    if (templateUriSource != null) {
+      CacheEntry templateEntry = context.getCacheEntry(templateUriSource);
       // incrementally update the list of the template views
       List<View> templateViews = templateEntry.getValue(TEMPLATE_VIEWS);
       templateViews = templateViews.toList();
