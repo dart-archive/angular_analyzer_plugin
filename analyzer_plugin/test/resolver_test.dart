@@ -127,6 +127,34 @@ class TestPanel {
     }
   }
 
+  void test_ngFor_iterableElementType() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [NgFor])
+class TestPanel {
+  MyIterable<String> items = new MyIterable<String>();
+}
+class BaseIterable<T> {
+  Iterator<T> get iterator => <T>[].iterator;
+}
+class MyIterable<T> extends BaseIterable<T> {
+}
+''');
+    _addHtmlSource(r"""
+<li template='ng-for #item of items'>
+  {{item.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("item.");
+      DartElement dartElement = resolvedRange.element;
+      LocalVariableElement element = dartElement.element;
+      assertInterfaceTypeWithName(element.type, 'String');
+    }
+    _findResolvedRange("length}}");
+  }
+
   void test_ngFor_templateAttribute() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

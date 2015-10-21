@@ -335,10 +335,13 @@ class TemplateResolver {
   DartType _getIterableItemType(Expression expression) {
     DartType itemsType = expression.bestType;
     if (itemsType is InterfaceType) {
-      PropertyAccessorElement iterator = itemsType.getGetter('iterator');
+      LibraryElement library = view.classElement.library;
+      PropertyAccessorElement iterator =
+          itemsType.lookUpGetter('iterator', library);
       DartType iteratorType = iterator?.returnType;
       if (iteratorType is InterfaceType) {
-        PropertyAccessorElement current = iteratorType.getGetter('current');
+        PropertyAccessorElement current =
+            iteratorType.lookUpGetter('current', library);
         return current?.returnType;
       }
     }
