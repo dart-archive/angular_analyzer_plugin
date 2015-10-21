@@ -336,16 +336,25 @@ class TemplateResolver {
     DartType itemsType = expression.bestType;
     if (itemsType is InterfaceType) {
       LibraryElement library = view.classElement.library;
-      PropertyAccessorElement iterator =
-          itemsType.lookUpGetter('iterator', library);
-      DartType iteratorType = iterator?.returnType;
+      DartType iteratorType = _lookupGetterReturnType(itemsType, 'iterator');
       if (iteratorType is InterfaceType) {
-        PropertyAccessorElement current =
-            iteratorType.lookUpGetter('current', library);
-        return current?.returnType;
+        DartType currentType = _lookupGetterReturnType(iteratorType, 'current');
+        if (currentType != null) {
+          return currentType;
+        }
       }
     }
     return typeProvider.dynamicType;
+  }
+
+  /**
+   * Return the return type of the executable element with the given [name].
+   * May return `null` if the [type] does not define one.
+   */
+  DartType _lookupGetterReturnType(InterfaceType type, String name) {
+    LibraryElement library = view.classElement.library;
+    InheritanceManager manager = new InheritanceManager(library);
+    return manager.lookupMemberType(type, name)?.returnType;
   }
 
   LocalVariableElement _newLocalVariableElement(

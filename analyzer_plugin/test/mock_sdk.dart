@@ -88,7 +88,6 @@ abstract class List<E> implements Iterable<E> {
   void add(E value);
   E operator [](int index);
   void operator []=(int index, E value);
-  Iterator<E> get iterator => null;
   void clear();
 }
 
