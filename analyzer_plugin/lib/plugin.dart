@@ -39,6 +39,7 @@ class AngularAnalyzerPlugin implements Plugin {
       String id = TASK_EXTENSION_POINT_ID;
       registerExtension(id, BuildUnitDirectivesTask.DESCRIPTOR);
       registerExtension(id, BuildUnitViewsTask.DESCRIPTOR);
+      registerExtension(id, ComputeDirectivesInLibraryTask.DESCRIPTOR);
       registerExtension(id, ResolveDartTemplatesTask.DESCRIPTOR);
       registerExtension(id, ResolveHtmlTemplatesTask.DESCRIPTOR);
       registerExtension(id, ResolveHtmlTemplateTask.DESCRIPTOR);

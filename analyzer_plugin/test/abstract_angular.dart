@@ -110,8 +110,8 @@ class AbstractAngularTest {
   List<AbstractDirective> computeLibraryDirectives(Source dartSource) {
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, DIRECTIVES);
-    return outputs[DIRECTIVES];
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    return outputs[DIRECTIVES_IN_UNIT];
   }
 
   List<View> computeLibraryViews(Source dartSource) {
@@ -123,8 +123,10 @@ class AbstractAngularTest {
 
   void computeResult(AnalysisTarget target, ResultDescriptor result) {
     task = analysisDriver.computeResult(target, result);
-    expect(task.caughtException, isNull);
-    outputs = task.outputs;
+    if (task != null) {
+      expect(task.caughtException, isNull);
+      outputs = task.outputs;
+    }
   }
 
   /**

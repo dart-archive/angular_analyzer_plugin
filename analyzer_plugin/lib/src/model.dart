@@ -21,6 +21,11 @@ abstract class AbstractDirective {
 
   /// The source that contains this directive.
   Source get source => classElement.source;
+
+  @override
+  String toString() {
+    return '($runtimeType ${classElement.displayName} $selector)';
+  }
 }
 
 /// The base class for all Angular elements.

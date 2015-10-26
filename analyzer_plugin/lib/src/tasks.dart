@@ -1,8 +1,9 @@
 library angular2.src.analysis.analyzer_plugin.src.tasks;
 
+import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/generated/ast.dart' as ast;
 import 'package:analyzer/src/generated/element.dart';
-import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/generated/engine.dart' hide AnalysisCache;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
@@ -30,12 +31,7 @@ final ListResultDescriptor<AnalysisError> DART_TEMPLATES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_DART_TEMPLATES_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The Angular [AbstractDirective]s of a [LibrarySpecificUnit].
-final ListResultDescriptor<AbstractDirective> DIRECTIVES =
-    new ListResultDescriptor<AbstractDirective>(
-        'ANGULAR_DIRECTIVES', AbstractDirective.EMPTY_LIST);
-
-/// The errors produced while building [DIRECTIVES].
+/// The errors produced while building [DIRECTIVES_IN_UNIT].
 ///
 /// The list will be empty if there were no errors, but will not be `null`.
 ///
@@ -43,6 +39,24 @@ final ListResultDescriptor<AbstractDirective> DIRECTIVES =
 final ListResultDescriptor<AnalysisError> DIRECTIVES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_DIRECTIVES_ERRORS', AnalysisError.NO_ERRORS);
+
+/// The Angular [AbstractDirective]s available for a library.
+///
+/// The list will be empty if there were no directives, but will not be `null`.
+///
+/// The result is only available for [Source]s representing a library.
+final ListResultDescriptor<AbstractDirective> DIRECTIVES_IN_LIBRARY =
+    new ListResultDescriptor<AbstractDirective>(
+        'ANGULAR_DIRECTIVES_IN_LIBRARY', AbstractDirective.EMPTY_LIST);
+
+/// The Angular [AbstractDirective]s of a [LibrarySpecificUnit].
+///
+/// The list will be empty if there were no directives, but will not be `null`.
+///
+/// The result is only available for [LibrarySpecificUnit]s.
+final ListResultDescriptor<AbstractDirective> DIRECTIVES_IN_UNIT =
+    new ListResultDescriptor<AbstractDirective>(
+        'ANGULAR_DIRECTIVES_IN_UNIT', AbstractDirective.EMPTY_LIST);
 
 /// The [HtmlTemplate] of a HTML [Source].
 ///
@@ -106,7 +120,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       'BuildUnitDirectivesTask',
       createTask,
       buildInputs,
-      <ResultDescriptor>[DIRECTIVES, DIRECTIVES_ERRORS]);
+      <ResultDescriptor>[DIRECTIVES_IN_UNIT, DIRECTIVES_ERRORS]);
 
   BuildUnitDirectivesTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
@@ -140,7 +154,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     //
     // Record outputs.
     //
-    outputs[DIRECTIVES] = directives;
+    outputs[DIRECTIVES_IN_UNIT] = directives;
     outputs[DIRECTIVES_ERRORS] = errorListener.errors;
   }
 
@@ -322,13 +336,8 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     //
     // Prepare inputs.
     //
-    List<List<AbstractDirective>> directiveListList =
-        getRequiredInput(DIRECTIVES_INPUT);
     ast.CompilationUnit unit = getRequiredInput(UNIT_INPUT);
-    //
-    // Process inputs.
-    //
-    _allDirectives = directiveListList.expand((_) => _).toList();
+    _allDirectives = getRequiredInput(DIRECTIVES_INPUT);
     //
     // Process all classes.
     //
@@ -453,11 +462,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   /// given [target].
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
     return <String, TaskInput>{
-      DIRECTIVES_INPUT: IMPORT_EXPORT_SOURCE_CLOSURE
-          .of(target.library)
-          .toMapOf(UNITS)
-          .toFlattenList((Source library, Source unit) =>
-              DIRECTIVES.of(new LibrarySpecificUnit(library, unit))),
+      DIRECTIVES_INPUT: DIRECTIVES_IN_LIBRARY.of(target.library),
       UNIT_INPUT: RESOLVED_UNIT.of(target)
     };
   }
@@ -466,6 +471,102 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   static BuildUnitViewsTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new BuildUnitViewsTask(context, target);
+  }
+}
+
+/**
+ * A task that computes [DIRECTIVES_IN_LIBRARY] for a library.
+ */
+class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
+  static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
+  static const String IMPORTED_INPUT = 'IMPORTED_LIBRARIES';
+  static const String EXPORTED_INPUT = 'EXPORTED_LIBRARIES';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'ReadyDirectivesInLibraryTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[DIRECTIVES_IN_LIBRARY]);
+
+  ComputeDirectivesInLibraryTask(
+      InternalAnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  bool get handlesDependencyCycles => true;
+
+  @override
+  void internalPerform() {
+    Set<AbstractDirective> directives = new Set<AbstractDirective>();
+    // Add directives defined in the units of this library.
+    {
+      List<List<AbstractDirective>> thisListList =
+          getRequiredInput(DIRECTIVES_INPUT);
+      for (List<AbstractDirective> unitDirectives in thisListList) {
+        directives.addAll(unitDirectives);
+      }
+    }
+    // Ask every imported and exported library.
+    List<LibraryElement> importedLibraries = getRequiredInput(IMPORTED_INPUT);
+    List<LibraryElement> exportedLibraries = getRequiredInput(EXPORTED_INPUT);
+    Set<LibraryElement> visitedLibraries = new Set<LibraryElement>();
+    AnalysisCache cache = (context as InternalAnalysisContext).analysisCache;
+    void addDirectivesOfLibrary(LibraryElement library) {
+      if (visitedLibraries.add(library)) {
+        Source librarySource = library.source;
+        // Usually DIRECTIVES_IN_LIBRARY is already computed.
+        if (cache.getState(librarySource, DIRECTIVES_IN_LIBRARY) ==
+            CacheState.VALID) {
+          List<AbstractDirective> libraryDirectives =
+              cache.getValue(librarySource, DIRECTIVES_IN_LIBRARY);
+          directives.addAll(libraryDirectives);
+        } else {
+          // If there is a dependency cycle, we need to get directives
+          // directly from cache for each unit of imported / exported library.
+          for (CompilationUnitElement unit in library.units) {
+            LibrarySpecificUnit unitTarget =
+                new LibrarySpecificUnit(librarySource, unit.source);
+            List<AbstractDirective> unitDirectives =
+                cache.getValue(unitTarget, DIRECTIVES_IN_UNIT);
+            directives.addAll(unitDirectives);
+          }
+          library.importedLibraries.forEach(addDirectivesOfLibrary);
+          library.exportedLibraries.forEach(addDirectivesOfLibrary);
+        }
+      }
+    }
+    importedLibraries.forEach(addDirectivesOfLibrary);
+    exportedLibraries.forEach(addDirectivesOfLibrary);
+    //
+    // Record outputs.
+    //
+    outputs[DIRECTIVES_IN_LIBRARY] = directives.toList();
+  }
+
+  static Map<String, TaskInput> buildInputs(Source librarySource) {
+    return <String, TaskInput>{
+      DIRECTIVES_INPUT:
+          LIBRARY_SPECIFIC_UNITS.of(librarySource).toListOf(DIRECTIVES_IN_UNIT),
+      IMPORTED_INPUT:
+          IMPORTED_LIBRARIES.of(librarySource).toListOf(LIBRARY_ELEMENT),
+      EXPORTED_INPUT:
+          EXPORTED_LIBRARIES.of(librarySource).toListOf(LIBRARY_ELEMENT),
+      // These inputs are used only to express dependency.
+      // They can cause dependency cycles, and are not computed.
+      // So, we cannot use their values directly.
+      'directlyImportedLibrariesReady':
+          IMPORTED_LIBRARIES.of(librarySource).toListOf(DIRECTIVES_IN_LIBRARY),
+      'directlyExportedLibrariesReady':
+          EXPORTED_LIBRARIES.of(librarySource).toListOf(DIRECTIVES_IN_LIBRARY),
+    };
+  }
+
+  static ComputeDirectivesInLibraryTask createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new ComputeDirectivesInLibraryTask(context, target);
   }
 }
 
@@ -638,7 +739,7 @@ class ResolveHtmlTemplateTask extends SourceBasedAnalysisTask {
   }
 }
 
-/// Helper for processing Angular annottations.
+/// Helper for processing Angular annotations.
 class _AnnotationProcessorMixin {
   RecordingErrorListener errorListener = new RecordingErrorListener();
   ErrorReporter errorReporter;

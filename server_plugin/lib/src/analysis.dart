@@ -46,7 +46,7 @@ class AngularNavigationContributor implements NavigationContributor {
         // directives
         {
           List<AbstractDirective> directives =
-              context.getResult(target, DIRECTIVES);
+              context.getResult(target, DIRECTIVES_IN_UNIT);
           for (AbstractDirective template in directives) {
             _addDirectiveRegions(collector, lineInfo, template);
           }
@@ -141,7 +141,7 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
       // directives
       {
         List<AbstractDirective> directives = context.getResult(
-            new LibrarySpecificUnit(librarySource, source), DIRECTIVES);
+            new LibrarySpecificUnit(librarySource, source), DIRECTIVES_IN_UNIT);
         for (AbstractDirective directive in directives) {
           _addDirectiveOccurrences(collector, directive);
         }

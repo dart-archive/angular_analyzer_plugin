@@ -20,6 +20,7 @@ main() {
   groupSep = ' | ';
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
+  defineReflectiveTests(ComputeDirectivesInLibraryTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplateTaskTest);
@@ -42,10 +43,10 @@ class ComponentB {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
-    List<AbstractDirective> directives = outputs[DIRECTIVES];
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     expect(directives, hasLength(2));
     {
       Component component = directives[0];
@@ -82,10 +83,10 @@ class DirectiveB {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
-    List<AbstractDirective> directives = outputs[DIRECTIVES];
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     expect(directives, hasLength(2));
     {
       AbstractDirective directive = directives[0];
@@ -118,7 +119,7 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
@@ -137,7 +138,7 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
@@ -156,7 +157,7 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
@@ -175,7 +176,7 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
@@ -194,7 +195,7 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
@@ -210,10 +211,10 @@ class A {}
 class B {}
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
-    List<AbstractDirective> directives = outputs[DIRECTIVES];
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     expect(directives, isEmpty);
   }
 
@@ -231,10 +232,10 @@ class MyComponent {
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DIRECTIVES);
+    computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
-    List<AbstractDirective> directives = outputs[DIRECTIVES];
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     Component component = directives.single;
     List<PropertyElement> properties = component.properties;
     expect(properties, hasLength(2));
@@ -357,7 +358,7 @@ class MyComponent {}
     computeResult(target, VIEWS);
     expect(task, new isInstanceOf<BuildUnitViewsTask>());
     List<AbstractDirective> directives =
-        context.analysisCache.getValue(target, DIRECTIVES);
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     // validate views
     List<View> views = outputs[VIEWS];
     expect(views, hasLength(1));
@@ -398,7 +399,7 @@ class MyComponent {}
     computeResult(target, VIEWS);
     expect(task, new isInstanceOf<BuildUnitViewsTask>());
     List<AbstractDirective> directives =
-        context.analysisCache.getValue(target, DIRECTIVES);
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     // validate views
     List<View> views = outputs[VIEWS];
     expect(views, hasLength(2));
@@ -421,6 +422,74 @@ class MyComponent {}
     // no view with external templates
     List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
     expect(templateViews, hasLength(0));
+  }
+}
+
+@reflectiveTest
+class ComputeDirectivesInLibraryTaskTest extends AbstractAngularTest {
+  void test_cycle_withExports() {
+    Source sourceA = newSource(
+        '/a.dart',
+        r'''
+import '/angular2/angular2.dart';
+import 'b.dart';
+export 'a2.dart';
+
+@Component(selector: 'aaa')
+class ComponentA {
+}
+''');
+    newSource(
+        '/a2.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa2')
+class ComponentA2 {
+}
+''');
+    Source sourceB = newSource(
+        '/b.dart',
+        r'''
+import '/angular2/angular2.dart';
+import 'a.dart';
+export 'b2.dart';
+
+@Component(selector: 'bbb')
+class ComponentB {
+}
+''');
+    newSource(
+        '/b2.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'bbb2')
+class ComponentB2 {
+}
+''');
+    computeResult(sourceA, DIRECTIVES_IN_LIBRARY);
+    computeResult(sourceB, DIRECTIVES_IN_LIBRARY);
+    {
+      List<AbstractDirective> directives =
+          context.analysisCache.getValue(sourceA, DIRECTIVES_IN_LIBRARY);
+      List<String> classNames =
+          directives.map((d) => d.classElement.name).toList();
+      expect(classNames, contains('ComponentA'));
+      expect(classNames, contains('ComponentA2'));
+      expect(classNames, contains('ComponentB'));
+      expect(classNames, contains('ComponentB2'));
+    }
+    {
+      List<AbstractDirective> directives =
+          context.analysisCache.getValue(sourceB, DIRECTIVES_IN_LIBRARY);
+      List<String> classNames =
+          directives.map((d) => d.classElement.name).toList();
+      expect(classNames, contains('ComponentA'));
+      expect(classNames, contains('ComponentA2'));
+      expect(classNames, contains('ComponentB'));
+      expect(classNames, contains('ComponentB2'));
+    }
   }
 }
 
@@ -456,7 +525,7 @@ class ComponentC {
     expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
     // prepare directives
     List<AbstractDirective> directives =
-        context.analysisCache.getValue(target, DIRECTIVES);
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     Component componentA = getComponentByClassName(directives, 'ComponentA');
     Component componentB = getComponentByClassName(directives, 'ComponentB');
     // validate
@@ -668,7 +737,7 @@ class User {
     expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
     // prepare directives
     List<AbstractDirective> directives =
-        context.analysisCache.getValue(target, DIRECTIVES);
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     Component textPanel = getComponentByClassName(directives, 'TextPanel');
     // validate
     List<Template> templates = outputs[DART_TEMPLATES];
@@ -735,7 +804,7 @@ class ComponentB {
     expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
     // prepare directives
     List<AbstractDirective> directives =
-        context.analysisCache.getValue(target, DIRECTIVES);
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     Component componentA = getComponentByClassName(directives, 'ComponentA');
     // validate
     List<Template> templates = outputs[DART_TEMPLATES];
