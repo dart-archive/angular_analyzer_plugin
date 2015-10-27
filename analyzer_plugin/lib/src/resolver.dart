@@ -335,7 +335,6 @@ class TemplateResolver {
   DartType _getIterableItemType(Expression expression) {
     DartType itemsType = expression.bestType;
     if (itemsType is InterfaceType) {
-      LibraryElement library = view.classElement.library;
       DartType iteratorType = _lookupGetterReturnType(itemsType, 'iterator');
       if (iteratorType is InterfaceType) {
         DartType currentType = _lookupGetterReturnType(iteratorType, 'current');
@@ -571,7 +570,6 @@ class TemplateResolver {
     ShortTemplateElementView elementView = new ShortTemplateElementView();
     Token token = _scanDartCode(offset, code);
     String prefix = null;
-    String key = null;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
       if (token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON) {
@@ -612,6 +610,8 @@ class TemplateResolver {
       }
       // key
       int keyOffset = token.offset;
+      int keyLength;
+      String key = null;
       if (token.type == TokenType.IDENTIFIER) {
         // scan for a full attribute name
         key = '';
@@ -625,6 +625,7 @@ class TemplateResolver {
           token = token.next;
         }
         // add the prefix
+        keyLength = key.length;
         if (prefix == null) {
           prefix = key;
         } else {
@@ -650,7 +651,7 @@ class TemplateResolver {
       }
       // add the attribute to resolve to property
       AttributeInfo attributeInfo = new AttributeInfo(key, keyOffset, key,
-          keyOffset, key.length, expression != null, null, -1);
+          keyOffset, keyLength, expression != null, null, -1);
       attributeInfo.expression = expression;
       attributes.add(attributeInfo);
     }
