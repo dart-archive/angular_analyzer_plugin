@@ -189,7 +189,7 @@ class TemplateResolver {
   /**
    * The list of attributes of the current node.
    */
-  final List<AttributeInfo> attributes = <AttributeInfo>[];
+  List<AttributeInfo> attributes = <AttributeInfo>[];
 
   /**
    * The map from names of bound attributes to resolve expressions.
@@ -410,22 +410,36 @@ class TemplateResolver {
    * Resolve the `template` attribute in [attributes] and remove it.
    */
   void _resolveAndRemoveTemplateAttribute() {
-    for (AttributeInfo attribute in attributes) {
-      if (attribute.name == 'template') {
-        List<AttributeInfo> nodeAttributes = attributes.toList();
-        nodeAttributes.remove(attribute);
-        try {
-          attributes.clear();
-          int valueOffset = attribute.valueOffset;
-          String value = attribute.value;
-          _resolveTemplateAttribute(valueOffset, value);
-        } finally {
-          attributes.clear();
-          attributes.addAll(nodeAttributes);
-        }
-        break;
+    // Helper for using new attributes list.
+    void resolveTemplate(int offset, String code) {
+      List<AttributeInfo> nodeAttributes = attributes;
+      try {
+        attributes = <AttributeInfo>[];
+        _resolveTemplateAttribute(offset, code);
+      } finally {
+        attributes = nodeAttributes;
       }
     }
+    // Check every attribute for *key='abc' and template='abc' styles.
+    List<AttributeInfo> attributesToRemove = <AttributeInfo>[];
+    for (AttributeInfo attribute in attributes) {
+      if (attribute.name.startsWith('*')) {
+        attributesToRemove.add(attribute);
+        int nameOffset = attribute.nameOffset + '*'.length;
+        int nameEnd = attribute.nameOffset + attribute.name.length;
+        int valueOffset = attribute.valueOffset;
+        String key = attribute.name.substring(1);
+        String code = key + ' ' * (valueOffset - nameEnd) + attribute.value;
+        resolveTemplate(nameOffset, code);
+      }
+      if (attribute.name == 'template') {
+        attributesToRemove.add(attribute);
+        int valueOffset = attribute.valueOffset;
+        String value = attribute.value;
+        resolveTemplate(valueOffset, value);
+      }
+    }
+    attributesToRemove.forEach(attributes.remove);
   }
 
   /// Resolve [attributes] names to properties of [directive].
