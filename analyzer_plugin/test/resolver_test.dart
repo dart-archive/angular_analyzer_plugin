@@ -127,6 +127,34 @@ class TestPanel {
     }
   }
 
+  void test_inheritedFields() {
+    _addDartSource(r'''
+class BaseComponent {
+  String text; // 1
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel extends BaseComponent {
+  main() {
+    text.length;
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div>
+  Hello {{text}}!
+</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(1));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('text}}');
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'text; // 1');
+    }
+    errorListener.assertNoErrors();
+  }
+
   void test_ngFor_iterableElementType() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -547,5 +575,6 @@ $code
     computeResult(view, HTML_TEMPLATE);
     template = outputs[HTML_TEMPLATE];
     ranges = template.ranges;
+    fillErrorListener(HTML_TEMPLATE_ERRORS);
   }
 }

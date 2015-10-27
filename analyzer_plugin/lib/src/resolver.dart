@@ -493,12 +493,13 @@ class TemplateResolver {
     ResolverVisitor resolver = new ResolverVisitor(
         library, templateSource, typeProvider, errorListener);
     // fill the name scope
-    Scope nameScope = resolver.pushNameScope();
-    classElement.methods.forEach(nameScope.define);
-    classElement.accessors.forEach(nameScope.define);
-    localVariables.values.forEach(nameScope.define);
+    ClassScope classScope = new ClassScope(resolver.nameScope, classElement);
+    EnclosedScope localScope = new EnclosedScope(classScope);
+    resolver.nameScope = localScope;
+    resolver.enclosingClass = classElement;
+    localVariables.values.forEach(localScope.define);
     // TODO(scheglov) hack, use actual variables
-    _defineBuiltInVariable(nameScope, typeProvider.dynamicType, r'$event', -1);
+    _defineBuiltInVariable(localScope, typeProvider.dynamicType, r'$event', -1);
     // do resolve
     expression.accept(resolver);
     // verify
