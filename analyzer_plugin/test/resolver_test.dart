@@ -3,6 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 import 'package:analyzer/src/generated/element.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
+import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
@@ -203,7 +204,8 @@ class TestPanel {
       _assertHtmlElementAt(element, "i = index");
     }
     {
-      ResolvedRange resolvedRange = _findResolvedRange("of items");
+      ResolvedRange resolvedRange =
+          _findResolvedRange("of items", _isPropertyElement);
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -255,7 +257,8 @@ class TestPanel {
       _assertHtmlElementAt(element, "i = index");
     }
     {
-      ResolvedRange resolvedRange = _findResolvedRange("of items");
+      ResolvedRange resolvedRange =
+          _findResolvedRange("of items", _isPropertyElement);
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -307,7 +310,8 @@ class TestPanel {
       _assertHtmlElementAt(element, "i=index");
     }
     {
-      ResolvedRange resolvedRange = _findResolvedRange("of = items");
+      ResolvedRange resolvedRange =
+          _findResolvedRange("of = items", _isPropertyElement);
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -359,7 +363,8 @@ class TestPanel {
       _assertHtmlElementAt(element, "i='index'");
     }
     {
-      ResolvedRange resolvedRange = _findResolvedRange("ng-for-of]");
+      ResolvedRange resolvedRange =
+          _findResolvedRange("ng-for-of]", _isPropertyElement);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
     }
@@ -396,7 +401,8 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
-      ResolvedRange resolvedRange = _findResolvedRange('ng-if=');
+      ResolvedRange resolvedRange =
+          _findResolvedRange('ng-if=', _isPropertyElement);
       expect(resolvedRange.range.length, 'ng-if'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-if', sourceMatcher: endsWith('ng_if.dart'));
@@ -426,7 +432,8 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
-      ResolvedRange resolvedRange = _findResolvedRange('ng-if text');
+      ResolvedRange resolvedRange =
+          _findResolvedRange('ng-if text', _isPropertyElement);
       expect(resolvedRange.range.length, 'ng-if'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-if', sourceMatcher: endsWith('ng_if.dart'));
@@ -456,7 +463,16 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
-      ResolvedRange resolvedRange = _findResolvedRange("ng-if]");
+      ResolvedRange resolvedRange =
+          _findResolvedRange("ng-if]", _isSelectorName);
+      expect(resolvedRange.range.length, 'ng-if'.length);
+      SelectorName nameElement = resolvedRange.element;
+      expect(nameElement.name, 'ng-if');
+      expect(nameElement.source.fullName, endsWith('ng_if.dart'));
+    }
+    {
+      ResolvedRange resolvedRange =
+          _findResolvedRange("ng-if]", _isPropertyElement);
       expect(resolvedRange.range.length, 'ng-if'.length);
       PropertyElement propertyElement = resolvedRange.element;
       expect(propertyElement.name, 'ng-if');
@@ -584,8 +600,13 @@ $code
     expect(element.source, htmlSource);
   }
 
-  ResolvedRange _findResolvedRange(String search) {
-    return getResolvedRangeAtString(htmlCode, ranges, search);
+  /**
+   * Return the [ResolvedRange] that starts at the position of the give
+   * [search] and, if specified satisfies the given [condition].
+   */
+  ResolvedRange _findResolvedRange(String search,
+      [ResolvedRangeCondition condition]) {
+    return getResolvedRangeAtString(htmlCode, ranges, search, condition);
   }
 
   /**
@@ -601,5 +622,13 @@ $code
     template = outputs[HTML_TEMPLATE];
     ranges = template.ranges;
     fillErrorListener(HTML_TEMPLATE_ERRORS);
+  }
+
+  static _isPropertyElement(ResolvedRange region) {
+    return region.element is PropertyElement;
+  }
+
+  static _isSelectorName(ResolvedRange region) {
+    return region.element is SelectorName;
   }
 }

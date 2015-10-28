@@ -97,9 +97,15 @@ AbstractDirective getDirectiveByClassName(
 }
 
 ResolvedRange getResolvedRangeAtString(
-    String code, List<ResolvedRange> ranges, String str) {
+    String code, List<ResolvedRange> ranges, String str,
+    [ResolvedRangeCondition condition]) {
   int offset = code.indexOf(str);
-  return ranges.firstWhere((_) => _.range.offset == offset, orElse: () {
+  return ranges.firstWhere((range) {
+    if (range.range.offset == offset) {
+      return condition == null || condition(range);
+    }
+    return false;
+  }, orElse: () {
     fail('ResolvedRange at $offset was not found in [\n${ranges.join('\n')}]');
     return null;
   });
@@ -112,6 +118,8 @@ View getViewByClassName(List<View> views, String className) {
     return null;
   });
 }
+
+typedef ResolvedRangeCondition(ResolvedRange range);
 
 class AbstractAngularTest {
   MemoryResourceProvider resourceProvider = new MemoryResourceProvider();

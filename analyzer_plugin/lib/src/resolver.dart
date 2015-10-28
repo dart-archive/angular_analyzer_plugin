@@ -119,24 +119,51 @@ class DartTemplateResolver {
 }
 
 /**
- * The [html.Element] implementation of [ElementView].
+ * The implementation of [ElementView] using [AttributeInfo]s.
  */
-class HtmlElementView implements ElementView {
-  final html.Element element;
+class ElementViewImpl implements ElementView {
+  @override
+  Map<String, SourceRange> attributeNameSpans = <String, SourceRange>{};
 
   @override
-  final Map<String, String> attributes = <String, String>{};
+  Map<String, SourceRange> attributeValueSpans = <String, SourceRange>{};
 
-  HtmlElementView(this.element) {
-    element.attributes.forEach((key, String value) {
-      if (key is String) {
-        attributes[key] = value;
+  @override
+  Map<String, String> attributes = <String, String>{};
+
+  @override
+  SourceRange endSourceSpan;
+
+  @override
+  String localName;
+
+  @override
+  SourceRange sourceSpan;
+
+  ElementViewImpl(List<AttributeInfo> attributeInfoList, html.Element element) {
+    for (AttributeInfo attribute in attributeInfoList) {
+      String name = attribute.propertyName;
+      attributeNameSpans[name] = new SourceRange(
+          attribute.propertyNameOffset, attribute.propertyNameLength);
+      if (attribute.value != null) {
+        attributeValueSpans[name] =
+            new SourceRange(attribute.valueOffset, attribute.value.length);
       }
-    });
+      attributes[name] = attribute.value;
+    }
+    if (element != null) {
+      localName = element.localName;
+      sourceSpan = _toSourceRange(element.sourceSpan);
+      endSourceSpan = _toSourceRange(element.endSourceSpan);
+    }
   }
 
-  @override
-  String get localName => element.localName;
+  static _toSourceRange(SourceSpan span) {
+    if (span != null) {
+      return new SourceRange(span.start.offset, span.length);
+    }
+    return null;
+  }
 }
 
 /// [HtmlTemplateResolver]s resolve templates in separate Html files.
@@ -156,20 +183,6 @@ class HtmlTemplateResolver {
     new TemplateResolver(typeProvider, errorListener).resolve(template);
     return template;
   }
-}
-
-/**
- * The implementation of [ElementView] for the short form of an inline template.
- *
- * The following template declares two attributes - `ng-for` and `ng-for-of`.
- *     <li template="ng-for #item of items; #i = index">...</li>
- */
-class ShortTemplateElementView implements ElementView {
-  @override
-  String localName;
-
-  @override
-  final Map<String, String> attributes = <String, String>{};
 }
 
 /// [TemplateResolver]s resolve [Template]s.
@@ -265,24 +278,6 @@ class TemplateResolver {
             propNameOffset, propNameLength, bound, value, valueOffset));
       }
     });
-  }
-
-  void _addElementTagRanges(html.Element element, AngularElement nameElement) {
-    String name = nameElement.name;
-    {
-      SourceSpan span = element.sourceSpan;
-      int offset = span.start.offset + '<'.length;
-      SourceRange range = new SourceRange(offset, name.length);
-      template.addRange(range, nameElement);
-    }
-    {
-      SourceSpan span = element.endSourceSpan;
-      if (span != null) {
-        int offset = span.start.offset + '</'.length;
-        SourceRange range = new SourceRange(offset, name.length);
-        template.addRange(range, nameElement);
-      }
-    }
   }
 
   void _defineBuiltInVariable(
@@ -544,12 +539,11 @@ class TemplateResolver {
       _resolveAttributeValues();
       bool tagIsStandard = _isStandardTag(element);
       bool tagIsResolved = false;
-      ElementView elementView = new HtmlElementView(element);
+      ElementView elementView = new ElementViewImpl(attributes, element);
       for (AbstractDirective directive in view.directives) {
         Selector selector = directive.selector;
-        if (selector.match(elementView)) {
+        if (selector.match(elementView, template)) {
           if (selector is ElementNameSelector) {
-            _addElementTagRanges(element, selector.nameElement);
             tagIsResolved = true;
           }
           _defineDirectiveVariableTypes(directive);
@@ -575,7 +569,6 @@ class TemplateResolver {
    * Resolve the given `template` attribute [code] at [offset].
    */
   void _resolveTemplateAttribute(int offset, String code) {
-    ShortTemplateElementView elementView = new ShortTemplateElementView();
     Token token = _scanDartCode(offset, code);
     String prefix = null;
     while (token.type != TokenType.EOF) {
@@ -639,8 +632,6 @@ class TemplateResolver {
         } else {
           key = '$prefix-$key';
         }
-        // register the attribute
-        elementView.attributes[key] = 'some-value';
       } else {
         errorReporter.reportErrorForToken(
             AngularWarningCode.EXPECTED_IDENTIFIER, token);
@@ -659,13 +650,14 @@ class TemplateResolver {
       }
       // add the attribute to resolve to property
       AttributeInfo attributeInfo = new AttributeInfo(key, keyOffset, key,
-          keyOffset, keyLength, expression != null, null, -1);
+          keyOffset, keyLength, expression != null, 'some-value', -1);
       attributeInfo.expression = expression;
       attributes.add(attributeInfo);
     }
     // match directives
+    ElementView elementView = new ElementViewImpl(attributes, null);
     for (AbstractDirective directive in view.directives) {
-      if (directive.selector.match(elementView)) {
+      if (directive.selector.match(elementView, template)) {
         _defineDirectiveVariableTypes(directive);
         _defineVariablesForAttributes();
         _resolveAttributeNames(directive);

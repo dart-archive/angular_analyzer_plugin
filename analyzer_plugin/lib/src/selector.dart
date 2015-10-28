@@ -3,8 +3,6 @@ library angular2.src.analysis.analyzer_plugin.src.selector;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/strings.dart';
-import 'package:html/dom.dart' as html;
-import 'package:source_span/source_span.dart';
 
 /**
  * The [Selector] that matches all of the given [selectors].
@@ -15,11 +13,14 @@ class AndSelector implements Selector {
   AndSelector(this.selectors);
 
   @override
-  bool match(ElementView element) {
+  bool match(ElementView element, Template template) {
     for (Selector selector in selectors) {
-      if (!selector.match(element)) {
+      if (!selector.match(element, null)) {
         return false;
       }
+    }
+    for (Selector selector in selectors) {
+      selector.match(element, template);
     }
     return true;
   }
@@ -39,19 +40,24 @@ class AttributeSelector implements Selector {
   AttributeSelector(this.nameElement, this.value);
 
   @override
-  bool match(ElementView element) {
+  bool match(ElementView element, Template template) {
     String name = nameElement.name;
-    String val = element.attributes[name];
-    if (val == null) {
-      val = element.attributes['[$name]'];
-    }
-    // no attribute
-    if (val == null) {
-      return false;
-    }
     // match the actual value against the required
-    if (value != null && val != value) {
-      return false;
+    if (value == null) {
+      if (!element.attributes.containsKey(name)) {
+        return false;
+      }
+    } else {
+      String val = element.attributes[name];
+      if (val != value) {
+        return false;
+      }
+    }
+    // OK
+    if (template != null) {
+      SourceRange nameRange = element.attributeNameSpans[name];
+      template.addRange(
+          new SourceRange(nameRange.offset, nameRange.length), nameElement);
     }
     return true;
   }
@@ -75,7 +81,7 @@ class ClassSelector implements Selector {
   ClassSelector(this.nameElement);
 
   @override
-  bool match(ElementView element) {
+  bool match(ElementView element, Template template) {
     String name = nameElement.name;
     String val = element.attributes['class'];
     // no 'class' attribute
@@ -86,7 +92,19 @@ class ClassSelector implements Selector {
     if (!val.split(' ').contains(name)) {
       return false;
     }
-    // OK
+    // prepare index of "name" int the "class" attribute value
+    int index;
+    if (val == name || val.startsWith('$name ')) {
+      index = 0;
+    } else if (val.endsWith(' $name')) {
+      index = val.length - name.length;
+    } else {
+      index = val.indexOf(' $name ') + 1;
+    }
+    // add resolved range
+    int valueOffset = element.attributeValueSpans['class'].offset;
+    int offset = valueOffset + index;
+    template.addRange(new SourceRange(offset, name.length), nameElement);
     return true;
   }
 
@@ -101,9 +119,32 @@ class ElementNameSelector implements Selector {
   ElementNameSelector(this.nameElement);
 
   @override
-  bool match(ElementView element) {
+  bool match(ElementView element, Template template) {
     String name = nameElement.name;
-    return element.localName == name;
+    // match
+    if (element.localName != name) {
+      return false;
+    }
+    // done if no template
+    if (template == null) {
+      return true;
+    }
+    // record resolution
+    {
+      SourceRange span = element.sourceSpan;
+      int offset = span.offset + '<'.length;
+      SourceRange range = new SourceRange(offset, name.length);
+      template.addRange(range, nameElement);
+    }
+    {
+      SourceRange span = element.endSourceSpan;
+      if (span != null) {
+        int offset = span.offset + '</'.length;
+        SourceRange range = new SourceRange(offset, name.length);
+        template.addRange(range, nameElement);
+      }
+    }
+    return true;
   }
 
   @override
@@ -111,8 +152,12 @@ class ElementNameSelector implements Selector {
 }
 
 abstract class ElementView {
+  Map<String, SourceRange> get attributeNameSpans;
   Map<String, String> get attributes;
+  Map<String, SourceRange> get attributeValueSpans;
+  SourceRange get endSourceSpan;
   String get localName;
+  SourceRange get sourceSpan;
 }
 
 /**
@@ -124,9 +169,9 @@ class OrSelector implements Selector {
   OrSelector(this.selectors);
 
   @override
-  bool match(ElementView element) {
+  bool match(ElementView element, Template template) {
     for (Selector selector in selectors) {
-      if (selector.match(element)) {
+      if (selector.match(element, template)) {
         return true;
       }
     }
@@ -147,7 +192,8 @@ abstract class Selector {
       r'(\s*,\s*)');
 
   /// Check whether the given [element] matches this selector.
-  bool match(ElementView element);
+  /// If yes, then record resolved ranges into [template].
+  bool match(ElementView element, Template template);
 
   static Selector parse(Source source, int offset, String str) {
     if (str == null) {
@@ -174,7 +220,7 @@ abstract class Selector {
         int nameOffset = offset + match.start;
         String name = match[2];
         selectors.add(new ElementNameSelector(
-            new AngularElementImpl(name, nameOffset, name.length, source)));
+            new SelectorName(name, nameOffset, name.length, source)));
         continue;
       }
       // class name
@@ -182,7 +228,7 @@ abstract class Selector {
         int nameOffset = offset + match.start + 1;
         String name = match[3];
         selectors.add(new ClassSelector(
-            new AngularElementImpl(name, nameOffset, name.length, source)));
+            new SelectorName(name, nameOffset, name.length, source)));
       }
       // attribute
       if (match[4] != null) {
@@ -190,8 +236,7 @@ abstract class Selector {
         String name = match[4];
         int nameOffset = offset + nameIndex;
         selectors.add(new AttributeSelector(
-            new AngularElementImpl(name, nameOffset, name.length, source),
-            match[5]));
+            new SelectorName(name, nameOffset, name.length, source), match[5]));
         continue;
       }
       // :not end
@@ -216,4 +261,12 @@ abstract class Selector {
     }
     return new AndSelector(selectors);
   }
+}
+
+/**
+ * A name that is a part of a [Selector].
+ */
+class SelectorName extends AngularElementImpl {
+  SelectorName(String name, int nameOffset, int nameLength, Source source)
+      : super(name, nameOffset, nameLength, source);
 }
