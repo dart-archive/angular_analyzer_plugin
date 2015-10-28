@@ -315,18 +315,25 @@ class TemplateResolver {
    */
   void _defineVariablesForAttributes() {
     for (AttributeInfo attribute in attributes) {
-      String name = attribute.name;
       int offset = attribute.nameOffset;
+      // prepare name
+      String name = attribute.name;
       if (name.startsWith('#')) {
         name = name.substring(1);
         String internalVarName = attribute.value;
         if (internalVarName == null) {
           internalVarName = r'$implicit';
         }
+        // add new local variable with type
         DartType type = currentDirectiveVariableTypes[internalVarName];
         if (type != null) {
-          localVariables[name] =
+          LocalVariableElement localVariable =
               _newLocalVariableElement(offset + 1, name, type);
+          localVariables[name] = localVariable;
+          // add declaration region
+          template.addRange(
+              new SourceRange(localVariable.nameOffset, name.length),
+              new DartElement(localVariable));
         }
       }
     }

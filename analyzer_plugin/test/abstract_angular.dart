@@ -36,6 +36,25 @@ PropertyAccessorElement assertGetter(ResolvedRange resolvedRange) {
   return element;
 }
 
+void assertInterfaceTypeWithName(DartType type, String name) {
+  expect(type, new isInstanceOf<InterfaceType>());
+  expect(type.displayName, name);
+}
+
+LocalVariableElement assertLocalVariable(ResolvedRange resolvedRange,
+    {String name, String typeName}) {
+  AngularElement angularElement = resolvedRange.element;
+  LocalVariableElement dartElement = (angularElement as DartElement).element;
+  if (name != null) {
+    expect(angularElement.name, name);
+    expect(dartElement.name, name);
+  }
+  if (typeName != null) {
+    assertInterfaceTypeWithName(dartElement.type, typeName);
+  }
+  return dartElement;
+}
+
 MethodElement assertMethod(ResolvedRange resolvedRange) {
   AngularElement element = resolvedRange.element;
   expect(element, new isInstanceOf<DartElement>());

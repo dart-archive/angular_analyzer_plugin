@@ -38,11 +38,6 @@ class TemplateResolverTest extends AbstractAngularTest {
   Template template;
   List<ResolvedRange> ranges;
 
-  void assertInterfaceTypeWithName(DartType type, String name) {
-    expect(type, new isInstanceOf<InterfaceType>());
-    expect(type.displayName, name);
-  }
-
   void test_expression_eventBinding() {
     _addDartSource(r'''
 import 'dart:html';
@@ -176,9 +171,7 @@ class MyIterable<T> extends BaseIterable<T> {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      assertInterfaceTypeWithName(element.type, 'String');
+      assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
     }
     _findResolvedRange("length}}");
   }
@@ -198,6 +191,18 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
+      ResolvedRange resolvedRange = _findResolvedRange("item of");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
+      _assertHtmlElementAt(element, "item of");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i = index");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
+      _assertHtmlElementAt(element, "i = index");
+    }
+    {
       ResolvedRange resolvedRange = _findResolvedRange("of items");
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
@@ -210,18 +215,14 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'i');
-      assertInterfaceTypeWithName(element.type, 'int');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i = index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'item');
-      assertInterfaceTypeWithName(element.type, 'String');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item of");
     }
     _findResolvedRange("length}}");
@@ -242,6 +243,18 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
+      ResolvedRange resolvedRange = _findResolvedRange("item of");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
+      _assertHtmlElementAt(element, "item of");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i = index");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
+      _assertHtmlElementAt(element, "i = index");
+    }
+    {
       ResolvedRange resolvedRange = _findResolvedRange("of items");
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
@@ -254,18 +267,14 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'i');
-      assertInterfaceTypeWithName(element.type, 'int');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i = index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'item');
-      assertInterfaceTypeWithName(element.type, 'String');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item of");
     }
     _findResolvedRange("length}}");
@@ -286,6 +295,18 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
+      ResolvedRange resolvedRange = _findResolvedRange("item, of");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
+      _assertHtmlElementAt(element, "item, of");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i=index");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
+      _assertHtmlElementAt(element, "i=index");
+    }
+    {
       ResolvedRange resolvedRange = _findResolvedRange("of = items");
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
@@ -298,18 +319,14 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'i');
-      assertInterfaceTypeWithName(element.type, 'int');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i=index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'item');
-      assertInterfaceTypeWithName(element.type, 'String');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item, of");
     }
     _findResolvedRange("length}}");
@@ -330,6 +347,18 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     {
+      ResolvedRange resolvedRange = _findResolvedRange("item [ng-for-of");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
+      _assertHtmlElementAt(element, "item [ng-for-of");
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("i='index'");
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
+      _assertHtmlElementAt(element, "i='index'");
+    }
+    {
       ResolvedRange resolvedRange = _findResolvedRange("ng-for-of]");
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -341,18 +370,14 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'i');
-      assertInterfaceTypeWithName(element.type, 'int');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i='index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      DartElement dartElement = resolvedRange.element;
-      LocalVariableElement element = dartElement.element;
-      expect(element.name, 'item');
-      assertInterfaceTypeWithName(element.type, 'String');
+      LocalVariableElement element =
+          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item [");
     }
     _findResolvedRange("length}}");
