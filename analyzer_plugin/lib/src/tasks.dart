@@ -168,20 +168,43 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       if (selector == null) {
         return null;
       }
+      AngularElement exportAs = _parseExportAs(node);
       List<PropertyElement> properties = _parseProperties(classElement, node);
       return new Component(classElement,
-          selector: selector, properties: properties);
+          exportAs: exportAs, properties: properties, selector: selector);
     }
     if (_isAngularAnnotation(node, 'Directive')) {
       Selector selector = _parseSelector(node);
       if (selector == null) {
         return null;
       }
+      AngularElement exportAs = _parseExportAs(node);
       List<PropertyElement> properties = _parseProperties(classElement, node);
       return new Directive(classElement,
-          selector: selector, properties: properties);
+          exportAs: exportAs, properties: properties, selector: selector);
     }
     return null;
+  }
+
+  AngularElement _parseExportAs(ast.Annotation node) {
+    // Find the "exportAs" argument.
+    ast.Expression expression = _getNamedArgument(node, 'exportAs');
+    if (expression == null) {
+      return null;
+    }
+    // Extract its content.
+    String name;
+    int offset;
+    if (expression is ast.SimpleStringLiteral) {
+      name = expression.value;
+      offset = expression.contentsOffset;
+    } else {
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.STRING_VALUE_EXPECTED, expression);
+      return null;
+    }
+    // Create a new element.
+    return new AngularElementImpl(name, offset, name.length, target.source);
   }
 
   List<PropertyElement> _parseProperties(

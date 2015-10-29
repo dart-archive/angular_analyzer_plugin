@@ -14,10 +14,12 @@ abstract class AbstractDirective {
   /// The [ClassElement] this annotation is associated with.
   final dart.ClassElement classElement;
 
-  final Selector selector;
+  final AngularElement exportAs;
   final List<PropertyElement> properties;
+  final Selector selector;
 
-  AbstractDirective(this.classElement, {this.selector, this.properties});
+  AbstractDirective(this.classElement,
+      {this.exportAs, this.properties, this.selector});
 
   /// The source that contains this directive.
   Source get source => classElement.source;
@@ -83,11 +85,14 @@ class AngularElementImpl implements AngularElement {
 /// The model of an Angular component.
 class Component extends AbstractDirective {
   Component(dart.ClassElement classElement,
-      {Selector selector, List<PropertyElement> properties})
-      : super(classElement, selector: selector, properties: properties);
+      {AngularElement exportAs,
+      List<PropertyElement> properties,
+      Selector selector})
+      : super(classElement,
+            exportAs: exportAs, properties: properties, selector: selector);
 }
 
-/// An [AngularElement] representing a Dart [Element].
+/// An [AngularElement] representing a [dart.Element].
 class DartElement extends AngularElementImpl {
   final dart.Element element;
 
@@ -100,8 +105,11 @@ class DartElement extends AngularElementImpl {
 /// The model of an Angular directive.
 class Directive extends AbstractDirective {
   Directive(dart.ClassElement classElement,
-      {Selector selector, List<PropertyElement> properties})
-      : super(classElement, selector: selector, properties: properties);
+      {AngularElement exportAs,
+      List<PropertyElement> properties,
+      Selector selector})
+      : super(classElement,
+            exportAs: exportAs, properties: properties, selector: selector);
 }
 
 /// An Angular template in a HTML file

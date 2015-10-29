@@ -108,6 +108,106 @@ class DirectiveB {
     }
   }
 
+  void test_exportAs_Component() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', exportAs: 'export-name')
+class ComponentA {
+}
+
+@Component(selector: 'bbb')
+class ComponentB {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Component component = getComponentByClassName(directives, 'ComponentA');
+      {
+        AngularElement exportAs = component.exportAs;
+        expect(exportAs.name, 'export-name');
+        expect(exportAs.nameOffset, code.indexOf('export-name'));
+      }
+    }
+    {
+      Component component = getComponentByClassName(directives, 'ComponentB');
+      {
+        AngularElement exportAs = component.exportAs;
+        expect(exportAs, isNull);
+      }
+    }
+    // no errors
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_exportAs_Directive() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: '[aaa]', exportAs: 'export-name')
+class DirectiveA {
+}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = getDirectiveByClassName(directives, 'DirectiveA');
+      {
+        AngularElement exportAs = directive.exportAs;
+        expect(exportAs.name, 'export-name');
+        expect(exportAs.nameOffset, code.indexOf('export-name'));
+      }
+    }
+    {
+      Directive directive = getDirectiveByClassName(directives, 'DirectiveB');
+      {
+        AngularElement exportAs = directive.exportAs;
+        expect(exportAs, isNull);
+      }
+    }
+    // no errors
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_exportAs_hasError_notStringValue() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', exportAs: 42)
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // has a directive
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(1));
+    // has an error
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+  }
+
   void test_hasError_ArgumentSelectorMissing() {
     Source source = newSource(
         '/test.dart',
@@ -146,7 +246,7 @@ class ComponentA {
         <ErrorCode>[AngularWarningCode.CANNOT_PARSE_SELECTOR]);
   }
 
-  void test_hasError_notStringValue() {
+  void test_hasError_selector_notStringValue() {
     Source source = newSource(
         '/test.dart',
         r'''
