@@ -359,7 +359,8 @@ class TemplateResolver {
               internalVar.element);
           // add local declaration
           template.addRange(
-              new SourceRange(localVariable.nameOffset, name.length),
+              new SourceRange(
+                  localVariable.nameOffset, localVariable.nameLength),
               new DartElement(localVariable));
         }
       }
@@ -733,7 +734,8 @@ class TemplateResolver {
 
   /// Check whether the given [element] is a standard HTML5 tag.
   static bool _isStandardTag(html.Element element) {
-    return !element.localName.contains('-');
+    String name = element.localName.toLowerCase();
+    return !name.contains('-') || name == 'ng-content';
   }
 
   static bool _isTemplateVarBeginToken(Token token) {

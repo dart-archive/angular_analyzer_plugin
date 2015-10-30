@@ -614,6 +614,19 @@ class TestPanel {
     }
   }
 
+  void test_ngContent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<ng-content></ng-content>>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void _addDartSource(String code) {
     dartCode = '''
 import '/angular2/angular2.dart';
