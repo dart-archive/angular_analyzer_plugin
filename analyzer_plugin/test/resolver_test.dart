@@ -151,6 +151,43 @@ class TestPanel extends BaseComponent {
     errorListener.assertNoErrors();
   }
 
+  void test_localVariable_exportAs() {
+    _addDartSource(r'''
+@Directive(selector: '[my-directive]', exportAs: 'exported-value')
+class MyDirective {
+  String aaa; // 1
+}
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [MyDirective])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<div my-directive #value='exported-value'>
+  {{value.aaa}}
+</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange declarationRange = _findResolvedRange("value=");
+      LocalVariableElement valueElement = assertLocalVariable(declarationRange,
+          name: 'value', typeName: 'MyDirective');
+      _assertHtmlElementAt(valueElement, "value=");
+      assertDartElement(_findResolvedRange("value.aaa"), valueElement);
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("aaa}}");
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'aaa; // 1');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("exported-value'");
+      _assertDartAngularElementAt(resolvedRange.element, "exported-value')");
+      expect(resolvedRange.element,
+          getDirectiveByClassName(directives, 'MyDirective').exportAs);
+    }
+  }
+
   void test_ngFor_iterableElementType() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -588,6 +625,11 @@ $code
   void _addHtmlSource(String code) {
     htmlCode = code;
     htmlSource = newSource('/test_panel.html', htmlCode);
+  }
+
+  void _assertDartAngularElementAt(AngularElement element, String search) {
+    expect(element.nameOffset, dartCode.indexOf(search));
+    expect(element.source, dartSource);
   }
 
   void _assertDartElementAt(Element element, String search) {

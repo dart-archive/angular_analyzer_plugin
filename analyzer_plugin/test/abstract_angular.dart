@@ -29,6 +29,12 @@ void assertComponentReference(
   expect(resolvedRange.range.length, selector.nameElement.name.length);
 }
 
+void assertDartElement(ResolvedRange resolvedRange, Element expected) {
+  AngularElement angularElement = resolvedRange.element;
+  Element dartElement = (angularElement as DartElement).element;
+  expect(dartElement, expected);
+}
+
 PropertyAccessorElement assertGetter(ResolvedRange resolvedRange) {
   PropertyAccessorElement element =
       (resolvedRange.element as DartElement).element;

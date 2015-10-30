@@ -53,11 +53,13 @@ class AttributeInfo {
       this.value,
       this.valueOffset);
 
+  int get valueLength => value != null ? value.length : 0;
+
   @override
   String toString() {
     return '([$name, $nameOffset],'
         '[$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
-        '[$value, $valueOffset], [$expression])';
+        '[$value, $valueOffset, $valueLength], [$expression])';
   }
 }
 
@@ -147,7 +149,7 @@ class ElementViewImpl implements ElementView {
           attribute.propertyNameOffset, attribute.propertyNameLength);
       if (attribute.value != null) {
         attributeValueSpans[name] =
-            new SourceRange(attribute.valueOffset, attribute.value.length);
+            new SourceRange(attribute.valueOffset, attribute.valueLength);
       }
       attributes[name] = attribute.value;
     }
@@ -185,6 +187,20 @@ class HtmlTemplateResolver {
   }
 }
 
+/**
+ * A variable defined by a [AbstractDirective].
+ *
+ * TODO(scheglov) normally [element] should be not `null`, but we're waiting
+ * https://github.com/angular/angular/issues/4850
+ */
+class InternalVariable {
+  final String name;
+  final AngularElement element;
+  final DartType type;
+
+  InternalVariable(this.name, this.element, this.type);
+}
+
 /// [TemplateResolver]s resolve [Template]s.
 class TemplateResolver {
   final TypeProvider typeProvider;
@@ -211,11 +227,10 @@ class TemplateResolver {
       new HashMap<String, Expression>();
 
   /**
-   * The map from names to types of variables that the current template
-   * directive defines.
+   * The full map of names to internal variables in the current node.
    */
-  Map<String, DartType> currentDirectiveVariableTypes =
-      new HashMap<String, DartType>();
+  Map<String, InternalVariable> internalVariables =
+      new HashMap<String, InternalVariable>();
 
   /**
    * The full map of names to local variables in the current node.
@@ -291,15 +306,27 @@ class TemplateResolver {
   /**
    * Defines type of variables defined by the given [directive].
    */
-  void _defineDirectiveVariableTypes(AbstractDirective directive) {
+  void _defineDirectiveVariables(AbstractDirective directive) {
+    // add "exportAs"
+    {
+      AngularElement exportAs = directive.exportAs;
+      if (exportAs != null) {
+        String name = exportAs.name;
+        InterfaceType type = directive.classElement.type;
+        internalVariables[name] = new InternalVariable(name, exportAs, type);
+      }
+    }
     // TODO(scheglov) Once Angular has a way to describe variables, reimplement
+    // https://github.com/angular/angular/issues/4850
     if (directive.classElement.displayName == 'NgFor') {
-      currentDirectiveVariableTypes['index'] = typeProvider.intType;
+      internalVariables['index'] = new InternalVariable('index',
+          new DartElement(directive.classElement), typeProvider.intType);
       for (AttributeInfo attribute in attributes) {
         if (attribute.propertyName == 'ng-for-of' &&
             attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
-          currentDirectiveVariableTypes[r'$implicit'] = itemType;
+          internalVariables[r'$implicit'] = new InternalVariable(
+              r'$implicit', new DartElement(directive.classElement), itemType);
         }
       }
     }
@@ -320,12 +347,17 @@ class TemplateResolver {
           internalVarName = r'$implicit';
         }
         // add new local variable with type
-        DartType type = currentDirectiveVariableTypes[internalVarName];
-        if (type != null) {
+        InternalVariable internalVar = internalVariables[internalVarName];
+        if (internalVar != null) {
+          DartType type = internalVar.type;
           LocalVariableElement localVariable =
               _newLocalVariableElement(offset + 1, name, type);
           localVariables[name] = localVariable;
-          // add declaration region
+          // add internal variable reference
+          template.addRange(
+              new SourceRange(attribute.valueOffset, attribute.valueLength),
+              internalVar.element);
+          // add local declaration
           template.addRange(
               new SourceRange(localVariable.nameOffset, name.length),
               new DartElement(localVariable));
@@ -353,9 +385,7 @@ class TemplateResolver {
    * May return `null` if the [type] does not define one.
    */
   DartType _lookupGetterReturnType(InterfaceType type, String name) {
-    LibraryElement library = view.classElement.library;
-    InheritanceManager manager = new InheritanceManager(library);
-    return manager.lookupMemberType(type, name)?.returnType;
+    return type.lookUpInheritedGetter(name)?.returnType;
   }
 
   LocalVariableElement _newLocalVariableElement(
@@ -529,8 +559,9 @@ class TemplateResolver {
 
   /// Resolve the given [node] in [template].
   void _resolveNode(html.Node node) {
-    currentDirectiveVariableTypes.clear();
-    Map<String, LocalVariableElement> oldVariables = localVariables;
+    Map<String, InternalVariable> oldInternalVariables = internalVariables;
+    Map<String, LocalVariableElement> oldLocalVariables = localVariables;
+    internalVariables = new HashMap.from(internalVariables);
     localVariables = new HashMap.from(localVariables);
     if (node is html.Element) {
       html.Element element = node;
@@ -546,7 +577,7 @@ class TemplateResolver {
           if (selector is ElementNameSelector) {
             tagIsResolved = true;
           }
-          _defineDirectiveVariableTypes(directive);
+          _defineDirectiveVariables(directive);
           _defineVariablesForAttributes();
           _resolveAttributeNames(directive);
         }
@@ -562,7 +593,8 @@ class TemplateResolver {
       _resolveTextExpressions(offset, text);
     }
     node.nodes.forEach(_resolveNode);
-    localVariables = oldVariables;
+    internalVariables = oldInternalVariables;
+    localVariables = oldLocalVariables;
   }
 
   /**
@@ -658,7 +690,7 @@ class TemplateResolver {
     ElementView elementView = new ElementViewImpl(attributes, null);
     for (AbstractDirective directive in view.directives) {
       if (directive.selector.match(elementView, template)) {
-        _defineDirectiveVariableTypes(directive);
+        _defineDirectiveVariables(directive);
         _defineVariablesForAttributes();
         _resolveAttributeNames(directive);
         break;
