@@ -240,6 +240,13 @@ class Component extends Directive {
 }
 
 class View {
+  final String templateUrl;
+  final String template;
+  final dynamic directives;
+  final dynamic pipes;
+  final ViewEncapsulation encapsulation;
+  final List<String> styles;
+  final List<String> styleUrls;
   const View(
       {String templateUrl,
       String template,
@@ -247,7 +254,14 @@ class View {
       dynamic pipes,
       ViewEncapsulation encapsulation,
       List<String> styles,
-      List<String> styleUrls});
+      List<String> styleUrls}) :
+        templateUrl = templateUrl,
+        template = template,
+        directives = directives,
+        pipes = pipes,
+        encapsulation = encapsulation,
+        styles = styles,
+        styleUrls = styleUrls;
 }
 
 class EventEmitter extends Stream {

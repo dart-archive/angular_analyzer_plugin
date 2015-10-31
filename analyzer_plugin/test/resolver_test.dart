@@ -159,7 +159,7 @@ class MyDirective {
 }
 
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [MyDirective])
+@View(templateUrl: 'test_panel.html', directives: const [MyDirective])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -188,10 +188,23 @@ class TestPanel {}
     }
   }
 
+  void test_ngContent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<ng-content></ng-content>>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_ngFor_iterableElementType() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgFor])
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
 class TestPanel {
   MyIterable<String> items = new MyIterable<String>();
 }
@@ -217,7 +230,7 @@ class MyIterable<T> extends BaseIterable<T> {
   void test_ngFor_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgFor])
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -270,7 +283,7 @@ class TestPanel {
   void test_ngFor_templateAttribute() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgFor])
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -323,7 +336,7 @@ class TestPanel {
   void test_ngFor_templateAttribute2() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgFor])
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -376,7 +389,7 @@ class TestPanel {
   void test_ngFor_templateElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgFor])
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -428,7 +441,7 @@ class TestPanel {
   void test_ngIf_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgIf])
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -459,7 +472,7 @@ class TestPanel {
   void test_ngIf_templateAttribute() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgIf])
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -490,7 +503,7 @@ class TestPanel {
   void test_ngIf_templateElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NgIf])
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -561,7 +574,7 @@ class NamePanel {
   int ccc;
 }
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [NamePanel])
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -612,19 +625,6 @@ class TestPanel {
       PropertyAccessorElement element = assertGetter(resolvedRange);
       _assertDartElementAt(element, 'bbb; // 2');
     }
-  }
-
-  void test_ngContent() {
-    _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
-class TestPanel {}
-''');
-    _addHtmlSource(r"""
-<ng-content></ng-content>>
-""");
-    _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
   }
 
   void _addDartSource(String code) {

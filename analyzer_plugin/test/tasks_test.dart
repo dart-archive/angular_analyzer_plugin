@@ -364,6 +364,67 @@ class MyComponent {
 
 @reflectiveTest
 class BuildUnitViewsTaskTest extends AbstractAngularTest {
+  void test_directives() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+@Directive(selector: '[ccc]')
+class DirectiveC {}
+
+const DIR_AB = const [DirectiveA, DirectiveB];
+
+@Component(selector: 'my-component')
+@View(template: 'My template', directives: const [DIR_AB, DirectiveC])
+class MyComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate views
+    List<View> views = outputs[VIEWS];
+    {
+      View view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(3));
+        List<String> directiveClassNames = view.directives
+            .map((directive) => directive.classElement.name)
+            .toList();
+        expect(directiveClassNames,
+            unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
+      }
+    }
+    // no errors
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_directives_hasError_notListVariable() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+const NOT_DIRECTIVE_LIST = 42;
+
+@Component(selector: 'my-component')
+@View(template: 'My template', directives: const [NOT_DIRECTIVE_LIST])
+class MyComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // no errors
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
+  }
+
   void test_hasError_ComponentAnnotationMissing() {
     Source source = newSource(
         '/test.dart',
@@ -390,7 +451,7 @@ class ComponentA {
 import '/angular2/angular2.dart';
 
 @Component(selector: 'aaa')
-@View(template: 'AAA', directives: [int])
+@View(template: 'AAA', directives: const [int])
 class ComponentA {
 }
 ''');
@@ -430,7 +491,7 @@ class ComponentA {
 import '/angular2/angular2.dart';
 
 @Component(selector: 'aaa')
-@View(template: 'AAA', directives: [42])
+@View(template: 'AAA', directives: const [42])
 class ComponentA {
 }
 ''');
@@ -491,7 +552,7 @@ class MyDirective {}
 class OtherComponent {}
 
 @Component(selector: 'my-component')
-@View(template: 'My template', directives: [MyDirective, OtherComponent])
+@View(template: 'My template', directives: const [MyDirective, OtherComponent])
 class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
@@ -615,7 +676,7 @@ class ComponentB {
   <my-aaa></my-aaa>1
   <my-bbb></my-bbb>2
 </div>
-""", directives: [ComponentA, ComponentB])
+""", directives: const [ComponentA, ComponentB])
 class ComponentC {
 }
 ''';
@@ -704,7 +765,7 @@ class TextPanel {
 <div>
   <text-panel [text]='noSuchName'></text-panel>
 </div>
-""", directives: [TextPanel])
+""", directives: const [TextPanel])
 class UserPanel {
 }
 ''';
@@ -822,7 +883,7 @@ class TextPanel {
 <div>
   <text-panel [text]='user.name'></text-panel>
 </div>
-""", directives: [TextPanel])
+""", directives: const [TextPanel])
 class UserPanel {
   User user; // 1
 }
@@ -894,7 +955,7 @@ class ComponentA {
 <div>
   <comp-a first-value='1' second='2'></comp-a>
 </div>
-""", directives: [ComponentA])
+""", directives: const [ComponentA])
 class ComponentB {
 }
 ''';

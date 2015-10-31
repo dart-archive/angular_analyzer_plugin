@@ -2,6 +2,7 @@ library angular2.src.analysis.analyzer_plugin.src.tasks;
 
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/generated/ast.dart' as ast;
+import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/element.dart';
 import 'package:analyzer/src/generated/engine.dart' hide AnalysisCache;
 import 'package:analyzer/src/generated/error.dart';
@@ -390,18 +391,51 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     outputs[VIEWS_WITH_HTML_TEMPLATES] = viewsWithTemplates;
   }
 
-  /// Return the corresponding [Component] annotation, otherwise reports an
-  /// error and returns `null`.
-  void _addDirectiveOrReportError(List<AbstractDirective> directives,
-      ast.Expression expression, ClassElement classElement) {
+  /// Attempt to find and add the [AbstractDirective] that corresponds to
+  /// the [classElement]. Return `true` if success.
+  bool _addDirective(
+      List<AbstractDirective> directives, ClassElement classElement) {
     for (AbstractDirective directive in _allDirectives) {
       if (directive.classElement == classElement) {
         directives.add(directive);
-        return;
+        return true;
       }
     }
-    errorReporter.reportErrorForNode(
-        AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED, expression);
+    return false;
+  }
+
+  /// Attempt to find and add the [AbstractDirective] that corresponds to
+  /// the [classElement]. Return an error if the directive not found.
+  void _addDirectiveOrReportError(List<AbstractDirective> directives,
+      ast.Expression expression, ClassElement classElement) {
+    bool success = _addDirective(directives, classElement);
+    if (!success) {
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED, expression);
+    }
+  }
+
+  /**
+   * Walk the given [value] and add directives into [directives].
+   * Return `true` if success, or `false` the [value] has items that don't
+   * correspond to a directive.
+   */
+  bool _addDirectivesForDartObject(
+      List<AbstractDirective> directives, DartObject value) {
+    List<DartObject> listValue = value.toListValue();
+    if (listValue != null) {
+      for (DartObject listItem in listValue) {
+        Object typeValue = listItem.toTypeValue();
+        if (typeValue is InterfaceType) {
+          bool success = _addDirective(directives, typeValue.element);
+          if (!success) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   /// Create a new [View] for the given [annotation], may return `null`
@@ -449,15 +483,30 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
       ast.Expression listExpression =
           _getNamedArgument(annotation, 'directives');
       if (listExpression is ast.ListLiteral) {
-        for (ast.Expression element in listExpression.elements) {
-          if (element is ast.Identifier &&
-              element.staticElement is ClassElement) {
-            _addDirectiveOrReportError(
-                directives, element, element.staticElement);
-          } else {
-            errorReporter.reportErrorForNode(
-                AngularWarningCode.TYPE_LITERAL_EXPECTED, element);
+        for (ast.Expression item in listExpression.elements) {
+          if (item is ast.Identifier) {
+            Element element = item.staticElement;
+            // TypeLiteral
+            if (element is ClassElement) {
+              _addDirectiveOrReportError(directives, item, element);
+              continue;
+            }
+            // LIST_OF_DIRECTIVES
+            if (element is PropertyAccessorElement &&
+                element.variable.constantValue != null) {
+              DartObject value = element.variable.constantValue;
+              bool success = _addDirectivesForDartObject(directives, value);
+              if (!success) {
+                errorReporter.reportErrorForNode(
+                    AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
+                return null;
+              }
+              continue;
+            }
           }
+          // unknown
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
         }
       }
     }
