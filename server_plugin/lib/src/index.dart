@@ -3,7 +3,6 @@ library angular2.src.analysis.server_plugin.index;
 import 'package:analysis_server/plugin/index/index_core.dart';
 import 'package:analyzer/src/generated/element.dart' show ElementKind;
 import 'package:analyzer/src/generated/engine.dart';
-import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 
 /// [ElementKind] for Angular
@@ -20,6 +19,9 @@ class IndexableAngularElement implements IndexableObject {
   }
 
   @override
+  String get filePath => element.source.fullName;
+
+  @override
   int get hashCode => element.hashCode;
 
   @override
@@ -27,9 +29,6 @@ class IndexableAngularElement implements IndexableObject {
 
   @override
   int get offset => element.nameOffset;
-
-  @override
-  Source get source => element.source;
 
   @override
   bool operator ==(Object object) =>
