@@ -150,7 +150,12 @@ class ResolvedRange {
   ResolvedRange(this.range, this.element);
 
   @override
-  String toString() => '$range=$element';
+  String toString() {
+    return '$range=[$element, '
+        'nameOffset=${element.nameOffset}, '
+        'nameLength=${element.nameLength}, '
+        'source=${element.source}]';
+  }
 }
 
 /// An Angular template.
@@ -171,6 +176,9 @@ class Template {
 
   /// Records that the given [element] is referenced at the given [range].
   void addRange(SourceRange range, AngularElement element) {
+    assert(range != null);
+    assert(range.offset != null);
+    assert(range.offset >= 0);
     ranges.add(new ResolvedRange(range, element));
   }
 }

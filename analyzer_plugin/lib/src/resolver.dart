@@ -354,9 +354,11 @@ class TemplateResolver {
               _newLocalVariableElement(offset + 1, name, type);
           localVariables[name] = localVariable;
           // add internal variable reference
-          template.addRange(
-              new SourceRange(attribute.valueOffset, attribute.valueLength),
-              internalVar.element);
+          if (attribute.value != null) {
+            template.addRange(
+                new SourceRange(attribute.valueOffset, attribute.valueLength),
+                internalVar.element);
+          }
           // add local declaration
           template.addRange(
               new SourceRange(
@@ -624,7 +626,7 @@ class TemplateResolver {
         token = token.next;
         // get an optional internal variable
         int internalVarOffset = -1;
-        String internalVarName;
+        String internalVarName = null;
         if (token.type == TokenType.EQ) {
           token = token.next;
           // get the internal variable

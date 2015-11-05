@@ -241,6 +241,15 @@ class TestPanel {
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    expect(template.ranges, hasLength(10));
+    {
+      ResolvedRange resolvedRange =
+          _findResolvedRange("ng-for=", _isSelectorName);
+      expect(resolvedRange.range.length, 'ng-for'.length);
+      SelectorName nameElement = resolvedRange.element;
+      expect(nameElement.name, 'ng-for');
+      expect(nameElement.source.fullName, endsWith('ng_for.dart'));
+    }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item of");
       LocalVariableElement element =
