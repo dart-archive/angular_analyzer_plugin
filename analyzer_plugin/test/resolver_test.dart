@@ -188,6 +188,39 @@ class TestPanel {}
     }
   }
 
+  void test_localVariable_scope_forwardReference() {
+    _addDartSource(r'''
+import 'dart:html';
+
+@Component(selector: 'aaa', properties: const ['target'])
+@View(template: '')
+class ComponentA {
+  void set target(ComponentB b) {}
+}
+
+@Component(selector: 'bbb')
+@View(template: '')
+class ComponentB {}
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [ComponentA, ComponentB])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<div>
+  <aaa [target]='handle'></aaa>
+  <bbb #handle></bbb>
+</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange declarationRange = _findResolvedRange("handle'>");
+      LocalVariableElement valueElement = assertLocalVariable(declarationRange,
+          name: 'handle', typeName: 'ComponentB');
+      _assertHtmlElementAt(valueElement, "handle></");
+    }
+  }
+
   void test_ngContent() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

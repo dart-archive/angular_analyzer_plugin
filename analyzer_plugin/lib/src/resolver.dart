@@ -121,6 +121,20 @@ class DartTemplateResolver {
 }
 
 /**
+ * An element in an HTML tree.
+ */
+class ElementInfo extends NodeInfo {
+  final String localName;
+  final SourceRange sourceSpan;
+  final SourceRange endSourceSpan;
+  final bool isTemplate;
+  final List<AttributeInfo> attributes;
+
+  ElementInfo(this.localName, this.sourceSpan, this.endSourceSpan,
+      this.isTemplate, this.attributes);
+}
+
+/**
  * The implementation of [ElementView] using [AttributeInfo]s.
  */
 class ElementViewImpl implements ElementView {
@@ -142,7 +156,7 @@ class ElementViewImpl implements ElementView {
   @override
   SourceRange sourceSpan;
 
-  ElementViewImpl(List<AttributeInfo> attributeInfoList, html.Element element) {
+  ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
       String name = attribute.propertyName;
       attributeNameSpans[name] = new SourceRange(
@@ -155,16 +169,9 @@ class ElementViewImpl implements ElementView {
     }
     if (element != null) {
       localName = element.localName;
-      sourceSpan = _toSourceRange(element.sourceSpan);
-      endSourceSpan = _toSourceRange(element.endSourceSpan);
+      sourceSpan = element.sourceSpan;
+      endSourceSpan = element.endSourceSpan;
     }
-  }
-
-  static _toSourceRange(SourceSpan span) {
-    if (span != null) {
-      return new SourceRange(span.start.offset, span.length);
-    }
-    return null;
   }
 }
 
@@ -187,69 +194,32 @@ class HtmlTemplateResolver {
   }
 }
 
-/**
- * A variable defined by a [AbstractDirective].
- *
- * TODO(scheglov) normally [element] should be not `null`, but we're waiting
- * https://github.com/angular/angular/issues/4850
- */
-class InternalVariable {
-  final String name;
-  final AngularElement element;
-  final DartType type;
-
-  InternalVariable(this.name, this.element, this.type);
-}
-
-/// [TemplateResolver]s resolve [Template]s.
-class TemplateResolver {
-  final TypeProvider typeProvider;
-  final AnalysisErrorListener errorListener;
-
-  Template template;
-  View view;
-  Source templateSource;
-  ErrorReporter errorReporter;
-
-  CompilationUnitElementImpl htmlCompilationUnitElement;
-  ClassElementImpl htmlClassElement;
-  MethodElementImpl htmlMethodElement;
-
-  /**
-   * The list of attributes of the current node.
-   */
-  List<AttributeInfo> attributes = <AttributeInfo>[];
-
-  /**
-   * The map from names of bound attributes to resolve expressions.
-   */
-  Map<String, Expression> currentNodeAttributeExpressions =
-      new HashMap<String, Expression>();
-
-  /**
-   * The full map of names to internal variables in the current node.
-   */
-  Map<String, InternalVariable> internalVariables =
-      new HashMap<String, InternalVariable>();
-
-  /**
-   * The full map of names to local variables in the current node.
-   */
-  Map<String, LocalVariableElement> localVariables =
-      new HashMap<String, LocalVariableElement>();
-
-  TemplateResolver(this.typeProvider, this.errorListener);
-
-  void resolve(Template template) {
-    this.template = template;
-    this.view = template.view;
-    this.templateSource = view.templateSource;
-    this.errorReporter = new ErrorReporter(errorListener, templateSource);
-    _resolveNode(template.element);
+class HtmlTreeConverter {
+  NodeInfo convert(html.Node node) {
+    if (node is html.Element) {
+      String localName = node.localName;
+      List<AttributeInfo> attributes = _convertAttributes(node);
+      bool isTemplate = _isTemplate(localName, attributes);
+      ElementInfo element = new ElementInfo(
+          localName,
+          _toSourceRange(node.sourceSpan),
+          _toSourceRange(node.endSourceSpan),
+          isTemplate,
+          attributes);
+      List<NodeInfo> children = _convertChildren(node);
+      element.children.addAll(children);
+      return element;
+    }
+    if (node is html.Text) {
+      int offset = node.sourceSpan.start.offset;
+      String text = node.text;
+      return new TextInfo(offset, text);
+    }
+    return null;
   }
 
-  void _addAttributes(html.Element element) {
-    attributes.clear();
+  List<AttributeInfo> _convertAttributes(html.Element element) {
+    List<AttributeInfo> attributes = <AttributeInfo>[];
     element.attributes.forEach((key, String value) {
       if (key is String) {
         String name = key;
@@ -293,6 +263,99 @@ class TemplateResolver {
             propNameOffset, propNameLength, bound, value, valueOffset));
       }
     });
+    return attributes;
+  }
+
+  List<NodeInfo> _convertChildren(html.Element node) {
+    List<NodeInfo> children = <NodeInfo>[];
+    for (html.Node child in node.nodes) {
+      NodeInfo node = convert(child);
+      if (node != null) {
+        children.add(node);
+      }
+    }
+    return children;
+  }
+
+  bool _isTemplate(String localName, List<AttributeInfo> attributes) {
+    if (localName == 'template') {
+      return true;
+    }
+    for (AttributeInfo attribute in attributes) {
+      if (attribute.name == 'template' || attribute.name.startsWith('*')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  SourceRange _toSourceRange(SourceSpan span) {
+    if (span != null) {
+      return new SourceRange(span.start.offset, span.length);
+    }
+    return null;
+  }
+}
+
+/**
+ * A variable defined by a [AbstractDirective].
+ */
+class InternalVariable {
+  final String name;
+  final AngularElement element;
+  final DartType type;
+
+  InternalVariable(this.name, this.element, this.type);
+}
+
+/**
+ * A node in an HTML tree.
+ */
+class NodeInfo {
+  final List<NodeInfo> children = <NodeInfo>[];
+}
+
+/// [TemplateResolver]s resolve [Template]s.
+class TemplateResolver {
+  final TypeProvider typeProvider;
+  final AnalysisErrorListener errorListener;
+
+  Template template;
+  View view;
+  Source templateSource;
+  ErrorReporter errorReporter;
+
+  CompilationUnitElementImpl htmlCompilationUnitElement;
+  ClassElementImpl htmlClassElement;
+  MethodElementImpl htmlMethodElement;
+
+  /**
+   * The map from names of bound attributes to resolve expressions.
+   */
+  Map<String, Expression> currentNodeAttributeExpressions =
+      new HashMap<String, Expression>();
+
+  /**
+   * The full map of names to internal variables in the current node.
+   */
+  Map<String, InternalVariable> internalVariables =
+      new HashMap<String, InternalVariable>();
+
+  /**
+   * The full map of names to local variables in the current node.
+   */
+  Map<String, LocalVariableElement> localVariables =
+      new HashMap<String, LocalVariableElement>();
+
+  TemplateResolver(this.typeProvider, this.errorListener);
+
+  void resolve(Template template) {
+    this.template = template;
+    this.view = template.view;
+    this.templateSource = view.templateSource;
+    this.errorReporter = new ErrorReporter(errorListener, templateSource);
+    ElementInfo root = new HtmlTreeConverter().convert(template.element);
+    _resolveElement(root);
   }
 
   void _defineBuiltInVariable(
@@ -306,7 +369,8 @@ class TemplateResolver {
   /**
    * Defines type of variables defined by the given [directive].
    */
-  void _defineDirectiveVariables(AbstractDirective directive) {
+  void _defineDirectiveVariables(
+      List<AttributeInfo> attributes, AbstractDirective directive) {
     // add "exportAs"
     {
       AngularElement exportAs = directive.exportAs;
@@ -315,6 +379,12 @@ class TemplateResolver {
         InterfaceType type = directive.classElement.type;
         internalVariables[name] = new InternalVariable(name, exportAs, type);
       }
+    }
+    // add "$implicit
+    {
+      ClassElement classElement = directive.classElement;
+      internalVariables[r'$implicit'] = new InternalVariable(
+          r'$implicit', new DartElement(classElement), classElement.type);
     }
     // TODO(scheglov) Once Angular has a way to describe variables, reimplement
     // https://github.com/angular/angular/issues/4850
@@ -335,7 +405,7 @@ class TemplateResolver {
   /**
    * Define new local variables into [localVariables] for `#name` attributes.
    */
-  void _defineVariablesForAttributes() {
+  void _defineVariablesForAttributes(List<AttributeInfo> attributes) {
     for (AttributeInfo attribute in attributes) {
       int offset = attribute.nameOffset;
       // prepare name
@@ -434,50 +504,15 @@ class TemplateResolver {
     }
   }
 
-  void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
+  void _reportErrorForRange(SourceRange range, ErrorCode errorCode,
       [List<Object> arguments]) {
     errorListener.onError(new AnalysisError(
-        templateSource, span.start.offset, span.length, errorCode, arguments));
-  }
-
-  /**
-   * Resolve the `template` attribute in [attributes] and remove it.
-   */
-  void _resolveAndRemoveTemplateAttribute() {
-    // Helper for using new attributes list.
-    void resolveTemplate(int offset, String code) {
-      List<AttributeInfo> nodeAttributes = attributes;
-      try {
-        attributes = <AttributeInfo>[];
-        _resolveTemplateAttribute(offset, code);
-      } finally {
-        attributes = nodeAttributes;
-      }
-    }
-    // Check every attribute for *key='abc' and template='abc' styles.
-    List<AttributeInfo> attributesToRemove = <AttributeInfo>[];
-    for (AttributeInfo attribute in attributes) {
-      if (attribute.name.startsWith('*')) {
-        attributesToRemove.add(attribute);
-        int nameOffset = attribute.nameOffset + '*'.length;
-        int nameEnd = attribute.nameOffset + attribute.name.length;
-        int valueOffset = attribute.valueOffset;
-        String key = attribute.name.substring(1);
-        String code = key + ' ' * (valueOffset - nameEnd) + attribute.value;
-        resolveTemplate(nameOffset, code);
-      }
-      if (attribute.name == 'template') {
-        attributesToRemove.add(attribute);
-        int valueOffset = attribute.valueOffset;
-        String value = attribute.value;
-        resolveTemplate(valueOffset, value);
-      }
-    }
-    attributesToRemove.forEach(attributes.remove);
+        templateSource, range.offset, range.length, errorCode, arguments));
   }
 
   /// Resolve [attributes] names to properties of [directive].
-  void _resolveAttributeNames(AbstractDirective directive) {
+  void _resolveAttributeNames(
+      List<AttributeInfo> attributes, AbstractDirective directive) {
     for (AttributeInfo attribute in attributes) {
       for (PropertyElement property in directive.properties) {
         if (attribute.propertyName == property.name) {
@@ -492,12 +527,12 @@ class TemplateResolver {
   /**
    * Resolve values of [attributes].
    */
-  void _resolveAttributeValues() {
+  void _resolveAttributeValues(List<AttributeInfo> attributes) {
     for (AttributeInfo attribute in attributes) {
       int valueOffset = attribute.valueOffset;
       String value = attribute.value;
       // already handled
-      if (attribute.name == 'template') {
+      if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         continue;
       }
       // bound
@@ -552,6 +587,40 @@ class TemplateResolver {
     return expression;
   }
 
+  /// Resolve the given [element].
+  void _resolveElement(ElementInfo element) {
+    List<ElementInfo> templateElements = <ElementInfo>[];
+    // process all non-template nodes
+    _resolveNodeNames(element, true, templateElements);
+    _resolveNodeExpressions(element, true);
+    // process templates with their sub-trees
+    for (ElementInfo templateElement in templateElements) {
+      Map<String, InternalVariable> oldInternalVariables = internalVariables;
+      Map<String, LocalVariableElement> oldLocalVariables = localVariables;
+      internalVariables = new HashMap.from(internalVariables);
+      localVariables = new HashMap.from(localVariables);
+      try {
+        for (AttributeInfo attribute in templateElement.attributes) {
+          if (attribute.name == 'template') {
+            _resolveTemplateAttribute(attribute.valueOffset, attribute.value);
+          }
+          if (attribute.name.startsWith('*')) {
+            int nameOffset = attribute.nameOffset + '*'.length;
+            int nameEnd = attribute.nameOffset + attribute.name.length;
+            int valueOffset = attribute.valueOffset;
+            String key = attribute.name.substring(1);
+            String code = key + ' ' * (valueOffset - nameEnd) + attribute.value;
+            _resolveTemplateAttribute(nameOffset, code);
+          }
+        }
+        _resolveElement(templateElement);
+      } finally {
+        internalVariables = oldInternalVariables;
+        localVariables = oldLocalVariables;
+      }
+    }
+  }
+
   /// Resolve the given Angular [code] at the given [offset].
   /// Record [ResolvedRange]s.
   Expression _resolveExpression(int offset, String code) {
@@ -560,50 +629,61 @@ class TemplateResolver {
     return expression;
   }
 
-  /// Resolve the given [node] in [template].
-  void _resolveNode(html.Node node) {
-    Map<String, InternalVariable> oldInternalVariables = internalVariables;
-    Map<String, LocalVariableElement> oldLocalVariables = localVariables;
-    internalVariables = new HashMap.from(internalVariables);
-    localVariables = new HashMap.from(localVariables);
-    if (node is html.Element) {
-      html.Element element = node;
-      _addAttributes(element);
-      _resolveAndRemoveTemplateAttribute();
-      _resolveAttributeValues();
-      bool tagIsStandard = _isStandardTag(element);
+  _resolveNodeExpressions(NodeInfo node, bool enterTemplate) {
+    if (node is ElementInfo) {
+      _resolveAttributeValues(node.attributes);
+      if (!enterTemplate && node.isTemplate) {
+        return;
+      }
+    }
+    if (node is TextInfo) {
+      _resolveTextExpressions(node.offset, node.text);
+    }
+    for (NodeInfo child in node.children) {
+      _resolveNodeExpressions(child, false);
+    }
+  }
+
+  _resolveNodeNames(
+      NodeInfo node, bool enterTemplate, List<ElementInfo> templateElements) {
+    if (node is ElementInfo) {
+      // skip template
+      if (!enterTemplate && node.isTemplate) {
+        templateElements.add(node);
+        return;
+      }
+      // apply directives
+      bool tagIsStandard = _isStandardTagName(node.localName);
       bool tagIsResolved = false;
-      ElementView elementView = new ElementViewImpl(attributes, element);
+      ElementView elementView = new ElementViewImpl(node.attributes, node);
       for (AbstractDirective directive in view.directives) {
         Selector selector = directive.selector;
         if (selector.match(elementView, template)) {
           if (selector is ElementNameSelector) {
             tagIsResolved = true;
           }
-          _defineDirectiveVariables(directive);
-          _defineVariablesForAttributes();
-          _resolveAttributeNames(directive);
+          _resolveAttributeNames(node.attributes, directive);
+          _defineDirectiveVariables(node.attributes, directive);
         }
       }
       if (!tagIsStandard && !tagIsResolved) {
-        _reportErrorForSpan(element.sourceSpan,
-            AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
+        _reportErrorForRange(node.sourceSpan, AngularWarningCode.UNRESOLVED_TAG,
+            [node.localName]);
       }
+      // define local variables
+      _defineVariablesForAttributes(node.attributes);
     }
-    if (node is html.Text) {
-      int offset = node.sourceSpan.start.offset;
-      String text = node.text;
-      _resolveTextExpressions(offset, text);
+    // process children
+    for (NodeInfo child in node.children) {
+      _resolveNodeNames(child, false, templateElements);
     }
-    node.nodes.forEach(_resolveNode);
-    internalVariables = oldInternalVariables;
-    localVariables = oldLocalVariables;
   }
 
   /**
    * Resolve the given `template` attribute [code] at [offset].
    */
   void _resolveTemplateAttribute(int offset, String code) {
+    List<AttributeInfo> attributes = <AttributeInfo>[];
     Token token = _scanDartCode(offset, code);
     String prefix = null;
     while (token.type != TokenType.EOF) {
@@ -693,13 +773,13 @@ class TemplateResolver {
     ElementView elementView = new ElementViewImpl(attributes, null);
     for (AbstractDirective directive in view.directives) {
       if (directive.selector.match(elementView, template)) {
-        _defineDirectiveVariables(directive);
-        _defineVariablesForAttributes();
-        _resolveAttributeNames(directive);
+        _defineDirectiveVariables(attributes, directive);
+        _defineVariablesForAttributes(attributes);
+        _resolveAttributeNames(attributes, directive);
         break;
       }
     }
-    _resolveAttributeValues();
+    _resolveAttributeValues(attributes);
   }
 
   /// Scan the given [text] staring at the given [offset] and resolve all of
@@ -734,9 +814,9 @@ class TemplateResolver {
     return scanner.tokenize();
   }
 
-  /// Check whether the given [element] is a standard HTML5 tag.
-  static bool _isStandardTag(html.Element element) {
-    String name = element.localName.toLowerCase();
+  /// Check whether the given [name] is a standard HTML5 tag name.
+  static bool _isStandardTagName(String name) {
+    name = name.toLowerCase();
     return !name.contains('-') || name == 'ng-content';
   }
 
@@ -744,6 +824,16 @@ class TemplateResolver {
     return token.type == TokenType.HASH ||
         token is KeywordToken && token.keyword == Keyword.VAR;
   }
+}
+
+/**
+ * A text node in an HTML tree.
+ */
+class TextInfo extends NodeInfo {
+  final int offset;
+  final String text;
+
+  TextInfo(this.offset, this.text);
 }
 
 /// An [AstVisitor] that records references to Dart [Element]s into
