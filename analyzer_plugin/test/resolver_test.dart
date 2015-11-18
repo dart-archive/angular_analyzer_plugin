@@ -17,13 +17,13 @@ main() {
 
 void assertPropertyElement(AngularElement element,
     {nameMatcher, sourceMatcher}) {
-  expect(element, new isInstanceOf<PropertyElement>());
-  PropertyElement propertyElement = element;
+  expect(element, new isInstanceOf<InputElement>());
+  InputElement inputElement = element;
   if (nameMatcher != null) {
-    expect(propertyElement.name, nameMatcher);
+    expect(inputElement.name, nameMatcher);
   }
   if (sourceMatcher != null) {
-    expect(propertyElement.source.fullName, sourceMatcher);
+    expect(inputElement.source.fullName, sourceMatcher);
   }
 }
 
@@ -38,6 +38,32 @@ class TemplateResolverTest extends AbstractAngularTest {
 
   Template template;
   List<ResolvedRange> ranges;
+
+  void test_attributeInterpolation() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String aaa; // 1
+  String bbb; // 2
+}
+''');
+    _addHtmlSource(r"""
+<span title='Hello {{aaa}} and {{bbb}}!'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(2));
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('aaa}}');
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'aaa; // 1');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
+      PropertyAccessorElement element = assertGetter(resolvedRange);
+      _assertDartElementAt(element, 'bbb; // 2');
+    }
+  }
 
   void test_expression_eventBinding() {
     _addDartSource(r'''
@@ -83,7 +109,7 @@ class TestPanel {
     }
   }
 
-  void test_expression_propertyBinding() {
+  void test_expression_inputBinding() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -103,7 +129,7 @@ class TestPanel {
     }
   }
 
-  void test_expression_propertyBinding_bind() {
+  void test_expression_inputBinding_bind() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -151,6 +177,43 @@ class TestPanel extends BaseComponent {
     errorListener.assertNoErrors();
   }
 
+  void test_inputReference() {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+    inputs: const ['aaa', 'bbb', 'ccc'])
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  int aaa;
+  int bbb;
+  int ccc;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    Component namePanel = getComponentByClassName(directives, 'NamePanel');
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('aaa=');
+      expect(resolvedRange.range.length, 3);
+      assertPropertyReference(resolvedRange, namePanel, 'aaa');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('bbb]=');
+      expect(resolvedRange.range.length, 3);
+      assertPropertyReference(resolvedRange, namePanel, 'bbb');
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange('ccc=');
+      expect(resolvedRange.range.length, 3);
+      assertPropertyReference(resolvedRange, namePanel, 'ccc');
+    }
+  }
+
   void test_localVariable_exportAs() {
     _addDartSource(r'''
 @Directive(selector: '[my-directive]', exportAs: 'exported-value')
@@ -192,7 +255,7 @@ class TestPanel {}
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'aaa', properties: const ['target'])
+@Component(selector: 'aaa', inputs: const ['target'])
 @View(template: '')
 class ComponentA {
   void set target(ComponentB b) {}
@@ -297,7 +360,7 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange("of items", _isPropertyElement);
+          _findResolvedRange("of items", _isInputElement);
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -350,7 +413,7 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange("of items", _isPropertyElement);
+          _findResolvedRange("of items", _isInputElement);
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -403,7 +466,7 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange("of = items", _isPropertyElement);
+          _findResolvedRange("of = items", _isInputElement);
       expect(resolvedRange.range.length, 'of'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
@@ -456,7 +519,7 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange("ng-for-of]", _isPropertyElement);
+          _findResolvedRange("ng-for-of]", _isInputElement);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-for-of', sourceMatcher: endsWith('ng_for.dart'));
     }
@@ -494,7 +557,7 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange('ng-if=', _isPropertyElement);
+          _findResolvedRange('ng-if=', _isInputElement);
       expect(resolvedRange.range.length, 'ng-if'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-if', sourceMatcher: endsWith('ng_if.dart'));
@@ -525,7 +588,7 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange('ng-if text', _isPropertyElement);
+          _findResolvedRange('ng-if text', _isInputElement);
       expect(resolvedRange.range.length, 'ng-if'.length);
       assertPropertyElement(resolvedRange.element,
           nameMatcher: 'ng-if', sourceMatcher: endsWith('ng_if.dart'));
@@ -564,11 +627,11 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange =
-          _findResolvedRange("ng-if]", _isPropertyElement);
+          _findResolvedRange("ng-if]", _isInputElement);
       expect(resolvedRange.range.length, 'ng-if'.length);
-      PropertyElement propertyElement = resolvedRange.element;
-      expect(propertyElement.name, 'ng-if');
-      expect(propertyElement.source.fullName, endsWith('ng_if.dart'));
+      InputElement inputElement = resolvedRange.element;
+      expect(inputElement.name, 'ng-if');
+      expect(inputElement.source.fullName, endsWith('ng_if.dart'));
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("text.length");
@@ -576,69 +639,6 @@ class TestPanel {
       _assertDartElementAt(element, 'text; // 1');
     }
     _findResolvedRange("length !=");
-  }
-
-  void test_propertyInterpolation() {
-    _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
-class TestPanel {
-  String aaa; // 1
-  String bbb; // 2
-}
-''');
-    _addHtmlSource(r"""
-<span title='Hello {{aaa}} and {{bbb}}!'></span>
-""");
-    _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(2));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('aaa}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'aaa; // 1');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'bbb; // 2');
-    }
-  }
-
-  void test_propertyReference() {
-    _addDartSource(r'''
-@Component(
-    selector: 'name-panel',
-    properties: const ['aaa', 'bbb', 'ccc'])
-@View(template: r"<div>AAA</div>")
-class NamePanel {
-  int aaa;
-  int bbb;
-  int ccc;
-}
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
-class TestPanel {}
-''');
-    _addHtmlSource(r"""
-<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
-""");
-    _resolveSingleTemplate(dartSource);
-    Component namePanel = getComponentByClassName(directives, 'NamePanel');
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('aaa=');
-      expect(resolvedRange.range.length, 3);
-      assertPropertyReference(resolvedRange, namePanel, 'aaa');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('bbb]=');
-      expect(resolvedRange.range.length, 3);
-      assertPropertyReference(resolvedRange, namePanel, 'bbb');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('ccc=');
-      expect(resolvedRange.range.length, 3);
-      assertPropertyReference(resolvedRange, namePanel, 'ccc');
-    }
   }
 
   void test_textInterpolation() {
@@ -721,8 +721,8 @@ $code
     fillErrorListener(HTML_TEMPLATE_ERRORS);
   }
 
-  static _isPropertyElement(ResolvedRange region) {
-    return region.element is PropertyElement;
+  static _isInputElement(ResolvedRange region) {
+    return region.element is InputElement;
   }
 
   static _isSelectorName(ResolvedRange region) {

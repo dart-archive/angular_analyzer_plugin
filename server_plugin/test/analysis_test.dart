@@ -113,7 +113,7 @@ class AngularNavigationContributorTest extends _AbstractAngularTaskTest {
     code = r'''
 import '/angular2/metadata.dart';
 
-@Component(selector: 'text-panel', properties: const ['text: my-text'])
+@Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
 class TextPanel {
   String text; // 1
@@ -139,7 +139,7 @@ class User {
     // compute navigation regions
     new AngularNavigationContributor()
         .computeNavigation(collector, context, source, null, null);
-    // property references setter
+    // input references setter
     {
       _findRegionString('text', ': my-text');
       expect(region.targetKind, protocol.ElementKind.SETTER);
@@ -151,16 +151,16 @@ class User {
       _findRegionString('text-panel', ' [my-text]');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf("text-panel', properties"));
+      expect(targetLocation.offset, code.indexOf("text-panel', inputs"));
     }
     // template references component (close tag)
     {
       _findRegionString('text-panel', '> // close');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf("text-panel', properties"));
+      expect(targetLocation.offset, code.indexOf("text-panel', inputs"));
     }
-    // template references property
+    // template references input
     {
       _findRegionString('my-text', ']=');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
@@ -205,7 +205,7 @@ class TextPanel {}
     // compute navigation regions
     new AngularNavigationContributor()
         .computeNavigation(collector, context, dartSource, null, null);
-    // property references setter
+    // input references setter
     {
       _findRegionString("'text_panel.html'", ')');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
@@ -292,7 +292,7 @@ class AngularOccurrencesContributorTest extends _AbstractAngularTaskTest {
     code = r'''
 import '/angular2/metadata.dart';
 
-@Component(selector: 'text-panel', properties: const ['text: my-text'])
+@Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
 class TextPanel {
   String text; // 1
@@ -558,7 +558,7 @@ class EventEmitter<T> extends Stream<T> {
 library angular2.ng_if;
 import 'metadata.dart';
 
-@Directive(selector: "[ng-if]", properties: const ["ngIf"])
+@Directive(selector: "[ng-if]", inputs: const ["ngIf"])
 class NgIf {
   set ngIf(newCondition) {}
 }
@@ -571,7 +571,7 @@ import 'metadata.dart';
 
 @Directive(
     selector: "[ng-for][ng-for-of]",
-    properties: const ["ngForOf"])
+    inputs: const ["ngForOf"])
 class NgFor {
   set ngForOf(dynamic value) {}
 }

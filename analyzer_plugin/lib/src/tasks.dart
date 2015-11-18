@@ -170,9 +170,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         return null;
       }
       AngularElement exportAs = _parseExportAs(node);
-      List<PropertyElement> properties = _parseProperties(classElement, node);
+      List<InputElement> inputs = _parseInputs(classElement, node);
       return new Component(classElement,
-          exportAs: exportAs, properties: properties, selector: selector);
+          exportAs: exportAs, inputs: inputs, selector: selector);
     }
     if (_isAngularAnnotation(node, 'Directive')) {
       Selector selector = _parseSelector(node);
@@ -180,9 +180,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         return null;
       }
       AngularElement exportAs = _parseExportAs(node);
-      List<PropertyElement> properties = _parseProperties(classElement, node);
+      List<InputElement> inputs = _parseInputs(classElement, node);
       return new Directive(classElement,
-          exportAs: exportAs, properties: properties, selector: selector);
+          exportAs: exportAs, inputs: inputs, selector: selector);
     }
     return null;
   }
@@ -223,25 +223,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return new AngularElementImpl(name, offset, name.length, target.source);
   }
 
-  List<PropertyElement> _parseProperties(
-      ClassElement classElement, ast.Annotation node) {
-    ast.ListLiteral descList = _getListLiteralNamedArgument(
-        node, const <String>['inputs', 'properties']);
-    if (descList == null) {
-      return PropertyElement.EMPTY_LIST;
-    }
-    // Create a property for each element.
-    List<PropertyElement> properties = <PropertyElement>[];
-    for (ast.Expression element in descList.elements) {
-      PropertyElement property = _parseProperty(classElement, element);
-      if (property != null) {
-        properties.add(property);
-      }
-    }
-    return properties;
-  }
-
-  PropertyElement _parseProperty(
+  InputElement _parseInput(
       ClassElement classElement, ast.Expression expression) {
     if (expression is ast.SimpleStringLiteral) {
       int offset = expression.contentsOffset;
@@ -250,38 +232,38 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       int colonIndex = value.indexOf(':');
       if (colonIndex == -1) {
         String setterName = value;
-        String propertyName = getCamelWords(setterName)
+        String inputName = getCamelWords(setterName)
             .map((word) => word.toLowerCase())
             .join('-');
         PropertyAccessorElement setter =
             _resolveSetter(classElement, expression, setterName);
         SourceRange setterRange = new SourceRange(offset, setterName.length);
-        return new PropertyElement(propertyName, offset, setterName.length,
+        return new InputElement(inputName, offset, setterName.length,
             target.source, setter, setterRange);
       } else {
         // Resolve the setter.
         String setterName = value.substring(0, colonIndex).trimRight();
         PropertyAccessorElement setter =
             _resolveSetter(classElement, expression, setterName);
-        // Find the property name.
-        int propertyOffset = colonIndex;
+        // Find the input name.
+        int inputOffset = colonIndex;
         while (true) {
-          propertyOffset++;
-          if (propertyOffset >= value.length) {
+          inputOffset++;
+          if (inputOffset >= value.length) {
             // TODO(scheglov) report a warning
             return null;
           }
-          if (value.substring(propertyOffset, propertyOffset + 1) != ' ') {
+          if (value.substring(inputOffset, inputOffset + 1) != ' ') {
             break;
           }
         }
-        String propertyName = value.substring(propertyOffset);
-        // TODO(scheglov) test that a valid property name
-        // Create the property.
-        return new PropertyElement(
-            propertyName,
-            offset + propertyOffset,
-            propertyName.length,
+        String inputName = value.substring(inputOffset);
+        // TODO(scheglov) test that a valid input name
+        // Create the input.
+        return new InputElement(
+            inputName,
+            offset + inputOffset,
+            inputName.length,
             target.source,
             setter,
             new SourceRange(offset, setterName.length));
@@ -290,6 +272,24 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       // TODO(scheglov) report a warning
       return null;
     }
+  }
+
+  List<InputElement> _parseInputs(
+      ClassElement classElement, ast.Annotation node) {
+    ast.ListLiteral descList = _getListLiteralNamedArgument(
+        node, const <String>['inputs', 'properties']);
+    if (descList == null) {
+      return InputElement.EMPTY_LIST;
+    }
+    // Create an input for each element.
+    List<InputElement> inputs = <InputElement>[];
+    for (ast.Expression element in descList.elements) {
+      InputElement input = _parseInput(classElement, element);
+      if (input != null) {
+        inputs.add(input);
+      }
+    }
+    return inputs;
   }
 
   Selector _parseSelector(ast.Annotation node) {
@@ -322,7 +322,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return selector;
   }
 
-  /// Resolve the property setter with the given [name] in [classElement].
+  /// Resolve the input setter with the given [name] in [classElement].
   /// If undefined, report a warning and return `null`.
   PropertyAccessorElement _resolveSetter(
       ClassElement classElement, ast.SimpleStringLiteral literal, String name) {

@@ -79,8 +79,8 @@ class AngularNavigationContributor implements NavigationContributor {
 
   void _addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
       AbstractDirective directive) {
-    for (PropertyElement property in directive.properties) {
-      engine.PropertyAccessorElement setter = property.setter;
+    for (InputElement input in directive.inputs) {
+      engine.PropertyAccessorElement setter = input.setter;
       if (setter == null) {
         continue;
       }
@@ -88,8 +88,8 @@ class AngularNavigationContributor implements NavigationContributor {
           lineInfo.getLocation(setter.nameOffset);
       if (setter != null) {
         collector.addRegion(
-            property.setterRange.offset,
-            property.setterRange.length,
+            input.setterRange.offset,
+            input.setterRange.length,
             protocol.convertElementKind(setter.kind),
             new protocol.Location(
                 setter.source.fullName,
@@ -161,8 +161,8 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
       OccurrencesCollector collector, AbstractDirective directive) {
     Map<engine.PropertyAccessorElement, List<int>> elementsOffsets =
         <engine.PropertyAccessorElement, List<int>>{};
-    for (PropertyElement property in directive.properties) {
-      engine.PropertyAccessorElement setter = property.setter;
+    for (InputElement input in directive.inputs) {
+      engine.PropertyAccessorElement setter = input.setter;
       if (setter == null) {
         continue;
       }
@@ -171,7 +171,7 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
         offsets = <int>[setter.nameOffset];
         elementsOffsets[setter] = offsets;
       }
-      offsets.add(property.setterRange.offset);
+      offsets.add(input.setterRange.offset);
     }
     // convert map into Occurrences
     elementsOffsets.forEach((setter, offsets) {

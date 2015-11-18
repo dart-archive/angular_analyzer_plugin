@@ -271,7 +271,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'my-component', properties: const ['noSetter: no-setter'])
+@Component(selector: 'my-component', inputs: const ['noSetter: no-setter'])
 class ComponentA {
 }
 ''');
@@ -290,7 +290,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'my-component', properties: const ['noSetter'])
+@Component(selector: 'my-component', inputs: const ['noSetter'])
 class ComponentA {
 }
 ''');
@@ -322,27 +322,27 @@ class MyComponent {
     // validate
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     Component component = directives.single;
-    List<PropertyElement> properties = component.properties;
-    expect(properties, hasLength(2));
+    List<InputElement> inputs = component.inputs;
+    expect(inputs, hasLength(2));
     {
-      PropertyElement property = properties[0];
-      expect(property.name, 'leading-text');
-      expect(property.nameOffset, code.indexOf("leadingText',"));
-      expect(property.setterRange.offset, property.nameOffset);
-      expect(property.setterRange.length, 'leadingText'.length);
-      expect(property.setter, isNotNull);
-      expect(property.setter.isSetter, isTrue);
-      expect(property.setter.displayName, 'leadingText');
+      InputElement input = inputs[0];
+      expect(input.name, 'leading-text');
+      expect(input.nameOffset, code.indexOf("leadingText',"));
+      expect(input.setterRange.offset, input.nameOffset);
+      expect(input.setterRange.length, 'leadingText'.length);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'leadingText');
     }
     {
-      PropertyElement property = properties[1];
-      expect(property.name, 'trailing-text');
-      expect(property.nameOffset, code.indexOf("trailing-text']"));
-      expect(property.setterRange.offset, code.indexOf("trailingText: "));
-      expect(property.setterRange.length, 'trailingText'.length);
-      expect(property.setter, isNotNull);
-      expect(property.setter.isSetter, isTrue);
-      expect(property.setter.displayName, 'trailingText');
+      InputElement input = inputs[1];
+      expect(input.name, 'trailing-text');
+      expect(input.nameOffset, code.indexOf("trailing-text']"));
+      expect(input.setterRange.offset, code.indexOf("trailingText: "));
+      expect(input.setterRange.length, 'trailingText'.length);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'trailingText');
     }
   }
 
@@ -365,27 +365,27 @@ class MyComponent {
     // validate
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     Component component = directives.single;
-    List<PropertyElement> properties = component.properties;
-    expect(properties, hasLength(2));
+    List<InputElement> inputs = component.inputs;
+    expect(inputs, hasLength(2));
     {
-      PropertyElement property = properties[0];
-      expect(property.name, 'leading-text');
-      expect(property.nameOffset, code.indexOf("leadingText',"));
-      expect(property.setterRange.offset, property.nameOffset);
-      expect(property.setterRange.length, 'leadingText'.length);
-      expect(property.setter, isNotNull);
-      expect(property.setter.isSetter, isTrue);
-      expect(property.setter.displayName, 'leadingText');
+      InputElement input = inputs[0];
+      expect(input.name, 'leading-text');
+      expect(input.nameOffset, code.indexOf("leadingText',"));
+      expect(input.setterRange.offset, input.nameOffset);
+      expect(input.setterRange.length, 'leadingText'.length);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'leadingText');
     }
     {
-      PropertyElement property = properties[1];
-      expect(property.name, 'trailing-text');
-      expect(property.nameOffset, code.indexOf("trailing-text']"));
-      expect(property.setterRange.offset, code.indexOf("trailingText: "));
-      expect(property.setterRange.length, 'trailingText'.length);
-      expect(property.setter, isNotNull);
-      expect(property.setter.isSetter, isTrue);
-      expect(property.setter.displayName, 'trailingText');
+      InputElement input = inputs[1];
+      expect(input.name, 'trailing-text');
+      expect(input.nameOffset, code.indexOf("trailing-text']"));
+      expect(input.setterRange.offset, code.indexOf("trailingText: "));
+      expect(input.setterRange.length, 'trailingText'.length);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'trailingText');
     }
   }
 
@@ -797,7 +797,7 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', properties: const ['text'])
+@Component(selector: 'text-panel', inputs: const ['text'])
 @View(template: r"<div>some text</div>")
 class TextPanel {
   String text;
@@ -860,7 +860,7 @@ class TextPanel {
     errorListener.assertErrorsWithCodes([HtmlErrorCode.PARSE_ERROR]);
   }
 
-  void test_property_OK_event() {
+  void test_input_OK_event() {
     String code = r'''
 import 'dart:html';
 import '/angular2/angular2.dart';
@@ -911,11 +911,11 @@ class TodoList {
     errorListener.assertNoErrors();
   }
 
-  void test_property_OK_reference_expression() {
+  void test_input_OK_reference_expression() {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', properties: const ['text'])
+@Component(selector: 'text-panel', inputs: const ['text'])
 @View(template: r"<div>some text</div>")
 class TextPanel {
   String text;
@@ -980,13 +980,13 @@ class User {
     errorListener.assertNoErrors();
   }
 
-  void test_property_OK_reference_text() {
+  void test_input_OK_reference_text() {
     String code = r'''
 import '/angular2/angular2.dart';
 
 @Component(
     selector: 'comp-a',
-    properties: const ['firstValue', 'vtoroy: second'])
+    inputs: const ['firstValue', 'vtoroy: second'])
 @View(template: r"<div>AAA</div>")
 class ComponentA {
   int firstValue;
@@ -1061,7 +1061,7 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', properties: const ['text'])
+@Component(selector: 'text-panel', inputs: const ['text'])
 @View(template: r"<div> <h2> {{text}}  </h2> and {{text.length}} </div>")
 class TextPanel {
   String text; // 1

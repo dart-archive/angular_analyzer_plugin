@@ -72,13 +72,13 @@ MethodElement assertMethod(ResolvedRange resolvedRange) {
 void assertPropertyReference(
     ResolvedRange resolvedRange, AbstractDirective directive, String name) {
   var element = resolvedRange.element;
-  for (PropertyElement property in directive.properties) {
-    if (property.name == name) {
-      expect(element, same(property));
+  for (InputElement input in directive.inputs) {
+    if (input.name == name) {
+      expect(element, same(input));
       return;
     }
   }
-  fail('Expected property "$name", but ${element} found.');
+  fail('Expected input "$name", but ${element} found.');
 }
 
 PropertyAccessorElement assertSetter(ResolvedRange resolvedRange) {
@@ -318,7 +318,7 @@ class EventEmitter<T> extends Stream<T> {
 library angular2.ng_if;
 import 'metadata.dart';
 
-@Directive(selector: "[ng-if]", properties: const ["ngIf"])
+@Directive(selector: "[ng-if]", inputs: const ["ngIf"])
 class NgIf {
   set ngIf(newCondition) {}
 }
@@ -331,7 +331,7 @@ import 'metadata.dart';
 
 @Directive(
     selector: "[ng-for][ng-for-of]",
-    properties: const ["ngForOf"])
+    inputs: const ["ngForOf"])
 class NgFor {
   set ngForOf(dynamic value) {}
 }

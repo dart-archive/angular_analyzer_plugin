@@ -5,8 +5,8 @@
 
 * Build models for `@Directive` and `@Component` annotations:
     * Parse selector.
-    * Build properties.
-    * Report problems for invalid selectors, unresolved property setters, etc.
+    * Build inputs.
+    * Report problems for invalid selectors, unresolved input setters, etc.
 * Build models for `@View` annotations:
     * Resolve `templateUrl` argument.
     * Validate that specified `directives` are valid directive class literals.
@@ -20,9 +20,9 @@
   Currently the following feature are done.
 
 * Resolve element tags to `@Component` selectors.
-* Resolve of attribute names in forms `name`, `[name]`, `bind-name`, `(event)`, `on-event` to corresponding properties and events.
+* Resolve of attribute names in forms `name`, `[name]`, `bind-name`, `(event)`, `on-event` to corresponding inputs and events.
 * Resolve expressions in interpolations like `<div>{{user.name}}</div>`.
-* Resolve expressions in bound properties like `<text-panel [text]='user.name'>`.
+* Resolve expressions in bound inputs like `<text-panel [text]='user.name'>`.
 * Support for the `template` attribute `<div template='ng-if items.isNotEmpty'>Has items</div>`.
 
 
@@ -36,6 +36,6 @@
     * In inline templates in Dart files.
     * In Dart annotations:
         * navigation from `templateUrl` to the corresponding HTML files.
-        * navigation from property declarations to setters, e.g. to `text` in `properties: const ['text: my-text']`.
-* Occurrences extension reports regions where every Dart element or a property is used in a Dart or HTML file. So, clients of DAS can highlight all of the whe user select one.
+        * navigation from input declarations to setters, e.g. to `text` in `inputs: const ['text: my-text']`.
+* Occurrences extension reports regions where every Dart element or an input is used in a Dart or HTML file. So, clients of DAS can highlight all of the whe user select one.
 

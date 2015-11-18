@@ -33,9 +33,9 @@ class AttributeInfo {
   final String name;
   final int nameOffset;
 
-  final String propertyName;
-  final int propertyNameOffset;
-  final int propertyNameLength;
+  final String inputName;
+  final int inputNameOffset;
+  final int inputNameLength;
   final bound;
 
   final String value;
@@ -46,9 +46,9 @@ class AttributeInfo {
   AttributeInfo(
       this.name,
       this.nameOffset,
-      this.propertyName,
-      this.propertyNameOffset,
-      this.propertyNameLength,
+      this.inputName,
+      this.inputNameOffset,
+      this.inputNameLength,
       this.bound,
       this.value,
       this.valueOffset);
@@ -58,7 +58,7 @@ class AttributeInfo {
   @override
   String toString() {
     return '([$name, $nameOffset],'
-        '[$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
+        '[$inputName, $inputNameOffset, $inputNameLength, $bound],'
         '[$value, $valueOffset, $valueLength], [$expression])';
   }
 }
@@ -158,9 +158,9 @@ class ElementViewImpl implements ElementView {
 
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
-      String name = attribute.propertyName;
+      String name = attribute.inputName;
       attributeNameSpans[name] = new SourceRange(
-          attribute.propertyNameOffset, attribute.propertyNameLength);
+          attribute.inputNameOffset, attribute.inputNameLength);
       if (attribute.value != null) {
         attributeValueSpans[name] =
             new SourceRange(attribute.valueOffset, attribute.valueLength);
@@ -392,7 +392,7 @@ class TemplateResolver {
       internalVariables['index'] = new InternalVariable('index',
           new DartElement(directive.classElement), typeProvider.intType);
       for (AttributeInfo attribute in attributes) {
-        if (attribute.propertyName == 'ng-for-of' &&
+        if (attribute.inputName == 'ng-for-of' &&
             attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
           internalVariables[r'$implicit'] = new InternalVariable(
@@ -510,15 +510,15 @@ class TemplateResolver {
         templateSource, range.offset, range.length, errorCode, arguments));
   }
 
-  /// Resolve [attributes] names to properties of [directive].
+  /// Resolve [attributes] names to inputs of [directive].
   void _resolveAttributeNames(
       List<AttributeInfo> attributes, AbstractDirective directive) {
     for (AttributeInfo attribute in attributes) {
-      for (PropertyElement property in directive.properties) {
-        if (attribute.propertyName == property.name) {
+      for (InputElement input in directive.inputs) {
+        if (attribute.inputName == input.name) {
           SourceRange range = new SourceRange(
-              attribute.propertyNameOffset, attribute.propertyNameLength);
-          template.addRange(range, property);
+              attribute.inputNameOffset, attribute.inputNameLength);
+          template.addRange(range, input);
         }
       }
     }
@@ -763,7 +763,7 @@ class TemplateResolver {
         _resolveDartExpression(expression);
         token = expression.endToken.next;
       }
-      // add the attribute to resolve to property
+      // add the attribute to resolve to an input
       AttributeInfo attributeInfo = new AttributeInfo(key, keyOffset, key,
           keyOffset, keyLength, expression != null, 'some-value', -1);
       attributeInfo.expression = expression;

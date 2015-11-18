@@ -15,11 +15,11 @@ abstract class AbstractDirective {
   final dart.ClassElement classElement;
 
   final AngularElement exportAs;
-  final List<PropertyElement> properties;
+  final List<InputElement> inputs;
   final Selector selector;
 
   AbstractDirective(this.classElement,
-      {this.exportAs, this.properties, this.selector});
+      {this.exportAs, this.inputs, this.selector});
 
   /// The source that contains this directive.
   Source get source => classElement.source;
@@ -85,11 +85,9 @@ class AngularElementImpl implements AngularElement {
 /// The model of an Angular component.
 class Component extends AbstractDirective {
   Component(dart.ClassElement classElement,
-      {AngularElement exportAs,
-      List<PropertyElement> properties,
-      Selector selector})
+      {AngularElement exportAs, List<InputElement> inputs, Selector selector})
       : super(classElement,
-            exportAs: exportAs, properties: properties, selector: selector);
+            exportAs: exportAs, inputs: inputs, selector: selector);
 }
 
 /// An [AngularElement] representing a [dart.Element].
@@ -105,11 +103,9 @@ class DartElement extends AngularElementImpl {
 /// The model of an Angular directive.
 class Directive extends AbstractDirective {
   Directive(dart.ClassElement classElement,
-      {AngularElement exportAs,
-      List<PropertyElement> properties,
-      Selector selector})
+      {AngularElement exportAs, List<InputElement> inputs, Selector selector})
       : super(classElement,
-            exportAs: exportAs, properties: properties, selector: selector);
+            exportAs: exportAs, inputs: inputs, selector: selector);
 }
 
 /// An Angular template in a HTML file
@@ -123,18 +119,18 @@ class HtmlTemplate extends Template {
       : super(view, element);
 }
 
-/// The model for an Angular property.
-class PropertyElement extends AngularElementImpl {
-  static const List<PropertyElement> EMPTY_LIST = const <PropertyElement>[];
+/// The model for an Angular input.
+class InputElement extends AngularElementImpl {
+  static const List<InputElement> EMPTY_LIST = const <InputElement>[];
 
   final dart.PropertyAccessorElement setter;
 
-  /// The [SourceRange] where [setter] is referenced in the property
-  /// declaration. May be the same as this element offset/length in shorthand
-  /// variants where names of a property and the setter are the same.
+  /// The [SourceRange] where [setter] is referenced in the input declaration.
+  /// May be the same as this element offset/length in shorthand variants where
+  /// names of a input and the setter are the same.
   final SourceRange setterRange;
 
-  PropertyElement(String name, int nameOffset, int nameLength, Source source,
+  InputElement(String name, int nameOffset, int nameLength, Source source,
       this.setter, this.setterRange)
       : super(name, nameOffset, nameLength, source);
 }
