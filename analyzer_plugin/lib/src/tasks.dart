@@ -187,6 +187,21 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return null;
   }
 
+  /**
+   * Return the first named argument with one of the given names, or
+   * `null` if this argument is not [ast.ListLiteral] or no such arguments.
+   */
+  ast.ListLiteral _getListLiteralNamedArgument(
+      ast.Annotation node, List<String> names) {
+    for (var name in names) {
+      ast.Expression expression = _getNamedArgument(node, name);
+      if (expression != null) {
+        return expression is ast.ListLiteral ? expression : null;
+      }
+    }
+    return null;
+  }
+
   AngularElement _parseExportAs(ast.Annotation node) {
     // Find the "exportAs" argument.
     ast.Expression expression = _getNamedArgument(node, 'exportAs');
@@ -210,11 +225,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   List<PropertyElement> _parseProperties(
       ClassElement classElement, ast.Annotation node) {
-    ast.Expression expression = _getNamedArgument(node, 'properties');
-    if (expression == null || expression is! ast.ListLiteral) {
+    ast.ListLiteral descList = _getListLiteralNamedArgument(
+        node, const <String>['inputs', 'properties']);
+    if (descList == null) {
       return PropertyElement.EMPTY_LIST;
     }
-    ast.ListLiteral descList = expression;
     // Create a property for each element.
     List<PropertyElement> properties = <PropertyElement>[];
     for (ast.Expression element in descList.elements) {

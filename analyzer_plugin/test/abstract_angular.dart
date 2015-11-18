@@ -200,6 +200,7 @@ class AbstractAngularTest {
         r'''
 library angular2;
 
+export 'async.dart';
 export 'metadata.dart';
 export 'ng_if.dart';
 export 'ng_for.dart';
@@ -212,41 +213,58 @@ library angular2.src.core.metadata;
 import 'dart:async';
 
 abstract class Directive {
-  final String selector;
-  final dynamic properties;
-  final dynamic hostListeners;
-  final List lifecycle;
-  const Directive({selector, properties, hostListeners, lifecycle})
-  : selector = selector,
-    properties = properties,
-    hostListeners = hostListeners,
-    lifecycle = lifecycle,
-    super();
+  const Directive(
+      {String selector,
+      List<String> inputs,
+      List<String> outputs,
+      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
+      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
+      Map<String, String> host,
+      @Deprecated('Use `providers` instead') List bindings,
+      List providers,
+      String exportAs,
+      String moduleId,
+      Map<String, dynamic> queries})
+      : super(
+            selector: selector,
+            inputs: inputs,
+            outputs: outputs,
+            properties: properties,
+            events: events,
+            host: host,
+            bindings: bindings,
+            providers: providers,
+            exportAs: exportAs,
+            moduleId: moduleId,
+            queries: queries);
 }
 
 class Component extends Directive {
-  final String changeDetection;
-  final List injectables;
-  const Component({selector, properties, events, hostListeners,
-      injectables, lifecycle, changeDetection: 'DEFAULT'})
-      : changeDetection = changeDetection,
-        injectables = injectables,
-        super(
-            selector: selector,
-            properties: properties,
-            events: events,
-            hostListeners: hostListeners,
-            lifecycle: lifecycle);
+  const Component(
+      {String selector,
+      List<String> inputs,
+      List<String> outputs,
+      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
+      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
+      Map<String, String> host,
+      @Deprecated('Use `providers` instead') List bindings,
+      List providers,
+      String exportAs,
+      String moduleId,
+      Map<String, dynamic> queries,
+      @Deprecated('Use `viewProviders` instead') List viewBindings,
+      List viewProviders,
+      ChangeDetectionStrategy changeDetection,
+      String templateUrl,
+      String template,
+      dynamic directives,
+      dynamic pipes,
+      ViewEncapsulation encapsulation,
+      List<String> styles,
+      List<String> styleUrls});
 }
 
 class View {
-  final String templateUrl;
-  final String template;
-  final dynamic directives;
-  final dynamic pipes;
-  final ViewEncapsulation encapsulation;
-  final List<String> styles;
-  final List<String> styleUrls;
   const View(
       {String templateUrl,
       String template,
@@ -254,17 +272,44 @@ class View {
       dynamic pipes,
       ViewEncapsulation encapsulation,
       List<String> styles,
-      List<String> styleUrls}) :
-        templateUrl = templateUrl,
-        template = template,
-        directives = directives,
-        pipes = pipes,
-        encapsulation = encapsulation,
-        styles = styles,
-        styleUrls = styleUrls;
+      List<String> styleUrls});
 }
 
 class EventEmitter extends Stream {
+}
+''');
+    newSource(
+        '/angular2/async.dart',
+        r'''
+library angular2.core.facade.async;
+import 'dart:async';
+
+class EventEmitter<T> extends Stream<T> {
+  StreamController<dynamic> _controller;
+
+  /// Creates an instance of [EventEmitter], which depending on [isAsync],
+  /// delivers events synchronously or asynchronously.
+  EventEmitter([bool isAsync = true]) {
+    _controller = new StreamController.broadcast(sync: !isAsync);
+  }
+
+  StreamSubscription listen(void onData(dynamic line),
+      {void onError(Error error), void onDone(), bool cancelOnError}) {
+    return _controller.stream.listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  }
+
+  void add(value) {
+    _controller.add(value);
+  }
+
+  void addError(error) {
+    _controller.addError(error);
+  }
+
+  void close() {
+    _controller.close();
+  }
 }
 ''');
     newSource(

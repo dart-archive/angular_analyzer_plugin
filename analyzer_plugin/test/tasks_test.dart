@@ -303,22 +303,50 @@ class ComponentA {
         <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
   }
 
-  void test_noDirectives() {
-    Source source = newSource(
-        '/test.dart',
-        r'''
-class A {}
-class B {}
-''');
+  void test_inputs() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(
+    selector: 'my-component',
+    inputs: const ['leadingText', 'trailingText: trailing-text'])
+class MyComponent {
+  String leadingText;
+  String trailingText;
+}
+''';
+    Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
-    expect(directives, isEmpty);
+    Component component = directives.single;
+    List<PropertyElement> properties = component.properties;
+    expect(properties, hasLength(2));
+    {
+      PropertyElement property = properties[0];
+      expect(property.name, 'leading-text');
+      expect(property.nameOffset, code.indexOf("leadingText',"));
+      expect(property.setterRange.offset, property.nameOffset);
+      expect(property.setterRange.length, 'leadingText'.length);
+      expect(property.setter, isNotNull);
+      expect(property.setter.isSetter, isTrue);
+      expect(property.setter.displayName, 'leadingText');
+    }
+    {
+      PropertyElement property = properties[1];
+      expect(property.name, 'trailing-text');
+      expect(property.nameOffset, code.indexOf("trailing-text']"));
+      expect(property.setterRange.offset, code.indexOf("trailingText: "));
+      expect(property.setterRange.length, 'trailingText'.length);
+      expect(property.setter, isNotNull);
+      expect(property.setter.isSetter, isTrue);
+      expect(property.setter.displayName, 'trailingText');
+    }
   }
 
-  void test_properties_OK() {
+  void test_inputs_deprecatedProperties() {
     String code = r'''
 import '/angular2/angular2.dart';
 
@@ -359,6 +387,21 @@ class MyComponent {
       expect(property.setter.isSetter, isTrue);
       expect(property.setter.displayName, 'trailingText');
     }
+  }
+
+  void test_noDirectives() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+class A {}
+class B {}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, isEmpty);
   }
 }
 

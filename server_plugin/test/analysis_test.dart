@@ -133,7 +133,7 @@ class User {
   String name; // 3
 }
 ''';
-    Source source = _newSource('/test.dart', code);
+    Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     _computeResult(target, DART_TEMPLATES);
     // compute navigation regions
@@ -192,8 +192,8 @@ import '/angular2/metadata.dart';
 @View(templateUrl: 'text_panel.html')
 class TextPanel {}
 ''';
-    Source dartSource = _newSource('/test.dart', code);
-    Source htmlSource = _newSource('/text_panel.html', "");
+    Source dartSource = newSource('/test.dart', code);
+    Source htmlSource = newSource('/text_panel.html', "");
     // compute views, so that we have the TEMPLATE_VIEWS result
     {
       LibrarySpecificUnit target =
@@ -230,8 +230,8 @@ class TextPanel {
   {{text}}
 </div>
 """;
-    Source dartSource = _newSource('/test.dart', dartCode);
-    Source htmlSource = _newSource('/text_panel.html', htmlCode);
+    Source dartSource = newSource('/test.dart', dartCode);
+    Source htmlSource = newSource('/text_panel.html', htmlCode);
     // compute views, so that we have the TEMPLATE_VIEWS result
     {
       LibrarySpecificUnit target =
@@ -312,7 +312,7 @@ class ObjectContainer<T> {
   T value; // 3
 }
 ''';
-    Source source = _newSource('/test.dart', code);
+    Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     _computeResult(target, DART_TEMPLATES);
     // compute navigation regions
@@ -412,9 +412,14 @@ class _AbstractAngularTaskTest {
   Map<ResultDescriptor<dynamic>, dynamic> outputs;
   GatheringErrorListener errorListener = new GatheringErrorListener();
 
+  Source newSource(String path, [String content = '']) {
+    File file = resourceProvider.newFile(path, content);
+    return file.createSource();
+  }
+
   void setUp() {
     AnalysisEngine.instance.userDefinedPlugins = [new AngularAnalyzerPlugin()];
-    emptySource = _newSource('/test.dart');
+    emptySource = newSource('/test.dart');
     // prepare AnalysisContext
     context = new AnalysisContextImpl();
     context.sourceFactory = new SourceFactory(<UriResolver>[
@@ -430,37 +435,73 @@ class _AbstractAngularTaskTest {
   }
 
   void _addAngularSources() {
-    _newSource(
+    newSource(
+        '/angular2/angular2.dart',
+        r'''
+library angular2;
+
+export 'async.dart';
+export 'metadata.dart';
+export 'ng_if.dart';
+export 'ng_for.dart';
+''');
+    newSource(
         '/angular2/metadata.dart',
         r'''
 library angular2.src.core.metadata;
 
+import 'dart:async';
+
 abstract class Directive {
-  final String selector;
-  final dynamic properties;
-  final dynamic hostListeners;
-  final List lifecycle;
-  const Directive({selector, properties, hostListeners, lifecycle})
-  : selector = selector,
-    properties = properties,
-    hostListeners = hostListeners,
-    lifecycle = lifecycle,
-    super();
+  const Directive(
+      {String selector,
+      List<String> inputs,
+      List<String> outputs,
+      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
+      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
+      Map<String, String> host,
+      @Deprecated('Use `providers` instead') List bindings,
+      List providers,
+      String exportAs,
+      String moduleId,
+      Map<String, dynamic> queries})
+      : super(
+            selector: selector,
+            inputs: inputs,
+            outputs: outputs,
+            properties: properties,
+            events: events,
+            host: host,
+            bindings: bindings,
+            providers: providers,
+            exportAs: exportAs,
+            moduleId: moduleId,
+            queries: queries);
 }
 
 class Component extends Directive {
-  final String changeDetection;
-  final List injectables;
-  const Component({selector, properties, events, hostListeners,
-      injectables, lifecycle, changeDetection: 'DEFAULT'})
-      : changeDetection = changeDetection,
-        injectables = injectables,
-        super(
-            selector: selector,
-            properties: properties,
-            events: events,
-            hostListeners: hostListeners,
-            lifecycle: lifecycle);
+  const Component(
+      {String selector,
+      List<String> inputs,
+      List<String> outputs,
+      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
+      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
+      Map<String, String> host,
+      @Deprecated('Use `providers` instead') List bindings,
+      List providers,
+      String exportAs,
+      String moduleId,
+      Map<String, dynamic> queries,
+      @Deprecated('Use `viewProviders` instead') List viewBindings,
+      List viewProviders,
+      ChangeDetectionStrategy changeDetection,
+      String templateUrl,
+      String template,
+      dynamic directives,
+      dynamic pipes,
+      ViewEncapsulation encapsulation,
+      List<String> styles,
+      List<String> styleUrls});
 }
 
 class View {
@@ -473,6 +514,67 @@ class View {
       List<String> styles,
       List<String> styleUrls});
 }
+
+class EventEmitter extends Stream {
+}
+''');
+    newSource(
+        '/angular2/async.dart',
+        r'''
+library angular2.core.facade.async;
+import 'dart:async';
+
+class EventEmitter<T> extends Stream<T> {
+  StreamController<dynamic> _controller;
+
+  /// Creates an instance of [EventEmitter], which depending on [isAsync],
+  /// delivers events synchronously or asynchronously.
+  EventEmitter([bool isAsync = true]) {
+    _controller = new StreamController.broadcast(sync: !isAsync);
+  }
+
+  StreamSubscription listen(void onData(dynamic line),
+      {void onError(Error error), void onDone(), bool cancelOnError}) {
+    return _controller.stream.listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  }
+
+  void add(value) {
+    _controller.add(value);
+  }
+
+  void addError(error) {
+    _controller.addError(error);
+  }
+
+  void close() {
+    _controller.close();
+  }
+}
+''');
+    newSource(
+        '/angular2/ng_if.dart',
+        r'''
+library angular2.ng_if;
+import 'metadata.dart';
+
+@Directive(selector: "[ng-if]", properties: const ["ngIf"])
+class NgIf {
+  set ngIf(newCondition) {}
+}
+''');
+    newSource(
+        '/angular2/ng_for.dart',
+        r'''
+library angular2.ng_for;
+import 'metadata.dart';
+
+@Directive(
+    selector: "[ng-for][ng-for-of]",
+    properties: const ["ngForOf"])
+class NgFor {
+  set ngForOf(dynamic value) {}
+}
 ''');
   }
 
@@ -480,11 +582,6 @@ class View {
     task = analysisDriver.computeResult(target, result);
     expect(task.caughtException, isNull);
     outputs = task.outputs;
-  }
-
-  Source _newSource(String path, [String content = '']) {
-    File file = resourceProvider.newFile(path, content);
-    return file.createSource();
   }
 }
 
