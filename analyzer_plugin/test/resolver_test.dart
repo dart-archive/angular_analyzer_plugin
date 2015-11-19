@@ -265,6 +265,31 @@ class TestPanel {}
     }
   }
 
+  void test_localVariable_nameFromAttributeName() {
+    _addDartSource(r'''
+import 'dart:html';
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleKeyUp(Element s) {}
+}
+''');
+    _addHtmlSource(r"""
+<div (keyup)='handleKeyUp(myTargetElement)'>
+  <div #my-target-element></div>
+</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    {
+      ResolvedRange range = _findResolvedRange("myTargetElement)");
+      LocalVariableElement valueElement =
+          assertLocalVariable(range, name: 'myTargetElement');
+      _assertHtmlElementAt(valueElement, "my-target-element>");
+    }
+  }
+
   void test_localVariable_scope_forwardReference() {
     _addDartSource(r'''
 import 'dart:html';

@@ -12,6 +12,7 @@ import 'package:analyzer/src/generated/scanner.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
+import 'package:angular2_analyzer_plugin/src/strings.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
@@ -438,26 +439,36 @@ class TemplateResolver {
     for (AttributeInfo attribute in attributes) {
       int offset = attribute.nameOffset;
       // prepare name
-      String name = attribute.name;
-      if (name.startsWith('#')) {
-        name = name.substring(1);
+      String attributeName = attribute.name;
+      if (attributeName.startsWith('#')) {
+        attributeName = attributeName.substring(1);
+        String localVariableName = _getDartNameForAttribute(attributeName);
+        // prepare internal variable name
         String internalVarName = attribute.value;
         if (internalVarName == null) {
           internalVarName = r'$implicit';
         }
-        // add new local variable with type
+        // maybe an internal variable reference
+        DartType type;
         InternalVariable internalVar = internalVariables[internalVarName];
         if (internalVar != null) {
-          DartType type = internalVar.type;
-          LocalVariableElement localVariable =
-              _newLocalVariableElement(offset + 1, name, type);
-          localVariables[name] = localVariable;
+          type = internalVar.type;
           // add internal variable reference
           if (attribute.value != null) {
             template.addRange(
                 new SourceRange(attribute.valueOffset, attribute.valueLength),
                 internalVar.element);
           }
+        }
+        // must be the element reference
+        if (attribute.value == null && type == null) {
+          type = typeProvider.dynamicType;
+        }
+        // add a new local variable with type
+        if (type != null) {
+          LocalVariableElement localVariable =
+              _newLocalVariableElement(offset + 1, localVariableName, type);
+          localVariables[localVariableName] = localVariable;
           // add local declaration
           template.addRange(
               new SourceRange(
@@ -505,6 +516,7 @@ class TemplateResolver {
     // add a new local variable
     LocalVariableElementImpl localVariable =
         new LocalVariableElementImpl(name, offset);
+    localVariable.nameLength;
     localVariable.type = type;
     htmlMethodElement.encloseElement(localVariable);
     return localVariable;
@@ -854,6 +866,19 @@ class TemplateResolver {
     CharSequenceReader reader = new CharSequenceReader(text);
     Scanner scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
+  }
+
+  static String _getDartNameForAttribute(String attributeName) {
+    List<String> parts = attributeName.split('-');
+    StringBuffer sb = new StringBuffer();
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i];
+      if (i != 0) {
+        part = capitalize(part);
+      }
+      sb.write(part);
+    }
+    return sb.toString();
   }
 
   /// Check whether the given [name] is a standard HTML5 tag name.
