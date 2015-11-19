@@ -1062,6 +1062,27 @@ class ComponentB {
     errorListener.assertNoErrors();
   }
 
+  void test_noRootElement() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel')
+@View(template: r'Often used without an element in tests.')
+class TextPanel {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   void test_textExpression_hasError_UnterminatedMustache() {
     String code = r'''
 import '/angular2/angular2.dart';

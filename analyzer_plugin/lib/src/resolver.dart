@@ -610,6 +610,9 @@ class TemplateResolver {
   /// Resolve the given [element].
   void _resolveElement(ElementInfo element) {
     List<ElementInfo> templateElements = <ElementInfo>[];
+    if (element == null) {
+      return;
+    }
     // process all non-template nodes
     _resolveNodeNames(element, true, templateElements);
     _resolveNodeExpressions(element, true);
