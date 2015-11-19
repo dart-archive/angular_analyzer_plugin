@@ -629,7 +629,9 @@ class TemplateResolver {
             int nameEnd = attribute.nameOffset + attribute.name.length;
             int valueOffset = attribute.valueOffset;
             String key = attribute.name.substring(1);
-            String code = key + ' ' * (valueOffset - nameEnd) + attribute.value;
+            String code = valueOffset != null
+                ? key + ' ' * (valueOffset - nameEnd) + attribute.value
+                : key;
             _resolveTemplateAttribute(nameOffset, code);
           }
         }
@@ -748,7 +750,8 @@ class TemplateResolver {
       int keyOffset = token.offset;
       int keyLength;
       String key = null;
-      if (token.type == TokenType.IDENTIFIER) {
+      if (token.type == TokenType.KEYWORD ||
+          token.type == TokenType.IDENTIFIER) {
         // scan for a full attribute name
         key = '';
         int lastEnd = token.offset;
@@ -778,7 +781,7 @@ class TemplateResolver {
       }
       // expression
       Expression expression;
-      if (!_isTemplateVarBeginToken(token)) {
+      if (token.type != TokenType.EOF && !_isTemplateVarBeginToken(token)) {
         expression = _parseDartExpressionAtToken(token);
         _resolveDartExpression(expression);
         token = expression.endToken.next;

@@ -641,6 +641,31 @@ class TestPanel {
     _findResolvedRange("length !=");
   }
 
+  void test_template_attribute_withoutValue() {
+    _addDartSource(r'''
+@Directive(selector: '[deferred-content]')
+class DeferredContentDirective {}
+
+@Component(selector: 'test-panel')
+@View(
+    templateUrl: 'test_panel.html',
+    directives: const [DeferredContentDirective])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<div *deferred-content>Deferred content</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange =
+          _findResolvedRange('deferred-content>', _isSelectorName);
+      expect(resolvedRange.range.length, 'deferred-content'.length);
+      SelectorName nameElement = resolvedRange.element;
+      expect(nameElement.name, 'deferred-content');
+      expect(nameElement.source.fullName, endsWith('test_panel.dart'));
+    }
+  }
+
   void test_textInterpolation() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
