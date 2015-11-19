@@ -167,11 +167,11 @@ class ElementNameSelectorTest extends _SelectorTest {
 
   void test_match() {
     when(element.localName).thenReturn('panel');
-    when(element.sourceSpan).thenReturn(_newStringSpan(100, '<panel>'));
-    when(element.endSourceSpan).thenReturn(_newStringSpan(200, '</panel>'));
+    when(element.openingNameSpan).thenReturn(_newStringSpan(100, 'panel'));
+    when(element.closingNameSpan).thenReturn(_newStringSpan(200, 'panel'));
     expect(selector.match(element, template), isTrue);
-    _assertRange(resolvedRanges[0], 101, 5, selector.nameElement);
-    _assertRange(resolvedRanges[1], 202, 5, selector.nameElement);
+    _assertRange(resolvedRanges[0], 100, 5, selector.nameElement);
+    _assertRange(resolvedRanges[1], 200, 5, selector.nameElement);
   }
 
   void test_match_not() {

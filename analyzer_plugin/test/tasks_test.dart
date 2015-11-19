@@ -846,16 +846,15 @@ class UserPanel {
   }
 
   void test_hasError_UnresolvedTag() {
-    Source source = newSource(
-        '/test.dart',
-        r'''
+    String code = r'''
 import '/angular2/angular2.dart';
 
 @Component(selector: 'my-aaa')
-@View(template: '<unresolved-tag></unresolved-tag>')
+@View(template: "<unresolved-tag attr='value'></unresolved-tag>")
 class ComponentA {
 }
-''');
+''';
+    Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DART_TEMPLATES);
     expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
@@ -863,6 +862,11 @@ class ComponentA {
     fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener
         .assertErrorsWithCodes(<ErrorCode>[AngularWarningCode.UNRESOLVED_TAG]);
+    {
+      AnalysisError error = errorListener.errors.single;
+      expect(error.offset, code.indexOf('unresolved-tag'));
+      expect(errorListener.errors.single.length, 'unresolved-tag'.length);
+    }
   }
 
   void test_htmlParsing_hasError() {

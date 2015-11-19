@@ -130,19 +130,9 @@ class ElementNameSelector implements Selector {
       return true;
     }
     // record resolution
-    {
-      SourceRange span = element.sourceSpan;
-      int offset = span.offset + '<'.length;
-      SourceRange range = new SourceRange(offset, name.length);
-      template.addRange(range, nameElement);
-    }
-    {
-      SourceRange span = element.endSourceSpan;
-      if (span != null) {
-        int offset = span.offset + '</'.length;
-        SourceRange range = new SourceRange(offset, name.length);
-        template.addRange(range, nameElement);
-      }
+    template.addRange(element.openingNameSpan, nameElement);
+    if (element.closingNameSpan != null) {
+      template.addRange(element.closingNameSpan, nameElement);
     }
     return true;
   }
@@ -155,9 +145,11 @@ abstract class ElementView {
   Map<String, SourceRange> get attributeNameSpans;
   Map<String, String> get attributes;
   Map<String, SourceRange> get attributeValueSpans;
-  SourceRange get endSourceSpan;
+  SourceRange get closingNameSpan;
+  SourceRange get closingSpan;
   String get localName;
-  SourceRange get sourceSpan;
+  SourceRange get openingNameSpan;
+  SourceRange get openingSpan;
 }
 
 /**

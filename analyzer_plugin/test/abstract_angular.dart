@@ -354,7 +354,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
   /**
    * A list containing the errors that were collected.
    */
-  List<AnalysisError> _errors = new List<AnalysisError>();
+  List<AnalysisError> errors = new List<AnalysisError>();
 
   /**
    * Add all of the given errors to this listener.
@@ -398,7 +398,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
     //
     Map<ErrorCode, List<AnalysisError>> errorsByCode =
         <ErrorCode, List<AnalysisError>>{};
-    for (AnalysisError error in _errors) {
+    for (AnalysisError error in errors) {
       ErrorCode code = error.errorCode;
       List<AnalysisError> list = errorsByCode[code];
       if (list == null) {
@@ -470,6 +470,6 @@ class GatheringErrorListener implements AnalysisErrorListener {
 
   @override
   void onError(AnalysisError error) {
-    _errors.add(error);
+    errors.add(error);
   }
 }

@@ -125,13 +125,21 @@ class DartTemplateResolver {
  */
 class ElementInfo extends NodeInfo {
   final String localName;
-  final SourceRange sourceSpan;
-  final SourceRange endSourceSpan;
+  final SourceRange openingSpan;
+  final SourceRange closingSpan;
+  final SourceRange openingNameSpan;
+  final SourceRange closingNameSpan;
   final bool isTemplate;
   final List<AttributeInfo> attributes;
 
-  ElementInfo(this.localName, this.sourceSpan, this.endSourceSpan,
-      this.isTemplate, this.attributes);
+  ElementInfo(
+      this.localName,
+      this.openingSpan,
+      this.closingSpan,
+      this.openingNameSpan,
+      this.closingNameSpan,
+      this.isTemplate,
+      this.attributes);
 }
 
 /**
@@ -148,19 +156,25 @@ class ElementViewImpl implements ElementView {
   Map<String, String> attributes = <String, String>{};
 
   @override
-  SourceRange endSourceSpan;
+  SourceRange closingSpan;
+
+  @override
+  SourceRange closingNameSpan;
 
   @override
   String localName;
 
   @override
-  SourceRange sourceSpan;
+  SourceRange openingSpan;
+
+  @override
+  SourceRange openingNameSpan;
 
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
       String name = attribute.inputName;
-      attributeNameSpans[name] = new SourceRange(
-          attribute.inputNameOffset, attribute.inputNameLength);
+      attributeNameSpans[name] =
+          new SourceRange(attribute.inputNameOffset, attribute.inputNameLength);
       if (attribute.value != null) {
         attributeValueSpans[name] =
             new SourceRange(attribute.valueOffset, attribute.valueLength);
@@ -169,8 +183,10 @@ class ElementViewImpl implements ElementView {
     }
     if (element != null) {
       localName = element.localName;
-      sourceSpan = element.sourceSpan;
-      endSourceSpan = element.endSourceSpan;
+      openingSpan = element.openingSpan;
+      closingSpan = element.closingSpan;
+      openingNameSpan = element.openingNameSpan;
+      closingNameSpan = element.closingNameSpan;
     }
   }
 }
@@ -200,12 +216,16 @@ class HtmlTreeConverter {
       String localName = node.localName;
       List<AttributeInfo> attributes = _convertAttributes(node);
       bool isTemplate = _isTemplate(localName, attributes);
-      ElementInfo element = new ElementInfo(
-          localName,
-          _toSourceRange(node.sourceSpan),
-          _toSourceRange(node.endSourceSpan),
-          isTemplate,
-          attributes);
+      SourceRange openingSpan = _toSourceRange(node.sourceSpan);
+      SourceRange closingSpan = _toSourceRange(node.endSourceSpan);
+      SourceRange openingNameSpan = openingSpan != null
+          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
+          : null;
+      SourceRange closingNameSpan = closingSpan != null
+          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
+          : null;
+      ElementInfo element = new ElementInfo(localName, openingSpan, closingSpan,
+          openingNameSpan, closingNameSpan, isTemplate, attributes);
       List<NodeInfo> children = _convertChildren(node);
       element.children.addAll(children);
       return element;
@@ -667,8 +687,8 @@ class TemplateResolver {
         }
       }
       if (!tagIsStandard && !tagIsResolved) {
-        _reportErrorForRange(node.sourceSpan, AngularWarningCode.UNRESOLVED_TAG,
-            [node.localName]);
+        _reportErrorForRange(node.openingNameSpan,
+            AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
       }
       // define local variables
       _defineVariablesForAttributes(node.attributes);
