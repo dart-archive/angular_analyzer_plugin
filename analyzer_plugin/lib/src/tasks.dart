@@ -142,10 +142,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     List<AbstractDirective> directives = <AbstractDirective>[];
     for (ast.CompilationUnitMember unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
-        ClassElement classElement = unitMember.element;
         for (ast.Annotation annotationNode in unitMember.metadata) {
           AbstractDirective directive =
-              _createDirective(classElement, annotationNode);
+              _createDirective(unitMember, annotationNode);
           if (directive != null) {
             directives.add(directive);
           }
@@ -162,27 +161,34 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   /// Returns an Angular [AbstractDirective] for to the given [node].
   /// Returns `null` if not an Angular annotation.
   AbstractDirective _createDirective(
-      ClassElement classElement, ast.Annotation node) {
+      ast.ClassDeclaration classDeclaration, ast.Annotation node) {
+    ClassElement classElement = classDeclaration.element;
     // TODO(scheglov) add support for all the arguments
-    if (_isAngularAnnotation(node, 'Component')) {
+    bool isComponent = _isAngularAnnotation(node, 'Component');
+    bool isDirective = _isAngularAnnotation(node, 'Directive');
+    if (isComponent || isDirective) {
       Selector selector = _parseSelector(node);
       if (selector == null) {
         return null;
       }
       AngularElement exportAs = _parseExportAs(node);
-      List<InputElement> inputs = _parseInputs(classElement, node);
-      return new Component(classElement,
-          exportAs: exportAs, inputs: inputs, selector: selector);
-    }
-    if (_isAngularAnnotation(node, 'Directive')) {
-      Selector selector = _parseSelector(node);
-      if (selector == null) {
-        return null;
+      List<InputElement> inputs = <InputElement>[];
+      {
+        List<InputElement> headerInputs =
+            _parseHeaderInputs(classElement, node);
+        List<InputElement> annotationInputs =
+            _parseMemberInputs(classDeclaration);
+        inputs.addAll(headerInputs);
+        inputs.addAll(annotationInputs);
       }
-      AngularElement exportAs = _parseExportAs(node);
-      List<InputElement> inputs = _parseInputs(classElement, node);
-      return new Directive(classElement,
-          exportAs: exportAs, inputs: inputs, selector: selector);
+      if (isComponent) {
+        return new Component(classElement,
+            exportAs: exportAs, inputs: inputs, selector: selector);
+      }
+      if (isDirective) {
+        return new Directive(classElement,
+            exportAs: exportAs, inputs: inputs, selector: selector);
+      }
     }
     return null;
   }
@@ -223,7 +229,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return new AngularElementImpl(name, offset, name.length, target.source);
   }
 
-  InputElement _parseInput(
+  InputElement _parseHeaderInput(
       ClassElement classElement, ast.Expression expression) {
     if (expression is ast.SimpleStringLiteral) {
       int offset = expression.contentsOffset;
@@ -232,9 +238,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       int colonIndex = value.indexOf(':');
       if (colonIndex == -1) {
         String setterName = value;
-        String inputName = getCamelWords(setterName)
-            .map((word) => word.toLowerCase())
-            .join('-');
+        String inputName = _getInputNameForSetter(setterName);
         PropertyAccessorElement setter =
             _resolveSetter(classElement, expression, setterName);
         SourceRange setterRange = new SourceRange(offset, setterName.length);
@@ -274,7 +278,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
   }
 
-  List<InputElement> _parseInputs(
+  List<InputElement> _parseHeaderInputs(
       ClassElement classElement, ast.Annotation node) {
     ast.ListLiteral descList = _getListLiteralNamedArgument(
         node, const <String>['inputs', 'properties']);
@@ -284,9 +288,75 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Create an input for each element.
     List<InputElement> inputs = <InputElement>[];
     for (ast.Expression element in descList.elements) {
-      InputElement input = _parseInput(classElement, element);
+      InputElement input = _parseHeaderInput(classElement, element);
       if (input != null) {
         inputs.add(input);
+      }
+    }
+    return inputs;
+  }
+
+  /**
+   * Create a new input for the given class member [node] with the given
+   * `@Input` [annotation].
+   */
+  InputElement _parseMemberInput(
+      ast.ClassMember node, ast.Annotation annotation) {
+    // analyze the class member
+    PropertyAccessorElement setter;
+    if (node is ast.FieldDeclaration && node.fields.variables.length == 1) {
+      ast.VariableDeclaration variable = node.fields.variables.first;
+      FieldElement fieldElement = variable.element;
+      setter = fieldElement.setter;
+    } else {
+      return null;
+    }
+    // analyze the annotation
+    if (!_isAngularAnnotation(annotation, 'Input') ||
+        annotation.arguments == null) {
+      return null;
+    }
+    // prepare the input name
+    String inputName;
+    int inputNameOffset;
+    int inputNameLength;
+    List<ast.Expression> arguments = annotation.arguments.arguments;
+    if (arguments.isEmpty) {
+      String setterName = setter.displayName;
+      inputName = _getInputNameForSetter(setterName);
+      inputNameOffset = -1;
+      inputNameLength = 0;
+    } else {
+      ast.Expression inputNameArgument = arguments[0];
+      if (inputNameArgument is ast.SimpleStringLiteral) {
+        inputName = inputNameArgument.value;
+        inputNameOffset = inputNameArgument.contentsOffset;
+        inputNameLength = inputName.length;
+      } else {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.STRING_VALUE_EXPECTED, inputNameArgument);
+      }
+      if (inputName == null) {
+        return null;
+      }
+    }
+    return new InputElement(inputName, inputNameOffset, inputNameLength,
+        target.source, setter, null);
+  }
+
+  /**
+   * Return inputs for all class members with `@Input` annotations.
+   */
+  List<InputElement> _parseMemberInputs(ast.ClassDeclaration node) {
+    List<InputElement> inputs = <InputElement>[];
+    for (ast.ClassMember member in node.members) {
+      for (ast.Annotation annotation in member.metadata) {
+        InputElement input = _parseMemberInput(member, annotation);
+        if (_isAngularAnnotation(annotation, 'Input')) {
+          if (input != null) {
+            inputs.add(input);
+          }
+        }
       }
     }
     return inputs;
@@ -346,6 +416,12 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   static BuildUnitDirectivesTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new BuildUnitDirectivesTask(context, target);
+  }
+
+  static String _getInputNameForSetter(String setterName) {
+    return getCamelWords(setterName)
+        .map((word) => word.toLowerCase())
+        .join('-');
   }
 }
 

@@ -309,10 +309,14 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
-    inputs: const ['leadingText', 'trailingText: trailing-text'])
+    inputs: const ['leadingText', 'trailingText: tail-text'])
 class MyComponent {
   String leadingText;
   String trailingText;
+  @Input()
+  String firstField;
+  @Input('second-input')
+  String secondField;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -323,7 +327,7 @@ class MyComponent {
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     Component component = directives.single;
     List<InputElement> inputs = component.inputs;
-    expect(inputs, hasLength(2));
+    expect(inputs, hasLength(4));
     {
       InputElement input = inputs[0];
       expect(input.name, 'leading-text');
@@ -336,13 +340,32 @@ class MyComponent {
     }
     {
       InputElement input = inputs[1];
-      expect(input.name, 'trailing-text');
-      expect(input.nameOffset, code.indexOf("trailing-text']"));
+      expect(input.name, 'tail-text');
+      expect(input.nameOffset, code.indexOf("tail-text']"));
       expect(input.setterRange.offset, code.indexOf("trailingText: "));
       expect(input.setterRange.length, 'trailingText'.length);
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'trailingText');
+    }
+    {
+      InputElement input = inputs[2];
+      expect(input.name, 'first-field');
+      expect(input.nameOffset, -1);
+      expect(input.nameLength, 0);
+      expect(input.setterRange, isNull);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'firstField');
+    }
+    {
+      InputElement input = inputs[3];
+      expect(input.name, 'second-input');
+      expect(input.nameOffset, code.indexOf('second-input'));
+      expect(input.setterRange, isNull);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'secondField');
     }
   }
 

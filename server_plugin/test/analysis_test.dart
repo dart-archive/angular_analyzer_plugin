@@ -515,7 +515,14 @@ class View {
       List<String> styleUrls});
 }
 
-class EventEmitter extends Stream {
+class Input {
+  final String bindingPropertyName;
+  const InputMetadata([this.bindingPropertyName]);
+}
+
+class Output {
+  final String bindingPropertyName;
+  const OutputMetadata([this.bindingPropertyName]);
 }
 ''');
     newSource(
