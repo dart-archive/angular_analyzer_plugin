@@ -209,4 +209,10 @@ class View implements AnalysisTarget {
    * The source that contains this template, [source] or [templateUriSource].
    */
   Source get templateSource => templateUriSource ?? source;
+
+  @override
+  String toString() => 'View('
+      'classElement=$classElement, '
+      'component=$component, '
+      'directives=$directives)';
 }

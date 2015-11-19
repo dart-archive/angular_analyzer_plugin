@@ -242,8 +242,8 @@ class HtmlTreeConverter {
     List<AttributeInfo> attributes = <AttributeInfo>[];
     element.attributes.forEach((key, String value) {
       if (key is String) {
-        String name = key;
-        int nameOffset = element.attributeSpans[key].start.offset;
+        String name = key.toLowerCase();
+        int nameOffset = element.attributeSpans[name].start.offset;
         // name
         bool bound = false;
         String propName = name;
@@ -271,7 +271,7 @@ class HtmlTreeConverter {
         // value
         int valueOffset;
         {
-          SourceSpan span = element.attributeValueSpans[key];
+          SourceSpan span = element.attributeValueSpans[name];
           if (span != null) {
             valueOffset = span.start.offset;
           } else {

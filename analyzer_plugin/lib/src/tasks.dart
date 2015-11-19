@@ -4,7 +4,8 @@ import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/generated/ast.dart' as ast;
 import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/element.dart';
-import 'package:analyzer/src/generated/engine.dart' hide AnalysisCache;
+import 'package:analyzer/src/generated/engine.dart'
+    hide AnalysisCache, AnalysisTask;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
@@ -847,7 +848,7 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
 }
 
 /// A task that resolves an [HtmlTemplate] of a [View].
-class ResolveHtmlTemplateTask extends SourceBasedAnalysisTask {
+class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
 
@@ -861,6 +862,15 @@ class ResolveHtmlTemplateTask extends SourceBasedAnalysisTask {
 
   ResolveHtmlTemplateTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
+
+  @override
+  String get description {
+    View view = this.target;
+    Source templateSource = view.templateUriSource;
+    String templateSourceName =
+        templateSource == null ? '<unknown source>' : templateSource.fullName;
+    return '${descriptor.name} for template $templateSourceName of $view';
+  }
 
   @override
   TaskDescriptor get descriptor => DESCRIPTOR;

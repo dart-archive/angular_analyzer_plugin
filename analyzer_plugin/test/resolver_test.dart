@@ -39,6 +39,20 @@ class TemplateResolverTest extends AbstractAngularTest {
   Template template;
   List<ResolvedRange> ranges;
 
+  void test_attribute_mixedCase() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    _addHtmlSource(r"""
+<svg viewBox='0, 0, 24 24'></svg>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(0));
+  }
+
   void test_attributeInterpolation() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
