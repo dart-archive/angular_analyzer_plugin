@@ -399,6 +399,26 @@ class TestPanel {
     _findResolvedRange("length}}");
   }
 
+  void test_ngFor_star_itemVisibleInElement() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<li *ng-for='var item of items' [visible]='item != null'>
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("item !=");
+      LocalVariableElement element = assertLocalVariable(resolvedRange);
+      _assertHtmlElementAt(element, "item of");
+    }
+  }
+
   void test_ngFor_templateAttribute() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

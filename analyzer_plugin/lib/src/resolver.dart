@@ -130,6 +130,7 @@ class ElementInfo extends NodeInfo {
   final SourceRange openingNameSpan;
   final SourceRange closingNameSpan;
   final bool isTemplate;
+  final bool hasTemplateAttribute;
   final List<AttributeInfo> attributes;
 
   ElementInfo(
@@ -139,7 +140,10 @@ class ElementInfo extends NodeInfo {
       this.openingNameSpan,
       this.closingNameSpan,
       this.isTemplate,
+      this.hasTemplateAttribute,
       this.attributes);
+
+  bool get isOrHasTemplateAttribute => isTemplate || hasTemplateAttribute;
 }
 
 /**
@@ -215,7 +219,8 @@ class HtmlTreeConverter {
     if (node is html.Element) {
       String localName = node.localName;
       List<AttributeInfo> attributes = _convertAttributes(node);
-      bool isTemplate = _isTemplate(localName, attributes);
+      bool isTemplate = localName == 'template';
+      bool hasTemplateAttribute = _hasTemplateAttribute(attributes);
       SourceRange openingSpan = _toSourceRange(node.sourceSpan);
       SourceRange closingSpan = _toSourceRange(node.endSourceSpan);
       SourceRange openingNameSpan = openingSpan != null
@@ -224,8 +229,15 @@ class HtmlTreeConverter {
       SourceRange closingNameSpan = closingSpan != null
           ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
           : null;
-      ElementInfo element = new ElementInfo(localName, openingSpan, closingSpan,
-          openingNameSpan, closingNameSpan, isTemplate, attributes);
+      ElementInfo element = new ElementInfo(
+          localName,
+          openingSpan,
+          closingSpan,
+          openingNameSpan,
+          closingNameSpan,
+          isTemplate,
+          hasTemplateAttribute,
+          attributes);
       List<NodeInfo> children = _convertChildren(node);
       element.children.addAll(children);
       return element;
@@ -297,10 +309,7 @@ class HtmlTreeConverter {
     return children;
   }
 
-  bool _isTemplate(String localName, List<AttributeInfo> attributes) {
-    if (localName == 'template') {
-      return true;
-    }
+  bool _hasTemplateAttribute(List<AttributeInfo> attributes) {
     for (AttributeInfo attribute in attributes) {
       if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         return true;
@@ -613,36 +622,38 @@ class TemplateResolver {
     if (element == null) {
       return;
     }
-    // process all non-template nodes
-    _resolveNodeNames(element, true, templateElements);
-    _resolveNodeExpressions(element, true);
-    // process templates with their sub-trees
-    for (ElementInfo templateElement in templateElements) {
-      Map<String, InternalVariable> oldInternalVariables = internalVariables;
-      Map<String, LocalVariableElement> oldLocalVariables = localVariables;
-      internalVariables = new HashMap.from(internalVariables);
-      localVariables = new HashMap.from(localVariables);
-      try {
-        for (AttributeInfo attribute in templateElement.attributes) {
-          if (attribute.name == 'template') {
-            _resolveTemplateAttribute(attribute.valueOffset, attribute.value);
-          }
-          if (attribute.name.startsWith('*')) {
-            int nameOffset = attribute.nameOffset + '*'.length;
-            int nameEnd = attribute.nameOffset + attribute.name.length;
-            int valueOffset = attribute.valueOffset;
-            String key = attribute.name.substring(1);
-            String code = valueOffset != null
-                ? key + ' ' * (valueOffset - nameEnd) + attribute.value
-                : key;
-            _resolveTemplateAttribute(nameOffset, code);
-          }
+    // apply template attributes
+    Map<String, InternalVariable> oldInternalVariables = internalVariables;
+    Map<String, LocalVariableElement> oldLocalVariables = localVariables;
+    internalVariables = new HashMap.from(internalVariables);
+    localVariables = new HashMap.from(localVariables);
+    try {
+      // process template attributes
+      for (AttributeInfo attribute in element.attributes) {
+        if (attribute.name == 'template') {
+          _resolveTemplateAttribute(attribute.valueOffset, attribute.value);
         }
-        _resolveElement(templateElement);
-      } finally {
-        internalVariables = oldInternalVariables;
-        localVariables = oldLocalVariables;
+        if (attribute.name.startsWith('*')) {
+          int nameOffset = attribute.nameOffset + '*'.length;
+          int nameEnd = attribute.nameOffset + attribute.name.length;
+          int valueOffset = attribute.valueOffset;
+          String key = attribute.name.substring(1);
+          String code = valueOffset != null
+              ? key + ' ' * (valueOffset - nameEnd) + attribute.value
+              : key;
+          _resolveTemplateAttribute(nameOffset, code);
+        }
       }
+      // process all non-template nodes
+      _resolveNodeNames(element, true, templateElements);
+      _resolveNodeExpressions(element, true);
+      // process templates with their sub-trees
+      for (ElementInfo templateElement in templateElements) {
+        _resolveElement(templateElement);
+      }
+    } finally {
+      internalVariables = oldInternalVariables;
+      localVariables = oldLocalVariables;
     }
   }
 
@@ -656,9 +667,14 @@ class TemplateResolver {
 
   _resolveNodeExpressions(NodeInfo node, bool enterTemplate) {
     if (node is ElementInfo) {
-      _resolveAttributeValues(node.attributes);
-      if (!enterTemplate && node.isTemplate) {
+      if (node.isTemplate) {
+        _resolveAttributeValues(node.attributes);
+      }
+      if (!enterTemplate && node.isOrHasTemplateAttribute) {
         return;
+      }
+      if (!node.isTemplate) {
+        _resolveAttributeValues(node.attributes);
       }
     }
     if (node is TextInfo) {
@@ -673,7 +689,7 @@ class TemplateResolver {
       NodeInfo node, bool enterTemplate, List<ElementInfo> templateElements) {
     if (node is ElementInfo) {
       // skip template
-      if (!enterTemplate && node.isTemplate) {
+      if (!enterTemplate && node.isOrHasTemplateAttribute) {
         templateElements.add(node);
         return;
       }
