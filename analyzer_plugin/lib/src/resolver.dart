@@ -339,6 +339,17 @@ class InternalVariable {
 }
 
 /**
+ * A variable defined by a [AbstractDirective].
+ */
+class LocalVariable extends AngularElementImpl {
+  final LocalVariableElementImpl dartVariable;
+
+  LocalVariable(String name, int nameOffset, int nameLength, Source source,
+      this.dartVariable)
+      : super(name, nameOffset, nameLength, source);
+}
+
+/**
  * A node in an HTML tree.
  */
 class NodeInfo {
@@ -366,16 +377,22 @@ class TemplateResolver {
       new HashMap<String, Expression>();
 
   /**
-   * The full map of names to internal variables in the current node.
+   * The full map of names to internal variables in the current template.
    */
   Map<String, InternalVariable> internalVariables =
       new HashMap<String, InternalVariable>();
 
   /**
-   * The full map of names to local variables in the current node.
+   * The full map of names to local variables in the current template.
    */
-  Map<String, LocalVariableElement> localVariables =
-      new HashMap<String, LocalVariableElement>();
+  Map<String, LocalVariable> localVariables =
+      new HashMap<String, LocalVariable>();
+
+  /**
+   * The full map of names to local variables in the current template.
+   */
+  Map<LocalVariableElement, LocalVariable> dartVariables =
+      new HashMap<LocalVariableElement, LocalVariable>();
 
   TemplateResolver(this.typeProvider, this.errorListener);
 
@@ -411,7 +428,7 @@ class TemplateResolver {
       }
     }
     // add "$implicit
-    {
+    if (directive is Component) {
       ClassElement classElement = directive.classElement;
       internalVariables[r'$implicit'] = new InternalVariable(
           r'$implicit', new DartElement(classElement), classElement.type);
@@ -435,22 +452,23 @@ class TemplateResolver {
   /**
    * Define new local variables into [localVariables] for `#name` attributes.
    */
-  void _defineVariablesForAttributes(List<AttributeInfo> attributes) {
+  void _defineLocalVariablesForAttributes(List<AttributeInfo> attributes) {
     for (AttributeInfo attribute in attributes) {
       int offset = attribute.nameOffset;
-      // prepare name
       String attributeName = attribute.name;
+      // check if defines local variable
       if (attributeName.startsWith('#')) {
+        offset++;
         attributeName = attributeName.substring(1);
-        String localVariableName = _getDartNameForAttribute(attributeName);
+        String dartName = _getDartNameForAttribute(attributeName);
         // prepare internal variable name
-        String internalVarName = attribute.value;
-        if (internalVarName == null) {
-          internalVarName = r'$implicit';
+        String internalName = attribute.value;
+        if (internalName == null) {
+          internalName = r'$implicit';
         }
         // maybe an internal variable reference
         DartType type;
-        InternalVariable internalVar = internalVariables[internalVarName];
+        InternalVariable internalVar = internalVariables[internalName];
         if (internalVar != null) {
           type = internalVar.type;
           // add internal variable reference
@@ -466,14 +484,17 @@ class TemplateResolver {
         }
         // add a new local variable with type
         if (type != null) {
-          LocalVariableElement localVariable =
-              _newLocalVariableElement(offset + 1, localVariableName, type);
-          localVariables[localVariableName] = localVariable;
+          LocalVariableElement dartVariable =
+              _newLocalVariableElement(-1, dartName, type);
+          LocalVariable localVariable = new LocalVariable(attributeName, offset,
+              attributeName.length, templateSource, dartVariable);
+          localVariables[attributeName] = localVariable;
+          dartVariables[dartVariable] = localVariable;
           // add local declaration
           template.addRange(
               new SourceRange(
                   localVariable.nameOffset, localVariable.nameLength),
-              new DartElement(localVariable));
+              localVariable);
         }
       }
     }
@@ -541,7 +562,7 @@ class TemplateResolver {
    */
   void _recordExpressionResolvedRanges(Expression expression) {
     if (expression != null) {
-      expression.accept(new _DartReferencesRecorder(template));
+      expression.accept(new _DartReferencesRecorder(template, dartVariables));
     }
   }
 
@@ -608,7 +629,9 @@ class TemplateResolver {
     EnclosedScope localScope = new EnclosedScope(classScope);
     resolver.nameScope = localScope;
     resolver.enclosingClass = classElement;
-    localVariables.values.forEach(localScope.define);
+    localVariables.values.forEach((LocalVariable local) {
+      localScope.define(local.dartVariable);
+    });
     // TODO(scheglov) hack, use actual variables
     _defineBuiltInVariable(localScope, typeProvider.dynamicType, r'$event', -1);
     // do resolve
@@ -636,9 +659,11 @@ class TemplateResolver {
     }
     // apply template attributes
     Map<String, InternalVariable> oldInternalVariables = internalVariables;
-    Map<String, LocalVariableElement> oldLocalVariables = localVariables;
+    Map<String, LocalVariable> oldLocalVariables = localVariables;
+    Map<LocalVariableElement, LocalVariable> oldDartVariables = dartVariables;
     internalVariables = new HashMap.from(internalVariables);
     localVariables = new HashMap.from(localVariables);
+    dartVariables = new HashMap.from(dartVariables);
     try {
       // process template attributes
       for (AttributeInfo attribute in element.attributes) {
@@ -666,6 +691,7 @@ class TemplateResolver {
     } finally {
       internalVariables = oldInternalVariables;
       localVariables = oldLocalVariables;
+      dartVariables = oldDartVariables;
     }
   }
 
@@ -724,7 +750,7 @@ class TemplateResolver {
             AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
       }
       // define local variables
-      _defineVariablesForAttributes(node.attributes);
+      _defineLocalVariablesForAttributes(node.attributes);
     }
     // process children
     for (NodeInfo child in node.children) {
@@ -828,7 +854,7 @@ class TemplateResolver {
     for (AbstractDirective directive in view.directives) {
       if (directive.selector.match(elementView, template)) {
         _defineDirectiveVariables(attributes, directive);
-        _defineVariablesForAttributes(attributes);
+        _defineLocalVariablesForAttributes(attributes);
         _resolveAttributeNames(attributes, directive);
         break;
       }
@@ -906,16 +932,21 @@ class TextInfo extends NodeInfo {
 /// An [AstVisitor] that records references to Dart [Element]s into
 /// the given [template].
 class _DartReferencesRecorder extends RecursiveAstVisitor {
+  final Map<Element, AngularElement> dartToAngularMap;
   final Template template;
 
-  _DartReferencesRecorder(this.template);
+  _DartReferencesRecorder(this.template, this.dartToAngularMap);
 
   @override
   visitSimpleIdentifier(SimpleIdentifier node) {
-    Element element = node.bestElement;
-    if (element != null) {
+    Element dartElement = node.bestElement;
+    if (dartElement != null) {
+      AngularElement angularElement = dartToAngularMap[dartElement];
+      if (angularElement == null) {
+        angularElement = new DartElement(dartElement);
+      }
       SourceRange range = new SourceRange(node.offset, node.length);
-      template.addRange(range, new DartElement(element));
+      template.addRange(range, angularElement);
     }
   }
 }

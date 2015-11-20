@@ -20,6 +20,7 @@ import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
+import 'package:angular2_analyzer_plugin/src/resolver.dart';
 
 void assertComponentReference(
     ResolvedRange resolvedRange, Component component) {
@@ -47,18 +48,26 @@ void assertInterfaceTypeWithName(DartType type, String name) {
   expect(type.displayName, name);
 }
 
-LocalVariableElement assertLocalVariable(ResolvedRange resolvedRange,
-    {String name, String typeName}) {
-  AngularElement angularElement = resolvedRange.element;
-  LocalVariableElement dartElement = (angularElement as DartElement).element;
+LocalVariable assertLocalVariable(ResolvedRange resolvedRange,
+    {String name, String dartName, String typeName}) {
+  LocalVariable localVariable = resolvedRange.element;
+  LocalVariableElement dartVariable = localVariable.dartVariable;
   if (name != null) {
-    expect(angularElement.name, name);
-    expect(dartElement.name, name);
+    expect(localVariable.name, name);
+  }
+  if (dartName != null) {
+    expect(dartVariable.name, dartName);
   }
   if (typeName != null) {
-    assertInterfaceTypeWithName(dartElement.type, typeName);
+    assertInterfaceTypeWithName(dartVariable.type, typeName);
   }
-  return dartElement;
+  return localVariable;
+}
+
+void assertLocalVariableRef(ResolvedRange resolvedRange,
+    LocalVariable expectedLocalVariable) {
+  expect(resolvedRange.element, new isInstanceOf<LocalVariable>());
+  expect(resolvedRange.element, same(expectedLocalVariable));
 }
 
 MethodElement assertMethod(ResolvedRange resolvedRange) {

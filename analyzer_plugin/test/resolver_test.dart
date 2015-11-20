@@ -3,6 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 import 'package:analyzer/src/generated/element.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
+import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -247,10 +248,10 @@ class TestPanel {}
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange declarationRange = _findResolvedRange("value=");
-      LocalVariableElement valueElement = assertLocalVariable(declarationRange,
+      LocalVariable valueVariable = assertLocalVariable(declarationRange,
           name: 'value', typeName: 'MyDirective');
-      _assertHtmlElementAt(valueElement, "value=");
-      assertDartElement(_findResolvedRange("value.aaa"), valueElement);
+      _assertHtmlElementAt(valueVariable, "value=");
+      assertLocalVariableRef(_findResolvedRange("value.aaa"), valueVariable);
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("aaa}}");
@@ -272,7 +273,7 @@ import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
-  void handleKeyUp(Element s) {}
+  void handleKeyUp(Element e) {}
 }
 ''');
     _addHtmlSource(r"""
@@ -284,9 +285,9 @@ class TestPanel {
     errorListener.assertNoErrors();
     {
       ResolvedRange range = _findResolvedRange("myTargetElement)");
-      LocalVariableElement valueElement =
-          assertLocalVariable(range, name: 'myTargetElement');
-      _assertHtmlElementAt(valueElement, "my-target-element>");
+      LocalVariable valueVariable = assertLocalVariable(range,
+          name: 'my-target-element', dartName: 'myTargetElement');
+      _assertHtmlElementAt(valueVariable, "my-target-element>");
     }
   }
 
@@ -317,9 +318,9 @@ class TestPanel {}
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange declarationRange = _findResolvedRange("handle'>");
-      LocalVariableElement valueElement = assertLocalVariable(declarationRange,
+      LocalVariable valueVariable = assertLocalVariable(declarationRange,
           name: 'handle', typeName: 'ComponentB');
-      _assertHtmlElementAt(valueElement, "handle></");
+      _assertHtmlElementAt(valueVariable, "handle></");
     }
   }
 
@@ -387,13 +388,13 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item of");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item of");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i = index");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i = index");
     }
@@ -411,13 +412,13 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i = index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item of");
     }
@@ -439,7 +440,7 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange = _findResolvedRange("item !=");
-      LocalVariableElement element = assertLocalVariable(resolvedRange);
+      LocalVariable element = assertLocalVariable(resolvedRange);
       _assertHtmlElementAt(element, "item of");
     }
   }
@@ -460,13 +461,13 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange = _findResolvedRange("item of");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item of");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i = index");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i = index");
     }
@@ -484,13 +485,13 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i = index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item of");
     }
@@ -513,13 +514,13 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange = _findResolvedRange("item, of");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item, of");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i=index");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i=index");
     }
@@ -537,13 +538,13 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i=index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item, of");
     }
@@ -566,13 +567,13 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     {
       ResolvedRange resolvedRange = _findResolvedRange("item [ng-for-of");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item [ng-for-of");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i='index'");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i='index'");
     }
@@ -589,13 +590,13 @@ class TestPanel {
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
       _assertHtmlElementAt(element, "i='index");
     }
     {
       ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariableElement element =
+      LocalVariable element =
           assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
       _assertHtmlElementAt(element, "item [");
     }
@@ -776,7 +777,7 @@ $code
     expect(element.source, dartSource);
   }
 
-  void _assertHtmlElementAt(Element element, String search) {
+  void _assertHtmlElementAt(LocalVariable element, String search) {
     expect(element.nameOffset, htmlCode.indexOf(search));
     expect(element.source, htmlSource);
   }
