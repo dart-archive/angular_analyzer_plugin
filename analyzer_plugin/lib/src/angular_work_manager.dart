@@ -68,7 +68,8 @@ class AngularWorkManager implements WorkManager {
     for (Source source in addedSources) {
       if (_isHtmlSource(source)) {
         CacheEntry entry = context.getCacheEntry(source);
-        entry.setValueIncremental(TEMPLATE_VIEWS, <View>[], true);
+        entry.setState(TEMPLATE_VIEWS, CacheState.INVALID);
+        entry.setValue(TEMPLATE_VIEWS, <View>[], []);
       }
     }
   }
@@ -191,7 +192,13 @@ class AngularWorkManager implements WorkManager {
       } else {
         templateViews.remove(view);
       }
-      templateEntry.setValueIncremental(TEMPLATE_VIEWS, templateViews, true);
+      templateEntry.setState(TEMPLATE_VIEWS, CacheState.INVALID);
+      // We ask for the cache entry again, because it may have been removed
+      // from the cache after the setState() invocation above. This happens
+      // when the entry is implicit and has no results.
+      context
+          .getCacheEntry(templateUriSource)
+          .setValue(TEMPLATE_VIEWS, templateViews, []);
     }
   }
 
