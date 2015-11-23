@@ -1258,7 +1258,7 @@ class TextPanel {}
    * Perform analysis tasks up to [maxIterations] times and assert that it
    * was enough.
    */
-  void _analyzeAll_assertFinished([int maxIterations = 512]) {
+  void _analyzeAll_assertFinished([int maxIterations = 1024]) {
     for (int i = 0; i < maxIterations; i++) {
       var notice = context.performAnalysisTask().changeNotices;
       if (notice == null) {
