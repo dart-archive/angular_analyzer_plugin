@@ -240,20 +240,15 @@ class _InternalAnalysisContextMock extends TypedMock
     }
     return entry;
   }
-
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _SourceFactoryMock extends TypedMock implements SourceFactory {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class _SourceFactoryMock extends TypedMock implements SourceFactory {}
 
 class _SourceMock extends TypedMock implements Source {
   final String shortName;
   _SourceMock(this.shortName);
   @override
   String get fullName => '/' + shortName;
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
   @override
   String toString() => fullName;
 }

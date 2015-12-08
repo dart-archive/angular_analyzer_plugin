@@ -15,12 +15,14 @@ import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/plugin.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
+import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
+import 'package:plugin/manager.dart';
+import 'package:plugin/plugin.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
-import 'package:angular2_analyzer_plugin/src/resolver.dart';
 
 void assertComponentReference(
     ResolvedRange resolvedRange, Component component) {
@@ -64,8 +66,8 @@ LocalVariable assertLocalVariable(ResolvedRange resolvedRange,
   return localVariable;
 }
 
-void assertLocalVariableRef(ResolvedRange resolvedRange,
-    LocalVariable expectedLocalVariable) {
+void assertLocalVariableRef(
+    ResolvedRange resolvedRange, LocalVariable expectedLocalVariable) {
   expect(resolvedRange.element, new isInstanceOf<LocalVariable>());
   expect(resolvedRange.element, same(expectedLocalVariable));
 }
@@ -187,8 +189,10 @@ class AbstractAngularTest {
   }
 
   void setUp() {
+    new ExtensionManager().processPlugins(<Plugin>[]
+      ..addAll(AnalysisEngine.instance.requiredPlugins)
+      ..add(new AngularAnalyzerPlugin()));
     _addAngularSources();
-    AnalysisEngine.instance.userDefinedPlugins = [new AngularAnalyzerPlugin()];
     // prepare AnalysisContext
     context = new AnalysisContextImpl();
     context.sourceFactory = new SourceFactory(<UriResolver>[
@@ -197,10 +201,6 @@ class AbstractAngularTest {
     ]);
     // configure AnalysisDriver
     analysisDriver = context.driver;
-  }
-
-  void tearDown() {
-    AnalysisEngine.instance.userDefinedPlugins = null;
   }
 
   void _addAngularSources() {

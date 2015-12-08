@@ -21,6 +21,8 @@ import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/plugin.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:angular2_server_plugin/src/analysis.dart';
+import 'package:plugin/manager.dart';
+import 'package:plugin/plugin.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';
@@ -34,9 +36,7 @@ main() {
   defineReflectiveTests(AngularOccurrencesContributorTest);
 }
 
-class AnalysisContextMock extends TypedMock implements AnalysisContext {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class AnalysisContextMock extends TypedMock implements AnalysisContext {}
 
 @reflectiveTest
 class AnalysisDomainContributorTest {
@@ -80,13 +80,9 @@ class AnalysisDomainContributorTest {
   }
 }
 
-class AnalysisDomainMock extends TypedMock implements AnalysisDomain {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class AnalysisDomainMock extends TypedMock implements AnalysisDomain {}
 
-class AnalysisTargetMock extends TypedMock implements AnalysisTarget {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class AnalysisTargetMock extends TypedMock implements AnalysisTarget {}
 
 @reflectiveTest
 class AngularNavigationContributorTest extends _AbstractAngularTaskTest {
@@ -378,21 +374,16 @@ class GatheringErrorListener implements AnalysisErrorListener {
 }
 
 class NavigationCollectorMock extends TypedMock implements NavigationCollector {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class OccurrencesCollectorMock extends TypedMock
-    implements OccurrencesCollector {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+    implements OccurrencesCollector {}
 
 class SourceMock extends TypedMock implements Source {
   @override
   final String fullPath;
 
   SourceMock([String name = 'mocked.dart']) : fullPath = name;
-
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
   String toString() => fullPath;
@@ -418,7 +409,9 @@ class _AbstractAngularTaskTest {
   }
 
   void setUp() {
-    AnalysisEngine.instance.userDefinedPlugins = [new AngularAnalyzerPlugin()];
+    new ExtensionManager().processPlugins(<Plugin>[]
+      ..addAll(AnalysisEngine.instance.requiredPlugins)
+      ..add(new AngularAnalyzerPlugin()));
     emptySource = newSource('/test.dart');
     // prepare AnalysisContext
     context = new AnalysisContextImpl();
@@ -428,10 +421,6 @@ class _AbstractAngularTaskTest {
     ]);
     // configure AnalysisDriver
     analysisDriver = context.driver;
-  }
-
-  void tearDown() {
-    AnalysisEngine.instance.userDefinedPlugins = null;
   }
 
   void _addAngularSources() {

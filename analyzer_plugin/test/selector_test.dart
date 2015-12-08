@@ -328,16 +328,12 @@ class SelectorParserTest {
   }
 }
 
-class _ElementViewMock extends TypedMock implements ElementView {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class _ElementViewMock extends TypedMock implements ElementView {}
 
 class _SelectorMock extends TypedMock implements Selector {
   final String text;
 
   _SelectorMock(this.text);
-
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
   String toString() => text;
@@ -368,10 +364,6 @@ class _SelectorTest {
       new SourceRange(offset, value.length);
 }
 
-class _SourceMock extends TypedMock implements Source {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class _SourceMock extends TypedMock implements Source {}
 
-class _TemplateMock extends TypedMock implements Template {
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+class _TemplateMock extends TypedMock implements Template {}

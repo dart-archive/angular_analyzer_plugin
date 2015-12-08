@@ -638,7 +638,7 @@ class TemplateResolver {
     expression.accept(resolver);
     // verify
     ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), false);
+        typeProvider, new InheritanceManager(library), false, false);
     expression.accept(verifier);
   }
 
