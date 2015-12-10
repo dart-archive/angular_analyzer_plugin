@@ -51,14 +51,12 @@ void assertInterfaceTypeWithName(DartType type, String name) {
 }
 
 LocalVariable assertLocalVariable(ResolvedRange resolvedRange,
-    {String name, String dartName, String typeName}) {
+    {String name, String typeName}) {
   LocalVariable localVariable = resolvedRange.element;
   LocalVariableElement dartVariable = localVariable.dartVariable;
   if (name != null) {
     expect(localVariable.name, name);
-  }
-  if (dartName != null) {
-    expect(dartVariable.name, dartName);
+    expect(dartVariable.name, name);
   }
   if (typeName != null) {
     assertInterfaceTypeWithName(dartVariable.type, typeName);
@@ -334,7 +332,7 @@ class EventEmitter<T> extends Stream<T> {
 library angular2.ng_if;
 import 'metadata.dart';
 
-@Directive(selector: "[ng-if]", inputs: const ["ngIf"])
+@Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
   set ngIf(newCondition) {}
 }
@@ -346,8 +344,8 @@ library angular2.ng_for;
 import 'metadata.dart';
 
 @Directive(
-    selector: "[ng-for][ng-for-of]",
-    inputs: const ["ngForOf"])
+    selector: "[ngFor][ngForOf]",
+    inputs: const ["ngForOf", "ngForTemplate"])
 class NgFor {
   set ngForOf(dynamic value) {}
 }

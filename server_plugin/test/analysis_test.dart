@@ -554,7 +554,7 @@ class EventEmitter<T> extends Stream<T> {
 library angular2.ng_if;
 import 'metadata.dart';
 
-@Directive(selector: "[ng-if]", inputs: const ["ngIf"])
+@Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
   set ngIf(newCondition) {}
 }
@@ -566,8 +566,8 @@ library angular2.ng_for;
 import 'metadata.dart';
 
 @Directive(
-    selector: "[ng-for][ng-for-of]",
-    inputs: const ["ngForOf"])
+    selector: "[ngFor][ngForOf]",
+    inputs: const ["ngForOf", "ngForTemplate"])
 class NgFor {
   set ngForOf(dynamic value) {}
 }

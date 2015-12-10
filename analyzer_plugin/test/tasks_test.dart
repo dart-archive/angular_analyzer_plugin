@@ -309,13 +309,13 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
-    inputs: const ['leadingText', 'trailingText: tail-text'])
+    inputs: const ['leadingText', 'trailingText: tailText'])
 class MyComponent {
   String leadingText;
   String trailingText;
   @Input()
   String firstField;
-  @Input('second-input')
+  @Input('secondInput')
   String secondField;
 }
 ''';
@@ -330,7 +330,7 @@ class MyComponent {
     expect(inputs, hasLength(4));
     {
       InputElement input = inputs[0];
-      expect(input.name, 'leading-text');
+      expect(input.name, 'leadingText');
       expect(input.nameOffset, code.indexOf("leadingText',"));
       expect(input.setterRange.offset, input.nameOffset);
       expect(input.setterRange.length, 'leadingText'.length);
@@ -340,8 +340,8 @@ class MyComponent {
     }
     {
       InputElement input = inputs[1];
-      expect(input.name, 'tail-text');
-      expect(input.nameOffset, code.indexOf("tail-text']"));
+      expect(input.name, 'tailText');
+      expect(input.nameOffset, code.indexOf("tailText']"));
       expect(input.setterRange.offset, code.indexOf("trailingText: "));
       expect(input.setterRange.length, 'trailingText'.length);
       expect(input.setter, isNotNull);
@@ -350,7 +350,7 @@ class MyComponent {
     }
     {
       InputElement input = inputs[2];
-      expect(input.name, 'first-field');
+      expect(input.name, 'firstField');
       expect(input.nameOffset, -1);
       expect(input.nameLength, 0);
       expect(input.setterRange, isNull);
@@ -360,8 +360,8 @@ class MyComponent {
     }
     {
       InputElement input = inputs[3];
-      expect(input.name, 'second-input');
-      expect(input.nameOffset, code.indexOf('second-input'));
+      expect(input.name, 'secondInput');
+      expect(input.nameOffset, code.indexOf('secondInput'));
       expect(input.setterRange, isNull);
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
@@ -375,7 +375,7 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
-    properties: const ['leadingText', 'trailingText: trailing-text'])
+    properties: const ['leadingText', 'trailingText: tailText'])
 class MyComponent {
   String leadingText;
   String trailingText;
@@ -392,7 +392,7 @@ class MyComponent {
     expect(inputs, hasLength(2));
     {
       InputElement input = inputs[0];
-      expect(input.name, 'leading-text');
+      expect(input.name, 'leadingText');
       expect(input.nameOffset, code.indexOf("leadingText',"));
       expect(input.setterRange.offset, input.nameOffset);
       expect(input.setterRange.length, 'leadingText'.length);
@@ -402,8 +402,8 @@ class MyComponent {
     }
     {
       InputElement input = inputs[1];
-      expect(input.name, 'trailing-text');
-      expect(input.nameOffset, code.indexOf("trailing-text']"));
+      expect(input.name, 'tailText');
+      expect(input.nameOffset, code.indexOf("tailText']"));
       expect(input.setterRange.offset, code.indexOf("trailingText: "));
       expect(input.setterRange.length, 'trailingText'.length);
       expect(input.setter, isNotNull);
@@ -1023,7 +1023,7 @@ class ComponentA {
 @Component(selector: 'comp-b')
 @View(template: r"""
 <div>
-  <comp-a first-value='1' second='2'></comp-a>
+  <comp-a firstValue='1' second='2'></comp-a>
 </div>
 """, directives: const [ComponentA])
 class ComponentB {
@@ -1046,9 +1046,9 @@ class ComponentB {
       expect(ranges, hasLength(4));
       {
         ResolvedRange resolvedRange =
-            getResolvedRangeAtString(code, ranges, 'first-value=');
-        expect(resolvedRange.range.length, 'first-value'.length);
-        assertPropertyReference(resolvedRange, componentA, 'first-value');
+            getResolvedRangeAtString(code, ranges, 'firstValue=');
+        expect(resolvedRange.range.length, 'firstValue'.length);
+        assertPropertyReference(resolvedRange, componentA, 'firstValue');
       }
       {
         ResolvedRange resolvedRange =

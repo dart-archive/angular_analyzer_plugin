@@ -17,7 +17,6 @@ import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:angular2_analyzer_plugin/src/strings.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 
@@ -238,13 +237,12 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       // TODO(scheglov) support for pipes
       int colonIndex = value.indexOf(':');
       if (colonIndex == -1) {
-        String setterName = value;
-        String inputName = _getInputNameForSetter(setterName);
+        String name = value;
         PropertyAccessorElement setter =
-            _resolveSetter(classElement, expression, setterName);
-        SourceRange setterRange = new SourceRange(offset, setterName.length);
-        return new InputElement(inputName, offset, setterName.length,
-            target.source, setter, setterRange);
+            _resolveSetter(classElement, expression, name);
+        SourceRange nameRange = new SourceRange(offset, name.length);
+        return new InputElement(
+            name, offset, name.length, target.source, setter, nameRange);
       } else {
         // Resolve the setter.
         String setterName = value.substring(0, colonIndex).trimRight();
@@ -324,7 +322,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     List<ast.Expression> arguments = annotation.arguments.arguments;
     if (arguments.isEmpty) {
       String setterName = setter.displayName;
-      inputName = _getInputNameForSetter(setterName);
+      inputName = setterName;
       inputNameOffset = -1;
       inputNameLength = 0;
     } else {
@@ -417,12 +415,6 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   static BuildUnitDirectivesTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new BuildUnitDirectivesTask(context, target);
-  }
-
-  static String _getInputNameForSetter(String setterName) {
-    return getCamelWords(setterName)
-        .map((word) => word.toLowerCase())
-        .join('-');
   }
 }
 
@@ -766,8 +758,9 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     List<Template> templates = <Template>[];
     for (View view in views) {
       if (view.templateText != null) {
-        Template template = new DartTemplateResolver(
-            typeProvider, errorListener, view).resolve();
+        Template template =
+            new DartTemplateResolver(typeProvider, errorListener, view)
+                .resolve();
         if (template != null) {
           templates.add(template);
         }
@@ -886,8 +879,9 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     // Resolve.
     //
     View view = target;
-    Template template = new HtmlTemplateResolver(
-        typeProvider, errorListener, view, document).resolve();
+    Template template =
+        new HtmlTemplateResolver(typeProvider, errorListener, view, document)
+            .resolve();
     //
     // Record outputs.
     //

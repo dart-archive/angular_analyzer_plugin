@@ -81,8 +81,8 @@ class DartTemplateResolver {
     html.DocumentFragment document;
     {
       String fragmentText = ' ' * view.templateOffset + templateText;
-      html.HtmlParser parser =
-          new html.HtmlParser(fragmentText, generateSpans: true);
+      html.HtmlParser parser = new html.HtmlParser(fragmentText,
+          generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
       document = parser.parseFragment('template');
       _addParseErrors(parser);
@@ -253,10 +253,10 @@ class HtmlTreeConverter {
 
   List<AttributeInfo> _convertAttributes(html.Element element) {
     List<AttributeInfo> attributes = <AttributeInfo>[];
-    element.attributes.forEach((key, String value) {
-      if (key is String) {
-        String name = key.toLowerCase();
-        int nameOffset = element.attributeSpans[name].start.offset;
+    element.attributes.forEach((name, String value) {
+      if (name is String) {
+        String lowerName = name.toLowerCase();
+        int nameOffset = element.attributeSpans[lowerName].start.offset;
         // name
         bool bound = false;
         String propName = name;
@@ -284,7 +284,7 @@ class HtmlTreeConverter {
         // value
         int valueOffset;
         {
-          SourceSpan span = element.attributeValueSpans[name];
+          SourceSpan span = element.attributeValueSpans[lowerName];
           if (span != null) {
             valueOffset = span.start.offset;
           } else {
@@ -439,8 +439,7 @@ class TemplateResolver {
       internalVariables['index'] = new InternalVariable('index',
           new DartElement(directive.classElement), typeProvider.intType);
       for (AttributeInfo attribute in attributes) {
-        if (attribute.inputName == 'ng-for-of' &&
-            attribute.expression != null) {
+        if (attribute.inputName == 'ngForOf' && attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
           internalVariables[r'$implicit'] = new InternalVariable(
               r'$implicit', new DartElement(directive.classElement), itemType);
@@ -455,12 +454,11 @@ class TemplateResolver {
   void _defineLocalVariablesForAttributes(List<AttributeInfo> attributes) {
     for (AttributeInfo attribute in attributes) {
       int offset = attribute.nameOffset;
-      String attributeName = attribute.name;
+      String name = attribute.name;
       // check if defines local variable
-      if (attributeName.startsWith('#')) {
+      if (name.startsWith('#')) {
         offset++;
-        attributeName = attributeName.substring(1);
-        String dartName = _getDartNameForAttribute(attributeName);
+        name = name.substring(1);
         // prepare internal variable name
         String internalName = attribute.value;
         if (internalName == null) {
@@ -485,10 +483,10 @@ class TemplateResolver {
         // add a new local variable with type
         if (type != null) {
           LocalVariableElement dartVariable =
-              _newLocalVariableElement(-1, dartName, type);
-          LocalVariable localVariable = new LocalVariable(attributeName, offset,
-              attributeName.length, templateSource, dartVariable);
-          localVariables[attributeName] = localVariable;
+              _newLocalVariableElement(-1, name, type);
+          LocalVariable localVariable = new LocalVariable(
+              name, offset, name.length, templateSource, dartVariable);
+          localVariables[name] = localVariable;
           dartVariables[dartVariable] = localVariable;
           // add local declaration
           template.addRange(
@@ -825,7 +823,7 @@ class TemplateResolver {
         if (prefix == null) {
           prefix = key;
         } else {
-          key = '$prefix-$key';
+          key = prefix + capitalize(key);
         }
       } else {
         errorReporter.reportErrorForToken(
@@ -892,19 +890,6 @@ class TemplateResolver {
     CharSequenceReader reader = new CharSequenceReader(text);
     Scanner scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
-  }
-
-  static String _getDartNameForAttribute(String attributeName) {
-    List<String> parts = attributeName.split('-');
-    StringBuffer sb = new StringBuffer();
-    for (int i = 0; i < parts.length; i++) {
-      String part = parts[i];
-      if (i != 0) {
-        part = capitalize(part);
-      }
-      sb.write(part);
-    }
-    return sb.toString();
   }
 
   /// Check whether the given [name] is a standard HTML5 tag name.
