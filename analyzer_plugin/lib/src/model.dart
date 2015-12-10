@@ -26,7 +26,9 @@ abstract class AbstractDirective {
 
   @override
   String toString() {
-    return '($runtimeType ${classElement.displayName} $selector)';
+    return '$runtimeType(${classElement.displayName} '
+        'selector=$selector '
+        'inputs=$inputs)';
   }
 }
 
@@ -133,6 +135,11 @@ class InputElement extends AngularElementImpl {
   InputElement(String name, int nameOffset, int nameLength, Source source,
       this.setter, this.setterRange)
       : super(name, nameOffset, nameLength, source);
+
+  @override
+  String toString() {
+    return 'InputElement($name, $nameOffset, $nameLength, $setter)';
+  }
 }
 
 /// A pair of an [SourceRange] and the referenced [AngularElement].
@@ -176,6 +183,11 @@ class Template {
     assert(range.offset != null);
     assert(range.offset >= 0);
     ranges.add(new ResolvedRange(range, element));
+  }
+
+  @override
+  String toString() {
+    return 'Template(ranges=$ranges)';
   }
 }
 
