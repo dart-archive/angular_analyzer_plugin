@@ -773,7 +773,7 @@ class TemplateResolver {
       if (_isTemplateVarBeginToken(token)) {
         token = token.next;
         // get the local variable name
-        if (token.type != TokenType.IDENTIFIER) {
+        if (!_tokenMatchesIdentifier(token)) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.EXPECTED_IDENTIFIER, token);
           return;
@@ -787,7 +787,7 @@ class TemplateResolver {
         if (token.type == TokenType.EQ) {
           token = token.next;
           // get the internal variable
-          if (token.type != TokenType.IDENTIFIER) {
+          if (!_tokenMatchesIdentifier(token)) {
             errorReporter.reportErrorForToken(
                 AngularWarningCode.EXPECTED_IDENTIFIER, token);
             return;
@@ -805,15 +805,12 @@ class TemplateResolver {
       int keyOffset = token.offset;
       int keyLength;
       String key = null;
-      if (token.type == TokenType.KEYWORD ||
-          token.type == TokenType.IDENTIFIER) {
+      if (_tokenMatchesIdentifier(token)) {
         // scan for a full attribute name
         key = '';
         int lastEnd = token.offset;
         while (token.offset == lastEnd &&
-            (token.type == TokenType.KEYWORD ||
-                token.type == TokenType.IDENTIFIER ||
-                token.type == TokenType.MINUS)) {
+            (_tokenMatchesIdentifier(token) || token.type == TokenType.MINUS)) {
           key += token.lexeme;
           lastEnd = token.end;
           token = token.next;
@@ -902,6 +899,13 @@ class TemplateResolver {
     return token.type == TokenType.HASH ||
         token is KeywordToken && token.keyword == Keyword.VAR;
   }
+
+  static bool _tokenMatchesBuiltInIdentifier(Token token) =>
+      token is KeywordToken && token.keyword.isPseudoKeyword;
+
+  static bool _tokenMatchesIdentifier(Token token) =>
+      token.type == TokenType.IDENTIFIER ||
+      _tokenMatchesBuiltInIdentifier(token);
 }
 
 /**

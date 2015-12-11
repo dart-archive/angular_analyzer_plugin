@@ -363,6 +363,39 @@ class MyIterable<T> extends BaseIterable<T> {
     _findResolvedRange("length}}");
   }
 
+  void test_ngFor_operatorLocalVariable() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> operators = [];
+}
+''');
+    _addHtmlSource(r"""
+<li *ngFor='#operator of operators'>
+  {{operator.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    expect(template.ranges, hasLength(7));
+    {
+      ResolvedRange resolvedRange =
+          _findResolvedRange("ngFor=", _isSelectorName);
+      expect(resolvedRange.range.length, 'ngFor'.length);
+      SelectorName nameElement = resolvedRange.element;
+      expect(nameElement.name, 'ngFor');
+      expect(nameElement.source.fullName, endsWith('ng_for.dart'));
+    }
+    {
+      ResolvedRange resolvedRange = _findResolvedRange("operator of");
+      LocalVariable element = assertLocalVariable(resolvedRange,
+          name: 'operator', typeName: 'String');
+      _assertHtmlElementAt(element, "operator of");
+    }
+    errorListener.assertNoErrors();
+    _findResolvedRange("length}}");
+  }
+
   void test_ngFor_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
