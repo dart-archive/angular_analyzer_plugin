@@ -64,7 +64,9 @@ class AttributeInfo {
   }
 }
 
-/// [DartTemplateResolver]s resolve inline [View] templates.
+/**
+ * [DartTemplateResolver]s resolve inline [View] templates.
+ */
 class DartTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
@@ -97,7 +99,9 @@ class DartTemplateResolver {
     return template;
   }
 
-  /// Report HTML errors as [AnalysisError]s.
+  /**
+   * Report HTML errors as [AnalysisError]s.
+   */
   void _addParseErrors(html.HtmlParser parser) {
     List<html.ParseError> parseErrors = parser.errors;
     for (html.ParseError parseError in parseErrors) {
@@ -199,7 +203,9 @@ class ElementViewImpl implements ElementView {
   }
 }
 
-/// [HtmlTemplateResolver]s resolve templates in separate Html files.
+/**
+ * [HtmlTemplateResolver]s resolve templates in separate Html files.
+ */
 class HtmlTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
@@ -361,7 +367,9 @@ class NodeInfo {
   final List<NodeInfo> children = <NodeInfo>[];
 }
 
-/// [TemplateResolver]s resolve [Template]s.
+/**
+ * [TemplateResolver]s resolve [Template]s.
+ */
 class TemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
@@ -552,7 +560,9 @@ class TemplateResolver {
     return localVariable;
   }
 
-  /// Parse the given Dart [code] that starts at [offset].
+  /**
+   * Parse the given Dart [code] that starts at [offset].
+   */
   Expression _parseDartExpression(int offset, String code) {
     Token token = _scanDartCode(offset, code);
     return _parseDartExpressionAtToken(token);
@@ -581,7 +591,9 @@ class TemplateResolver {
         templateSource, range.offset, range.length, errorCode, arguments));
   }
 
-  /// Resolve [attributes] names to inputs of [directive].
+  /**
+   * Resolve [attributes] names to inputs of [directive].
+   */
   void _resolveAttributeNames(
       List<AttributeInfo> attributes, AbstractDirective directive) {
     for (AttributeInfo attribute in attributes) {
@@ -651,7 +663,9 @@ class TemplateResolver {
     expression.accept(verifier);
   }
 
-  /// Resolve the Dart expression with the given [code] at [offset].
+  /**
+   * Resolve the Dart expression with the given [code] at [offset].
+   */
   Expression _resolveDartExpressionAt(int offset, String code) {
     Expression expression = _parseDartExpression(offset, code);
     if (expression != null) {
@@ -660,7 +674,9 @@ class TemplateResolver {
     return expression;
   }
 
-  /// Resolve the given [element].
+  /**
+   * Resolve the given [element].
+   */
   void _resolveElement(ElementInfo element) {
     List<ElementInfo> templateElements = <ElementInfo>[];
     if (element == null) {
@@ -704,8 +720,10 @@ class TemplateResolver {
     }
   }
 
-  /// Resolve the given Angular [code] at the given [offset].
-  /// Record [ResolvedRange]s.
+  /**
+   * Resolve the given Angular [code] at the given [offset].
+   * Record [ResolvedRange]s.
+   */
   Expression _resolveExpression(int offset, String code) {
     Expression expression = _resolveDartExpressionAt(offset, code);
     _recordExpressionResolvedRanges(expression);
@@ -868,8 +886,10 @@ class TemplateResolver {
     _resolveAttributeValues(attributes);
   }
 
-  /// Scan the given [text] staring at the given [offset] and resolve all of
-  /// its embedded expressions.
+  /**
+   * Scan the given [text] staring at the given [offset] and resolve all of
+   * its embedded expressions.
+   */
   void _resolveTextExpressions(int offset, String text) {
     int lastEnd = 0;
     while (true) {
@@ -892,7 +912,9 @@ class TemplateResolver {
     }
   }
 
-  /// Scan the given Dart [code] that starts at [offset].
+  /**
+   * Scan the given Dart [code] that starts at [offset].
+   */
   Token _scanDartCode(int offset, String code) {
     String text = ' ' * offset + code;
     CharSequenceReader reader = new CharSequenceReader(text);
@@ -900,7 +922,9 @@ class TemplateResolver {
     return scanner.tokenize();
   }
 
-  /// Check whether the given [name] is a standard HTML5 tag name.
+  /**
+   * Check whether the given [name] is a standard HTML5 tag name.
+   */
   static bool _isStandardTagName(String name) {
     name = name.toLowerCase();
     return !name.contains('-') || name == 'ng-content';
@@ -929,8 +953,10 @@ class TextInfo extends NodeInfo {
   TextInfo(this.offset, this.text);
 }
 
-/// An [AstVisitor] that records references to Dart [Element]s into
-/// the given [template].
+/**
+ * An [AstVisitor] that records references to Dart [Element]s into
+ * the given [template].
+ */
 class _DartReferencesRecorder extends RecursiveAstVisitor {
   final Map<Element, AngularElement> dartToAngularMap;
   final Template template;

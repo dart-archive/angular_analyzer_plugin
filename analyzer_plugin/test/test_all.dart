@@ -7,7 +7,9 @@ import 'resolver_test.dart' as resolver_test;
 import 'selector_test.dart' as selector_test;
 import 'tasks_test.dart' as tasks_test;
 
-/// Utility for manually running all tests.
+/**
+ * Utility for manually running all tests.
+ */
 main() {
   groupSep = ' | ';
   group('Angular Analyzer Plugin tests', () {

@@ -112,7 +112,9 @@ class ClassSelector implements Selector {
   String toString() => '.' + nameElement.name;
 }
 
-/// The element name based selector.
+/**
+ * The element name based selector.
+ */
 class ElementNameSelector implements Selector {
   final AngularElement nameElement;
 
@@ -174,7 +176,9 @@ class OrSelector implements Selector {
   String toString() => selectors.join(' || ');
 }
 
-/// The base class for all Angular selectors.
+/**
+ * The base class for all Angular selectors.
+ */
 abstract class Selector {
   static final RegExp _regExp = new RegExp(r'(\:not\()|' +
       r'([-\w]+)|' +
@@ -183,8 +187,10 @@ abstract class Selector {
       r'(\))|' +
       r'(\s*,\s*)');
 
-  /// Check whether the given [element] matches this selector.
-  /// If yes, then record resolved ranges into [template].
+  /**
+   * Check whether the given [element] matches this selector.
+   * If yes, then record resolved ranges into [template].
+   */
   bool match(ElementView element, Template template);
 
   static Selector parse(Source source, int offset, String str) {

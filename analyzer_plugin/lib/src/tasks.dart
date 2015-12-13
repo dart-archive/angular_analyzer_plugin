@@ -21,101 +21,129 @@ import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 
-/// The [Template]s of a [LibrarySpecificUnit].
-/// This result is produced for templates specified directly in Dart files.
+/**
+ * The [Template]s of a [LibrarySpecificUnit].
+ * This result is produced for templates specified directly in Dart files.
+ */
 final ListResultDescriptor<Template> DART_TEMPLATES =
     new ListResultDescriptor<Template>(
         'ANGULAR_DART_TEMPLATES', Template.EMPTY_LIST);
 
-/// The errors produced while building [DART_TEMPLATES].
-/// This result is produced for templates specified directly in Dart files.
+/**
+ * The errors produced while building [DART_TEMPLATES].
+ * This result is produced for templates specified directly in Dart files.
+ */
 final ListResultDescriptor<AnalysisError> DART_TEMPLATES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_DART_TEMPLATES_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The errors produced while building [DIRECTIVES_IN_UNIT].
-///
-/// The list will be empty if there were no errors, but will not be `null`.
-///
-/// The result is only available for [LibrarySpecificUnit]s.
+/**
+ * The errors produced while building [DIRECTIVES_IN_UNIT].
+ *
+ * The list will be empty if there were no errors, but will not be `null`.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
 final ListResultDescriptor<AnalysisError> DIRECTIVES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_DIRECTIVES_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The Angular [AbstractDirective]s available for a library.
-///
-/// The list will be empty if there were no directives, but will not be `null`.
-///
-/// The result is only available for [Source]s representing a library.
+/**
+ * The Angular [AbstractDirective]s available for a library.
+ *
+ * The list will be empty if there were no directives, but will not be `null`.
+ *
+ * The result is only available for [Source]s representing a library.
+ */
 final ListResultDescriptor<AbstractDirective> DIRECTIVES_IN_LIBRARY =
     new ListResultDescriptor<AbstractDirective>(
         'ANGULAR_DIRECTIVES_IN_LIBRARY', AbstractDirective.EMPTY_LIST);
 
-/// The Angular [AbstractDirective]s of a [LibrarySpecificUnit].
-///
-/// The list will be empty if there were no directives, but will not be `null`.
-///
-/// The result is only available for [LibrarySpecificUnit]s.
+/**
+ * The Angular [AbstractDirective]s of a [LibrarySpecificUnit].
+ *
+ * The list will be empty if there were no directives, but will not be `null`.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
 final ListResultDescriptor<AbstractDirective> DIRECTIVES_IN_UNIT =
     new ListResultDescriptor<AbstractDirective>(
         'ANGULAR_DIRECTIVES_IN_UNIT', AbstractDirective.EMPTY_LIST);
 
-/// The [HtmlTemplate] of a HTML [Source].
-///
-/// This result is produced for [View]s.
+/**
+ * The [HtmlTemplate] of a HTML [Source].
+ *
+ * This result is produced for [View]s.
+ */
 final ResultDescriptor<HtmlTemplate> HTML_TEMPLATE =
     new ResultDescriptor('ANGULAR_HTML_TEMPLATE', null);
 
-/// The errors produced while building a [HTML_TEMPLATE].
-///
-/// This result is produced for [View]s.
+/**
+ * The errors produced while building a [HTML_TEMPLATE].
+ *
+ * This result is produced for [View]s.
+ */
 final ListResultDescriptor<AnalysisError> HTML_TEMPLATE_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_HTML_TEMPLATE_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The [HtmlTemplate]s of a HTML [Source].
-/// Each [HtmlTemplate] corresponds to a single [View] that uses this template.
-///
-/// This result is produced for HTML [Source]s.
+/**
+ * The [HtmlTemplate]s of a HTML [Source].
+ * Each [HtmlTemplate] corresponds to a single [View] that uses this template.
+ *
+ * This result is produced for HTML [Source]s.
+ */
 final ListResultDescriptor<HtmlTemplate> HTML_TEMPLATES =
     new ListResultDescriptor('ANGULAR_HTML_TEMPLATES', HtmlTemplate.EMPTY_LIST);
 
-/// The errors produced while building a [HTML_TEMPLATE]s.
-///
-/// This result is produced for HTML [Source]s.
+/**
+ * The errors produced while building a [HTML_TEMPLATE]s.
+ *
+ * This result is produced for HTML [Source]s.
+ */
 final ListResultDescriptor<AnalysisError> HTML_TEMPLATES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_HTML_TEMPLATES_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The standard HTML [Component]s.
-///
-/// This result is produced for the [AnalysisContext].
+/**
+ * The standard HTML [Component]s.
+ *
+ * This result is produced for the [AnalysisContext].
+ */
 final ListResultDescriptor<Component> STANDARD_HTML_COMPONENTS =
     new ListResultDescriptor(
         'ANGULAR_STANDARD_HTML_COMPONENTS', const <Component>[]);
 
-/// The [View]s with this HTML template file.
-///
-/// The result is only available for HTML [Source]s.
+/**
+ * The [View]s with this HTML template file.
+ *
+ * The result is only available for HTML [Source]s.
+ */
 final ListResultDescriptor<View> TEMPLATE_VIEWS =
     new ListResultDescriptor<View>('ANGULAR_TEMPLATE_VIEWS', View.EMPTY_LIST);
 
-/// The [View]s of a [LibrarySpecificUnit].
+/**
+ * The [View]s of a [LibrarySpecificUnit].
+ */
 final ListResultDescriptor<View> VIEWS =
     new ListResultDescriptor<View>('ANGULAR_VIEWS', View.EMPTY_LIST);
 
-/// The errors produced while building [VIEWS].
-///
-/// The list will be empty if there were no errors, but will not be `null`.
-///
-/// The result is only available for [LibrarySpecificUnit]s.
+/**
+ * The errors produced while building [VIEWS].
+ *
+ * The list will be empty if there were no errors, but will not be `null`.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
 final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_VIEWS_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The [View]s with templates in separate HTML files.
-///
-/// The result is only available for [LibrarySpecificUnit]s.
+/**
+ * The [View]s with templates in separate HTML files.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
 final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
     new ListResultDescriptor<View>(
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
@@ -187,7 +215,9 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
   }
 }
 
-/// A task that builds [AbstractDirective]s of a [CompilationUnit].
+/**
+ * A task that builds [AbstractDirective]s of a [CompilationUnit].
+ */
 class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     with _AnnotationProcessorMixin {
   static const String UNIT_INPUT = 'UNIT_INPUT';
@@ -233,8 +263,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     outputs[DIRECTIVES_ERRORS] = errorListener.errors;
   }
 
-  /// Returns an Angular [AbstractDirective] for to the given [node].
-  /// Returns `null` if not an Angular annotation.
+  /**
+   * Returns an Angular [AbstractDirective] for to the given [node].
+   * Returns `null` if not an Angular annotation.
+   */
   AbstractDirective _createDirective(
       ast.ClassDeclaration classDeclaration, ast.Annotation node) {
     ClassElement classElement = classDeclaration.element;
@@ -466,8 +498,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return selector;
   }
 
-  /// Resolve the input setter with the given [name] in [classElement].
-  /// If undefined, report a warning and return `null`.
+  /**
+   * Resolve the input setter with the given [name] in [classElement].
+   * If undefined, report a warning and return `null`.
+   */
   PropertyAccessorElement _resolveSetter(
       ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
     PropertyAccessorElement setter =
@@ -479,21 +513,27 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return setter;
   }
 
-  /// Return a map from the names of the inputs of this kind of task to the
-  /// task input descriptors describing those inputs for a task with the
-  /// given [target].
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
     return <String, TaskInput>{UNIT_INPUT: RESOLVED_UNIT.of(target)};
   }
 
-  /// Create a task based on the given [target] in the given [context].
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
   static BuildUnitDirectivesTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new BuildUnitDirectivesTask(context, target);
   }
 }
 
-/// A task that builds [View]s of a [CompilationUnit].
+/**
+ * A task that builds [View]s of a [CompilationUnit].
+ */
 class BuildUnitViewsTask extends SourceBasedAnalysisTask
     with _AnnotationProcessorMixin {
   static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
@@ -550,8 +590,10 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     outputs[VIEWS_WITH_HTML_TEMPLATES] = viewsWithTemplates;
   }
 
-  /// Attempt to find and add the [AbstractDirective] that corresponds to
-  /// the [classElement]. Return `true` if success.
+  /**
+   * Attempt to find and add the [AbstractDirective] that corresponds to
+   * the [classElement]. Return `true` if success.
+   */
   bool _addDirective(
       List<AbstractDirective> directives, ClassElement classElement) {
     for (AbstractDirective directive in _allDirectives) {
@@ -563,8 +605,10 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     return false;
   }
 
-  /// Attempt to find and add the [AbstractDirective] that corresponds to
-  /// the [classElement]. Return an error if the directive not found.
+  /**
+   * Attempt to find and add the [AbstractDirective] that corresponds to
+   * the [classElement]. Return an error if the directive not found.
+   */
   void _addDirectiveOrReportError(List<AbstractDirective> directives,
       ast.Expression expression, ClassElement classElement) {
     bool success = _addDirective(directives, classElement);
@@ -597,8 +641,10 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     return false;
   }
 
-  /// Create a new [View] for the given [annotation], may return `null`
-  /// if [annotation] or [classElement] don't provide enough information.
+  /**
+   * Create a new [View] for the given [annotation], may return `null`
+   * if [annotation] or [classElement] don't provide enough information.
+   */
   View _createView(ClassElement classElement, ast.Annotation annotation) {
     // Template in a separate HTML file.
     Source templateUriSource = null;
@@ -688,9 +734,11 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     return null;
   }
 
-  /// Return a map from the names of the inputs of this kind of task to the
-  /// task input descriptors describing those inputs for a task with the
-  /// given [target].
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
     return <String, TaskInput>{
       DIRECTIVES_INPUT: DIRECTIVES_IN_LIBRARY.of(target.library),
@@ -698,7 +746,9 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     };
   }
 
-  /// Create a task based on the given [target] in the given [context].
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
   static BuildUnitViewsTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new BuildUnitViewsTask(context, target);
@@ -801,7 +851,9 @@ class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
   }
 }
 
-/// A task that builds [Template]s of a [LibrarySpecificUnit].
+/**
+ * A task that builds [Template]s of a [LibrarySpecificUnit].
+ */
 class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
@@ -850,9 +902,11 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     outputs[DART_TEMPLATES_ERRORS] = errorListener.errors;
   }
 
-  /// Return a map from the names of the inputs of this kind of task to the
-  /// task input descriptors describing those inputs for a task with the
-  /// given [target].
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
@@ -862,14 +916,18 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     };
   }
 
-  /// Create a task based on the given [target] in the given [context].
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
   static ResolveDartTemplatesTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new ResolveDartTemplatesTask(context, target);
   }
 }
 
-/// A task that resolves a [HtmlTemplate]s of an HTML [Source].
+/**
+ * A task that resolves a [HtmlTemplate]s of an HTML [Source].
+ */
 class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
   static const String TEMPLATES_INPUT = 'TEMPLATES_INPUT';
   static const String ERRORS_INPUT = 'ERRORS_INPUT';
@@ -902,9 +960,11 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
     outputs[HTML_TEMPLATES_ERRORS] = AnalysisError.mergeLists(errorLists);
   }
 
-  /// Return a map from the names of the inputs of this kind of task to the
-  /// task input descriptors describing those inputs for a task with the
-  /// given [target].
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
   static Map<String, TaskInput> buildInputs(Source target) {
     return <String, TaskInput>{
       TEMPLATES_INPUT: TEMPLATE_VIEWS.of(target).toListOf(HTML_TEMPLATE),
@@ -912,14 +972,18 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
     };
   }
 
-  /// Create a task based on the given [target] in the given [context].
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
   static ResolveHtmlTemplatesTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new ResolveHtmlTemplatesTask(context, target);
   }
 }
 
-/// A task that resolves an [HtmlTemplate] of a [View].
+/**
+ * A task that resolves an [HtmlTemplate] of a [View].
+ */
 class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
@@ -970,9 +1034,11 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors;
   }
 
-  /// Return a map from the names of the inputs of this kind of task to the
-  /// task input descriptors describing those inputs for a task with the
-  /// given [target].
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
   static Map<String, TaskInput> buildInputs(View target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
@@ -982,30 +1048,40 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     };
   }
 
-  /// Create a task based on the given [target] in the given [context].
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
   static ResolveHtmlTemplateTask createTask(
       AnalysisContext context, View target) {
     return new ResolveHtmlTemplateTask(context, target);
   }
 }
 
-/// Helper for processing Angular annotations.
+/**
+ * Helper for processing Angular annotations.
+ */
 class _AnnotationProcessorMixin {
   RecordingErrorListener errorListener = new RecordingErrorListener();
   ErrorReporter errorReporter;
 
-  /// The evaluator of constant values, such as annotation arguments.
+  /**
+   * The evaluator of constant values, such as annotation arguments.
+   */
   final ast.ConstantEvaluator _constantEvaluator = new ast.ConstantEvaluator();
 
-  /// Initialize the processor working in the given [target].
+  /**
+   * Initialize the processor working in the given [target].
+   */
   void initAnnotationProcessor(AnalysisTarget target) {
     assert(errorReporter == null);
     errorReporter = new ErrorReporter(errorListener, target.source);
   }
 
-  /// Returns the [String] value of the given [expression].
-  /// If [expression] does not have a [String] value, reports an error
-  /// and returns `null`.
+  /**
+   * Returns the [String] value of the given [expression].
+   * If [expression] does not have a [String] value, reports an error
+   * and returns `null`.
+   */
   String _getExpressionString(ast.Expression expression) {
     if (expression != null) {
       Object value = expression.accept(_constantEvaluator);
@@ -1018,8 +1094,10 @@ class _AnnotationProcessorMixin {
     return null;
   }
 
-  /// Returns the value of the argument with the given [name].
-  /// Returns `null` if not found.
+  /**
+   * Returns the value of the argument with the given [name].
+   * Returns `null` if not found.
+   */
   ast.Expression _getNamedArgument(ast.Annotation node, String name) {
     if (node.arguments != null) {
       List<ast.Expression> arguments = node.arguments.arguments;
@@ -1035,8 +1113,10 @@ class _AnnotationProcessorMixin {
     return null;
   }
 
-  /// Returns `true` is the given [node] is resolved to a creation of an Angular
-  /// annotation class with the given [name].
+  /**
+   * Returns `true` is the given [node] is resolved to a creation of an Angular
+   * annotation class with the given [name].
+   */
   bool _isAngularAnnotation(ast.Annotation node, String name) {
     if (node.element is ConstructorElement) {
       ClassElement clazz = node.element.enclosingElement;

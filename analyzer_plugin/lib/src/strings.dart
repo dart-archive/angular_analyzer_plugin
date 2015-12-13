@@ -60,22 +60,22 @@ int countMatches(String str, String sub) {
 int findCommonOverlap(String a, String b) {
   int a_length = a.length;
   int b_length = b.length;
-// all empty
+  // all empty
   if (a_length == 0 || b_length == 0) {
     return 0;
   }
-// truncate
+  // truncate
   if (a_length > b_length) {
     a = a.substring(a_length - b_length);
   } else if (a_length < b_length) {
     b = b.substring(0, a_length);
   }
   int text_length = min(a_length, b_length);
-// the worst case
+  // the worst case
   if (a == b) {
     return text_length;
   }
-// increase common length one by one
+  // increase common length one by one
   int length = 0;
   while (length < text_length) {
     if (a.codeUnitAt(text_length - 1 - length) != b.codeUnitAt(length)) {

@@ -254,8 +254,10 @@ import 'dart:async';
 class EventEmitter<T> extends Stream<T> {
   StreamController<dynamic> _controller;
 
-  /// Creates an instance of [EventEmitter], which depending on [isAsync],
-  /// delivers events synchronously or asynchronously.
+  /**
+   * Creates an instance of [EventEmitter], which depending on [isAsync],
+   * delivers events synchronously or asynchronously.
+   */
   EventEmitter([bool isAsync = true]) {
     _controller = new StreamController.broadcast(sync: !isAsync);
   }
