@@ -1,9 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
-import 'package:analyzer/src/generated/element.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -69,16 +67,8 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('aaa}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'aaa; // 1');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'bbb; // 2');
-    }
+    _assertElement('aaa}}').dart.getter.at('aaa; // 1');
+    _assertElement('bbb}}').dart.getter.at('bbb; // 2');
   }
 
   void test_expression_eventBinding() {
@@ -96,11 +86,7 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("handleClick()'>");
-      MethodElement element = assertMethod(resolvedRange);
-      _assertDartElementAt(element, 'handleClick(MouseEvent');
-    }
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
   }
 
   void test_expression_eventBinding_on() {
@@ -118,11 +104,7 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("handleClick()'>");
-      MethodElement element = assertMethod(resolvedRange);
-      _assertDartElementAt(element, 'handleClick(MouseEvent');
-    }
+    _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
   void test_expression_inputBinding() {
@@ -138,11 +120,7 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("text'>");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'text; // 1');
-    }
+    _assertElement("text'>").dart.getter.at('text; // 1');
   }
 
   void test_expression_inputBinding_bind() {
@@ -158,11 +136,7 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("text'>");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'text; // 1');
-    }
+    _assertElement("text'>").dart.getter.at('text; // 1');
   }
 
   void test_inheritedFields() {
@@ -185,11 +159,7 @@ class TestPanel extends BaseComponent {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('text}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'text; // 1');
-    }
+    _assertElement("text}}").dart.getter.at('text; // 1');
     errorListener.assertNoErrors();
   }
 
@@ -212,22 +182,9 @@ class TestPanel {}
 <name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
 """);
     _resolveSingleTemplate(dartSource);
-    Component namePanel = getComponentByClassName(directives, 'NamePanel');
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('aaa=');
-      expect(resolvedRange.range.length, 3);
-      assertPropertyReference(resolvedRange, namePanel, 'aaa');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('bbb]=');
-      expect(resolvedRange.range.length, 3);
-      assertPropertyReference(resolvedRange, namePanel, 'bbb');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('ccc=');
-      expect(resolvedRange.range.length, 3);
-      assertPropertyReference(resolvedRange, namePanel, 'ccc');
-    }
+    _assertElement("aaa=").input.at("aaa', ");
+    _assertElement("bbb]=").input.at("bbb', ");
+    _assertElement("ccc=").input.at("ccc']");
   }
 
   void test_localVariable_camelCaseName() {
@@ -247,17 +204,12 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    {
-      ResolvedRange range = _findResolvedRange("myTargetElement)");
-      LocalVariable valueVariable =
-          assertLocalVariable(range, name: 'myTargetElement');
-      _assertHtmlElementAt(valueVariable, "myTargetElement>");
-    }
+    _assertElement("myTargetElement)").local.at("myTargetElement>");
   }
 
   void test_localVariable_exportAs() {
     _addDartSource(r'''
-@Directive(selector: '[my-directive]', exportAs: 'exportedValue')
+@Directive(selector: '[myDirective]', exportAs: 'exportedValue')
 class MyDirective {
   String aaa; // 1
 }
@@ -267,29 +219,16 @@ class MyDirective {
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
-<div my-directive #value='exportedValue'>
+<div myDirective #value='exportedValue'>
   {{value.aaa}}
 </div>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange declarationRange = _findResolvedRange("value=");
-      LocalVariable valueVariable = assertLocalVariable(declarationRange,
-          name: 'value', typeName: 'MyDirective');
-      _assertHtmlElementAt(valueVariable, "value=");
-      assertLocalVariableRef(_findResolvedRange("value.aaa"), valueVariable);
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("aaa}}");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'aaa; // 1');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("exportedValue'");
-      _assertDartAngularElementAt(resolvedRange.element, "exportedValue')");
-      expect(resolvedRange.element,
-          getDirectiveByClassName(directives, 'MyDirective').exportAs);
-    }
+    _assertElement("myDirective #").selector.at("myDirective]");
+    _assertElement("value=").local.declaration.type('MyDirective');
+    _assertElement("exportedValue'>").angular.at("exportedValue')");
+    _assertElement("value.aaa").local.at("value=");
+    _assertElement("aaa}}").dart.getter.at('aaa; // 1');
   }
 
   void test_localVariable_scope_forwardReference() {
@@ -317,12 +256,7 @@ class TestPanel {}
 </div>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange declarationRange = _findResolvedRange("handle'>");
-      LocalVariable valueVariable = assertLocalVariable(declarationRange,
-          name: 'handle', typeName: 'ComponentB');
-      _assertHtmlElementAt(valueVariable, "handle></");
-    }
+    _assertElement("handle'>").local.at("handle></bbb>").type('ComponentB');
   }
 
   void test_ngContent() {
@@ -357,11 +291,8 @@ class MyIterable<T> extends BaseIterable<T> {
 </li>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item.");
-      assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-    }
-    _findResolvedRange("length}}");
+    _assertElement("item.").local.at('item of').type('String');
+    _assertElement("length}}").dart.getter;
   }
 
   void test_ngFor_operatorLocalVariable() {
@@ -379,22 +310,10 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(template.ranges, hasLength(7));
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("ngFor=", _isSelectorName);
-      expect(resolvedRange.range.length, 'ngFor'.length);
-      SelectorName nameElement = resolvedRange.element;
-      expect(nameElement.name, 'ngFor');
-      expect(nameElement.source.fullName, endsWith('ng_for.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("operator of");
-      LocalVariable element = assertLocalVariable(resolvedRange,
-          name: 'operator', typeName: 'String');
-      _assertHtmlElementAt(element, "operator of");
-    }
+    _assertElement("ngFor=").selector.inFileName('ng_for.dart');
+    _assertElement("operator of").local.declaration.type('String');
+    _assertElement("length}}").dart.getter;
     errorListener.assertNoErrors();
-    _findResolvedRange("length}}");
   }
 
   void test_ngFor_star() {
@@ -412,51 +331,21 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(template.ranges, hasLength(10));
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("ngFor=", _isSelectorName);
-      expect(resolvedRange.range.length, 'ngFor'.length);
-      SelectorName nameElement = resolvedRange.element;
-      expect(nameElement.name, 'ngFor');
-      expect(nameElement.source.fullName, endsWith('ng_for.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item of");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item of");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i = index");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i = index");
-    }
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("of items", _isInputElement);
-      expect(resolvedRange.range.length, 'of'.length);
-      assertPropertyElement(resolvedRange.element,
-          nameMatcher: 'ngForOf', sourceMatcher: endsWith('ng_for.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("items;");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'items = [];');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i = index");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item of");
-    }
-    _findResolvedRange("length}}");
+    _assertElement("ngFor=").selector.inFileName('ng_for.dart');
+    _assertElement("item of").local.declaration.type('String');
+    _assertSelectorElement("of items")
+        .selector
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertInputElement("of items")
+        .input
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertElement("items;").dart.getter.at('items = []');
+    _assertElement("i = index").local.declaration.type('int');
+    _assertElement("i}}").local.at('i = index');
+    _assertElement("item.").local.at('item of');
+    _assertElement("length}}").dart.getter;
   }
 
   void test_ngFor_star_itemVisibleInElement() {
@@ -472,11 +361,7 @@ class TestPanel {
 </li>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item !=");
-      LocalVariable element = assertLocalVariable(resolvedRange);
-      _assertHtmlElementAt(element, "item of");
-    }
+    _assertElement("item != null").local.at('item of items');
   }
 
   void test_ngFor_templateAttribute() {
@@ -493,43 +378,21 @@ class TestPanel {
 </li>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item of");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item of");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i = index");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i = index");
-    }
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("of items", _isInputElement);
-      expect(resolvedRange.range.length, 'of'.length);
-      assertPropertyElement(resolvedRange.element,
-          nameMatcher: 'ngForOf', sourceMatcher: endsWith('ng_for.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("items;");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'items = [];');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i = index");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item of");
-    }
-    _findResolvedRange("length}}");
+    _assertElement("ngFor #").selector.inFileName('ng_for.dart');
+    _assertElement("item of").local.declaration.type('String');
+    _assertSelectorElement("of items")
+        .selector
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertInputElement("of items")
+        .input
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertElement("items;").dart.getter.at('items = []');
+    _assertElement("i = index").local.declaration.type('int');
+    _assertElement("i}}").local.at('i = index');
+    _assertElement("item.").local.at('item of');
+    _assertElement("length}}").dart.getter;
   }
 
   void test_ngFor_templateAttribute2() {
@@ -546,43 +409,21 @@ class TestPanel {
 </li>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item, of");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item, of");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i=index");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i=index");
-    }
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("of = items", _isInputElement);
-      expect(resolvedRange.range.length, 'of'.length);
-      assertPropertyElement(resolvedRange.element,
-          nameMatcher: 'ngForOf', sourceMatcher: endsWith('ng_for.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("items,");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'items = [];');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i=index");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item, of");
-    }
-    _findResolvedRange("length}}");
+    _assertElement("ngFor:").selector.inFileName('ng_for.dart');
+    _assertElement("item, of").local.declaration.type('String');
+    _assertSelectorElement("of = items,")
+        .selector
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertInputElement("of = items,")
+        .input
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertElement("items,").dart.getter.at('items = []');
+    _assertElement("i=index").local.declaration.type('int');
+    _assertElement("i}}").local.at('i=index');
+    _assertElement("item.").local.at('item, of');
+    _assertElement("length}}").dart.getter;
   }
 
   void test_ngFor_templateElement() {
@@ -599,42 +440,21 @@ class TestPanel {
 </template>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item [ngForOf");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item [ngForOf");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i='index'");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i='index'");
-    }
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("ngForOf]", _isInputElement);
-      assertPropertyElement(resolvedRange.element,
-          nameMatcher: 'ngForOf', sourceMatcher: endsWith('ng_for.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("items'");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'items = [];');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("i}}");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'i', typeName: 'int');
-      _assertHtmlElementAt(element, "i='index");
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("item.");
-      LocalVariable element =
-          assertLocalVariable(resolvedRange, name: 'item', typeName: 'String');
-      _assertHtmlElementAt(element, "item [");
-    }
-    _findResolvedRange("length}}");
+    _assertElement("ngFor #").selector.inFileName('ng_for.dart');
+    _assertElement("item [").local.declaration.type('String');
+    _assertSelectorElement("ngForOf]")
+        .selector
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertInputElement("ngForOf]")
+        .input
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertElement("items'").dart.getter.at('items = []');
+    _assertElement("i='index").local.declaration.type('int');
+    _assertElement("i}}").local.at("i='index");
+    _assertElement("item.").local.at('item [');
+    _assertElement("length}}").dart.getter;
   }
 
   void test_ngIf_star() {
@@ -649,23 +469,10 @@ class TestPanel {
 <span *ngIf='text.length != 0'>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange('ngIf=', _isInputElement);
-      expect(resolvedRange.range.length, 'ngIf'.length);
-      assertPropertyElement(resolvedRange.element,
-          nameMatcher: 'ngIf', sourceMatcher: endsWith('ng_if.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('text.length');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'text; // 1');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('length != 0');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      expect(element.source.isInSystemLibrary, isTrue);
-    }
+    _assertSelectorElement("ngIf=").selector.inFileName('ng_if.dart');
+    _assertInputElement("ngIf=").input.inFileName('ng_if.dart');
+    _assertElement("text.").dart.getter.at('text; // 1');
+    _assertElement("length != 0").dart.getter;
   }
 
   void test_ngIf_templateAttribute() {
@@ -680,23 +487,10 @@ class TestPanel {
 <span template='ngIf text.length != 0'>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange('ngIf text', _isInputElement);
-      expect(resolvedRange.range.length, 'ngIf'.length);
-      assertPropertyElement(resolvedRange.element,
-          nameMatcher: 'ngIf', sourceMatcher: endsWith('ng_if.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('text.length');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'text; // 1');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('length != 0');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      expect(element.source.isInSystemLibrary, isTrue);
-    }
+    _assertSelectorElement("ngIf text").selector.inFileName('ng_if.dart');
+    _assertInputElement("ngIf text").input.inFileName('ng_if.dart');
+    _assertElement("text.").dart.getter.at('text; // 1');
+    _assertElement("length != 0").dart.getter;
   }
 
   void test_ngIf_templateElement() {
@@ -711,28 +505,10 @@ class TestPanel {
 <template [ngIf]='text.length != 0'></template>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("ngIf]", _isSelectorName);
-      expect(resolvedRange.range.length, 'ngIf'.length);
-      SelectorName nameElement = resolvedRange.element;
-      expect(nameElement.name, 'ngIf');
-      expect(nameElement.source.fullName, endsWith('ng_if.dart'));
-    }
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange("ngIf]", _isInputElement);
-      expect(resolvedRange.range.length, 'ngIf'.length);
-      InputElement inputElement = resolvedRange.element;
-      expect(inputElement.name, 'ngIf');
-      expect(inputElement.source.fullName, endsWith('ng_if.dart'));
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange("text.length");
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'text; // 1');
-    }
-    _findResolvedRange("length !=");
+    _assertSelectorElement("ngIf]").selector.inFileName('ng_if.dart');
+    _assertInputElement("ngIf]").input.inFileName('ng_if.dart');
+    _assertElement("text.").dart.getter.at('text; // 1');
+    _assertElement("length != 0").dart.getter;
   }
 
   void test_standardHtmlComponent() {
@@ -793,16 +569,8 @@ class TestPanel {
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2));
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('aaa}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'aaa; // 1');
-    }
-    {
-      ResolvedRange resolvedRange = _findResolvedRange('bbb}}');
-      PropertyAccessorElement element = assertGetter(resolvedRange);
-      _assertDartElementAt(element, 'bbb; // 2');
-    }
+    _assertElement('aaa}}').dart.getter.at('aaa; // 1');
+    _assertElement('bbb}}').dart.getter.at('bbb; // 2');
   }
 
   void _addDartSource(String code) {
@@ -818,25 +586,19 @@ $code
     htmlSource = newSource('/test_panel.html', htmlCode);
   }
 
-  void _assertDartAngularElementAt(AngularElement element, String search) {
-    expect(element.nameOffset, dartCode.indexOf(search));
-    expect(element.source, dartSource);
+  ElementAssert _assertElement(String atString,
+      [ResolvedRangeCondition condition]) {
+    ResolvedRange resolvedRange = _findResolvedRange(atString, condition);
+    return new ElementAssert(context, dartCode, dartSource, htmlCode,
+        htmlSource, resolvedRange.element, resolvedRange.range.offset);
   }
 
-  void _assertDartElementAt(Element element, String search) {
-    expect(element.nameOffset, dartCode.indexOf(search));
-    expect(element.source, dartSource);
+  ElementAssert _assertInputElement(String atString) {
+    return _assertElement(atString, _isInputElement);
   }
 
-  void _assertHtmlElementAt(LocalVariable element, String search) {
-    expect(element.nameOffset, htmlCode.indexOf(search));
-    expect(element.source, htmlSource);
-  }
-
-  ElementAssert _assertElement(String atString) {
-    ResolvedRange range = _findResolvedRange(atString);
-    return new ElementAssert(
-        context, dartCode, dartSource, htmlCode, htmlSource, range.element);
+  ElementAssert _assertSelectorElement(String atString) {
+    return _assertElement(atString, _isSelectorName);
   }
 
   /**
@@ -863,11 +625,11 @@ $code
     fillErrorListener(HTML_TEMPLATE_ERRORS);
   }
 
-  static _isInputElement(ResolvedRange region) {
+  static bool _isInputElement(ResolvedRange region) {
     return region.element is InputElement;
   }
 
-  static _isSelectorName(ResolvedRange region) {
+  static bool _isSelectorName(ResolvedRange region) {
     return region.element is SelectorName;
   }
 }

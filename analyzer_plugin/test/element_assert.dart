@@ -23,13 +23,26 @@ class AngularElementAssert extends _AbstractElementAssert {
     _at(element.nameOffset, search);
     return this;
   }
+
+  AngularElementAssert inFileName(String expectedName) {
+    expect(element.source.fullName, endsWith(expectedName));
+    _source = element.source;
+    _code = null;
+    return this;
+  }
+
+  AngularElementAssert name(String expectedName) {
+    expect(element.name, expectedName);
+    return this;
+  }
 }
 
 class DartElementAssert extends _AbstractElementAssert {
   final Element element;
 
-  DartElementAssert(AnalysisContext context, this.element, Source source)
-      : super(context, source);
+  DartElementAssert(
+      AnalysisContext context, this.element, Source source, String code)
+      : super(context, source, code);
 
   DartElementAssert get getter {
     expect(element.kind, ElementKind.GETTER);
@@ -53,71 +66,90 @@ class DartElementAssert extends _AbstractElementAssert {
 }
 
 class ElementAssert {
-  final AnalysisContext context;
-  final String dartCode;
-  final Source dartSource;
-  final String htmlCode;
-  final Source htmlSource;
+  final AnalysisContext _context;
+  final String _dartCode;
+  final Source _dartSource;
+  final String _htmlCode;
+  final Source _htmlSource;
   final AngularElement element;
+  final int _referenceOffset;
 
-  ElementAssert(this.context, this.dartCode, this.dartSource, this.htmlCode,
-      this.htmlSource, this.element);
+  ElementAssert(this._context, this._dartCode, this._dartSource, this._htmlCode,
+      this._htmlSource, this.element, this._referenceOffset);
 
   AngularElementAssert get angular {
     expect(element, new isInstanceOf<AngularElement>());
-    return new AngularElementAssert(context, element, dartSource);
+    return new AngularElementAssert(_context, element, _dartSource);
   }
 
   DartElementAssert get dart {
     expect(element, new isInstanceOf<DartElement>());
     DartElement dartElement = element;
-    return new DartElementAssert(context, dartElement.element, dartSource);
+    return new DartElementAssert(
+        _context, dartElement.element, _dartSource, _dartCode);
+  }
+
+  AngularElementAssert get input {
+    expect(element, new isInstanceOf<InputElement>());
+    return new AngularElementAssert(_context, element, _dartSource);
   }
 
   LocalVariableAssert get local {
     expect(element, new isInstanceOf<LocalVariable>());
-    return new LocalVariableAssert(context, element, htmlSource, htmlCode);
+    return new LocalVariableAssert(
+        _context, element, _referenceOffset, _htmlSource, _htmlCode);
   }
 
   AngularElementAssert get selector {
     expect(element, new isInstanceOf<SelectorName>());
-    return new AngularElementAssert(context, element, dartSource);
+    return new AngularElementAssert(_context, element, _dartSource);
   }
 }
 
 class LocalVariableAssert extends _AbstractElementAssert {
   final LocalVariable variable;
+  final int _referenceOffset;
 
-  LocalVariableAssert(AnalysisContext context, this.variable, Source htmlSource,
-      String htmlCode)
+  LocalVariableAssert(AnalysisContext context, this.variable,
+      this._referenceOffset, Source htmlSource, String htmlCode)
       : super(context, htmlSource, htmlCode);
+
+  LocalVariableAssert get declaration {
+    expect(variable.nameOffset, _referenceOffset);
+    return this;
+  }
 
   LocalVariableAssert at(String search) {
     _at(variable.nameOffset, search);
     return this;
   }
+
+  LocalVariableAssert type(String expectedTypeName) {
+    expect(variable.dartVariable.type.displayName, expectedTypeName);
+    return this;
+  }
 }
 
 class _AbstractElementAssert {
-  final AnalysisContext context;
-  Source source;
-  String code;
+  final AnalysisContext _context;
+  Source _source;
+  String _code;
 
-  _AbstractElementAssert(this.context, [this.source, this.code]);
+  _AbstractElementAssert(this._context, [this._source, this._code]);
 
   void _at(int actualOffset, String search) {
-    if (code == null) {
-      code = context.getContents(source).data;
+    if (_code == null) {
+      _code = _context.getContents(_source).data;
     }
-    int offset = code.indexOf(search);
-    expect(offset, isNonNegative, reason: "|$search| in |$code|");
+    int offset = _code.indexOf(search);
+    expect(offset, isNonNegative, reason: "|$search| in |$_code|");
     expect(actualOffset, offset);
   }
 
   void _inCoreHtml(Source actualSource) {
-    Source htmlLibrarySource = context.sourceFactory.forUri('dart:html');
+    Source htmlLibrarySource = _context.sourceFactory.forUri('dart:html');
     expect(actualSource, htmlLibrarySource);
-    source = htmlLibrarySource;
-    code = null;
+    _source = htmlLibrarySource;
+    _code = null;
   }
 }

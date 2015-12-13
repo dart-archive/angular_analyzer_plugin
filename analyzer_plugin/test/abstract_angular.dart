@@ -15,7 +15,6 @@ import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/plugin.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/resolver.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
 import 'package:plugin/manager.dart';
@@ -32,50 +31,11 @@ void assertComponentReference(
   expect(resolvedRange.range.length, selector.nameElement.name.length);
 }
 
-void assertDartElement(ResolvedRange resolvedRange, Element expected) {
-  AngularElement angularElement = resolvedRange.element;
-  Element dartElement = (angularElement as DartElement).element;
-  expect(dartElement, expected);
-}
-
 PropertyAccessorElement assertGetter(ResolvedRange resolvedRange) {
   PropertyAccessorElement element =
       (resolvedRange.element as DartElement).element;
   expect(element.isGetter, isTrue);
   return element;
-}
-
-void assertInterfaceTypeWithName(DartType type, String name) {
-  expect(type, new isInstanceOf<InterfaceType>());
-  expect(type.displayName, name);
-}
-
-LocalVariable assertLocalVariable(ResolvedRange resolvedRange,
-    {String name, String typeName}) {
-  LocalVariable localVariable = resolvedRange.element;
-  LocalVariableElement dartVariable = localVariable.dartVariable;
-  if (name != null) {
-    expect(localVariable.name, name);
-    expect(dartVariable.name, name);
-  }
-  if (typeName != null) {
-    assertInterfaceTypeWithName(dartVariable.type, typeName);
-  }
-  return localVariable;
-}
-
-void assertLocalVariableRef(
-    ResolvedRange resolvedRange, LocalVariable expectedLocalVariable) {
-  expect(resolvedRange.element, new isInstanceOf<LocalVariable>());
-  expect(resolvedRange.element, same(expectedLocalVariable));
-}
-
-MethodElement assertMethod(ResolvedRange resolvedRange) {
-  AngularElement element = resolvedRange.element;
-  expect(element, new isInstanceOf<DartElement>());
-  Element dartElement = (element as DartElement).element;
-  expect(dartElement, new isInstanceOf<MethodElement>());
-  return dartElement;
 }
 
 void assertPropertyReference(
@@ -88,13 +48,6 @@ void assertPropertyReference(
     }
   }
   fail('Expected input "$name", but ${element} found.');
-}
-
-PropertyAccessorElement assertSetter(ResolvedRange resolvedRange) {
-  PropertyAccessorElement element =
-      (resolvedRange.element as DartElement).element;
-  expect(element.isSetter, isTrue);
-  return element;
 }
 
 Component getComponentByClassName(
