@@ -7,6 +7,7 @@ import 'package:analyzer/src/generated/engine.dart'
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
+import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
@@ -18,12 +19,64 @@ import 'abstract_angular.dart';
 
 main() {
   groupSep = ' | ';
+  defineReflectiveTests(BuildStandardHtmlComponentsTaskTest);
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
   defineReflectiveTests(ComputeDirectivesInLibraryTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplateTaskTest);
+}
+
+@reflectiveTest
+class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
+  void test_perform() {
+    computeResult(AnalysisContextTarget.request, STANDARD_HTML_COMPONENTS);
+    expect(task, new isInstanceOf<BuildStandardHtmlComponentsTask>());
+    // validate
+    Map<String, Component> map = outputs[STANDARD_HTML_COMPONENTS];
+    expect(map, isNotNull);
+    // a
+    {
+      Component component = map['a'];
+      expect(component, isNotNull);
+      expect(component.classElement.displayName, 'AnchorElement');
+      expect(component.selector.toString(), 'a');
+      List<InputElement> inputs = component.inputs;
+      {
+        InputElement input = inputs.singleWhere((i) => i.name == 'href');
+        expect(input, isNotNull);
+        expect(input.setter, isNotNull);
+      }
+      {
+        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
+        expect(input, isNotNull);
+        expect(input.setter, isNotNull);
+      }
+    }
+    // button
+    {
+      Component component = map['button'];
+      expect(component, isNotNull);
+      expect(component.classElement.displayName, 'ButtonElement');
+      expect(component.selector.toString(), 'button');
+      List<InputElement> inputs = component.inputs;
+      {
+        InputElement input = inputs.singleWhere((i) => i.name == 'autofocus');
+        expect(input, isNotNull);
+        expect(input.setter, isNotNull);
+      }
+      {
+        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
+        expect(input, isNotNull);
+        expect(input.setter, isNotNull);
+      }
+    }
+    // h1, h2, h3
+    expect(map['h1'], isNotNull);
+    expect(map['h2'], isNotNull);
+    expect(map['h3'], isNotNull);
+  }
 }
 
 @reflectiveTest

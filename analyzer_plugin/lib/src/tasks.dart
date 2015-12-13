@@ -8,6 +8,7 @@ import 'package:analyzer/src/generated/engine.dart'
     hide AnalysisCache, AnalysisTask;
 import 'package:analyzer/src/generated/error.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
+import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/src/task/general.dart';
@@ -86,6 +87,13 @@ final ListResultDescriptor<AnalysisError> HTML_TEMPLATES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_HTML_TEMPLATES_ERRORS', AnalysisError.NO_ERRORS);
 
+/// The map from standard HTML tags to [Component]s.
+///
+/// This result is produced for the [AnalysisContext].
+final ResultDescriptor<Map<String, Component>> STANDARD_HTML_COMPONENTS =
+    new ResultDescriptor(
+        'ANGULAR_STANDARD_HTML_COMPONENTS', const <String, Component>{});
+
 /// The [View]s with this HTML template file.
 ///
 /// The result is only available for HTML [Source]s.
@@ -111,6 +119,73 @@ final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
 final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
     new ListResultDescriptor<View>(
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
+
+/**
+ * A task that builds [STANDARD_HTML_COMPONENTS].
+ */
+class BuildStandardHtmlComponentsTask extends AnalysisTask {
+  static const String UNITS = 'UNITS';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'BuildStandardHtmlComponentsTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[STANDARD_HTML_COMPONENTS]);
+
+  BuildStandardHtmlComponentsTask(
+      AnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  String get description {
+    return '${descriptor.name} for $target';
+  }
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  void internalPerform() {
+    //
+    // Prepare inputs.
+    //
+    List<ast.CompilationUnit> units = getRequiredInput(UNITS);
+    //
+    // Build components in each unit.
+    //
+    Map<String, Component> components = <String, Component>{};
+    for (ast.CompilationUnit unit in units) {
+      Source source = unit.element.source;
+      unit.accept(new _BuildStandardHtmlComponentsVisitor(components, source));
+    }
+    //
+    // Record outputs.
+    //
+    outputs[STANDARD_HTML_COMPONENTS] = components;
+  }
+
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
+    AnalysisContextTarget contextTarget = target;
+    SourceFactory sourceFactory = contextTarget.context.sourceFactory;
+    Source htmlSource = sourceFactory.forUri(DartSdk.DART_HTML);
+    return <String, TaskInput>{
+      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT3),
+    };
+  }
+
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
+  static BuildStandardHtmlComponentsTask createTask(
+      AnalysisContext context, AnalysisContextTarget target) {
+    return new BuildStandardHtmlComponentsTask(context, target);
+  }
+}
 
 /// A task that builds [AbstractDirective]s of a [CompilationUnit].
 class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
@@ -961,5 +1036,81 @@ class _AnnotationProcessorMixin {
           clazz.name == name;
     }
     return false;
+  }
+}
+
+class _BuildStandardHtmlComponentsVisitor extends ast.RecursiveAstVisitor {
+  final Map<String, Component> components;
+  final Source source;
+
+  ClassElement classElement;
+
+  _BuildStandardHtmlComponentsVisitor(this.components, this.source);
+
+  @override
+  void visitClassDeclaration(ast.ClassDeclaration node) {
+    classElement = node.element;
+    super.visitClassDeclaration(node);
+    classElement = null;
+  }
+
+  @override
+  void visitConstructorDeclaration(ast.ConstructorDeclaration node) {
+    if (node.factoryKeyword != null) {
+      super.visitConstructorDeclaration(node);
+    }
+  }
+
+  @override
+  void visitMethodInvocation(ast.MethodInvocation node) {
+    ast.Expression target = node.target;
+    ast.ArgumentList argumentList = node.argumentList;
+    if (target is ast.SimpleIdentifier &&
+        target.name == 'document' &&
+        node.methodName.name == 'createElement' &&
+        argumentList != null &&
+        argumentList.arguments.length == 1) {
+      ast.Expression argument = argumentList.arguments.single;
+      if (argument is ast.SimpleStringLiteral) {
+        String tag = argument.value;
+        int tagOffset = argument.contentsOffset;
+        Component component = _buildComponent(tag, tagOffset);
+        components[tag] = component;
+      }
+    }
+  }
+
+  /**
+   * Return a new [Component] for the current [classElement].
+   */
+  Component _buildComponent(String tag, int tagOffset) {
+    List<InputElement> inputs = _buildInputs();
+    return new Component(classElement,
+        inputs: inputs,
+        selector: new ElementNameSelector(
+            new AngularElementImpl(tag, tagOffset, tag.length, source)));
+  }
+
+  List<InputElement> _buildInputs() {
+    Map<String, InputElement> inputMap = <String, InputElement>{};
+    Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
+    void addInput(PropertyAccessorElement accessor) {
+      String name = accessor.displayName;
+      if (!inputMap.containsKey(name)) {
+        if (accessor.isSetter) {
+          inputMap[name] = new InputElement(name, accessor.nameOffset,
+              accessor.nameLength, accessor.source, accessor, null);
+        }
+      }
+    }
+    void addInputs(InterfaceType type) {
+      if (type != null && visitedTypes.add(type)) {
+        type.accessors.forEach(addInput);
+        type.mixins.forEach(addInputs);
+        addInputs(type.superclass);
+      }
+    }
+    addInputs(classElement.type);
+    return inputMap.values.toList();
   }
 }

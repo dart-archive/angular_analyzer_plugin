@@ -229,6 +229,31 @@ class TestPanel {}
     }
   }
 
+  void test_localVariable_camelCaseName() {
+    _addDartSource(r'''
+import 'dart:html';
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleKeyUp(Element e) {}
+}
+''');
+    _addHtmlSource(r"""
+<div (keyup)='handleKeyUp(myTargetElement)'>
+  <div #myTargetElement></div>
+</div>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    {
+      ResolvedRange range = _findResolvedRange("myTargetElement)");
+      LocalVariable valueVariable =
+          assertLocalVariable(range, name: 'myTargetElement');
+      _assertHtmlElementAt(valueVariable, "myTargetElement>");
+    }
+  }
+
   void test_localVariable_exportAs() {
     _addDartSource(r'''
 @Directive(selector: '[my-directive]', exportAs: 'exportedValue')
@@ -263,31 +288,6 @@ class TestPanel {}
       _assertDartAngularElementAt(resolvedRange.element, "exportedValue')");
       expect(resolvedRange.element,
           getDirectiveByClassName(directives, 'MyDirective').exportAs);
-    }
-  }
-
-  void test_localVariable_nameFromAttributeName() {
-    _addDartSource(r'''
-import 'dart:html';
-
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
-class TestPanel {
-  void handleKeyUp(Element e) {}
-}
-''');
-    _addHtmlSource(r"""
-<div (keyup)='handleKeyUp(myTargetElement)'>
-  <div #myTargetElement></div>
-</div>
-""");
-    _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
-    {
-      ResolvedRange range = _findResolvedRange("myTargetElement)");
-      LocalVariable valueVariable =
-          assertLocalVariable(range, name: 'myTargetElement');
-      _assertHtmlElementAt(valueVariable, "myTargetElement>");
     }
   }
 

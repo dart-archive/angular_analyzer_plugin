@@ -169,7 +169,39 @@ class Random {
       '/lib/html/dartium/html_dartium.dart',
       '''
 library dart.html;
-class HtmlElement {}
+import 'dart:async';
+
+class Event {}
+
+abstract class ElementStream<T extends Event> implements Stream<T> {}
+
+class HtmlElement {
+  int tabIndex;
+  ElementStream<Event> get onChange => null;
+  ElementStream<MouseEvent> get onClick => null;
+}
+
+class AnchorElement extends HtmlElement {
+  factory AnchorElement({String href}) {
+    var e = document.createElement("a");
+    if (href != null) e.href = href;
+    return e;
+  }
+  String href;
+}
+
+class ButtonElement extends HtmlElement {
+  factory ButtonElement._() { throw new UnsupportedError("Not supported"); }
+  factory ButtonElement() => document.createElement("button");
+  bool autofocus;
+}
+
+class HeadingElement extends HtmlElement {
+  factory HeadingElement._() { throw new UnsupportedError("Not supported"); }
+  factory HeadingElement.h1() => document.createElement("h1");
+  factory HeadingElement.h2() => document.createElement("h2");
+  factory HeadingElement.h3() => document.createElement("h3");
+}
 ''');
 
   static const List<SdkLibrary> LIBRARIES = const [
