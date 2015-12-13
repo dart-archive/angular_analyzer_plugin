@@ -67,10 +67,12 @@ class AttributeInfo {
 /// [DartTemplateResolver]s resolve inline [View] templates.
 class DartTemplateResolver {
   final TypeProvider typeProvider;
+  final List<Component> standardHtmlComponents;
   final AnalysisErrorListener errorListener;
   final View view;
 
-  DartTemplateResolver(this.typeProvider, this.errorListener, this.view);
+  DartTemplateResolver(this.typeProvider, this.standardHtmlComponents,
+      this.errorListener, this.view);
 
   Template resolve() {
     String templateText = view.templateText;
@@ -90,7 +92,8 @@ class DartTemplateResolver {
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
     view.template = template;
-    new TemplateResolver(typeProvider, errorListener).resolve(template);
+    new TemplateResolver(typeProvider, standardHtmlComponents, errorListener)
+        .resolve(template);
     return template;
   }
 
@@ -199,18 +202,20 @@ class ElementViewImpl implements ElementView {
 /// [HtmlTemplateResolver]s resolve templates in separate Html files.
 class HtmlTemplateResolver {
   final TypeProvider typeProvider;
+  final List<Component> standardHtmlComponents;
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
 
-  HtmlTemplateResolver(
-      this.typeProvider, this.errorListener, this.view, this.document);
+  HtmlTemplateResolver(this.typeProvider, this.standardHtmlComponents,
+      this.errorListener, this.view, this.document);
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
         new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
     view.template = template;
-    new TemplateResolver(typeProvider, errorListener).resolve(template);
+    new TemplateResolver(typeProvider, standardHtmlComponents, errorListener)
+        .resolve(template);
     return template;
   }
 }
@@ -359,12 +364,14 @@ class NodeInfo {
 /// [TemplateResolver]s resolve [Template]s.
 class TemplateResolver {
   final TypeProvider typeProvider;
+  final List<Component> standardHtmlComponents;
   final AnalysisErrorListener errorListener;
 
   Template template;
   View view;
   Source templateSource;
   ErrorReporter errorReporter;
+  List<AbstractDirective> allDirectives;
 
   CompilationUnitElementImpl htmlCompilationUnitElement;
   ClassElementImpl htmlClassElement;
@@ -394,13 +401,17 @@ class TemplateResolver {
   Map<LocalVariableElement, LocalVariable> dartVariables =
       new HashMap<LocalVariableElement, LocalVariable>();
 
-  TemplateResolver(this.typeProvider, this.errorListener);
+  TemplateResolver(
+      this.typeProvider, this.standardHtmlComponents, this.errorListener);
 
   void resolve(Template template) {
     this.template = template;
     this.view = template.view;
     this.templateSource = view.templateSource;
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
+    this.allDirectives = <AbstractDirective>[]
+      ..addAll(standardHtmlComponents)
+      ..addAll(view.directives);
     ElementInfo root = new HtmlTreeConverter().convert(template.element);
     _resolveElement(root);
   }
@@ -733,7 +744,7 @@ class TemplateResolver {
       bool tagIsStandard = _isStandardTagName(node.localName);
       bool tagIsResolved = false;
       ElementView elementView = new ElementViewImpl(node.attributes, node);
-      for (AbstractDirective directive in view.directives) {
+      for (AbstractDirective directive in allDirectives) {
         Selector selector = directive.selector;
         if (selector.match(elementView, template)) {
           if (selector is ElementNameSelector) {
@@ -846,7 +857,7 @@ class TemplateResolver {
     }
     // match directives
     ElementView elementView = new ElementViewImpl(attributes, null);
-    for (AbstractDirective directive in view.directives) {
+    for (AbstractDirective directive in allDirectives) {
       if (directive.selector.match(elementView, template)) {
         _defineDirectiveVariables(attributes, directive);
         _defineLocalVariablesForAttributes(attributes);

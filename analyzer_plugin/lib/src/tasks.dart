@@ -87,12 +87,12 @@ final ListResultDescriptor<AnalysisError> HTML_TEMPLATES_ERRORS =
     new ListResultDescriptor<AnalysisError>(
         'ANGULAR_HTML_TEMPLATES_ERRORS', AnalysisError.NO_ERRORS);
 
-/// The map from standard HTML tags to [Component]s.
+/// The standard HTML [Component]s.
 ///
 /// This result is produced for the [AnalysisContext].
-final ResultDescriptor<Map<String, Component>> STANDARD_HTML_COMPONENTS =
-    new ResultDescriptor(
-        'ANGULAR_STANDARD_HTML_COMPONENTS', const <String, Component>{});
+final ListResultDescriptor<Component> STANDARD_HTML_COMPONENTS =
+    new ListResultDescriptor(
+        'ANGULAR_STANDARD_HTML_COMPONENTS', const <Component>[]);
 
 /// The [View]s with this HTML template file.
 ///
@@ -161,7 +161,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     //
     // Record outputs.
     //
-    outputs[STANDARD_HTML_COMPONENTS] = components;
+    outputs[STANDARD_HTML_COMPONENTS] = components.values.toList();
   }
 
   /**
@@ -804,6 +804,7 @@ class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
 /// A task that builds [Template]s of a [LibrarySpecificUnit].
 class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
+  static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
   static const String VIEWS_INPUT = 'VIEWS_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -826,6 +827,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     // Prepare inputs.
     //
     TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
+    List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
     List<View> views = getRequiredInput(VIEWS_INPUT);
     //
     // Resolve inline view templates.
@@ -833,9 +835,9 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     List<Template> templates = <Template>[];
     for (View view in views) {
       if (view.templateText != null) {
-        Template template =
-            new DartTemplateResolver(typeProvider, errorListener, view)
-                .resolve();
+        Template template = new DartTemplateResolver(
+                typeProvider, htmlComponents, errorListener, view)
+            .resolve();
         if (template != null) {
           templates.add(template);
         }
@@ -854,6 +856,8 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
+      HTML_COMPONENTS_INPUT:
+          STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
       VIEWS_INPUT: VIEWS.of(target),
     };
   }
@@ -918,6 +922,7 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
 /// A task that resolves an [HtmlTemplate] of a [View].
 class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
+  static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
   static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -949,14 +954,15 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     // Prepare inputs.
     //
     TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
+    List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
     //
     // Resolve.
     //
     View view = target;
-    Template template =
-        new HtmlTemplateResolver(typeProvider, errorListener, view, document)
-            .resolve();
+    Template template = new HtmlTemplateResolver(
+            typeProvider, htmlComponents, errorListener, view, document)
+        .resolve();
     //
     // Record outputs.
     //
@@ -970,6 +976,8 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static Map<String, TaskInput> buildInputs(View target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
+      HTML_COMPONENTS_INPUT:
+          STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
       HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateUriSource),
     };
   }
@@ -1088,7 +1096,7 @@ class _BuildStandardHtmlComponentsVisitor extends ast.RecursiveAstVisitor {
     return new Component(classElement,
         inputs: inputs,
         selector: new ElementNameSelector(
-            new AngularElementImpl(tag, tagOffset, tag.length, source)));
+            new SelectorName(tag, tagOffset, tag.length, source)));
   }
 
   List<InputElement> _buildInputs() {

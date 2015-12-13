@@ -34,7 +34,11 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     computeResult(AnalysisContextTarget.request, STANDARD_HTML_COMPONENTS);
     expect(task, new isInstanceOf<BuildStandardHtmlComponentsTask>());
     // validate
-    Map<String, Component> map = outputs[STANDARD_HTML_COMPONENTS];
+    List<Component> components = outputs[STANDARD_HTML_COMPONENTS];
+    Map<String, Component> map = {};
+    components.forEach((c) {
+      map[c.selector.toString()] = c;
+    });
     expect(map, isNotNull);
     // a
     {
@@ -965,7 +969,7 @@ class TodoList {
     {
       Template template = _getDartTemplateByClassName(templates, 'TodoList');
       List<ResolvedRange> ranges = template.ranges;
-      expect(ranges, hasLength(2));
+      expect(ranges, hasLength(3));
       {
         ResolvedRange resolvedRange =
             getResolvedRangeAtString(code, ranges, r'doneTyping($');
@@ -1178,7 +1182,7 @@ class TextPanel {
     {
       Template template = _getDartTemplateByClassName(templates, 'TextPanel');
       List<ResolvedRange> ranges = template.ranges;
-      expect(ranges, hasLength(3));
+      expect(ranges, hasLength(5));
       {
         ResolvedRange resolvedRange =
             getResolvedRangeAtString(code, ranges, 'text}}');

@@ -202,6 +202,13 @@ class HeadingElement extends HtmlElement {
   factory HeadingElement.h2() => document.createElement("h2");
   factory HeadingElement.h3() => document.createElement("h3");
 }
+
+class InputElement extends HtmlElement {
+  factory InputElement._() { throw new UnsupportedError("Not supported"); }
+  factory InputElement() => document.createElement("input");
+  String value;
+  String validationMessage;
+}
 ''');
 
   static const List<SdkLibrary> LIBRARIES = const [

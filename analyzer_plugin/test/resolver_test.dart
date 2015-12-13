@@ -10,6 +10,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
 import 'abstract_angular.dart';
+import 'element_assert.dart';
 
 main() {
   groupSep = ' | ';
@@ -734,6 +735,30 @@ class TestPanel {
     _findResolvedRange("length !=");
   }
 
+  void test_standardHtmlComponent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void inputChange(String value, String validationMessage) {}
+}
+''');
+    _addHtmlSource(r"""
+<input #inputEl M
+       (change)='inputChange(inputEl.value, inputEl.validationMessage)'>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('input #').selector.inCoreHtml.at('input");');
+    _assertElement('inputEl M').local.at('inputEl M');
+    _assertElement('inputChange(inputEl').dart.method.at('inputChange(Str');
+    _assertElement('inputEl.value').local.at('inputEl M');
+    _assertElement('value, ').dart.getter.inCoreHtml;
+    _assertElement('inputEl.validationMessage').local.at('inputEl M');
+    _assertElement('validationMessage)').dart.getter.inCoreHtml;
+    errorListener.assertNoErrors();
+    expect(ranges, hasLength(7));
+  }
+
   void test_template_attribute_withoutValue() {
     _addDartSource(r'''
 @Directive(selector: '[deferred-content]')
@@ -749,14 +774,7 @@ class TestPanel {}
 <div *deferred-content>Deferred content</div>
 """);
     _resolveSingleTemplate(dartSource);
-    {
-      ResolvedRange resolvedRange =
-          _findResolvedRange('deferred-content>', _isSelectorName);
-      expect(resolvedRange.range.length, 'deferred-content'.length);
-      SelectorName nameElement = resolvedRange.element;
-      expect(nameElement.name, 'deferred-content');
-      expect(nameElement.source.fullName, endsWith('test_panel.dart'));
-    }
+    _assertElement('deferred-content>').selector.at("deferred-content]')");
   }
 
   void test_textInterpolation() {
@@ -813,6 +831,12 @@ $code
   void _assertHtmlElementAt(LocalVariable element, String search) {
     expect(element.nameOffset, htmlCode.indexOf(search));
     expect(element.source, htmlSource);
+  }
+
+  ElementAssert _assertElement(String atString) {
+    ResolvedRange range = _findResolvedRange(atString);
+    return new ElementAssert(
+        context, dartCode, dartSource, htmlCode, htmlSource, range.element);
   }
 
   /**
