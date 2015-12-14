@@ -132,7 +132,9 @@ class ElementNameSelector implements Selector {
       return true;
     }
     // record resolution
-    template.addRange(element.openingNameSpan, nameElement);
+    if (element.openingNameSpan != null) {
+      template.addRange(element.openingNameSpan, nameElement);
+    }
     if (element.closingNameSpan != null) {
       template.addRange(element.closingNameSpan, nameElement);
     }

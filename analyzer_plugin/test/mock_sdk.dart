@@ -190,6 +190,10 @@ class AnchorElement extends HtmlElement {
   String href;
 }
 
+class BodyElement extends HtmlElement {
+  factory BodyElement() => document.createElement("body");
+}
+
 class ButtonElement extends HtmlElement {
   factory ButtonElement._() { throw new UnsupportedError("Not supported"); }
   factory ButtonElement() => document.createElement("button");
