@@ -1,10 +1,10 @@
 library angular2.src.analysis.analyzer_plugin.src.tasks_test;
 
 import 'package:analyzer/src/context/cache.dart';
-import 'package:analyzer/src/generated/element.dart';
-import 'package:analyzer/src/generated/engine.dart'
-    show AnalysisEngine, ChangeSet;
-import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/src/generated/engine.dart' show ChangeSet;
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
@@ -1319,10 +1319,7 @@ class TextPanel {}
     for (int i = 0; i < maxIterations; i++) {
       var notice = context.performAnalysisTask().changeNotices;
       if (notice == null) {
-        bool inconsistent = context.validateCacheConsistency();
-        if (!inconsistent) {
-          return;
-        }
+        return;
       }
     }
     fail("performAnalysisTask failed to terminate after analyzing all sources");

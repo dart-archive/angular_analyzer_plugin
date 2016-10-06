@@ -1,15 +1,9 @@
 library angular2.src.analysis.analyzer_plugin.src.angular_work_manager;
 
+import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/generated/engine.dart'
-    show
-        AnalysisEngine,
-        AnalysisErrorInfo,
-        AnalysisErrorInfoImpl,
-        AnalysisOptions,
-        CacheState,
-        InternalAnalysisContext;
-import 'package:analyzer/src/generated/error.dart';
+    show AnalysisEngine, CacheState, InternalAnalysisContext;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';

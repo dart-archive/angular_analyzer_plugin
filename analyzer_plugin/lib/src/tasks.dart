@@ -1,12 +1,16 @@
 library angular2.src.analysis.analyzer_plugin.src.tasks;
 
 import 'package:analyzer/src/context/cache.dart';
-import 'package:analyzer/src/generated/ast.dart' as ast;
+import 'package:analyzer/dart/ast/ast.dart' as ast;
+import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/src/generated/constant.dart';
-import 'package:analyzer/src/generated/element.dart';
-import 'package:analyzer/src/generated/engine.dart'
-    hide AnalysisCache, AnalysisTask;
-import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -819,6 +823,7 @@ class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
         }
       }
     }
+
     importedLibraries.forEach(addDirectivesOfLibrary);
     exportedLibraries.forEach(addDirectivesOfLibrary);
     //
@@ -1067,7 +1072,8 @@ class _AnnotationProcessorMixin {
   /**
    * The evaluator of constant values, such as annotation arguments.
    */
-  final ast.ConstantEvaluator _constantEvaluator = new ast.ConstantEvaluator();
+  final utils.ConstantEvaluator _constantEvaluator =
+      new utils.ConstantEvaluator();
 
   /**
    * Initialize the processor working in the given [target].
@@ -1127,7 +1133,7 @@ class _AnnotationProcessorMixin {
   }
 }
 
-class _BuildStandardHtmlComponentsVisitor extends ast.RecursiveAstVisitor {
+class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, Component> components;
   final Source source;
 
@@ -1191,6 +1197,7 @@ class _BuildStandardHtmlComponentsVisitor extends ast.RecursiveAstVisitor {
         }
       }
     }
+
     void addInputs(InterfaceType type) {
       if (type != null && visitedTypes.add(type)) {
         type.accessors.forEach(addInput);
@@ -1198,6 +1205,7 @@ class _BuildStandardHtmlComponentsVisitor extends ast.RecursiveAstVisitor {
         addInputs(type.superclass);
       }
     }
+
     addInputs(classElement.type);
     return inputMap.values.toList();
   }

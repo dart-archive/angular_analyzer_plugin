@@ -5,7 +5,8 @@ import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart'
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
 import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
-import 'package:analyzer/src/generated/element.dart' as engine;
+import 'package:analyzer/dart/element/element.dart' as engine;
+import 'package:analyzer/src/dart/element/member.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
@@ -212,8 +213,8 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
     if (element is engine.PropertyAccessorElement) {
       element = (element as engine.PropertyAccessorElement).variable;
     }
-    if (element is engine.Member) {
-      element = (element as engine.Member).baseElement;
+    if (element is Member) {
+      element = (element as Member).baseElement;
     }
     return element;
   }

@@ -1,6 +1,6 @@
 library angular2.src.analysis.analyzer_plugin.src.element_assert;
 
-import 'package:analyzer/src/generated/element.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/engine.dart' show AnalysisContext;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';

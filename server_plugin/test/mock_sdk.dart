@@ -8,6 +8,7 @@ import 'package:analyzer/src/generated/engine.dart'
     show AnalysisEngine, ChangeSet;
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/summary/idl.dart';
 
 class MockSdk implements DartSdk {
   static const _MockSdkLibrary LIB_CORE = const _MockSdkLibrary(
@@ -292,6 +293,9 @@ class HtmlElement {}
     // table above.
     return null;
   }
+
+  @override
+  PackageBundle getLinkedBundle() => null;
 }
 
 class _MockSdkLibrary implements SdkLibrary {
@@ -338,8 +342,7 @@ class _SdkAnalysisContext extends AnalysisContextImpl {
     if (factory == null) {
       return super.createCacheFromSourceFactory(factory);
     }
-    return new AnalysisCache(<CachePartition>[
-      AnalysisEngine.instance.partitionManager.forSdk(sdk)
-    ]);
+    return new AnalysisCache(
+        <CachePartition>[AnalysisEngine.instance.partitionManager.forSdk(sdk)]);
   }
 }

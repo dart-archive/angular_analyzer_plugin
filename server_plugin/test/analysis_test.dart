@@ -10,8 +10,9 @@ import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/context.dart' show AnalysisContextImpl;
 import 'package:analyzer/src/generated/engine.dart'
-    show AnalysisContext, AnalysisEngine, ComputedResult;
-import 'package:analyzer/src/generated/error.dart';
+    show AnalysisContext, AnalysisEngine, ResultChangedEvent;
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/driver.dart';
@@ -47,25 +48,25 @@ class AnalysisDomainContributorTest {
   Source source1 = new SourceMock('/a.dart');
   AnalysisTarget target1 = new AnalysisTargetMock();
 
-  StreamController<ComputedResult> dartTemplatesController =
-      new StreamController<ComputedResult>.broadcast(sync: true);
-  StreamController<ComputedResult> htmlTemplatesController =
-      new StreamController<ComputedResult>.broadcast(sync: true);
+  StreamController<ResultChangedEvent> dartTemplatesController =
+      new StreamController<ResultChangedEvent>.broadcast(sync: true);
+  StreamController<ResultChangedEvent> htmlTemplatesController =
+      new StreamController<ResultChangedEvent>.broadcast(sync: true);
   AnalysisDomain analysisDomain = new AnalysisDomainMock();
 
   void setUp() {
     when(target1.source).thenReturn(source1);
     // configure AnalysisDomain mock
-    when(analysisDomain.onResultComputed(DART_TEMPLATES))
+    when(analysisDomain.onResultChanged(DART_TEMPLATES))
         .thenReturn(dartTemplatesController.stream);
-    when(analysisDomain.onResultComputed(HTML_TEMPLATES))
+    when(analysisDomain.onResultChanged(HTML_TEMPLATES))
         .thenReturn(htmlTemplatesController.stream);
     contributor.setAnalysisDomain(analysisDomain);
   }
 
   void test_onResult_htmlTemplates() {
-    dartTemplatesController
-        .add(new ComputedResult(analysisContext, HTML_TEMPLATES, target1, []));
+    dartTemplatesController.add(new ResultChangedEvent(
+        analysisContext, target1, HTML_TEMPLATES, [], true));
     verify(analysisDomain.scheduleNotification(
             analysisContext, source1, protocol.AnalysisService.NAVIGATION))
         .times(1);
@@ -75,8 +76,8 @@ class AnalysisDomainContributorTest {
   }
 
   void test_setAnalysisDomain() {
-    verify(analysisDomain.onResultComputed(DART_TEMPLATES)).times(1);
-    verify(analysisDomain.onResultComputed(HTML_TEMPLATES)).times(1);
+    verify(analysisDomain.onResultChanged(DART_TEMPLATES)).times(1);
+    verify(analysisDomain.onResultChanged(HTML_TEMPLATES)).times(1);
   }
 }
 
@@ -380,7 +381,6 @@ class OccurrencesCollectorMock extends TypedMock
     implements OccurrencesCollector {}
 
 class SourceMock extends TypedMock implements Source {
-  @override
   final String fullPath;
 
   SourceMock([String name = 'mocked.dart']) : fullPath = name;

@@ -2,12 +2,7 @@ library angular2.src.analysis.analyzer_plugin.src.angular_work_manager_test;
 
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/src/generated/engine.dart'
-    show
-        AnalysisErrorInfo,
-        AnalysisErrorInfoImpl,
-        CacheState,
-        ChangeNoticeImpl,
-        InternalAnalysisContext;
+    show CacheState, InternalAnalysisContext;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/task/dart.dart';
