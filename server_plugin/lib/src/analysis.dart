@@ -18,8 +18,8 @@ class AnalysisDomainContributor {
 
   void onResult(ResultChangedEvent event) {
     if (event.wasComputed) {
-      AnalysisContext context = result.context;
-      Source source = result.target.source;
+      AnalysisContext context = event.context;
+      Source source = event.target.source;
       analysisDomain.scheduleNotification(
           context, source, protocol.AnalysisService.NAVIGATION);
       analysisDomain.scheduleNotification(
