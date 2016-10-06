@@ -16,19 +16,21 @@ import 'package:angular2_analyzer_plugin/src/tasks.dart';
 class AnalysisDomainContributor {
   AnalysisDomain analysisDomain;
 
-  void onResult(ComputedResult result) {
-    AnalysisContext context = result.context;
-    Source source = result.target.source;
-    analysisDomain.scheduleNotification(
-        context, source, protocol.AnalysisService.NAVIGATION);
-    analysisDomain.scheduleNotification(
-        context, source, protocol.AnalysisService.OCCURRENCES);
+  void onResult(ResultChangedEvent event) {
+    if (event.wasComputed) {
+      AnalysisContext context = result.context;
+      Source source = result.target.source;
+      analysisDomain.scheduleNotification(
+          context, source, protocol.AnalysisService.NAVIGATION);
+      analysisDomain.scheduleNotification(
+          context, source, protocol.AnalysisService.OCCURRENCES);
+    }
   }
 
   void setAnalysisDomain(AnalysisDomain analysisDomain) {
     this.analysisDomain = analysisDomain;
-    analysisDomain.onResultComputed(DART_TEMPLATES).listen(onResult);
-    analysisDomain.onResultComputed(HTML_TEMPLATES).listen(onResult);
+    analysisDomain.onResultChanged(DART_TEMPLATES).listen(onResult);
+    analysisDomain.onResultChanged(HTML_TEMPLATES).listen(onResult);
   }
 }
 
