@@ -1,6 +1,6 @@
 library angular2.src.analysis.analyzer_plugin.src.model;
 
-import 'package:analyzer/src/generated/element.dart' as dart;
+import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
@@ -277,6 +277,9 @@ class View implements AnalysisTarget {
    * The source that contains this template, [source] or [templateUriSource].
    */
   Source get templateSource => templateUriSource ?? source;
+
+  @override
+  Source get librarySource => null;
 
   @override
   String toString() => 'View('

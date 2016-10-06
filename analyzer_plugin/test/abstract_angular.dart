@@ -3,10 +3,10 @@ library angular2.src.analysis.analyzer_plugin.src.angular_base;
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/context.dart';
-import 'package:analyzer/src/generated/element.dart';
-import 'package:analyzer/src/generated/engine.dart'
-    show AnalysisEngine, ChangeSet;
-import 'package:analyzer/src/generated/error.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/src/generated/engine.dart' show AnalysisEngine;
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/driver.dart';
