@@ -564,7 +564,12 @@ class TemplateResolver {
         new LocalVariableElementImpl(name, offset);
     localVariable.nameLength;
     localVariable.type = type;
-    htmlMethodElement.encloseElement(localVariable);
+
+    // add the local variable to the enclosing element
+    var localVariables = new List<LocalVariableElement>();
+    localVariables.addAll(htmlMethodElement.localVariables);
+    localVariables.add(localVariable);
+    htmlMethodElement.localVariables = localVariables;
     return localVariable;
   }
 
