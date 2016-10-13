@@ -206,7 +206,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     SourceFactory sourceFactory = contextTarget.context.sourceFactory;
     Source htmlSource = sourceFactory.forUri(DartSdk.DART_HTML);
     return <String, TaskInput>{
-      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT3),
+      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT5),
     };
   }
 
