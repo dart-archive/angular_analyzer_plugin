@@ -1126,7 +1126,7 @@ class _AnnotationProcessorMixin {
   bool _isAngularAnnotation(ast.Annotation node, String name) {
     if (node.element is ConstructorElement) {
       ClassElement clazz = node.element.enclosingElement;
-      return clazz.library.name == 'angular2.src.core.metadata' &&
+      return clazz.library.source.uri.path.contains('angular2') &&
           clazz.name == name;
     }
     return false;
