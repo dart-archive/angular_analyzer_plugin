@@ -160,13 +160,13 @@ class AbstractAngularTest {
         r'''
 library angular2;
 
-export 'async.dart';
-export 'metadata.dart';
-export 'ng_if.dart';
-export 'ng_for.dart';
+export 'src/core/async.dart';
+export 'src/core/metadata.dart';
+export 'src/core/ng_if.dart';
+export 'src/core/ng_for.dart';
 ''');
     newSource(
-        '/angular2/metadata.dart',
+        '/angular2/src/core/metadata.dart',
         r'''
 import 'dart:async';
 
@@ -244,7 +244,7 @@ class Output {
 }
 ''');
     newSource(
-        '/angular2/async.dart',
+        '/angular2/src/core/async.dart',
         r'''
 import 'dart:async';
 
@@ -279,7 +279,7 @@ class EventEmitter<T> extends Stream<T> {
 }
 ''');
     newSource(
-        '/angular2/ng_if.dart',
+        '/angular2/src/core/ng_if.dart',
         r'''
 import 'metadata.dart';
 
@@ -289,7 +289,7 @@ class NgIf {
 }
 ''');
     newSource(
-        '/angular2/ng_for.dart',
+        '/angular2/src/core/ng_for.dart',
         r'''
 import 'metadata.dart';
 

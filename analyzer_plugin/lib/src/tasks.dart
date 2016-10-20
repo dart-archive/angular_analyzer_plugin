@@ -1126,7 +1126,8 @@ class _AnnotationProcessorMixin {
   bool _isAngularAnnotation(ast.Annotation node, String name) {
     if (node.element is ConstructorElement) {
       ClassElement clazz = node.element.enclosingElement;
-      return clazz.library.source.uri.path.contains('angular2') &&
+      return clazz.library.source.uri.path
+              .endsWith('angular2/src/core/metadata.dart') &&
           clazz.name == name;
     }
     return false;
