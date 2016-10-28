@@ -1296,7 +1296,7 @@ import '/angular2/angular2.dart';
 class TextPanel {}
 ''';
     String htmlCode = '<div></div>';
-    Source dartSource = newSource('/test.dart', dartCode);
+    Source dartSource = newSource('/text_panel.dart', dartCode);
     Source htmlSource = newSource('/text_panel.html', htmlCode);
     context.applyChanges(
         new ChangeSet()..addedSource(dartSource)..addedSource(htmlSource));
