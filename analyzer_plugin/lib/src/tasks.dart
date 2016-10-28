@@ -573,17 +573,32 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     for (ast.CompilationUnitMember unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
         ClassElement classElement = unitMember.element;
+        ast.Annotation viewAnnotation;
+        ast.Annotation componentAnnotation;
+
         for (ast.Annotation annotation in unitMember.metadata) {
           if (_isAngularAnnotation(annotation, 'View')) {
-            View view = _createView(classElement, annotation);
-            if (view != null) {
-              views.add(view);
-              if (view.templateUriSource != null) {
-                viewsWithTemplates.add(view);
-              }
-            }
+            viewAnnotation = annotation;
+          } else if (_isAngularAnnotation(annotation, 'Component')) {
+            componentAnnotation = annotation;
           }
         }
+
+        if (viewAnnotation == null && componentAnnotation == null) {
+          continue;
+        }
+
+        //@TODO when there's both a @View and @Component, handle edge cases
+        View view = _createView(classElement, viewAnnotation ?? componentAnnotation);
+
+        if (view != null) {
+          views.add(view);
+          if (view.templateUriSource != null) {
+            viewsWithTemplates.add(view);
+          }
+        }
+        
+        
       }
     }
     //
@@ -652,10 +667,13 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   View _createView(ClassElement classElement, ast.Annotation annotation) {
     // Template in a separate HTML file.
     Source templateUriSource = null;
+    bool definesTemplate = false;
+    bool definesTemplateUrl = false;
     SourceRange templateUrlRange = null;
     {
       ast.Expression templateUrlExpression =
           _getNamedArgument(annotation, 'templateUrl');
+      definesTemplateUrl = templateUrlExpression != null;
       String templateUrl = _getExpressionString(templateUrlExpression);
       if (templateUrl != null) {
         SourceFactory sourceFactory = context.sourceFactory;
@@ -672,6 +690,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     {
       ast.Expression expression = _getNamedArgument(annotation, 'template');
       if (expression != null) {
+        definesTemplate = true;
         if (expression is ast.SimpleStringLiteral) {
           templateText = expression.value;
           templateOffset = expression.contentsOffset;
@@ -681,6 +700,21 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
         }
       }
     }
+
+    if (definesTemplate && definesTemplateUrl) {
+      errorReporter.reportErrorForNode(
+           AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED, annotation);
+
+      return null;
+    }
+
+    if (!definesTemplate && !definesTemplateUrl) {
+      return errorReporter.reportErrorForNode(
+           AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
+
+      return null;
+    }
+
     // Find the corresponding Component.
     Component component = _findComponentAnnotationOrReportError(classElement);
     if (component == null) {

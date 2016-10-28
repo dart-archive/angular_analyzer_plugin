@@ -502,8 +502,8 @@ class DirectiveC {}
 
 const DIR_AB = const [DirectiveA, DirectiveB];
 
-@Component(selector: 'my-component')
-@View(template: 'My template', directives: const [DIR_AB, DirectiveC])
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB, DirectiveC])
 class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
@@ -534,8 +534,8 @@ import '/angular2/angular2.dart';
 
 const NOT_DIRECTIVE_LIST = 42;
 
-@Component(selector: 'my-component')
-@View(template: 'My template', directives: const [NOT_DIRECTIVE_LIST])
+@Component(selector: 'my-component', template: 'My template',
+   directives: const [NOT_DIRECTIVE_LIST])
 class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
@@ -573,8 +573,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'aaa')
-@View(template: 'AAA', directives: const [int])
+@Component(selector: 'aaa', template: 'AAA', directives: const [int])
 class ComponentA {
 }
 ''');
@@ -593,8 +592,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'aaa')
-@View(template: 'bad' + 'template')
+@Component(selector: 'aaa', template: 'bad' + 'template')
 class ComponentA {
 }
 ''');
@@ -613,8 +611,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'aaa')
-@View(template: 'AAA', directives: const [42])
+@Component(selector: 'aaa', template: 'AAA', directives: const [42])
 class ComponentA {
 }
 ''');
@@ -627,7 +624,80 @@ class ComponentA {
         <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
   }
 
+  void test_hasError_TemplateAndTemplateUrlDefined() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', templateUrl: 'AAA')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED]);
+  }
+
+  void test_hasError_NeitherTemplateNorTemplateUrlDefined() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED]);
+  }
+
   void test_templateExternal() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', templateUrl: 'my-template.html')
+class MyComponent {}
+''';
+    Source dartSource = newSource('/test.dart', code);
+    Source htmlSource = newSource('/my-template.html', '');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    List<AbstractDirective> directives =
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
+    // validate views
+    List<View> views = outputs[VIEWS];
+    expect(views, hasLength(1));
+    // MyComponent
+    View view = getViewByClassName(views, 'MyComponent');
+    expect(view.component, getComponentByClassName(directives, 'MyComponent'));
+    expect(view.templateText, isNull);
+    expect(view.templateUriSource, isNotNull);
+    expect(view.templateUriSource, htmlSource);
+    expect(view.templateSource, htmlSource);
+    {
+      String url = "'my-template.html'";
+      expect(view.templateUrlRange,
+          new SourceRange(code.indexOf(url), url.length));
+    }
+    // has a single view
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    expect(templateViews, unorderedEquals([view]));
+  }
+
+  void test_templateExternalUsingViewAnnotation() {
     String code = r'''
 import '/angular2/angular2.dart';
 
@@ -664,6 +734,50 @@ class MyComponent {}
   }
 
   void test_templateInline() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'my-directive')
+class MyDirective {}
+
+@Component(selector: 'other-component', template: 'Other template')
+class OtherComponent {}
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [MyDirective, OtherComponent])
+class MyComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    List<AbstractDirective> directives =
+        context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
+    // validate views
+    List<View> views = outputs[VIEWS];
+    expect(views, hasLength(2));
+    {
+      View view = getViewByClassName(views, 'MyComponent');
+      expect(
+          view.component, getComponentByClassName(directives, 'MyComponent'));
+      expect(view.templateText, 'My template');
+      expect(view.templateUriSource, isNull);
+      expect(view.templateSource, source);
+      {
+        expect(view.directives, hasLength(2));
+        List<String> directiveClassNames = view.directives
+            .map((directive) => directive.classElement.name)
+            .toList();
+        expect(directiveClassNames,
+            unorderedEquals(['OtherComponent', 'MyDirective']));
+      }
+    }
+    // no view with external templates
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    expect(templateViews, hasLength(0));
+  }
+
+  void test_templateInlineUsingViewAnnotation() {
     String code = r'''
 import '/angular2/angular2.dart';
 
@@ -783,18 +897,15 @@ class ResolveDartTemplatesTaskTest extends AbstractAngularTest {
     var code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'my-aaa')
-@View(template: '<div>AAA</div>')
+@Component(selector: 'my-aaa', template: '<div>AAA</div>')
 class ComponentA {
 }
 
-@Component(selector: 'my-bbb')
-@View(template: '<div>BBB</div>')
+@Component(selector: 'my-bbb', template: '<div>BBB</div>')
 class ComponentB {
 }
 
-@Component(selector: 'my-ccc')
-@View(template: r"""
+@Component(selector: 'my-ccc', template: r"""
 <div>
   <my-aaa></my-aaa>1
   <my-bbb></my-bbb>2
@@ -857,8 +968,8 @@ class ComponentC {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel')
-@View(template: r"<div> {{text.length + text}} </div>")
+@Component(selector: 'text-panel',
+    template: r"<div> {{text.length + text}} </div>")
 class TextPanel {
   String text;
 }
@@ -877,14 +988,13 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text'])
-@View(template: r"<div>some text</div>")
+@Component(selector: 'text-panel', inputs: const ['text'],
+    template: r"<div>some text</div>")
 class TextPanel {
   String text;
 }
 
-@Component(selector: 'UserPanel')
-@View(template: r"""
+@Component(selector: 'UserPanel', template: r"""
 <div>
   <text-panel [text]='noSuchName'></text-panel>
 </div>
@@ -906,8 +1016,8 @@ class UserPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'my-aaa')
-@View(template: "<unresolved-tag attr='value'></unresolved-tag>")
+@Component(selector: 'my-aaa',
+    template: "<unresolved-tag attr='value'></unresolved-tag>")
 class ComponentA {
 }
 ''';
@@ -930,8 +1040,8 @@ class ComponentA {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel')
-@View(template: r"<div> <h2> Expected closing H2 </h3> </div>")
+@Component(selector: 'text-panel',
+    template: r"<div> <h2> Expected closing H2 </h3> </div>")
 class TextPanel {
 }
 ''';
@@ -949,8 +1059,7 @@ class TextPanel {
 import 'dart:html';
 import '/angular2/angular2.dart';
 
-@Component(selector: 'UserPanel')
-@View(template: r"""
+@Component(selector: 'UserPanel', template: r"""
 <div>
   <input (keyup)='doneTyping($event)'>
 </div>
@@ -999,14 +1108,13 @@ class TodoList {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text'])
-@View(template: r"<div>some text</div>")
+@Component(selector: 'text-panel', inputs: const ['text'],
+    template: r"<div>some text</div>")
 class TextPanel {
   String text;
 }
 
-@Component(selector: 'UserPanel')
-@View(template: r"""
+@Component(selector: 'UserPanel', template: r"""
 <div>
   <text-panel [text]='user.name'></text-panel>
 </div>
@@ -1070,15 +1178,14 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'comp-a',
-    inputs: const ['firstValue', 'vtoroy: second'])
-@View(template: r"<div>AAA</div>")
+    inputs: const ['firstValue', 'vtoroy: second'],
+    template: r"<div>AAA</div>")
 class ComponentA {
   int firstValue;
   int vtoroy;
 }
 
-@Component(selector: 'comp-b')
-@View(template: r"""
+@Component(selector: 'comp-b', template: r"""
 <div>
   <comp-a firstValue='1' second='2'></comp-a>
 </div>
@@ -1123,8 +1230,8 @@ class ComponentB {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel')
-@View(template: r'Often used without an element in tests.')
+@Component(selector: 'text-panel',
+    template: r'Often used without an element in tests.')
 class TextPanel {
 }
 ''';
@@ -1144,8 +1251,7 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel')
-@View(template: r"<div> {{text </div>")
+@Component(selector: 'text-panel', template: r"<div> {{text </div>")
 class TextPanel {
 }
 ''';
@@ -1166,8 +1272,8 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text'])
-@View(template: r"<div> <h2> {{text}}  </h2> and {{text.length}} </div>")
+@Component(selector: 'text-panel', inputs: const ['text'],
+    template: r"<div> <h2> {{text}}  </h2> and {{text.length}} </div>")
 class TextPanel {
   String text; // 1
 }
@@ -1229,14 +1335,12 @@ class ResolveHtmlTemplatesTaskTest extends AbstractAngularTest {
     String dartCode = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panelA')
-@View(templateUrl: 'text_panel.html')
+@Component(selector: 'text-panelA', templateUrl: 'text_panel.html')
 class TextPanelA {
   String text; // A
 }
 
-@Component(selector: 'text-panelB')
-@View(templateUrl: 'text_panel.html')
+@Component(selector: 'text-panelB', templateUrl: 'text_panel.html')
 class TextPanelB {
   String text; // B
 }
@@ -1291,8 +1395,7 @@ class TextPanelB {
     String dartCode = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel')
-@View(templateUrl: 'text_panel.html')
+@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
 class TextPanel {}
 ''';
     String htmlCode = '<div></div>';
@@ -1332,8 +1435,7 @@ class ResolveHtmlTemplateTaskTest extends AbstractAngularTest {
     String dartCode = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel')
-@View(templateUrl: 'text_panel.html')
+@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
 class TextPanel {
   String text; // 1
 }
