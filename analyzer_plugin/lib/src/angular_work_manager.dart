@@ -41,7 +41,7 @@ class AngularWorkManager implements WorkManager {
    * Initialize a newly created manager.
    */
   AngularWorkManager(this.context) {
-    analysisCache.onResultInvalidated.listen((InvalidatedResult result) {
+    context.onResultInvalidated.listen((InvalidatedResult result) {
       if (result.descriptor == VIEWS_WITH_HTML_TEMPLATES) {
         List<View> views = result.value;
         for (View view in views) {
