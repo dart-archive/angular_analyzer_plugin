@@ -211,12 +211,36 @@ class AngularWorkManagerTest {
     expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view3]));
   }
+
+  void test_constructor_listensForInvalidationsInTheRightPlace() {
+    var mockContext = new _InternalAnalysisContextMockEmpty();
+    var mockContextStream = new
+        _ReentrantSynchronousStreamMock<InvalidatedResult>();
+    var mockCache = new _AnalysisCacheMock();
+
+    when(mockContext.analysisCache).thenReturn(mockCache);
+    when(mockContext.onResultInvalidated)
+        .thenReturn(mockContextStream);
+
+    new AngularWorkManager(mockContext);
+
+    verify(mockCache.onResultInvalidated).never();
+    verify(mockContext.onResultInvalidated).once();
+    verify(mockContextStream.listen(anyObject)).once();
+  }
 }
 
 class _InternalAnalysisContextMock extends TypedMock
     implements InternalAnalysisContext {
   @override
   CachePartition privateAnalysisCachePartition;
+
+  // The context's stream is just a proxy to the analysisCache's stream.
+  // Therefore, for tests that don't consider the analysisCache changing
+  // (that only happens when the SourceFactory is changed), its easiest
+  // to simply make these two events the same
+  @override
+  get onResultInvalidated => analysisCache.onResultInvalidated;
 
   @override
   AnalysisCache analysisCache;
@@ -247,3 +271,11 @@ class _SourceMock extends TypedMock implements Source {
   @override
   String toString() => fullName;
 }
+
+class _AnalysisCacheMock extends TypedMock implements AnalysisCache {}
+
+class _ReentrantSynchronousStreamMock<T> extends TypedMock
+    implements ReentrantSynchronousStream<T> {}
+
+class _InternalAnalysisContextMockEmpty extends TypedMock
+    implements AnalysisCache {}
