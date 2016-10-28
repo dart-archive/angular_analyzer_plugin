@@ -6,26 +6,6 @@ import 'package:analyzer/task/dart.dart' show LibrarySpecificUnit;
 import 'package:analyzer/task/model.dart';
 
 /**
- * The analysis errors associated with a target.
- * The value combines errors represented by multiple other results.
- *
- * The result is only available for [LibrarySpecificUnit]s.
- */
-final ListResultDescriptor<AnalysisError> ANGULAR_DART_ERRORS =
-    new ListResultDescriptor<AnalysisError>(
-        'ANGULAR_DART_ERRORS', AnalysisError.NO_ERRORS);
-
-/**
- * The analysis errors associated with a target.
- * The value combines errors represented by multiple other results.
- *
- * The result is only available for HTML [Source]s.
- */
-final ListResultDescriptor<AnalysisError> ANGULAR_HTML_ERRORS =
-    new ListResultDescriptor<AnalysisError>(
-        'ANGULAR_HTML_ERRORS', AnalysisError.NO_ERRORS);
-
-/**
  * The error codes used for Angular warnings. The convention for this
  * class is for the name of the error code to indicate the problem that caused
  * the error to be generated and for the error message to explain what is wrong
