@@ -56,6 +56,22 @@ class AngularWarningCode extends ErrorCode {
           'Every @View requires exactly one @Component annotation');
 
   /**
+   * An error code indicating that a @View or @Component has both a
+   * template and a templateUrl defined at once (illegal)
+   */
+  static const AngularWarningCode TEMPLATE_URL_AND_TEMPLATE_DEFINED =
+      const AngularWarningCode('TEMPLATE_URL_AND_TEMPLATE_DEFINED',
+          'Cannot define both template and templateUrl. Remove one');
+
+  /**
+   * An error code indicating that a @View or @Component does not have
+   * a template or a templateUrl
+   */
+  static const AngularWarningCode NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED =
+      const AngularWarningCode('NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED',
+          'Either a template or templateUrl is required');
+
+  /**
    * An error code indicating that the value of an expression is not a string.
    */
   static const AngularWarningCode DIRECTIVE_TYPE_LITERAL_EXPECTED =
