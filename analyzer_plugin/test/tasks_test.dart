@@ -821,6 +821,47 @@ class MyComponent {}
     List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
     expect(templateViews, hasLength(0));
   }
+
+  void test_templateExternalMissing() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', templateUrl: 'my-template.html')
+class MyComponent {}
+''';
+    Source dartSource = newSource('/test.dart', code);
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, MISSING_HTML_FILES_ERRORS);
+    expect(task, new isInstanceOf<FindMissingHtmlFilesTask>());
+    // validate views
+    List<AnalysisError> errors = outputs[MISSING_HTML_FILES_ERRORS];
+    expect(errors, hasLength(1));
+    AnalysisError error = errors[0];
+    expect(error.errorCode,
+        equals(AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST));
+    expect(error.source, equals(dartSource));
+    expect(error.offset, equals(85));
+    expect(error.length, equals(18));
+  }
+
+  void test_templateExternalNotMissing() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', templateUrl: 'my-template.html')
+class MyComponent {}
+''';
+    Source dartSource = newSource('/test.dart', code);
+    Source htmlSource = newSource('/my-template.html', '');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, MISSING_HTML_FILES_ERRORS);
+    expect(task, new isInstanceOf<FindMissingHtmlFilesTask>());
+    // validate views
+    List<AnalysisError> errors = outputs[MISSING_HTML_FILES_ERRORS];
+    expect(errors, hasLength(0));
+  }
 }
 
 @reflectiveTest

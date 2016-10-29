@@ -32,6 +32,7 @@ class AngularAnalyzerPlugin implements Plugin {
       registerExtension(id, DIRECTIVES_ERRORS);
       registerExtension(id, VIEWS_ERRORS);
       registerExtension(id, DART_TEMPLATES_ERRORS);
+      registerExtension(id, MISSING_HTML_FILES_ERRORS);
     }
     // errors for HTML sources
     {
@@ -48,6 +49,8 @@ class AngularAnalyzerPlugin implements Plugin {
       registerExtension(id, ResolveDartTemplatesTask.DESCRIPTOR);
       registerExtension(id, ResolveHtmlTemplatesTask.DESCRIPTOR);
       registerExtension(id, ResolveHtmlTemplateTask.DESCRIPTOR);
+      registerExtension(id, GetHtmlModificationTimeForView.DESCRIPTOR);
+      registerExtension(id, FindMissingHtmlFilesTask.DESCRIPTOR);
     }
     // work manager
     registerExtension(WORK_MANAGER_EXTENSION_POINT_ID,

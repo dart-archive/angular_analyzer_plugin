@@ -28,6 +28,13 @@ class AngularWarningCode extends ErrorCode {
           'CANNOT_PARSE_SELECTOR', 'Cannot parse the given selector');
 
   /**
+   * An error code indicating that the provided selector cannot be parsed.
+   */
+  static const AngularWarningCode REFERENCED_HTML_FILE_DOESNT_EXIST =
+      const AngularWarningCode( 'REFERENCED_HTML_FILE_DOESNT_EXIST',
+           'The referenced HTML file doesn\'t exist');
+
+  /**
    * An error code indicating that the component has @View annotation,
    * but not @Component annotation.
    */
