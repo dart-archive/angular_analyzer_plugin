@@ -17,6 +17,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
+import 'package:analyzer/task/general.dart';
 import 'package:analyzer/task/html.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
@@ -151,6 +152,33 @@ final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
 final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
     new ListResultDescriptor<View>(
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
+
+/**
+ * The [Source] referenced by a [View]
+ *
+ * The result is only available for [View]s.
+ */
+final ResultDescriptor<Source> HTML_SOURCE_FOR_VIEW =
+    new ResultDescriptor<Source>(
+        'ANGULAR_HTML_SOURCE_FOR_VIEW', null);
+
+/**
+ * The modification time of a [Source] referenced by a [View]
+ *
+ * The result is only available for [View]s.
+ */
+final ResultDescriptor<int> VIEW_HTML_TEMPLATE_MODIFICATION_TIME =
+    new ResultDescriptor<int>(
+        'ANGULAR_VIEW_HTML_TEMPLATE_MODIFICATION_TIME', null);
+
+/**
+ * The [AnalysisError]s from referenced but missing HTML files
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
+final ListResultDescriptor<AnalysisError> MISSING_HTML_FILES_ERRORS =
+    new ListResultDescriptor<AnalysisError>(
+        'ANGULAR_MISSING_HTML_FILES_ERRORS', AnalysisError.NO_ERRORS);
 
 /**
  * A task that builds [STANDARD_HTML_COMPONENTS].
@@ -790,6 +818,123 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   static BuildUnitViewsTask createTask(
       AnalysisContext context, LibrarySpecificUnit target) {
     return new BuildUnitViewsTask(context, target);
+  }
+}
+
+/**
+ * A task that computes VIEW_HTML_TEMPLATE_MODIFICATION_TIME based
+ * on a view. This is task must exist because I don't think you
+ * can ask for the input
+ *   VIEWS.of(source).toMapOf(SOURCES).to(MODIFICATION_TIME)
+ * but with this task you can request
+ *   VIEWS.of(source).toMapOf(VIEW_HTML_TEMPLATE_MODIFICATION_TIME)
+ */
+class GetHtmlModificationTimeForView extends AnalysisTask {
+  static const MODIFICATION_TIME_INPUT = 'MODIFICATION_TIME';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'GetHtmlModificationTimeForView',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[VIEW_HTML_TEMPLATE_MODIFICATION_TIME]);
+
+  GetHtmlModificationTimeForView(
+      InternalAnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  String get description {
+    View view = target;
+    Source source = view.templateUriSource;
+    return '${descriptor.name} for view $view with source $source';
+  }
+
+  @override
+  bool get handlesDependencyCycles => false;
+
+  @override
+  void internalPerform() {
+    outputs[VIEW_HTML_TEMPLATE_MODIFICATION_TIME]
+        = getRequiredInput(MODIFICATION_TIME_INPUT);
+  }
+
+  static Map<String, TaskInput> buildInputs(View view) {
+    return <String, TaskInput>{
+      MODIFICATION_TIME_INPUT: MODIFICATION_TIME.of(view.templateUriSource)
+    };
+  }
+
+  static GetHtmlModificationTimeForView createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new GetHtmlModificationTimeForView(context, target);
+  }
+}
+
+/**
+ * A task that computes MISSING_HTML_FILES_ERRORS based on a Source.
+ */
+class FindMissingHtmlFilesTask extends SourceBasedAnalysisTask {
+  static const MODIFICATION_TIMES_INPUT = 'MODIFICATION_TIMES';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'FindMissingHtmlFilesTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[MISSING_HTML_FILES_ERRORS]);
+
+  FindMissingHtmlFilesTask(
+      InternalAnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  String get description {
+    Source source = target;
+    return '${descriptor.name} for source $source';
+  }
+
+  @override
+  bool get handlesDependencyCycles => false;
+
+  @override
+  void internalPerform() {
+    Map<View, int> modificationTimes
+        = getRequiredInput(MODIFICATION_TIMES_INPUT);
+
+    List<AnalysisError> errors = <AnalysisError>[];
+
+    modificationTimes.forEach((View view, int time) {
+      if (time != -1) {
+        return;
+      }
+
+      errors.add(new AnalysisError(
+          target.source,
+          view.templateUrlRange.offset,
+          view.templateUrlRange.length,
+          AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
+          []));
+    });
+
+    outputs[MISSING_HTML_FILES_ERRORS] = errors;
+  }
+
+  static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
+    return <String, TaskInput>{
+      MODIFICATION_TIMES_INPUT:
+          VIEWS_WITH_HTML_TEMPLATES.of(target)
+              .toMapOf(VIEW_HTML_TEMPLATE_MODIFICATION_TIME)
+    };
+  }
+
+  static FindMissingHtmlFilesTask createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new FindMissingHtmlFilesTask(context, target);
   }
 }
 
