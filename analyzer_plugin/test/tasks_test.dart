@@ -630,10 +630,11 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'aaa', template: 'AAA', templateUrl: 'AAA')
+@Component(selector: 'aaa', template: 'AAA', templateUrl: 'a.html')
 class ComponentA {
 }
 ''');
+    newSource('/a.html', '');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, VIEWS);
     expect(task, new isInstanceOf<BuildUnitViewsTask>());
@@ -660,6 +661,29 @@ class ComponentA {
     fillErrorListener(VIEWS_ERRORS);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED]);
+  }
+
+  void test_hasError_missingHtmlFile() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', templateUrl: 'my-template.html')
+class MyComponent {}
+''';
+    Source dartSource = newSource('/test.dart', code);
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertErrorsWithCodes(<ErrorCode>[
+            AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST]);
+    {
+      AnalysisError error = errorListener.errors.single;
+      expect(error.offset, code.indexOf("'my-template.html'"));
+      expect(errorListener.errors.single.length, "'my-template.html'".length);
+    }
   }
 
   void test_templateExternal() {
