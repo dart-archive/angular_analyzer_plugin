@@ -301,6 +301,20 @@ class NgFor {
 }
 ''');
   }
+
+  /**
+   * Assert that the [errCode] is reported for [code], highlighting the [snippet].
+   */
+  void assertErrorInCodeAtPosition(
+      ErrorCode errCode, String code, String snippet) {
+    int snippetIndex = code.indexOf(snippet);
+    expect(snippetIndex, greaterThan(-1),
+        reason: 'Error in test: snippet ${snippet} not part of code ${code}');
+    errorListener.assertErrorsWithCodes(<ErrorCode>[errCode]);
+    AnalysisError error = errorListener.errors.single;
+    expect(error.offset, snippetIndex);
+    expect(errorListener.errors.single.length, snippet.length);
+  }
 }
 
 /**
