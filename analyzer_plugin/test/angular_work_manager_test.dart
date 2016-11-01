@@ -278,4 +278,4 @@ class _ReentrantSynchronousStreamMock<T> extends TypedMock
     implements ReentrantSynchronousStream<T> {}
 
 class _InternalAnalysisContextMockEmpty extends TypedMock
-    implements AnalysisCache {}
+    implements InternalAnalysisContext {}

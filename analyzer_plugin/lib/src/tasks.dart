@@ -709,7 +709,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     }
 
     if (!definesTemplate && !definesTemplateUrl) {
-      return errorReporter.reportErrorForNode(
+      errorReporter.reportErrorForNode(
            AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
 
       return null;
