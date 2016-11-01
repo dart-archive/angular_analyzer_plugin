@@ -679,7 +679,13 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
         SourceFactory sourceFactory = context.sourceFactory;
         templateUriSource =
             sourceFactory.resolveUri(target.source, templateUrl);
-        // TODO: report a warning if it cannot be resolved.
+
+	if (!templateUriSource.exists()) {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
+              templateUrlExpression);
+        }
+
         templateUrlRange = new SourceRange(
             templateUrlExpression.offset, templateUrlExpression.length);
       }
