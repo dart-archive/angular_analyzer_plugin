@@ -108,7 +108,7 @@ class AngularNavigationContributorTest extends _AbstractAngularTaskTest {
   void test_dart_templates() {
     _addAngularSources();
     code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
@@ -183,7 +183,7 @@ class User {
   void test_dart_view_templateUrl() {
     _addAngularSources();
     code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -214,7 +214,7 @@ class TextPanel {}
   void test_html_templates() {
     _addAngularSources();
     String dartCode = r'''
-import '/angular2/metadata.dart';
+import '/angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -287,7 +287,7 @@ class AngularOccurrencesContributorTest extends _AbstractAngularTaskTest {
   void test_dart_templates() {
     _addAngularSources();
     code = r'''
-import '/angular2/metadata.dart';
+import '/angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
@@ -429,13 +429,13 @@ class _AbstractAngularTaskTest {
         r'''
 library angular2;
 
-export 'async.dart';
-export 'metadata.dart';
-export 'ng_if.dart';
-export 'ng_for.dart';
+export 'src/core/async.dart';
+export 'src/core/metadata.dart';
+export 'src/core/ng_if.dart';
+export 'src/core/ng_for.dart';
 ''');
     newSource(
-        '/angular2/metadata.dart',
+        '/angular2/src/core/metadata.dart',
         r'''
 library angular2.src.core.metadata;
 
@@ -515,7 +515,7 @@ class Output {
 }
 ''');
     newSource(
-        '/angular2/async.dart',
+        '/angular2/src/core/async.dart',
         r'''
 library angular2.core.facade.async;
 import 'dart:async';
@@ -551,7 +551,7 @@ class EventEmitter<T> extends Stream<T> {
 }
 ''');
     newSource(
-        '/angular2/ng_if.dart',
+        '/angular2/src/core/ng_if.dart',
         r'''
 library angular2.ng_if;
 import 'metadata.dart';
@@ -562,7 +562,7 @@ class NgIf {
 }
 ''');
     newSource(
-        '/angular2/ng_for.dart',
+        '/angular2/src/core/ng_for.dart',
         r'''
 library angular2.ng_for;
 import 'metadata.dart';
