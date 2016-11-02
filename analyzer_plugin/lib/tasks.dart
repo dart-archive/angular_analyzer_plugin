@@ -28,8 +28,8 @@ class AngularWarningCode extends ErrorCode {
    * An error code indicating that a template points to a missing html file
    */
   static const AngularWarningCode REFERENCED_HTML_FILE_DOESNT_EXIST =
-      const AngularWarningCode( 'REFERENCED_HTML_FILE_DOESNT_EXIST',
-           'The referenced HTML file doesn\'t exist');
+      const AngularWarningCode('REFERENCED_HTML_FILE_DOESNT_EXIST',
+          'The referenced HTML file doesn\'t exist');
 
   /**
    * An error code indicating that the component has @View annotation,

@@ -589,7 +589,8 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
         }
 
         //@TODO when there's both a @View and @Component, handle edge cases
-        View view = _createView(classElement, viewAnnotation ?? componentAnnotation);
+        View view =
+            _createView(classElement, viewAnnotation ?? componentAnnotation);
 
         if (view != null) {
           views.add(view);
@@ -597,8 +598,6 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
             viewsWithTemplates.add(view);
           }
         }
-        
-        
       }
     }
     //
@@ -680,7 +679,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
         templateUriSource =
             sourceFactory.resolveUri(target.source, templateUrl);
 
-	if (!templateUriSource.exists()) {
+        if (!templateUriSource.exists()) {
           errorReporter.reportErrorForNode(
               AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
               templateUrlExpression);
@@ -709,14 +708,14 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
 
     if (definesTemplate && definesTemplateUrl) {
       errorReporter.reportErrorForNode(
-           AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED, annotation);
+          AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED, annotation);
 
       return null;
     }
 
     if (!definesTemplate && !definesTemplateUrl) {
       errorReporter.reportErrorForNode(
-           AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
+          AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
 
       return null;
     }

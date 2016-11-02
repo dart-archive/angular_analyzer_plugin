@@ -7,7 +7,9 @@ cache:
     - $HOME/.pub-cache
 before_script:
   - "(cd .. && git clone --depth=10 https://github.com/dart-lang/sdk.git)" 
-script: ./tools/travis.sh
+script:
+  - ./tools/check_format.sh
+  - ./tools/travis.sh
 env:
   - PACKAGE=analyzer_plugin
   - PACKAGE=server_plugin
