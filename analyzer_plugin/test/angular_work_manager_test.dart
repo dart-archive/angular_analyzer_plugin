@@ -214,13 +214,12 @@ class AngularWorkManagerTest {
 
   void test_constructor_listensForInvalidationsInTheRightPlace() {
     var mockContext = new _InternalAnalysisContextMockEmpty();
-    var mockContextStream = new
-        _ReentrantSynchronousStreamMock<InvalidatedResult>();
+    var mockContextStream =
+        new _ReentrantSynchronousStreamMock<InvalidatedResult>();
     var mockCache = new _AnalysisCacheMock();
 
     when(mockContext.analysisCache).thenReturn(mockCache);
-    when(mockContext.onResultInvalidated)
-        .thenReturn(mockContextStream);
+    when(mockContext.onResultInvalidated).thenReturn(mockContextStream);
 
     new AngularWorkManager(mockContext);
 
