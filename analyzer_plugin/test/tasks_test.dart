@@ -1051,27 +1051,6 @@ class MyComponent {
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, 'noSuchName');
   }
 
-  void
-      test_hasError_expression_UndefinedIdentifier_OutsideFirstHtmlTagTemplate() {
-    String templateCode = '<h1></h1>{{noSuchName}}';
-    String code = r'''
-import '/angular2/angular2.dart';
-
-@Component(selector: 'my-component', templateUrl: 'template.html')
-class MyComponent {
-}
-''';
-    Source source = newSource('/test.dart', code);
-    newSource('/template.html', templateCode);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
-    assertErrorInCodeAtPosition(
-        StaticWarningCode.UNDEFINED_IDENTIFIER, templateCode, 'noSuchName');
-  }
-
   void test_hasError_UnresolvedTag() {
     String code = r'''
 import '/angular2/angular2.dart';
