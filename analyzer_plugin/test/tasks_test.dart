@@ -1284,6 +1284,74 @@ class TextPanel {
         .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
   }
 
+  void test_textExpression_hasError_UnopenedMustache() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> text}} </div>")
+class TextPanel {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
+  }
+
+  void test_textExpression_hasError_DoubleOpenedMustache() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> {{text {{ text}} </div>")
+class TextPanel {
+  String text;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
+  }
+
+  void test_textExpression_hasError_MultipleUnclosedMustaches() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> {{open {{open {{text}} close}} close}} </div>")
+class TextPanel {
+  String text;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      AngularWarningCode.UNOPENED_MUSTACHE,
+      AngularWarningCode.UNOPENED_MUSTACHE
+    ]);
+  }
+
   void test_textExpression_OK() {
     String code = r'''
 import '/angular2/angular2.dart';

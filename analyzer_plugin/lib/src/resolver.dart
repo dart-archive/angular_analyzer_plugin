@@ -903,25 +903,46 @@ class TemplateResolver {
    * Scan the given [text] staring at the given [offset] and resolve all of
    * its embedded expressions.
    */
-  void _resolveTextExpressions(int offset, String text) {
-    int lastEnd = 0;
+  void _resolveTextExpressions(int fileOffset, String text) {
+    int textOffset = 0;
     while (true) {
       // begin
-      int begin = text.indexOf('{{', lastEnd);
+      int begin = text.indexOf('{{', textOffset);
+      int nextBegin = text.indexOf('{{', begin + 2);
+      int end = text.indexOf('}}', textOffset);
+      if (begin == -1 && end == -1) {
+        break;
+      }
+
+      if (end == -1) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
+        // Move the cursor ahead and keep looking for more unmatched mustaches.
+        textOffset = begin + 2;
+        continue;
+      }
+
       if (begin == -1) {
-        break;
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
+        // Move the cursor ahead and keep looking for more unmatched mustaches.
+        textOffset = end + 2;
+        continue;
       }
-      // end
-      lastEnd = text.indexOf('}}', begin);
-      if (lastEnd == -1) {
-        errorListener.onError(new AnalysisError(templateSource, offset + begin,
-            2, AngularWarningCode.UNTERMINATED_MUSTACHE));
-        break;
+
+      if (nextBegin != -1 && nextBegin < end) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
+        // Skip this open mustache, check the next open we found
+        textOffset = begin + 2;
+        continue;
       }
+
       // resolve
       begin += 2;
-      String code = text.substring(begin, lastEnd);
-      _resolveExpression(offset + begin, code);
+      String code = text.substring(begin, end);
+      _resolveExpression(fileOffset + begin, code);
+      textOffset = end + 2;
     }
   }
 
