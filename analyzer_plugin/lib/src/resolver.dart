@@ -278,7 +278,7 @@ class HtmlTreeConverter {
         int nameOffset;
         try {
           nameOffset = element.attributeSpans[lowerName].start.offset;
-        } catch(e) {
+        } catch (e) {
           // See https://github.com/dart-lang/html/issues/44, this creates
           // an error. Catch it so that analysis else where continues.
           return;
