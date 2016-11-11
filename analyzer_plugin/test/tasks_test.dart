@@ -1033,6 +1033,25 @@ class UserPanel {
         .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
   }
 
+  void test_hasError_expression_UndefinedIdentifier_OutsideFirstHtmlTag() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<h1></h1>{{noSuchName}}')
+class MyComponent {
+}
+''';
+
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, 'noSuchName');
+  }
+
   void test_hasError_UnresolvedTag() {
     String code = r'''
 import '/angular2/angular2.dart';

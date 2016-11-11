@@ -96,7 +96,10 @@ class DartTemplateResolver {
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
-      document = parser.parseFragment('template');
+
+      // Don't parse as a fragment, but parse as a document. That way there
+      // will be a single first element with all contents.
+      document = parser.parse();
       _addParseErrors(parser);
     }
     // Create and resolve Template.
@@ -113,6 +116,13 @@ class DartTemplateResolver {
   void _addParseErrors(html.HtmlParser parser) {
     List<html.ParseError> parseErrors = parser.errors;
     for (html.ParseError parseError in parseErrors) {
+      // We parse this as a full document rather than as a template so
+      // that everything is in the first document element. But then we
+      // get these errors which don't apply -- suppress them.
+      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
+          parseError.errorCode == 'expected-doctype-but-got-chars') {
+        continue;
+      }
       SourceSpan span = parseError.span;
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
