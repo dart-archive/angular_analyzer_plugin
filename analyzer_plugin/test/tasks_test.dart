@@ -1041,6 +1041,7 @@ import '/angular2/angular2.dart';
 class MyComponent {
 }
 ''';
+
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DART_TEMPLATES);
