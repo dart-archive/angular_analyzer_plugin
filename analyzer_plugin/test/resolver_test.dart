@@ -653,6 +653,30 @@ class TestPanel {
     expect(ranges, hasLength(7));
   }
 
+  void test_standardHtmlComponentUsingRef() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void inputChange(String value, String validationMessage) {}
+}
+''');
+    _addHtmlSource(r"""
+<input ref-inputEl M
+       (change)='inputChange(inputEl.value, inputEl.validationMessage)'>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('input ref').selector.inCoreHtml.at('input");');
+    _assertElement('inputEl M').local.at('inputEl M');
+    _assertElement('inputChange(inputEl').dart.method.at('inputChange(Str');
+    _assertElement('inputEl.value').local.at('inputEl M');
+    _assertElement('value, ').dart.getter.inCoreHtml;
+    _assertElement('inputEl.validationMessage').local.at('inputEl M');
+    _assertElement('validationMessage)').dart.getter.inCoreHtml;
+    errorListener.assertNoErrors();
+    expect(ranges, hasLength(7));
+  }
+
   void test_template_attribute_withoutValue() {
     _addDartSource(r'''
 @Directive(selector: '[deferred-content]')
