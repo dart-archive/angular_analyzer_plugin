@@ -499,15 +499,23 @@ class TemplateResolver {
     for (AttributeInfo attribute in attributes) {
       int offset = attribute.nameOffset;
       String name = attribute.name;
+
       // check if defines local variable
-      if (name.startsWith('#')) {
-        offset++;
-        name = name.substring(1);
+      var isLet = name.startsWith('let-'); // ng-for
+      var isHash = name.startsWith('#'); // not ng-for
+      var isVar =
+          name.startsWith('var-'); // either (deprecated but still works)
+      if (isHash || isLet || isVar) {
+        var prefixLen = isHash ? 1 : 4;
+        name = name.substring(prefixLen);
+        offset += prefixLen;
+
         // prepare internal variable name
         String internalName = attribute.value;
         if (internalName == null) {
           internalName = r'$implicit';
         }
+
         // maybe an internal variable reference
         DartType type;
         InternalVariable internalVar = internalVariables[internalName];
@@ -856,8 +864,16 @@ class TemplateResolver {
           token = token.next;
         }
         // declare the local variable
-        attributes.add(new AttributeInfo('#$localVarName', localVarOffset - 1,
-            null, -1, -1, false, internalVarName, internalVarOffset));
+        // Note the care that the varname's offset is preserved in place.
+        attributes.add(new AttributeInfo(
+            'let-$localVarName',
+            localVarOffset - 'let-'.length,
+            null,
+            -1,
+            -1,
+            false,
+            internalVarName,
+            internalVarOffset));
         continue;
       }
       // key
@@ -982,8 +998,8 @@ class TemplateResolver {
   }
 
   static bool _isTemplateVarBeginToken(Token token) {
-    return token.type == TokenType.HASH ||
-        token is KeywordToken && token.keyword == Keyword.VAR;
+    return token is KeywordToken && token.keyword == Keyword.VAR ||
+        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let');
   }
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
