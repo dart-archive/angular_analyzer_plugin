@@ -507,10 +507,11 @@ class TemplateResolver {
 
       // check if defines local variable
       var isLet = name.startsWith('let-'); // ng-for
+      var isRef = name.startsWith('ref-'); // not ng-for
       var isHash = name.startsWith('#'); // not ng-for
       var isVar =
           name.startsWith('var-'); // either (deprecated but still works)
-      if (isHash || isLet || isVar) {
+      if (isHash || isLet || isVar || isRef) {
         var prefixLen = isHash ? 1 : 4;
         name = name.substring(prefixLen);
         offset += prefixLen;
