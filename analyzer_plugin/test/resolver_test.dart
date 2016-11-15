@@ -286,11 +286,12 @@ class MyIterable<T> extends BaseIterable<T> {
 }
 ''');
     _addHtmlSource(r"""
-<li template='ngFor #item of items'>
+<li template='ngFor let item of items'>
   {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("item.").local.at('item of').type('String');
     _assertElement("length}}").dart.getter;
   }
@@ -304,11 +305,34 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='#operator of operators'>
+<li *ngFor='let operator of operators'>
   {{operator.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    expect(template.ranges, hasLength(7));
+    _assertElement("ngFor=").selector.inFileName('ng_for.dart');
+    _assertElement("operator of").local.declaration.type('String');
+    _assertElement("length}}").dart.getter;
+    errorListener.assertNoErrors();
+  }
+
+  void test_ngFor_operatorLocalVariableVarKeyword() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> operators = [];
+}
+''');
+    _addHtmlSource(r"""
+<li *ngFor='var operator of operators'>
+  {{operator.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     expect(template.ranges, hasLength(7));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
     _assertElement("operator of").local.declaration.type('String');
@@ -325,11 +349,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='#item of items; #i = index'>
+<li *ngFor='let item of items; let i = index'>
   {{i}} {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     expect(template.ranges, hasLength(10));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
@@ -357,10 +382,11 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='var item of items' [visible]='item != null'>
+<li *ngFor='let item of items' [visible]='item != null'>
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("item != null").local.at('item of items');
   }
 
@@ -373,12 +399,13 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li template='ngFor #item of items; #i = index'>
+<li template='ngFor let item of items; let i = index'>
   {{i}} {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("ngFor #").selector.inFileName('ng_for.dart');
+    errorListener.assertNoErrors();
+    _assertElement("ngFor let").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
     _assertSelectorElement("of items")
         .selector
@@ -404,11 +431,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li template='ngFor: #item, of = items, #i=index'>
+<li template='ngFor: let item, of = items, let i=index'>
   {{i}} {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("ngFor:").selector.inFileName('ng_for.dart');
     _assertElement("item, of").local.declaration.type('String');
     _assertSelectorElement("of = items,")
@@ -435,12 +463,13 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<template ngFor #item [ngForOf]='items' #i='index'>
+<template ngFor let-item [ngForOf]='items' let-i='index'>
   <li>{{i}} {{item.length}}</li>
 </template>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("ngFor #").selector.inFileName('ng_for.dart');
+    errorListener.assertNoErrors();
+    _assertElement("ngFor let").selector.inFileName('ng_for.dart');
     _assertElement("item [").local.declaration.type('String');
     _assertSelectorElement("ngForOf]")
         .selector
@@ -457,6 +486,27 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
+  void test_ngFor_templateElementVar() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<template ngFor var-item [ngForOf]='items' var-i='index'>
+  <li>{{i}} {{item.length}}</li>
+</template>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement("item [").local.declaration.type('String');
+    _assertElement("i='index").local.declaration.type('int');
+    _assertElement("i}}").local.at("i='index");
+    _assertElement("item.").local.at('item [');
+  }
+
   void test_ngIf_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -469,6 +519,7 @@ class TestPanel {
 <span *ngIf='text.length != 0'>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertSelectorElement("ngIf=").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf=").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
@@ -487,6 +538,7 @@ class TestPanel {
 <span template='ngIf text.length != 0'>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertSelectorElement("ngIf text").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf text").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
