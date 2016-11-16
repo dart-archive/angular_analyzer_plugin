@@ -96,7 +96,10 @@ class DartTemplateResolver {
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
-      document = parser.parseFragment('template');
+
+      // Don't parse as a fragment, but parse as a document. That way there
+      // will be a single first element with all contents.
+      document = parser.parse();
       _addParseErrors(parser);
     }
     // Create and resolve Template.
@@ -113,6 +116,13 @@ class DartTemplateResolver {
   void _addParseErrors(html.HtmlParser parser) {
     List<html.ParseError> parseErrors = parser.errors;
     for (html.ParseError parseError in parseErrors) {
+      // We parse this as a full document rather than as a template so
+      // that everything is in the first document element. But then we
+      // get these errors which don't apply -- suppress them.
+      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
+          parseError.errorCode == 'expected-doctype-but-got-chars') {
+        continue;
+      }
       SourceSpan span = parseError.span;
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
@@ -276,7 +286,14 @@ class HtmlTreeConverter {
     element.attributes.forEach((name, String value) {
       if (name is String) {
         String lowerName = name.toLowerCase();
-        int nameOffset = element.attributeSpans[lowerName].start.offset;
+        int nameOffset;
+        try {
+          nameOffset = element.attributeSpans[lowerName].start.offset;
+        } catch (e) {
+          // See https://github.com/dart-lang/html/issues/44, this creates
+          // an error. Catch it so that analysis else where continues.
+          return;
+        }
         // name
         bool bound = false;
         String propName = name;
@@ -942,25 +959,46 @@ class TemplateResolver {
    * Scan the given [text] staring at the given [offset] and resolve all of
    * its embedded expressions.
    */
-  void _resolveTextExpressions(int offset, String text) {
-    int lastEnd = 0;
+  void _resolveTextExpressions(int fileOffset, String text) {
+    int textOffset = 0;
     while (true) {
       // begin
-      int begin = text.indexOf('{{', lastEnd);
+      int begin = text.indexOf('{{', textOffset);
+      int nextBegin = text.indexOf('{{', begin + 2);
+      int end = text.indexOf('}}', textOffset);
+      if (begin == -1 && end == -1) {
+        break;
+      }
+
+      if (end == -1) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
+        // Move the cursor ahead and keep looking for more unmatched mustaches.
+        textOffset = begin + 2;
+        continue;
+      }
+
       if (begin == -1) {
-        break;
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
+        // Move the cursor ahead and keep looking for more unmatched mustaches.
+        textOffset = end + 2;
+        continue;
       }
-      // end
-      lastEnd = text.indexOf('}}', begin);
-      if (lastEnd == -1) {
-        errorListener.onError(new AnalysisError(templateSource, offset + begin,
-            2, AngularWarningCode.UNTERMINATED_MUSTACHE));
-        break;
+
+      if (nextBegin != -1 && nextBegin < end) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
+        // Skip this open mustache, check the next open we found
+        textOffset = begin + 2;
+        continue;
       }
+
       // resolve
       begin += 2;
-      String code = text.substring(begin, lastEnd);
-      _resolveExpression(offset + begin, code);
+      String code = text.substring(begin, end);
+      _resolveExpression(fileOffset + begin, code);
+      textOffset = end + 2;
     }
   }
 

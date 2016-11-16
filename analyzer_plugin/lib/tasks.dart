@@ -96,6 +96,12 @@ class AngularWarningCode extends ErrorCode {
           'UNTERMINATED_MUSTACHE', 'Unterminated mustache');
 
   /**
+   * An error code indicating that a mustache ending was found unopened
+   */
+  static const AngularWarningCode UNOPENED_MUSTACHE = const AngularWarningCode(
+      'UNOPENED_MUSTACHE', 'Mustache terminator with no opening');
+
+  /**
    * An error code indicating that a nonexist input was bound
    */
   static const AngularWarningCode NONEXIST_INPUT_BOUND =

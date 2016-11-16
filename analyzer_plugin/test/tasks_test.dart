@@ -1033,6 +1033,25 @@ class UserPanel {
         .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
   }
 
+  void test_hasError_expression_UndefinedIdentifier_OutsideFirstHtmlTag() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<h1></h1>{{noSuchName}}')
+class MyComponent {
+}
+''';
+
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, 'noSuchName');
+  }
+
   void test_hasError_UnresolvedTag() {
     String code = r'''
 import '/angular2/angular2.dart';
@@ -1282,6 +1301,74 @@ class TextPanel {
     fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener
         .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
+  }
+
+  void test_textExpression_hasError_UnopenedMustache() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> text}} </div>")
+class TextPanel {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
+  }
+
+  void test_textExpression_hasError_DoubleOpenedMustache() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> {{text {{ text}} </div>")
+class TextPanel {
+  String text;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
+  }
+
+  void test_textExpression_hasError_MultipleUnclosedMustaches() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> {{open {{open {{text}} close}} close}} </div>")
+class TextPanel {
+  String text;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      AngularWarningCode.UNOPENED_MUSTACHE,
+      AngularWarningCode.UNOPENED_MUSTACHE
+    ]);
   }
 
   void test_textExpression_OK() {

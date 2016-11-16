@@ -615,6 +615,22 @@ class TestPanel {
     _assertElement('bbb}}').dart.getter.at('bbb; // 2');
   }
 
+  // see https://github.com/dart-lang/html/issues/44
+  void test_catchPkgHtmlGithubBug44() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String aaa; // 1
+  String bbb; // 2
+}
+''');
+    _addHtmlSource(r"""<button attr<="value"></button>""");
+    _resolveSingleTemplate(dartSource);
+
+    // no assertion...this throws in the github bug
+  }
+
   void _addDartSource(String code) {
     dartCode = '''
 import '/angular2/angular2.dart';
