@@ -18,3 +18,5 @@ dependency_overrides:
      path: ../../sdk/pkg/analyzer
   analysis_server:
      path: ../../sdk/pkg/analysis_server
+  front_end:
+     path: ../../sdk/pkg/front_end
