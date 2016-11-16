@@ -35,6 +35,8 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
+enum AttributeBoundType { input, output }
+
 /**
  * Information about an attribute.
  */
@@ -42,10 +44,10 @@ class AttributeInfo {
   final String name;
   final int nameOffset;
 
-  final String inputName;
-  final int inputNameOffset;
-  final int inputNameLength;
-  final bound;
+  final String propertyName;
+  final int propertyNameOffset;
+  final int propertyNameLength;
+  final AttributeBoundType bound;
 
   final String value;
   final int valueOffset;
@@ -55,9 +57,9 @@ class AttributeInfo {
   AttributeInfo(
       this.name,
       this.nameOffset,
-      this.inputName,
-      this.inputNameOffset,
-      this.inputNameLength,
+      this.propertyName,
+      this.propertyNameOffset,
+      this.propertyNameLength,
       this.bound,
       this.value,
       this.valueOffset);
@@ -67,7 +69,7 @@ class AttributeInfo {
   @override
   String toString() {
     return '([$name, $nameOffset],'
-        '[$inputName, $inputNameOffset, $inputNameLength, $bound],'
+        '[$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
         '[$value, $valueOffset, $valueLength], [$expression])';
   }
 }
@@ -203,9 +205,9 @@ class ElementViewImpl implements ElementView {
 
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
-      String name = attribute.inputName;
-      attributeNameSpans[name] =
-          new SourceRange(attribute.inputNameOffset, attribute.inputNameLength);
+      String name = attribute.propertyName;
+      attributeNameSpans[name] = new SourceRange(
+          attribute.propertyNameOffset, attribute.propertyNameLength);
       if (attribute.value != null) {
         attributeValueSpans[name] =
             new SourceRange(attribute.valueOffset, attribute.valueLength);
@@ -295,27 +297,27 @@ class HtmlTreeConverter {
           return;
         }
         // name
-        bool bound = false;
+        AttributeBoundType bound = null;
         String propName = name;
         int propNameOffset = nameOffset;
         if (propName.startsWith('[') && propName.endsWith(']')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
-          bound = true;
+          bound = AttributeBoundType.input;
         } else if (propName.startsWith('bind-')) {
           int bindLength = 'bind-'.length;
           propNameOffset += bindLength;
           propName = propName.substring(bindLength);
-          bound = true;
+          bound = AttributeBoundType.input;
         } else if (propName.startsWith('on-')) {
           int bindLength = 'on-'.length;
           propNameOffset += bindLength;
           propName = propName.substring(bindLength);
-          bound = true;
+          bound = AttributeBoundType.output;
         } else if (propName.startsWith('(') && propName.endsWith(')')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
-          bound = true;
+          bound = AttributeBoundType.output;
         }
         int propNameLength = propName != null ? propName.length : null;
         // value
@@ -488,7 +490,8 @@ class TemplateResolver {
       internalVariables['index'] = new InternalVariable('index',
           new DartElement(directive.classElement), typeProvider.intType);
       for (AttributeInfo attribute in attributes) {
-        if (attribute.inputName == 'ngForOf' && attribute.expression != null) {
+        if (attribute.propertyName == 'ngForOf' &&
+            attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
           internalVariables[r'$implicit'] = new InternalVariable(
               r'$implicit', new DartElement(directive.classElement), itemType);
@@ -642,10 +645,18 @@ class TemplateResolver {
       List<AttributeInfo> attributes, AbstractDirective directive) {
     for (AttributeInfo attribute in attributes) {
       for (InputElement input in directive.inputs) {
-        if (attribute.inputName == input.name) {
+        if (attribute.propertyName == input.name) {
           SourceRange range = new SourceRange(
-              attribute.inputNameOffset, attribute.inputNameLength);
+              attribute.propertyNameOffset, attribute.propertyNameLength);
           template.addRange(range, input);
+        }
+      }
+
+      for (OutputElement output in directive.outputs) {
+        if (attribute.propertyName == output.name) {
+          SourceRange range = new SourceRange(
+              attribute.propertyNameOffset, attribute.propertyNameLength);
+          template.addRange(range, output);
         }
       }
     }
@@ -664,7 +675,7 @@ class TemplateResolver {
         continue;
       }
       // bound
-      if (attribute.bound) {
+      if (attribute.bound != null) {
         Expression expression = attribute.expression;
         if (expression == null) {
           expression = _resolveDartExpressionAt(valueOffset, value);
@@ -678,7 +689,7 @@ class TemplateResolver {
         if (attribute.name.startsWith('[')) {
           for (AbstractDirective directive in directives) {
             for (InputElement input in directive.inputs) {
-              if (input.name == attribute.inputName) {
+              if (input.name == attribute.propertyName) {
                 var attrType = expression.bestType;
                 var inputType = input.setter.variable.type;
                 if (!attrType.isAssignableTo(inputType)) {
@@ -926,7 +937,7 @@ class TemplateResolver {
             null,
             -1,
             -1,
-            false,
+            null,
             internalVarName,
             internalVarOffset));
         continue;
@@ -969,8 +980,15 @@ class TemplateResolver {
         token = expression.endToken.next;
       }
       // add the attribute to resolve to an input
-      AttributeInfo attributeInfo = new AttributeInfo(key, keyOffset, key,
-          keyOffset, keyLength, expression != null, 'some-value', -1);
+      AttributeInfo attributeInfo = new AttributeInfo(
+          key,
+          keyOffset,
+          key,
+          keyOffset,
+          keyLength,
+          expression != null ? AttributeBoundType.input : null,
+          'some-value',
+          -1);
       attributeInfo.expression = expression;
       attributes.add(attributeInfo);
     }

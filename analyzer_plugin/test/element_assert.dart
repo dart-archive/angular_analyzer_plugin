@@ -94,6 +94,11 @@ class ElementAssert {
     return new AngularElementAssert(_context, element, _dartSource);
   }
 
+  AngularElementAssert get output {
+    expect(element, new isInstanceOf<OutputElement>());
+    return new AngularElementAssert(_context, element, _dartSource);
+  }
+
   LocalVariableAssert get local {
     expect(element, new isInstanceOf<LocalVariable>());
     return new LocalVariableAssert(
