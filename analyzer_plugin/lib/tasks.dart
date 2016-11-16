@@ -96,6 +96,22 @@ class AngularWarningCode extends ErrorCode {
           'UNTERMINATED_MUSTACHE', 'Unterminated mustache');
 
   /**
+   * An error code indicating that a nonexist input was bound
+   */
+  static const AngularWarningCode NONEXIST_INPUT_BOUND =
+      const AngularWarningCode('NONEXIST_INPUT_BOUND',
+          'The bound input does not exist on any directives');
+
+  /**
+   * An error code indicating that a nonexist input was bound
+   */
+  static const AngularWarningCode INPUT_BINDING_TYPE_ERROR =
+      const AngularWarningCode(
+          'INPUT_BINDING_TYPE_ERROR',
+          'Attribute value expression (of type {0}) ' +
+              'is not assignable to component input (of type {1})');
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be
