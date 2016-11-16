@@ -342,7 +342,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
    * order in which the errors were gathered is ignored.
    */
   void assertErrorsWithCodes(
-      [List<ErrorCode> expectedErrorCodes = ErrorCode.EMPTY_LIST]) {
+      [List<ErrorCode> expectedErrorCodes = const <ErrorCode>[]]) {
     StringBuffer buffer = new StringBuffer();
     //
     // Verify that the expected error codes have a non-empty message.
