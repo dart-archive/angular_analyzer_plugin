@@ -14,3 +14,5 @@ dev_dependencies:
 dependency_overrides:
   analyzer:
      path: ../../sdk/pkg/analyzer
+  front_end:
+     path: ../../sdk/pkg/front_end
