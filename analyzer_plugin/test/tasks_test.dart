@@ -408,8 +408,8 @@ class MyComponent {
     {
       InputElement input = inputs[2];
       expect(input.name, 'firstField');
-      expect(input.nameOffset, -1);
-      expect(input.nameLength, 0);
+      expect(input.nameOffset, code.indexOf('firstField'));
+      expect(input.nameLength, 'firstField'.length);
       expect(input.setterRange, isNull);
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
@@ -466,6 +466,72 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'trailingText');
+    }
+  }
+
+  void test_outputs() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(
+    selector: 'my-component',
+    outputs: const ['outputOne', 'secondOutput: outputTwo'])
+class MyComponent {
+  EventEmitter outputOne;
+  EventEmitter<String> secondOutput;
+  @Output()
+  EventEmitter<int> outputThree;
+  @Output('outputFour')
+  EventEmitter<MyComponent> fourthOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(4));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.name, 'outputOne');
+      expect(output.nameOffset, code.indexOf("outputOne"));
+      expect(output.getterRange.offset, output.nameOffset);
+      expect(output.getterRange.length, 'outputOne'.length);
+      expect(output.getter, isNotNull);
+      expect(output.getter.isGetter, isTrue);
+      expect(output.getter.displayName, 'outputOne');
+    }
+    {
+      OutputElement output = compOutputs[1];
+      expect(output.name, 'outputTwo');
+      expect(output.nameOffset, code.indexOf("outputTwo']"));
+      expect(output.getterRange.offset, code.indexOf("secondOutput: "));
+      expect(output.getterRange.length, 'secondOutput'.length);
+      expect(output.getter, isNotNull);
+      expect(output.getter.isGetter, isTrue);
+      expect(output.getter.displayName, 'secondOutput');
+    }
+    {
+      OutputElement output = compOutputs[2];
+      expect(output.name, 'outputThree');
+      expect(output.nameOffset, code.indexOf('outputThree'));
+      expect(output.nameLength, 'outputThree'.length);
+      expect(output.getterRange, isNull);
+      expect(output.getter, isNotNull);
+      expect(output.getter.isGetter, isTrue);
+      expect(output.getter.displayName, 'outputThree');
+    }
+    {
+      OutputElement output = compOutputs[3];
+      expect(output.name, 'outputFour');
+      expect(output.nameOffset, code.indexOf('outputFour'));
+      expect(output.getterRange, isNull);
+      expect(output.getter, isNotNull);
+      expect(output.getter.isGetter, isTrue);
+      expect(output.getter.displayName, 'fourthOutput');
     }
   }
 

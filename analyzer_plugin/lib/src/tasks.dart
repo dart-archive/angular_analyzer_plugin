@@ -24,6 +24,7 @@ import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
+import 'package:tuple/tuple.dart';
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -283,22 +284,27 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         return null;
       }
       AngularElement exportAs = _parseExportAs(node);
-      List<InputElement> inputs = <InputElement>[];
+      List<InputElement> inputElements = <InputElement>[];
+      List<OutputElement> outputElements = <OutputElement>[];
       {
-        List<InputElement> headerInputs =
-            _parseHeaderInputs(classElement, node);
-        List<InputElement> annotationInputs =
-            _parseMemberInputs(classDeclaration);
-        inputs.addAll(headerInputs);
-        inputs.addAll(annotationInputs);
+        inputElements.addAll(_parseHeaderInputs(classElement, node));
+        outputElements.addAll(_parseHeaderOutputs(classElement, node));
+        _parseMemberInputsAndOutputs(
+            classDeclaration, inputElements, outputElements);
       }
       if (isComponent) {
         return new Component(classElement,
-            exportAs: exportAs, inputs: inputs, selector: selector);
+            exportAs: exportAs,
+            inputs: inputElements,
+            outputs: outputElements,
+            selector: selector);
       }
       if (isDirective) {
         return new Directive(classElement,
-            exportAs: exportAs, inputs: inputs, selector: selector);
+            exportAs: exportAs,
+            inputs: inputElements,
+            outputs: outputElements,
+            selector: selector);
       }
     }
     return null;
@@ -340,50 +346,85 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return new AngularElementImpl(name, offset, name.length, target.source);
   }
 
-  InputElement _parseHeaderInput(
-      ClassElement classElement, ast.Expression expression) {
+  Tuple4<String, SourceRange, String, SourceRange>
+      _parseHeaderNameValueSourceRanges(ast.Expression expression) {
     if (expression is ast.SimpleStringLiteral) {
       int offset = expression.contentsOffset;
       String value = expression.value;
-      // TODO(scheglov) support for pipes
+      // TODO(mfairhurst) support for pipes
       int colonIndex = value.indexOf(':');
       if (colonIndex == -1) {
         String name = value;
-        PropertyAccessorElement setter =
-            _resolveSetter(classElement, expression, name);
         SourceRange nameRange = new SourceRange(offset, name.length);
-        return new InputElement(
-            name, offset, name.length, target.source, setter, nameRange);
+        return new Tuple4<String, SourceRange, String, SourceRange>(
+            name, nameRange, name, nameRange);
       } else {
         // Resolve the setter.
         String setterName = value.substring(0, colonIndex).trimRight();
-        PropertyAccessorElement setter =
-            _resolveSetter(classElement, expression, setterName);
-        // Find the input name.
-        int inputOffset = colonIndex;
+        // Find the name.
+        int boundOffset = colonIndex;
         while (true) {
-          inputOffset++;
-          if (inputOffset >= value.length) {
-            // TODO(scheglov) report a warning
+          boundOffset++;
+          if (boundOffset >= value.length) {
+            // TODO(mfairhurst) report a warning
             return null;
           }
-          if (value.substring(inputOffset, inputOffset + 1) != ' ') {
+          if (value.substring(boundOffset, boundOffset + 1) != ' ') {
             break;
           }
         }
-        String inputName = value.substring(inputOffset);
-        // TODO(scheglov) test that a valid input name
-        // Create the input.
-        return new InputElement(
-            inputName,
-            offset + inputOffset,
-            inputName.length,
-            target.source,
-            setter,
+        String boundName = value.substring(boundOffset);
+        // TODO(mfairhurst) test that a valid bound name
+        return new Tuple4<String, SourceRange, String, SourceRange>(
+            boundName,
+            new SourceRange(offset + boundOffset, boundName.length),
+            setterName,
             new SourceRange(offset, setterName.length));
       }
     } else {
-      // TODO(scheglov) report a warning
+      // TODO(mfairhurst) report a warning
+      return null;
+    }
+  }
+
+  InputElement _parseHeaderInput(
+      ClassElement classElement, ast.Expression expression) {
+    Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
+        _parseHeaderNameValueSourceRanges(expression);
+    if (nameValueAndRanges != null) {
+      var boundName = nameValueAndRanges.item1;
+      var boundRange = nameValueAndRanges.item2;
+      var name = nameValueAndRanges.item3;
+      var nameRange = nameValueAndRanges.item4;
+
+      PropertyAccessorElement setter =
+          _resolveSetter(classElement, expression, name);
+
+      return new InputElement(boundName, boundRange.offset, boundRange.length,
+          target.source, setter, nameRange);
+    } else {
+      // TODO(mfairhurst) report a warning
+      return null;
+    }
+  }
+
+  OutputElement _parseHeaderOutput(
+      ClassElement classElement, ast.Expression expression) {
+    Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
+        _parseHeaderNameValueSourceRanges(expression);
+    if (nameValueAndRanges != null) {
+      var boundName = nameValueAndRanges.item1;
+      var boundRange = nameValueAndRanges.item2;
+      var name = nameValueAndRanges.item3;
+      var nameRange = nameValueAndRanges.item4;
+
+      PropertyAccessorElement getter =
+          _resolveGetter(classElement, expression, name);
+
+      return new OutputElement(boundName, boundRange.offset, boundRange.length,
+          target.source, getter, nameRange);
+    } else {
+      // TODO(mfairhurst) report a warning
       return null;
     }
   }
@@ -396,80 +437,104 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       return InputElement.EMPTY_LIST;
     }
     // Create an input for each element.
-    List<InputElement> inputs = <InputElement>[];
+    List<InputElement> inputElements = <InputElement>[];
     for (ast.Expression element in descList.elements) {
-      InputElement input = _parseHeaderInput(classElement, element);
-      if (input != null) {
-        inputs.add(input);
+      InputElement inputElement = _parseHeaderInput(classElement, element);
+      if (inputElement != null) {
+        inputElements.add(inputElement);
       }
     }
-    return inputs;
+    return inputElements;
+  }
+
+  List<OutputElement> _parseHeaderOutputs(
+      ClassElement classElement, ast.Annotation node) {
+    ast.ListLiteral descList =
+        _getListLiteralNamedArgument(node, const <String>['outputs']);
+    if (descList == null) {
+      return OutputElement.EMPTY_LIST;
+    }
+    // Create an output for each element.
+    List<OutputElement> outputs = <OutputElement>[];
+    for (ast.Expression element in descList.elements) {
+      OutputElement outputElement = _parseHeaderOutput(classElement, element);
+      if (outputElement != null) {
+        outputs.add(outputElement);
+      }
+    }
+    return outputs;
   }
 
   /**
-   * Create a new input for the given class member [node] with the given
-   * `@Input` [annotation].
+   * Create a new input or output for the given class member [node] with
+   * the given `@Input` or `@Output` [annotation], and add it to the
+   * [inputElements] or [outputElements] array.
    */
-  InputElement _parseMemberInput(
-      ast.ClassMember node, ast.Annotation annotation) {
+  _parseMemberInputOrOutput(ast.ClassMember node, ast.Annotation annotation,
+      List<InputElement> inputElements, List<OutputElement> outputElements) {
+    // analyze the annotation
+    final isInput = _isAngularAnnotation(annotation, 'Input');
+    final isOutput = _isAngularAnnotation(annotation, 'Output');
+    if ((!isInput && !isOutput) || annotation.arguments == null) {
+      return null;
+    }
+
     // analyze the class member
-    PropertyAccessorElement setter;
+    PropertyAccessorElement property;
     if (node is ast.FieldDeclaration && node.fields.variables.length == 1) {
       ast.VariableDeclaration variable = node.fields.variables.first;
       FieldElement fieldElement = variable.element;
-      setter = fieldElement.setter;
+      property = isInput ? fieldElement.setter : fieldElement.getter;
     } else {
       return null;
     }
-    // analyze the annotation
-    if (!_isAngularAnnotation(annotation, 'Input') ||
-        annotation.arguments == null) {
-      return null;
-    }
+
     // prepare the input name
-    String inputName;
-    int inputNameOffset;
-    int inputNameLength;
+    String name;
+    int nameOffset;
+    int nameLength;
     List<ast.Expression> arguments = annotation.arguments.arguments;
     if (arguments.isEmpty) {
-      String setterName = setter.displayName;
-      inputName = setterName;
-      inputNameOffset = -1;
-      inputNameLength = 0;
+      String propertyName = property.displayName;
+      name = propertyName;
+      nameOffset = property.nameOffset;
+      nameLength = name.length;
     } else {
-      ast.Expression inputNameArgument = arguments[0];
-      if (inputNameArgument is ast.SimpleStringLiteral) {
-        inputName = inputNameArgument.value;
-        inputNameOffset = inputNameArgument.contentsOffset;
-        inputNameLength = inputName.length;
+      ast.Expression nameArgument = arguments[0];
+      if (nameArgument is ast.SimpleStringLiteral) {
+        name = nameArgument.value;
+        nameOffset = nameArgument.contentsOffset;
+        nameLength = name.length;
       } else {
         errorReporter.reportErrorForNode(
-            AngularWarningCode.STRING_VALUE_EXPECTED, inputNameArgument);
+            AngularWarningCode.STRING_VALUE_EXPECTED, nameArgument);
       }
-      if (inputName == null) {
+      if (name == null) {
         return null;
       }
     }
-    return new InputElement(inputName, inputNameOffset, inputNameLength,
-        target.source, setter, null);
+
+    if (isInput) {
+      inputElements.add(new InputElement(
+          name, nameOffset, nameLength, target.source, property, null));
+    } else {
+      outputElements.add(new OutputElement(
+          name, nameOffset, nameLength, target.source, property, null));
+    }
   }
 
   /**
-   * Return inputs for all class members with `@Input` annotations.
+   * Collect inputs and outputs for all class members with `@Input`
+   * or `@Output` annotations.
    */
-  List<InputElement> _parseMemberInputs(ast.ClassDeclaration node) {
-    List<InputElement> inputs = <InputElement>[];
+  _parseMemberInputsAndOutputs(ast.ClassDeclaration node,
+      List<InputElement> inputElements, List<OutputElement> outputElements) {
     for (ast.ClassMember member in node.members) {
       for (ast.Annotation annotation in member.metadata) {
-        InputElement input = _parseMemberInput(member, annotation);
-        if (_isAngularAnnotation(annotation, 'Input')) {
-          if (input != null) {
-            inputs.add(input);
-          }
-        }
+        _parseMemberInputOrOutput(
+            member, annotation, inputElements, outputElements);
       }
     }
-    return inputs;
   }
 
   Selector _parseSelector(ast.Annotation node) {
@@ -515,6 +580,21 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
           literal, [name, classElement.displayName]);
     }
     return setter;
+  }
+
+  /**
+   * Resolve the output getter with the given [name] in [classElement].
+   * If undefined, report a warning and return `null`.
+   */
+  PropertyAccessorElement _resolveGetter(
+      ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
+    PropertyAccessorElement getter =
+        classElement.lookUpGetter(name, classElement.library);
+    if (getter == null) {
+      errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_GETTER,
+          literal, [name, classElement.displayName]);
+    }
+    return getter;
   }
 
   /**
@@ -1218,17 +1298,18 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
    * Return a new [Component] for the current [classElement].
    */
   Component _buildComponent(String tag, int tagOffset) {
-    List<InputElement> inputs = _buildInputs();
+    List<InputElement> inputElements = _buildInputs();
+    List<OutputElement> outputElements = _buildOutputs();
     return new Component(classElement,
-        inputs: inputs,
+        inputs: inputElements,
+        outputs: outputElements,
         selector: new ElementNameSelector(
             new SelectorName(tag, tagOffset, tag.length, source)));
   }
 
   List<InputElement> _buildInputs() {
-    Map<String, InputElement> inputMap = <String, InputElement>{};
-    Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
-    void addInput(PropertyAccessorElement accessor) {
+    return _captureAspects(
+        (Map<String, InputElement> inputMap, PropertyAccessorElement accessor) {
       String name = accessor.displayName;
       if (!inputMap.containsKey(name)) {
         if (accessor.isSetter) {
@@ -1236,17 +1317,38 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.nameLength, accessor.source, accessor, null);
         }
       }
-    }
+    });
+  }
 
-    void addInputs(InterfaceType type) {
+  List<OutputElement> _buildOutputs() {
+    return _captureAspects((Map<String, OutputElement> outputMap,
+        PropertyAccessorElement accessor) {
+      String name = accessor.displayName;
+      if (!outputMap.containsKey(name)) {
+        if (accessor.isGetter) {
+          outputMap[name] = new OutputElement(name, accessor.nameOffset,
+              accessor.nameLength, accessor.source, accessor, null);
+        }
+      }
+    });
+  }
+
+  List/*<T>*/ _captureAspects(CaptureAspectFn/*<T>*/ addAspect) {
+    Map<String, /*T*/ dynamic> aspectMap = <String, /*T*/ dynamic>{};
+    Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
+
+    void addAspects(InterfaceType type) {
       if (type != null && visitedTypes.add(type)) {
-        type.accessors.forEach(addInput);
-        type.mixins.forEach(addInputs);
-        addInputs(type.superclass);
+        type.accessors.forEach((/*T*/ dynamic t) => addAspect(aspectMap, t));
+        type.mixins.forEach(addAspects);
+        addAspects(type.superclass);
       }
     }
 
-    addInputs(classElement.type);
-    return inputMap.values.toList();
+    addAspects(classElement.type);
+    return aspectMap.values.toList();
   }
 }
+
+typedef T CaptureAspectFn<T>(
+    Map<String, T> aspectMap, PropertyAccessorElement accessor);

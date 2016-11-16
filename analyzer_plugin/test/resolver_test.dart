@@ -228,6 +228,28 @@ class TestPanel {}
     _assertElement("ccc=").input.at("ccc']");
   }
 
+  void test_outputReference() {
+    _addDartSource(r'''
+@Component(selector: 'name-panel',
+    template: r"<div>AAA</div>")
+class NamePanel {
+  @Output() EventEmitter aaa;
+  @Output() EventEmitter bbb;
+  @Output() EventEmitter ccc;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<name-panel aaa='1' (bbb)='2' on-ccc='3'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement("aaa=").output.at("aaa;");
+    _assertElement("bbb)=").output.at("bbb;");
+    _assertElement("ccc=").output.at("ccc;");
+  }
+
   void test_localVariable_camelCaseName() {
     _addDartSource(r'''
 import 'dart:html';

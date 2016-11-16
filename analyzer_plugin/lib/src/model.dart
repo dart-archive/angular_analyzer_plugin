@@ -20,10 +20,11 @@ abstract class AbstractDirective {
 
   final AngularElement exportAs;
   final List<InputElement> inputs;
+  final List<OutputElement> outputs;
   final Selector selector;
 
   AbstractDirective(this.classElement,
-      {this.exportAs, this.inputs, this.selector});
+      {this.exportAs, this.inputs, this.outputs, this.selector});
 
   /**
    * The source that contains this directive.
@@ -34,7 +35,8 @@ abstract class AbstractDirective {
   String toString() {
     return '$runtimeType(${classElement.displayName} '
         'selector=$selector '
-        'inputs=$inputs)';
+        'inputs=$inputs '
+        'outputs=$outputs)';
   }
 }
 
@@ -107,9 +109,15 @@ class AngularElementImpl implements AngularElement {
  */
 class Component extends AbstractDirective {
   Component(dart.ClassElement classElement,
-      {AngularElement exportAs, List<InputElement> inputs, Selector selector})
+      {AngularElement exportAs,
+      List<InputElement> inputs,
+      List<OutputElement> outputs,
+      Selector selector})
       : super(classElement,
-            exportAs: exportAs, inputs: inputs, selector: selector);
+            exportAs: exportAs,
+            inputs: inputs,
+            outputs: outputs,
+            selector: selector);
 }
 
 /**
@@ -129,9 +137,15 @@ class DartElement extends AngularElementImpl {
  */
 class Directive extends AbstractDirective {
   Directive(dart.ClassElement classElement,
-      {AngularElement exportAs, List<InputElement> inputs, Selector selector})
+      {AngularElement exportAs,
+      List<InputElement> inputs,
+      List<OutputElement> outputs,
+      Selector selector})
       : super(classElement,
-            exportAs: exportAs, inputs: inputs, selector: selector);
+            exportAs: exportAs,
+            inputs: inputs,
+            outputs: outputs,
+            selector: selector);
 }
 
 /**
@@ -171,6 +185,31 @@ class InputElement extends AngularElementImpl {
   @override
   String toString() {
     return 'InputElement($name, $nameOffset, $nameLength, $setter)';
+  }
+}
+
+/**
+ * The model for an Angular output.
+ */
+class OutputElement extends AngularElementImpl {
+  static const List<OutputElement> EMPTY_LIST = const <OutputElement>[];
+
+  final dart.PropertyAccessorElement getter;
+
+  /**
+   * The [SourceRange] where [getter] is referenced in the input declaration.
+   * May be the same as this element offset/length in shorthand variants where
+   * names of a input and the getter are the same.
+   */
+  final SourceRange getterRange;
+
+  OutputElement(String name, int nameOffset, int nameLength, Source source,
+      this.getter, this.getterRange)
+      : super(name, nameOffset, nameLength, source);
+
+  @override
+  String toString() {
+    return 'OutputElement($name, $nameOffset, $nameLength, $getter)';
   }
 }
 
