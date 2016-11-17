@@ -214,6 +214,7 @@ class InputElement extends HtmlElement {
   factory InputElement() => document.createElement("input");
   String value;
   String validationMessage;
+  ElementStream<Event> get onKeyup => null;
 }
 ''');
 

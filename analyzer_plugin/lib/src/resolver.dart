@@ -676,6 +676,19 @@ class TemplateResolver {
       }
       // bound
       if (attribute.bound != null) {
+        var matched = false;
+        if (attribute.bound == AttributeBoundType.output) {
+          for (AbstractDirective directive in directives) {
+            for (OutputElement output in directive.outputs) {
+              if (output.name == attribute.propertyName) {
+                // TODO add $event as a dart var of the proper type
+                // TODO what if this matches two directives?
+                matched = true;
+              }
+            }
+          }
+        }
+
         Expression expression = attribute.expression;
         if (expression == null) {
           expression = _resolveDartExpressionAt(valueOffset, value);
@@ -685,8 +698,7 @@ class TemplateResolver {
           _recordExpressionResolvedRanges(expression);
         }
 
-        var matched = false;
-        if (attribute.name.startsWith('[')) {
+        if (attribute.bound == AttributeBoundType.input) {
           for (AbstractDirective directive in directives) {
             for (InputElement input in directive.inputs) {
               if (input.name == attribute.propertyName) {
@@ -704,14 +716,16 @@ class TemplateResolver {
               }
             }
           }
+        }
 
-          if (!matched) {
-            errorListener.onError(new AnalysisError(
-                templateSource,
-                attribute.nameOffset,
-                attribute.name.length,
-                AngularWarningCode.NONEXIST_INPUT_BOUND));
-          }
+        if (!matched) {
+          errorListener.onError(new AnalysisError(
+              templateSource,
+              attribute.nameOffset,
+              attribute.name.length,
+              attribute.bound == AttributeBoundType.input
+                  ? AngularWarningCode.NONEXIST_INPUT_BOUND
+                  : AngularWarningCode.NONEXIST_OUTPUT_BOUND));
         }
 
         continue;

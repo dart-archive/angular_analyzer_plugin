@@ -22,6 +22,7 @@ import 'package:analyzer/task/model.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:tuple/tuple.dart';
@@ -1323,7 +1324,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   List<OutputElement> _buildOutputs() {
     return _captureAspects((Map<String, OutputElement> outputMap,
         PropertyAccessorElement accessor) {
-      String name = accessor.displayName;
+      String name = decapitalize(accessor.displayName.substring('on'.length));
       if (!outputMap.containsKey(name)) {
         if (accessor.isGetter) {
           outputMap[name] = new OutputElement(name, accessor.nameOffset,

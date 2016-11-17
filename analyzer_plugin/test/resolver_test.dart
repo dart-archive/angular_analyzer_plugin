@@ -180,6 +180,22 @@ class TestPanel {
     _assertElement("text'>").dart.getter.at('text; // 1');
   }
 
+  void test_expression_outputBinding_boundToNothing() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span (title)='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "(title)");
+  }
+
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {
@@ -257,13 +273,13 @@ import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
-  void handleKeyUp(Element e) {}
+  void handleClick(Element e) {}
 }
 ''');
     _addHtmlSource(r"""
-<div (keyup)='handleKeyUp(myTargetElement)'>
+<h1 (click)='handleClick(myTargetElement)'>
   <div #myTargetElement></div>
-</div>
+</h1>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
@@ -692,8 +708,9 @@ class TestPanel {
     _assertElement('value, ').dart.getter.inCoreHtml;
     _assertElement('inputEl.validationMessage').local.at('inputEl M');
     _assertElement('validationMessage)').dart.getter.inCoreHtml;
+    _assertElement('change)').output.inCoreHtml;
     errorListener.assertNoErrors();
-    expect(ranges, hasLength(7));
+    expect(ranges, hasLength(8));
   }
 
   void test_standardHtmlComponentUsingRef() {
