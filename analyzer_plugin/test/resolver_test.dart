@@ -549,6 +549,30 @@ class TestPanel {
     _assertElement("item.").local.at('item [');
   }
 
+  void test_ngFor_variousKinds_useLowerIdentifier() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
+  {{item1.length}}
+</template>
+<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
+  {{item2.length}}
+</li>
+<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
+  {{item3.length}}
+</li>
+<div #lowerEl></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_ngIf_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
