@@ -158,6 +158,7 @@ class ElementInfo extends NodeInfo {
   final bool isTemplate;
   final bool hasTemplateAttribute;
   final List<AttributeInfo> attributes;
+  List<AbstractDirective> directives = <AbstractDirective>[];
 
   ElementInfo(
       this.localName,
@@ -648,7 +649,8 @@ class TemplateResolver {
   /**
    * Resolve values of [attributes].
    */
-  void _resolveAttributeValues(List<AttributeInfo> attributes) {
+  void _resolveAttributeValues(
+      List<AttributeInfo> attributes, List<AbstractDirective> directives) {
     for (AttributeInfo attribute in attributes) {
       int valueOffset = attribute.valueOffset;
       String value = attribute.value;
@@ -666,6 +668,36 @@ class TemplateResolver {
         if (expression != null) {
           _recordExpressionResolvedRanges(expression);
         }
+
+        var matched = false;
+        if (attribute.name.startsWith('[')) {
+          for (AbstractDirective directive in directives) {
+            for (InputElement input in directive.inputs) {
+              if (input.name == attribute.inputName) {
+                var attrType = expression.bestType;
+                var inputType = input.setter.variable.type;
+                if (!attrType.isAssignableTo(inputType)) {
+                  errorListener.onError(new AnalysisError(
+                      templateSource,
+                      attribute.valueOffset,
+                      attribute.value.length,
+                      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+                      [attrType, inputType]));
+                }
+                matched = true;
+              }
+            }
+          }
+
+          if (!matched) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                AngularWarningCode.NONEXIST_INPUT_BOUND));
+          }
+        }
+
         continue;
       }
       // text interpolations
@@ -745,7 +777,7 @@ class TemplateResolver {
         }
       }
       // process all non-template nodes
-      _resolveNodeNames(element, true, templateElements);
+      _resolveNodeDirectives(element, true, templateElements);
       _resolveNodeExpressions(element, true);
       // process templates with their sub-trees
       for (ElementInfo templateElement in templateElements) {
@@ -771,13 +803,13 @@ class TemplateResolver {
   _resolveNodeExpressions(NodeInfo node, bool enterTemplate) {
     if (node is ElementInfo) {
       if (node.isTemplate) {
-        _resolveAttributeValues(node.attributes);
+        _resolveAttributeValues(node.attributes, node.directives);
       }
       if (!enterTemplate && node.isOrHasTemplateAttribute) {
         return;
       }
       if (!node.isTemplate) {
-        _resolveAttributeValues(node.attributes);
+        _resolveAttributeValues(node.attributes, node.directives);
       }
     }
     if (node is TextInfo) {
@@ -788,7 +820,7 @@ class TemplateResolver {
     }
   }
 
-  _resolveNodeNames(
+  _resolveNodeDirectives(
       NodeInfo node, bool enterTemplate, List<ElementInfo> templateElements) {
     if (node is ElementInfo) {
       // skip template
@@ -796,13 +828,15 @@ class TemplateResolver {
         templateElements.add(node);
         return;
       }
-      // apply directives
-      bool tagIsStandard = _isStandardTagName(node.localName);
-      bool tagIsResolved = false;
+
       ElementView elementView = new ElementViewImpl(node.attributes, node);
+      bool tagIsResolved = false;
+      bool tagIsStandard = _isStandardTagName(node.localName);
+
       for (AbstractDirective directive in allDirectives) {
         Selector selector = directive.selector;
         if (selector.match(elementView, template)) {
+          node.directives.add(directive);
           if (selector is ElementNameSelector) {
             tagIsResolved = true;
           }
@@ -814,12 +848,14 @@ class TemplateResolver {
         _reportErrorForRange(node.openingNameSpan,
             AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
       }
+
       // define local variables
       _defineLocalVariablesForAttributes(node.attributes);
     }
+
     // process children
     for (NodeInfo child in node.children) {
-      _resolveNodeNames(child, false, templateElements);
+      _resolveNodeDirectives(child, false, templateElements);
     }
   }
 
@@ -919,17 +955,20 @@ class TemplateResolver {
       attributeInfo.expression = expression;
       attributes.add(attributeInfo);
     }
-    // match directives
+    // match directives, requiring a match
     ElementView elementView = new ElementViewImpl(attributes, null);
+    var directives = <AbstractDirective>[];
     for (AbstractDirective directive in allDirectives) {
       if (directive.selector.match(elementView, template)) {
+        directives.add(directive);
         _defineDirectiveVariables(attributes, directive);
         _defineLocalVariablesForAttributes(attributes);
         _resolveAttributeNames(attributes, directive);
-        break;
       }
     }
-    _resolveAttributeValues(attributes);
+
+    // TODO: report error if no directives matched here?
+    _resolveAttributeValues(attributes, directives);
   }
 
   /**

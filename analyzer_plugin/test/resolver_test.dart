@@ -4,6 +4,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular2_analyzer_plugin/src/model.dart';
 import 'package:angular2_analyzer_plugin/src/selector.dart';
 import 'package:angular2_analyzer_plugin/src/tasks.dart';
+import 'package:angular2_analyzer_plugin/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -107,20 +108,60 @@ class TestPanel {
     _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
-  void test_expression_inputBinding() {
+  void test_expression_inputBinding_valid() {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+}
+''');
+    _addHtmlSource(r"""
+<span titled [title]='text'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputBinding_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+}
+''');
+    var code = r"""
+<title-comp [title]='text'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_inputBinding_boundToNothing() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
 ''');
-    _addHtmlSource(r"""
+    var code = r"""
 <span [title]='text'></span>
-""");
+""";
+    _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
-    _assertElement("text'>").dart.getter.at('text; // 1');
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[title]");
   }
 
   void test_expression_inputBinding_bind() {
@@ -256,6 +297,7 @@ class TestPanel {}
 </div>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("handle'>").local.at("handle></bbb>").type('ComponentB');
   }
 
