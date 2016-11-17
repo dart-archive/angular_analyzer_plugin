@@ -478,6 +478,10 @@ class TemplateResolver {
       internalVariables[r'$implicit'] = new InternalVariable(
           r'$implicit', new DartElement(classElement), classElement.type);
     }
+  }
+
+  void _defineNgForVariables(
+      List<AttributeInfo> attributes, AbstractDirective directive) {
     // TODO(scheglov) Once Angular has a way to describe variables, reimplement
     // https://github.com/angular/angular/issues/4850
     if (directive.classElement.displayName == 'NgFor') {
@@ -802,14 +806,23 @@ class TemplateResolver {
 
   _resolveNodeExpressions(NodeInfo node, bool enterTemplate) {
     if (node is ElementInfo) {
-      if (node.isTemplate) {
-        _resolveAttributeValues(node.attributes, node.directives);
-      }
+      // Can't resolve attributes until the directives have been found.
+      // Templates are sometimes skipped in resolving directives, so
+      // we have to match that behavior here.
       if (!enterTemplate && node.isOrHasTemplateAttribute) {
         return;
       }
-      if (!node.isTemplate) {
-        _resolveAttributeValues(node.attributes, node.directives);
+
+      _resolveAttributeValues(node.attributes, node.directives);
+
+      // For the case of <template ngFor....> we have to check the
+      // attributes to get a type. Now that that's done, load let-var
+      if (node.isTemplate) {
+        for (AbstractDirective directive in node.directives) {
+          _defineNgForVariables(node.attributes, directive);
+        }
+
+        _defineLocalVariablesForAttributes(node.attributes);
       }
     }
     if (node is TextInfo) {
@@ -849,8 +862,13 @@ class TemplateResolver {
             AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
       }
 
-      // define local variables
-      _defineLocalVariablesForAttributes(node.attributes);
+      // In the case of <template ngFor...> we don't want to define variables
+      // until we have resolved our attribute expressions types...and we can't
+      // do that until all directives are resolved.
+      if (!node.isTemplate) {
+        // define local variables
+        _defineLocalVariablesForAttributes(node.attributes);
+      }
     }
 
     // process children
@@ -962,6 +980,7 @@ class TemplateResolver {
       if (directive.selector.match(elementView, template)) {
         directives.add(directive);
         _defineDirectiveVariables(attributes, directive);
+        _defineNgForVariables(attributes, directive);
         _defineLocalVariablesForAttributes(attributes);
         _resolveAttributeNames(attributes, directive);
       }
