@@ -415,7 +415,7 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
-  void test_ngFor_star_itemVisibleInElement() {
+  void test_ngFor_star_itemHiddenInElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -424,12 +424,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='let item of items' [visible]='item != null'>
-</li>
+<h1 *ngFor='let item of items' [hidden]='item == null'>
+</h1>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    _assertElement("item != null").local.at('item of items');
+    _assertElement("item == null").local.at('item of items');
   }
 
   void test_ngFor_templateAttribute() {

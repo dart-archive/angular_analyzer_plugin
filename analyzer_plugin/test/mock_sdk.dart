@@ -180,6 +180,7 @@ class HtmlElement {
   int tabIndex;
   ElementStream<Event> get onChange => null;
   ElementStream<MouseEvent> get onClick => null;
+  bool hidden;
 }
 
 class AnchorElement extends HtmlElement {
