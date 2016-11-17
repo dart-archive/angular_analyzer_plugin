@@ -24,6 +24,13 @@ String capitalize(String str) {
   return str.substring(0, 1).toUpperCase() + str.substring(1);
 }
 
+String decapitalize(String str) {
+  if (isEmpty(str)) {
+    return str;
+  }
+  return str.substring(0, 1).toLowerCase() + str.substring(1);
+}
+
 int compareStrings(String a, String b) {
   if (a == b) {
     return 0;

@@ -1179,7 +1179,7 @@ class TodoList {
     {
       Template template = _getDartTemplateByClassName(templates, 'TodoList');
       List<ResolvedRange> ranges = template.ranges;
-      expect(ranges, hasLength(3));
+      expect(ranges, hasLength(4));
       {
         ResolvedRange resolvedRange =
             getResolvedRangeAtString(code, ranges, r'doneTyping($');
@@ -1198,6 +1198,11 @@ class TodoList {
         expect(element, new isInstanceOf<LocalVariableElement>());
         expect(element.name, r'$event');
         expect(element.nameOffset, -1);
+      }
+      {
+        ResolvedRange resolvedRange =
+            getResolvedRangeAtString(code, ranges, 'keyup');
+        expect(resolvedRange.range.length, 'keyup'.length);
       }
     }
     // no errors
