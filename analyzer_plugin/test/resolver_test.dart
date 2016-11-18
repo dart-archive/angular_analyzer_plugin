@@ -573,6 +573,27 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
+  void test_ngForSugar_dartExpression() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> getItems(int unused) => [];
+  int unused;
+}
+''');
+    _addHtmlSource(r"""
+<li template="ngFor let item1 of getItems(unused + 5); let i=index">
+  {{item1.length}}
+</li>
+<li *ngFor="let item2 of getItems(unused + 5); let i=index">
+  {{item2.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_ngIf_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
