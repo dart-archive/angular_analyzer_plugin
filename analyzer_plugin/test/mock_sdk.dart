@@ -173,6 +173,7 @@ library dart.html;
 import 'dart:async';
 
 class Event {}
+class MouseEvent extends Event {}
 
 abstract class ElementStream<T extends Event> implements Stream<T> {}
 

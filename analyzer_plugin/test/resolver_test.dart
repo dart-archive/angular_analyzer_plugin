@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/error/codes.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -194,6 +195,58 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "(title)");
+  }
+
+  void test_expression_outputBinding_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  takeString(String arg);
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Output() EventEmitter<int> output;
+}
+''');
+    var code = r"""
+<title-comp (output)='takeString($event)'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r"$event");
+  }
+
+  void test_expression_inputBinding_noEvent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+<h1 [hidden]="$event">
+</h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
+  }
+
+  void test_expression_mustache_noEvent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+<h1>{{$event}}</h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
   }
 
   void test_inheritedFields() {
