@@ -1,8 +1,8 @@
 library angular2.src.analysis.analyzer_plugin.src.selector_test;
 
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';

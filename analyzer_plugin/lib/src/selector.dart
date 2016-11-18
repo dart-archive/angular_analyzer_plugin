@@ -1,8 +1,8 @@
 library angular2.src.analysis.analyzer_plugin.src.selector;
 
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/strings.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/strings.dart';
 
 /**
  * The [Selector] that matches all of the given [selectors].

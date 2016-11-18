@@ -3,7 +3,7 @@ library angular2.src.analysis.analyzer_plugin;
 import 'package:analyzer/plugin/task.dart';
 import 'package:analyzer/src/generated/engine.dart'
     show InternalAnalysisContext;
-import 'package:angular2_analyzer_plugin/src/angular_work_manager.dart';
+import 'package:angular_analyzer_plugin/src/angular_work_manager.dart';
 import 'package:plugin/plugin.dart';
 
 import 'src/tasks.dart';

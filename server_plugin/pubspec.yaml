@@ -1,11 +1,11 @@
-name: angular2_server_plugin
+name: angular_analyzer_server_plugin
 version: 0.0.0
 description: Dart analyzer server plugin for Angular 2
 environment:
   sdk: '>=1.9.0-dev.8.0'
 dependencies:
   analyzer: '>=0.25.1 <0.27.0'
-  angular2_analyzer_plugin:
+  angular_analyzer_plugin:
     path: ../analyzer_plugin
   analysis_server: any
   plugin: '^0.2.0'
