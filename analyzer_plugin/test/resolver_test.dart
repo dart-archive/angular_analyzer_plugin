@@ -733,8 +733,9 @@ class TestPanel {
     _assertElement('value, ').dart.getter.inCoreHtml;
     _assertElement('inputEl.validationMessage').local.at('inputEl M');
     _assertElement('validationMessage)').dart.getter.inCoreHtml;
+    _assertElement('change)').output.inCoreHtml;
     errorListener.assertNoErrors();
-    expect(ranges, hasLength(7));
+    expect(ranges, hasLength(8));
   }
 
   void test_template_attribute_withoutValue() {
