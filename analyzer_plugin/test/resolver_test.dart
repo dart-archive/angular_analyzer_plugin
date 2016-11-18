@@ -1,10 +1,10 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:angular2_analyzer_plugin/src/tasks.dart';
-import 'package:angular2_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/tasks.dart';
+import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 

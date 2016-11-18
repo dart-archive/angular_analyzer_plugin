@@ -3,7 +3,7 @@ library angular2.src.analysis.server_plugin;
 import 'package:analysis_server/plugin/analysis/analysis_domain.dart';
 import 'package:analysis_server/plugin/analysis/navigation/navigation.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences.dart';
-import 'package:angular2_server_plugin/src/analysis.dart';
+import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:plugin/plugin.dart';
 
 /**

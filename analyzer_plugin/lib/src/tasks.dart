@@ -19,10 +19,10 @@ import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/html.dart';
 import 'package:analyzer/task/model.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/resolver.dart';
-import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:angular2_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/resolver.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 
 /**

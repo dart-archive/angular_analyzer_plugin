@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:analysis_server/starter.dart';
-import 'package:angular2_analyzer_plugin/plugin.dart';
-import 'package:angular2_server_plugin/plugin.dart';
+import 'package:angular_analyzer_plugin/plugin.dart';
+import 'package:angular_analyzer_server_plugin/plugin.dart';
 import 'package:plugin/plugin.dart';
 
 /**

@@ -4,7 +4,7 @@ import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
-import 'package:angular2_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:html/dom.dart' as html;
 
 /**

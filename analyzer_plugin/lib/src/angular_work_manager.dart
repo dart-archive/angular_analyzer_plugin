@@ -7,8 +7,8 @@ import 'package:analyzer/src/generated/engine.dart'
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/tasks.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:path/path.dart' as pathos;
 
 /**
