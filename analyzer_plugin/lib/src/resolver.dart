@@ -670,6 +670,7 @@ class TemplateResolver {
     for (AttributeInfo attribute in attributes) {
       int valueOffset = attribute.valueOffset;
       String value = attribute.value;
+      dart.DartType eventType = null;
       // already handled
       if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         continue;
@@ -681,8 +682,8 @@ class TemplateResolver {
           for (AbstractDirective directive in directives) {
             for (OutputElement output in directive.outputs) {
               if (output.name == attribute.propertyName) {
-                // TODO add $event as a dart var of the proper type
                 // TODO what if this matches two directives?
+                eventType = output.eventType;
                 matched = true;
               }
             }
@@ -691,7 +692,7 @@ class TemplateResolver {
 
         Expression expression = attribute.expression;
         if (expression == null) {
-          expression = _resolveDartExpressionAt(valueOffset, value);
+          expression = _resolveDartExpressionAt(valueOffset, value, eventType);
           attribute.expression = expression;
         }
         if (expression != null) {
@@ -740,7 +741,7 @@ class TemplateResolver {
   /**
    * Resolve the given [expression] and report errors.
    */
-  void _resolveDartExpression(Expression expression) {
+  void _resolveDartExpression(Expression expression, dart.DartType eventType) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     ResolverVisitor resolver = new ResolverVisitor(
@@ -753,8 +754,9 @@ class TemplateResolver {
     localVariables.values.forEach((LocalVariable local) {
       localScope.define(local.dartVariable);
     });
-    // TODO(scheglov) hack, use actual variables
-    _defineBuiltInVariable(localScope, typeProvider.dynamicType, r'$event', -1);
+    if (eventType != null) {
+      _defineBuiltInVariable(localScope, eventType, r'$event', -1);
+    }
     // do resolve
     expression.accept(resolver);
     // verify
@@ -766,10 +768,11 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(int offset, String code) {
+  Expression _resolveDartExpressionAt(
+      int offset, String code, DartType eventType) {
     Expression expression = _parseDartExpression(offset, code);
     if (expression != null) {
-      _resolveDartExpression(expression);
+      _resolveDartExpression(expression, eventType);
     }
     return expression;
   }
@@ -825,7 +828,7 @@ class TemplateResolver {
    * Record [ResolvedRange]s.
    */
   Expression _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpressionAt(offset, code);
+    Expression expression = _resolveDartExpressionAt(offset, code, null);
     _recordExpressionResolvedRanges(expression);
     return expression;
   }
@@ -990,7 +993,7 @@ class TemplateResolver {
       Expression expression;
       if (token.type != TokenType.EOF && !_isTemplateVarBeginToken(token)) {
         expression = _parseDartExpressionAtToken(token);
-        _resolveDartExpression(expression);
+        _resolveDartExpression(expression, null);
         token = expression.endToken.next;
       }
       // add the attribute to resolve to an input

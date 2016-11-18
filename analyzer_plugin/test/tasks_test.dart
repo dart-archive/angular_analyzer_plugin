@@ -65,6 +65,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(component.classElement.displayName, 'ButtonElement');
       expect(component.selector.toString(), 'button');
       List<InputElement> inputs = component.inputs;
+      List<OutputElement> outputElems = component.outputs;
       {
         InputElement input = inputs.singleWhere((i) => i.name == 'autofocus');
         expect(input, isNotNull);
@@ -74,6 +75,14 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
+      }
+      {
+        OutputElement outputElem =
+            outputElems.singleWhere((o) => o.name == 'click');
+        expect(outputElem, isNotNull);
+        expect(outputElem.getter, isNotNull);
+        expect(outputElem.eventType, isNotNull);
+        expect(outputElem.eventType.toString(), equals('MouseEvent'));
       }
     }
     // h1, h2, h3
@@ -477,12 +486,12 @@ import '/angular2/angular2.dart';
     selector: 'my-component',
     outputs: const ['outputOne', 'secondOutput: outputTwo'])
 class MyComponent {
-  EventEmitter outputOne;
+  EventEmitter<MyComponent> outputOne;
   EventEmitter<String> secondOutput;
   @Output()
   EventEmitter<int> outputThree;
   @Output('outputFour')
-  EventEmitter<MyComponent> fourthOutput;
+  EventEmitter fourthOutput;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -503,6 +512,8 @@ class MyComponent {
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'outputOne');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("MyComponent"));
     }
     {
       OutputElement output = compOutputs[1];
@@ -513,6 +524,8 @@ class MyComponent {
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'secondOutput');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
     }
     {
       OutputElement output = compOutputs[2];
@@ -523,6 +536,8 @@ class MyComponent {
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'outputThree');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("int"));
     }
     {
       OutputElement output = compOutputs[3];
@@ -532,7 +547,28 @@ class MyComponent {
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'fourthOutput');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.isDynamic, isTrue);
     }
+  }
+
+  void test_outputs_notEventEmitterTypeError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(
+    selector: 'my-component',
+class MyComponent {
+  @Output()
+  int badOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    fillErrorListener(DIRECTIVES_ERRORS);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER, code, "badOutput");
   }
 
   void test_noDirectives() {

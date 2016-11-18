@@ -422,12 +422,38 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       PropertyAccessorElement getter =
           _resolveGetter(classElement, expression, name);
 
+      var eventType = getEventType(getter, name);
+
       return new OutputElement(boundName, boundRange.offset, boundRange.length,
-          target.source, getter, nameRange);
+          target.source, getter, nameRange, eventType);
     } else {
       // TODO(mfairhurst) report a warning
       return null;
     }
+  }
+
+  DartType getEventType(PropertyAccessorElement getter, String name) {
+    if (getter != null && getter.type != null) {
+      var returntype = getter.type.returnType;
+      if (returntype != null && returntype is InterfaceType) {
+        // TODO allow subtypes of EventEmitter
+        if (returntype.element.name == 'EventEmitter') {
+          return returntype.typeArguments[0]; // may be null
+        } else {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+              new SourceRange(getter.nameOffset, getter.name.length),
+              [name]);
+        }
+      } else {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+            new SourceRange(getter.nameOffset, getter.name.length),
+            [name]);
+      }
+    }
+
+    return null;
   }
 
   List<InputElement> _parseHeaderInputs(
@@ -519,8 +545,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       inputElements.add(new InputElement(
           name, nameOffset, nameLength, target.source, property, null));
     } else {
-      outputElements.add(new OutputElement(
-          name, nameOffset, nameLength, target.source, property, null));
+      var eventType = getEventType(property, name);
+      outputElements.add(new OutputElement(name, nameOffset, nameLength,
+          target.source, property, null, eventType));
     }
   }
 
@@ -1327,8 +1354,18 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       String name = decapitalize(accessor.displayName.substring('on'.length));
       if (!outputMap.containsKey(name)) {
         if (accessor.isGetter) {
+          var returntype =
+              accessor.type == null ? null : accessor.type.returnType;
+          DartType eventtype = null;
+          if (returntype != null && returntype is InterfaceType) {
+            // TODO allow subtypes of ElementStream? This is a generated file
+            // so might not be necessary.
+            if (returntype.element.name == 'ElementStream') {
+              eventtype = returntype.typeArguments[0]; // may be null
+            }
+          }
           outputMap[name] = new OutputElement(name, accessor.nameOffset,
-              accessor.nameLength, accessor.source, accessor, null);
+              accessor.nameLength, accessor.source, accessor, null, eventtype);
         }
       }
     });

@@ -125,6 +125,13 @@ class AngularWarningCode extends ErrorCode {
               'is not assignable to component input (of type {1})');
 
   /**
+   * An error code indicating that an @Output is not an EventEmitter
+   */
+  static const AngularWarningCode OUTPUT_MUST_BE_EVENTEMITTER =
+      const AngularWarningCode('OUTPUT_MUST_BE_EVENTEMMITTER',
+          'Output (of name {0}) must return an EventEmitter');
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be
