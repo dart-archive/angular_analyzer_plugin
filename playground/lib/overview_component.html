@@ -1,0 +1,11 @@
+<h1 #h1>Showing {{items.length}} items:</h1>
+
+<li *ngFor='let item of items; var x=index' [hidden]='item != null'>
+    {{x}}: {{item}}
+</li>
+
+<button (click)="items.add('hey');" *ngIf="items.length == 0" bubbled #bubble="bubble">{{bubble.width}}</button>
+<button (click)="h1.hidden = !h1.hidden">Hide header</button>
+
+<my-counter [count]='4' (incremented)='items.add($event.toString())'></my-counter>
+
