@@ -47,6 +47,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(component.classElement.displayName, 'AnchorElement');
       expect(component.selector.toString(), 'a');
       List<InputElement> inputs = component.inputs;
+      List<OutputElement> outputElems = component.outputs;
       {
         InputElement input = inputs.singleWhere((i) => i.name == 'href');
         expect(input, isNotNull);
@@ -56,6 +57,18 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
+      }
+      {
+        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
+        expect(input, isNotNull);
+        expect(input.setter, isNotNull);
+      }
+      {
+        OutputElement output = outputElems.singleWhere((o) => o.name == 'click');
+        expect(output, isNotNull);
+        expect(output.getter, isNotNull);
+        expect(output.eventType, isNotNull);
+        expect(output.eventType.toString(), equals("MouseEvent"));
       }
     }
     // button
@@ -83,6 +96,22 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(outputElem.getter, isNotNull);
         expect(outputElem.eventType, isNotNull);
         expect(outputElem.eventType.toString(), equals('MouseEvent'));
+      }
+    }
+    // input
+    {
+      Component component = map['input'];
+      expect(component, isNotNull);
+      expect(component.classElement.displayName, 'InputElement');
+      expect(component.selector.toString(), 'input');
+      List<OutputElement> outputElems = component.outputs;
+      {
+        // This one is important because it proves we're using @DomAttribute
+        // to generate the output name and not the method in the sdk.
+        OutputElement output = outputElems.singleWhere((o) => o.name == 'keyup');
+        expect(output, isNotNull);
+        expect(output.getter, isNotNull);
+        expect(output.eventType, isNotNull);
       }
     }
     // h1, h2, h3
