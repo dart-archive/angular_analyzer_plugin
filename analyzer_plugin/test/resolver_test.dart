@@ -449,6 +449,28 @@ class TestPanel {}
     _assertElement("ccc=").output.at("ccc;");
   }
 
+  void test_twoWayReference() {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  @Input() int value;
+  @Output() EventEmitter<int> valueChange;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {
+  int value;
+}
+''');
+    _addHtmlSource(r"""
+<name-panel [(value)]='value'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement("value)]").input.at("value;");
+  }
+
   void test_localVariable_camelCaseName() {
     _addDartSource(r'''
 import 'dart:html';
