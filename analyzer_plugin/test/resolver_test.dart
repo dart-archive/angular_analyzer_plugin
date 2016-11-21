@@ -165,7 +165,7 @@ class TestPanel {
         AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[title]");
   }
 
-  void test_expression_twowayBinding_valid() {
+  void test_expression_twoWayBinding_valid() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -185,7 +185,7 @@ class TitleComponent {
     errorListener.assertNoErrors();
   }
 
-  void test_expression_twowayBinding_inputTypeError() {
+  void test_expression_twoWayBinding_inputTypeError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -207,7 +207,7 @@ class TitleComponent {
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
   }
 
-  void test_expression_twowayBinding_outputTypeError() {
+  void test_expression_twoWayBinding_outputTypeError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -229,7 +229,7 @@ class TitleComponent {
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "text");
   }
 
-  void test_expression_twowayBinding_notAssignableError() {
+  void test_expression_twoWayBinding_notAssignableError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -253,7 +253,7 @@ class TitleComponent {
         "text.toUpperCase()");
   }
 
-  void test_expression_twowayBinding_noInputToBind() {
+  void test_expression_twoWayBinding_noInputToBind() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -274,7 +274,7 @@ class TitleComponent {
         AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[(title)]");
   }
 
-  void test_expression_twowayBinding_noOutputToBind() {
+  void test_expression_twoWayBinding_noOutputToBind() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -292,7 +292,7 @@ class TitleComponent {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_TWOWAY_OUTPUT_BOUND, code, "[(title)]");
+        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "[(title)]");
   }
 
   void test_expression_inputBinding_bind() {

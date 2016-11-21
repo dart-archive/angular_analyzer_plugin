@@ -35,7 +35,7 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
-enum AttributeBoundType { input, output, twoway }
+enum AttributeBoundType { input, output, twoWay }
 
 /**
  * Information about an attribute.
@@ -302,7 +302,7 @@ class HtmlTreeConverter {
         int propNameOffset = nameOffset;
         if (propName.startsWith('[(') && propName.endsWith(')]')) {
           propNameOffset += 2;
-          bound = AttributeBoundType.twoway;
+          bound = AttributeBoundType.twoWay;
           propName = propName.substring(2, propName.length - 2);
         } else if (propName.startsWith('[') && propName.endsWith(']')) {
           propNameOffset += 1;
@@ -705,7 +705,7 @@ class TemplateResolver {
           _recordExpressionResolvedRanges(expression);
         }
 
-        if (attribute.bound == AttributeBoundType.twoway) {
+        if (attribute.bound == AttributeBoundType.twoWay) {
           if (!expression.isAssignable) {
             errorListener.onError(new AnalysisError(
               templateSource,
@@ -737,13 +737,13 @@ class TemplateResolver {
                 templateSource,
                 attribute.nameOffset,
                 attribute.name.length,
-                AngularWarningCode.NONEXIST_TWOWAY_OUTPUT_BOUND,
+                AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
                 [attribute.propertyName, attribute.propertyName + "Change"]));
           }
         }
 
         if (attribute.bound == AttributeBoundType.input ||
-            attribute.bound == AttributeBoundType.twoway) {
+            attribute.bound == AttributeBoundType.twoWay) {
           unboundErrorCode = AngularWarningCode.NONEXIST_INPUT_BOUND;
           for (AbstractDirective directive in directives) {
             for (InputElement input in directive.inputs) {

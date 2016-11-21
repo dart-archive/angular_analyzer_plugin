@@ -120,12 +120,12 @@ class AngularWarningCode extends ErrorCode {
    * because an input was two way bound. The nonexist bound output is
    * an implementation detail, so give its own error.
    */
-  static const AngularWarningCode NONEXIST_TWOWAY_OUTPUT_BOUND =
-      const AngularWarningCode('NONEXIST_TWOWAY_OUTPUT_BOUND',
-          'The two way binding {0} requires a bindable output of name {1}');
+  static const AngularWarningCode NONEXIST_TWO_WAY_OUTPUT_BOUND =
+      const AngularWarningCode('NONEXIST_TWO_WAY_OUTPUT_BOUND',
+          'The two-way binding {0} requires a bindable output of name {1}');
 
   /**
-   * An error code indicating that the output event in a two way binding
+   * An error code indicating that the output event in a two-way binding
    * doesn't match the input
    */
   static const AngularWarningCode TWO_WAY_BINDING_OUTPUT_TYPE_ERROR =
