@@ -5,6 +5,7 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/src/generated/constant.dart';
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/engine.dart';
@@ -1351,7 +1352,15 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   List<OutputElement> _buildOutputs() {
     return _captureAspects((Map<String, OutputElement> outputMap,
         PropertyAccessorElement accessor) {
-      String name = decapitalize(accessor.displayName.substring('on'.length));
+      String domName = _getDomName(accessor);
+      if (domName == null) {
+        return;
+      }
+
+      // Event domnames start with Element.on or Document.on
+      int offset = domName.indexOf(".") + ".on".length;
+      String name = domName.substring(offset);
+
       if (!outputMap.containsKey(name)) {
         if (accessor.isGetter) {
           var returntype =
@@ -1369,6 +1378,20 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         }
       }
     });
+  }
+
+  String _getDomName(Element element) {
+    for (ElementAnnotation annotation in element.metadata) {
+      // this has caching built in, so we can compute every time
+      var value = annotation.computeConstantValue();
+      if (value != null && value.type is InterfaceType) {
+        if (value.type.element.name == 'DomName') {
+          return value.getField("name").toStringValue();
+        }
+      }
+    }
+
+    return null;
   }
 
   List/*<T>*/ _captureAspects(CaptureAspectFn/*<T>*/ addAspect) {
