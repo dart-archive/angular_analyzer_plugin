@@ -64,7 +64,8 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
       }
       {
-        OutputElement output = outputElems.singleWhere((o) => o.name == 'click');
+        OutputElement output =
+            outputElems.singleWhere((o) => o.name == 'click');
         expect(output, isNotNull);
         expect(output.getter, isNotNull);
         expect(output.eventType, isNotNull);
@@ -108,7 +109,8 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       {
         // This one is important because it proves we're using @DomAttribute
         // to generate the output name and not the method in the sdk.
-        OutputElement output = outputElems.singleWhere((o) => o.name == 'keyup');
+        OutputElement output =
+            outputElems.singleWhere((o) => o.name == 'keyup');
         expect(output, isNotNull);
         expect(output.getter, isNotNull);
         expect(output.eventType, isNotNull);
