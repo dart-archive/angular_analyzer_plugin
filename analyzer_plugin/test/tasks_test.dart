@@ -47,7 +47,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(component.classElement.displayName, 'AnchorElement');
       expect(component.selector.toString(), 'a');
       List<InputElement> inputs = component.inputs;
-      List<OutputElement> outputElems = component.outputs;
+      List<OutputElement> outputElements = component.outputs;
       {
         InputElement input = inputs.singleWhere((i) => i.name == 'href');
         expect(input, isNotNull);
@@ -64,12 +64,12 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
       }
       {
-        OutputElement output =
-            outputElems.singleWhere((o) => o.name == 'click');
-        expect(output, isNotNull);
-        expect(output.getter, isNotNull);
-        expect(output.eventType, isNotNull);
-        expect(output.eventType.toString(), equals("MouseEvent"));
+        OutputElement outputElement =
+            outputElements.singleWhere((o) => o.name == 'click');
+        expect(outputElement, isNotNull);
+        expect(outputElement.getter, isNotNull);
+        expect(outputElement.eventType, isNotNull);
+        expect(outputElement.eventType.toString(), equals("MouseEvent"));
       }
     }
     // button
@@ -79,7 +79,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(component.classElement.displayName, 'ButtonElement');
       expect(component.selector.toString(), 'button');
       List<InputElement> inputs = component.inputs;
-      List<OutputElement> outputElems = component.outputs;
+      List<OutputElement> outputElements = component.outputs;
       {
         InputElement input = inputs.singleWhere((i) => i.name == 'autofocus');
         expect(input, isNotNull);
@@ -91,12 +91,12 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
       }
       {
-        OutputElement outputElem =
-            outputElems.singleWhere((o) => o.name == 'click');
-        expect(outputElem, isNotNull);
-        expect(outputElem.getter, isNotNull);
-        expect(outputElem.eventType, isNotNull);
-        expect(outputElem.eventType.toString(), equals('MouseEvent'));
+        OutputElement outputElement =
+            outputElements.singleWhere((o) => o.name == 'click');
+        expect(outputElement, isNotNull);
+        expect(outputElement.getter, isNotNull);
+        expect(outputElement.eventType, isNotNull);
+        expect(outputElement.eventType.toString(), equals('MouseEvent'));
       }
     }
     // input

@@ -1382,7 +1382,8 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   String _getDomName(Element element) {
     for (ElementAnnotation annotation in element.metadata) {
-      var value = annotation.constantValue ?? annotation.computeConstantValue();
+      // this has caching built in, so we can compute every time
+      var value = annotation.computeConstantValue();
       if (value != null && value.type is InterfaceType) {
         if (value.type.element.name == 'DomName') {
           return value.getField("name").toStringValue();
