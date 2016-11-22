@@ -35,7 +35,7 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
-enum AttributeBoundType { input, output }
+enum AttributeBoundType { input, output, twoWay }
 
 /**
  * Information about an attribute.
@@ -300,7 +300,11 @@ class HtmlTreeConverter {
         AttributeBoundType bound = null;
         String propName = name;
         int propNameOffset = nameOffset;
-        if (propName.startsWith('[') && propName.endsWith(']')) {
+        if (propName.startsWith('[(') && propName.endsWith(')]')) {
+          propNameOffset += 2;
+          bound = AttributeBoundType.twoWay;
+          propName = propName.substring(2, propName.length - 2);
+        } else if (propName.startsWith('[') && propName.endsWith(']')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
           bound = AttributeBoundType.input;
@@ -677,8 +681,10 @@ class TemplateResolver {
       }
       // bound
       if (attribute.bound != null) {
+        AngularWarningCode unboundErrorCode;
         var matched = false;
         if (attribute.bound == AttributeBoundType.output) {
+          unboundErrorCode = AngularWarningCode.NONEXIST_OUTPUT_BOUND;
           for (AbstractDirective directive in directives) {
             for (OutputElement output in directive.outputs) {
               if (output.name == attribute.propertyName) {
@@ -699,7 +705,46 @@ class TemplateResolver {
           _recordExpressionResolvedRanges(expression);
         }
 
-        if (attribute.bound == AttributeBoundType.input) {
+        if (attribute.bound == AttributeBoundType.twoWay) {
+          if (!expression.isAssignable) {
+            errorListener.onError(new AnalysisError(
+              templateSource,
+              attribute.valueOffset,
+              attribute.value.length,
+              AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
+            ));
+          }
+
+          var outputMatched = false;
+          for (AbstractDirective directive in directives) {
+            for (OutputElement output in directive.outputs) {
+              if (output.name == attribute.propertyName + "Change") {
+                outputMatched = true;
+                if (!output.eventType.isAssignableTo(expression.bestType)) {
+                  errorListener.onError(new AnalysisError(
+                      templateSource,
+                      attribute.valueOffset,
+                      attribute.value.length,
+                      AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
+                      [output.eventType, expression.bestType]));
+                }
+              }
+            }
+          }
+
+          if (!outputMatched) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
+                [attribute.propertyName, attribute.propertyName + "Change"]));
+          }
+        }
+
+        if (attribute.bound == AttributeBoundType.input ||
+            attribute.bound == AttributeBoundType.twoWay) {
+          unboundErrorCode = AngularWarningCode.NONEXIST_INPUT_BOUND;
           for (AbstractDirective directive in directives) {
             for (InputElement input in directive.inputs) {
               if (input.name == attribute.propertyName) {
@@ -720,13 +765,8 @@ class TemplateResolver {
         }
 
         if (!matched) {
-          errorListener.onError(new AnalysisError(
-              templateSource,
-              attribute.nameOffset,
-              attribute.name.length,
-              attribute.bound == AttributeBoundType.input
-                  ? AngularWarningCode.NONEXIST_INPUT_BOUND
-                  : AngularWarningCode.NONEXIST_OUTPUT_BOUND));
+          errorListener.onError(new AnalysisError(templateSource,
+              attribute.nameOffset, attribute.name.length, unboundErrorCode));
         }
 
         continue;

@@ -116,7 +116,27 @@ class AngularWarningCode extends ErrorCode {
           'The bound output does not exist on any directives');
 
   /**
-   * An error code indicating that a nonexist input was bound
+   * An error code indicating that a nonexist output was bound, perhaps
+   * because an input was two way bound. The nonexist bound output is
+   * an implementation detail, so give its own error.
+   */
+  static const AngularWarningCode NONEXIST_TWO_WAY_OUTPUT_BOUND =
+      const AngularWarningCode('NONEXIST_TWO_WAY_OUTPUT_BOUND',
+          'The two-way binding {0} requires a bindable output of name {1}');
+
+  /**
+   * An error code indicating that the output event in a two-way binding
+   * doesn't match the input
+   */
+  static const AngularWarningCode TWO_WAY_BINDING_OUTPUT_TYPE_ERROR =
+      const AngularWarningCode(
+          'TWO_WAY_BINDING_OUTPUT_TYPE_ERROR',
+          'Output event in two-way binding (of type {0}) ' +
+              'is not assignable to component input (of type {1})');
+
+  /**
+   * An error code indicating that an input was bound with a incorrectly
+   * typed expression
    */
   static const AngularWarningCode INPUT_BINDING_TYPE_ERROR =
       const AngularWarningCode(
@@ -130,6 +150,14 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode OUTPUT_MUST_BE_EVENTEMITTER =
       const AngularWarningCode('OUTPUT_MUST_BE_EVENTEMMITTER',
           'Output (of name {0}) must return an EventEmitter');
+
+  /**
+   * An error code indicating that a two-way binding expression was not
+   * a assignable (and therefore could only be one-way bound...)
+   */
+  static const AngularWarningCode TWO_WAY_BINDING_NOT_ASSIGNABLE =
+      const AngularWarningCode('TWO_WAY_BINDING_NOT_ASSIGNABLE',
+          'Only assignable expressions can be two-way bound');
 
   /**
    * Initialize a newly created error code to have the given [name].

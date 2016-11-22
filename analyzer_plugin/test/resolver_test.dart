@@ -165,6 +165,136 @@ class TestPanel {
         AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[title]");
   }
 
+  void test_expression_twoWayBinding_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    _addHtmlSource(r"""
+<span titled [(title)]='text'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_twoWayBinding_inputTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]='text'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_twoWayBinding_outputTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+  @Output() EventEmitter<int> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]='text'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_twoWayBinding_notAssignableError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]="text.toUpperCase()"></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
+        code,
+        "text.toUpperCase()");
+  }
+
+  void test_expression_twoWayBinding_noInputToBind() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]="text"></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[(title)]");
+  }
+
+  void test_expression_twoWayBinding_noOutputToBind() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+}
+''');
+    var code = r"""
+<title-comp [(title)]="text"></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "[(title)]");
+  }
+
   void test_expression_inputBinding_bind() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -317,6 +447,28 @@ class TestPanel {}
     _assertElement("aaa=").output.at("aaa;");
     _assertElement("bbb)=").output.at("bbb;");
     _assertElement("ccc=").output.at("ccc;");
+  }
+
+  void test_twoWayReference() {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  @Input() int value;
+  @Output() EventEmitter<int> valueChange;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {
+  int value;
+}
+''');
+    _addHtmlSource(r"""
+<name-panel [(value)]='value'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement("value)]").input.at("value;");
   }
 
   void test_localVariable_camelCaseName() {
