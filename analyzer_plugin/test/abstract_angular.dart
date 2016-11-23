@@ -235,12 +235,12 @@ class View {
 
 class Input {
   final String bindingPropertyName;
-  const InputMetadata([this.bindingPropertyName]);
+  const Input([this.bindingPropertyName]);
 }
 
 class Output {
   final String bindingPropertyName;
-  const OutputMetadata([this.bindingPropertyName]);
+  const Output([this.bindingPropertyName]);
 }
 ''');
     newSource(

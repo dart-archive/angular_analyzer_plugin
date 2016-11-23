@@ -406,6 +406,7 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>',
     inputs: const ['leadingText', 'trailingText: tailText'])
 class MyComponent {
   String leadingText;
@@ -415,7 +416,7 @@ class MyComponent {
   @Input('secondInput')
   String secondField;
   @Input()
-  String set someSetter() => null;
+  set someSetter(String x) { }
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -475,6 +476,11 @@ class MyComponent {
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'someSetter');
     }
+
+    // assert no syntax errors, etc
+    computeResult(source, DART_ERRORS);
+    fillErrorListener(DART_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   void test_inputs_deprecatedProperties() {
@@ -483,6 +489,7 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>',
     properties: const ['leadingText', 'trailingText: tailText'])
 class MyComponent {
   String leadingText;
@@ -526,6 +533,7 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>',
     outputs: const ['outputOne', 'secondOutput: outputTwo'])
 class MyComponent {
   EventEmitter<MyComponent> outputOne;
@@ -535,7 +543,7 @@ class MyComponent {
   @Output('outputFour')
   EventEmitter fourthOutput;
   @Output()
-  EventEmitter get someGetter() => null;
+  EventEmitter get someGetter => null;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -605,6 +613,11 @@ class MyComponent {
       expect(output.eventType, isNotNull);
       expect(output.eventType.isDynamic, isTrue);
     }
+
+    // assert no syntax errors, etc
+    computeResult(source, DART_ERRORS);
+    fillErrorListener(DART_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   void test_outputs_notEventEmitterTypeError() {
