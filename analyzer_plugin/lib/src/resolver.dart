@@ -695,10 +695,6 @@ class TemplateResolver {
       }
       // bound
       if (attribute.bound != null) {
-        if (!_validateBindingIsDartIdentifier(attribute)) {
-          continue;
-        }
-
         AngularWarningCode unboundErrorCode;
         var matched = false;
         if (attribute.bound == AttributeBoundType.output) {
@@ -801,31 +797,6 @@ class TemplateResolver {
         _resolveTextExpressions(valueOffset, value);
       }
     }
-  }
-
-  _validateBindingIsDartIdentifier(AttributeInfo attribute) {
-    // the other binding types don't need to be dart identifiers
-    if (attribute.bound == AttributeBoundType.input ||
-        attribute.bound == AttributeBoundType.output ||
-        attribute.bound == AttributeBoundType.twoWay) {
-      CharSequenceReader reader =
-          new CharSequenceReader(attribute.propertyName);
-      Scanner scanner = new Scanner(templateSource, reader, errorListener);
-      Token token = scanner.tokenize();
-      if (token.type != TokenType.IDENTIFIER ||
-          token.next.type != TokenType.EOF) {
-        errorListener.onError(new AnalysisError(
-            templateSource,
-            attribute.propertyNameOffset,
-            attribute.propertyName.length,
-            AngularWarningCode.INVALID_BINDING_NAME,
-            [attribute.propertyName]));
-
-        return false;
-      }
-    }
-
-    return true;
   }
 
   /**

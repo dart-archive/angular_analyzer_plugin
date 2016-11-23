@@ -552,54 +552,6 @@ class TestPanel {
         AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
   }
 
-  void test_expression_inputBindingWithDot_notRecognized() {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String title; // 1
-}
-''');
-    var code = r"""
-<span [unknown.dotstyle]='title'></span>
-""";
-    _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_BINDING_NAME, code, "unknown.dotstyle");
-  }
-
-  void test_expression_outputBindingWithDot_notRecognized() {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String title; // 1
-}
-''');
-    var code = r"""
-<span (unknown.dotstyle)='title'></span>
-""";
-    _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_BINDING_NAME, code, "unknown.dotstyle");
-  }
-
-  void test_expression_twoWayBindingWithDot_notRecognized() {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String title; // 1
-}
-''');
-    var code = r"""
-<span [(unknown.dotstyle)]='title'></span>
-""";
-    _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_BINDING_NAME, code, "unknown.dotstyle");
-  }
-
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {
