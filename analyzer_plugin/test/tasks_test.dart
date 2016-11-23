@@ -414,6 +414,8 @@ class MyComponent {
   String firstField;
   @Input('secondInput')
   String secondField;
+  @Input()
+  String set someSetter() => null;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -424,7 +426,7 @@ class MyComponent {
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     Component component = directives.single;
     List<InputElement> inputs = component.inputs;
-    expect(inputs, hasLength(4));
+    expect(inputs, hasLength(5));
     {
       InputElement input = inputs[0];
       expect(input.name, 'leadingText');
@@ -463,6 +465,15 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'secondField');
+    }
+    {
+      InputElement input = inputs[4];
+      expect(input.name, 'someSetter');
+      expect(input.nameOffset, code.indexOf('someSetter'));
+      expect(input.setterRange, isNull);
+      expect(input.setter, isNotNull);
+      expect(input.setter.isSetter, isTrue);
+      expect(input.setter.displayName, 'someSetter');
     }
   }
 
@@ -523,6 +534,8 @@ class MyComponent {
   EventEmitter<int> outputThree;
   @Output('outputFour')
   EventEmitter fourthOutput;
+  @Output()
+  EventEmitter get someGetter() => null;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -533,7 +546,7 @@ class MyComponent {
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     Component component = directives.single;
     List<OutputElement> compOutputs = component.outputs;
-    expect(compOutputs, hasLength(4));
+    expect(compOutputs, hasLength(5));
     {
       OutputElement output = compOutputs[0];
       expect(output.name, 'outputOne');
@@ -581,6 +594,17 @@ class MyComponent {
       expect(output.eventType, isNotNull);
       expect(output.eventType.isDynamic, isTrue);
     }
+    {
+      OutputElement output = compOutputs[4];
+      expect(output.name, 'someGetter');
+      expect(output.nameOffset, code.indexOf('someGetter'));
+      expect(output.getterRange, isNull);
+      expect(output.getter, isNotNull);
+      expect(output.getter.isGetter, isTrue);
+      expect(output.getter.displayName, 'someGetter');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.isDynamic, isTrue);
+    }
   }
 
   void test_outputs_notEventEmitterTypeError() {
@@ -615,6 +639,46 @@ class B {}
     // validate
     List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
     expect(directives, isEmpty);
+  }
+
+  void test_inputOnGetterIsError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component')
+class MyComponent {
+  @Input()
+  String get someGetter => null;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    fillErrorListener(DIRECTIVES_ERRORS);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "someGetter");
+  }
+
+  void test_outputOnSetterIsError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component')
+class MyComponent {
+  @Output()
+  set someSetter(x) => null;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    fillErrorListener(DIRECTIVES_ERRORS);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "someSetter(");
   }
 }
 

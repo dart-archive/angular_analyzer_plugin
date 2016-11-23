@@ -513,7 +513,25 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       ast.VariableDeclaration variable = node.fields.variables.first;
       FieldElement fieldElement = variable.element;
       property = isInput ? fieldElement.setter : fieldElement.getter;
+    } else if (node is ast.MethodDeclaration) {
+      if (isInput && node.isSetter) {
+        property = node.element;
+      } else if (isOutput && node.isGetter) {
+        property = node.element;
+      } else {
+        errorReporter.reportErrorForNode(
+            isInput
+                ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
+                : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+            new SourceRange(node.element.nameOffset, node.element.name.length));
+        return null;
+      }
     } else {
+      errorReporter.reportErrorForNode(
+          isInput
+              ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
+              : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+          new SourceRange(node.element.nameOffset, node.element.name.length));
       return null;
     }
 
