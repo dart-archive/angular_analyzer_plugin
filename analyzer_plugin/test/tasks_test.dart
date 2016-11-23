@@ -681,7 +681,7 @@ import '/angular2/angular2.dart';
 @Component(selector: 'my-component')
 class MyComponent {
   @Output()
-  set someSetter(x) => null;
+  set someSetter(x) { }
 }
 ''';
     Source source = newSource('/test.dart', code);
