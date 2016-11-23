@@ -160,6 +160,22 @@ class AngularWarningCode extends ErrorCode {
           'Only assignable expressions can be two-way bound');
 
   /**
+   * An error code indicating that an @Input annottaion was used in the wrong
+   * place
+   */
+  static const AngularWarningCode INPUT_ANNOTATION_PLACEMENT_INVALID =
+      const AngularWarningCode('INPUT_ANNOTATION_PLACEMENT_INVALID',
+          'The @Input() annotation can only be put on properties and setters');
+
+  /**
+   * An error code indicating that an @Output annottaion was used in the wrong
+   * place
+   */
+  static const AngularWarningCode OUTPUT_ANNOTATION_PLACEMENT_INVALID =
+      const AngularWarningCode('OUTPUT_ANNOTATION_PLACEMENT_INVALID',
+          'The @Output() annotation can only be put on properties and getters');
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be
