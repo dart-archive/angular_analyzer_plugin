@@ -176,6 +176,61 @@ class AngularWarningCode extends ErrorCode {
           'The @Output() annotation can only be put on properties and getters');
 
   /**
+   * An error code indicating that a html classname was bound via
+   * [class.classname]="x" where classname is not a css identifier
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static const AngularWarningCode INVALID_HTML_CLASSNAME =
+      const AngularWarningCode('INVALID_HTML_CLASSNAME',
+          'The html classname {0} is not a valid classname');
+
+  /**
+   * An error code indicating that a html classname was bound via
+   * [class.classname]="x" where x was not a boolean
+   */
+  static const AngularWarningCode CLASS_BINDING_NOT_BOOLEAN =
+      const AngularWarningCode('CLASS_BINDING_NOT_BOOLEAN',
+          'Binding to a classname requires a boolean');
+
+  /**
+   * An error code indicating that a css property with a unit was bound via
+   * [style.property.unit]="x" where x was not a number
+   */
+  static const AngularWarningCode CSS_UNIT_BINDING_NOT_NUMBER =
+      const AngularWarningCode('CSS_UNIT_BINDING_NOT_NUMBER',
+          'Binding to a css property with a unit requires a number');
+
+  /**
+   * An error code indicating that a css property with a unit was bound via
+   * [style.property.unit]="x" where unit was not an identifier
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static const AngularWarningCode INVALID_CSS_UNIT_NAME =
+      const AngularWarningCode('INVALID_CSS_UNIT_NAME',
+          'The css unit {0} is not a valid css identifier');
+
+  /**
+   * An error code indicating that a css property bound via
+   * [style.property]="x" or [style.property.unit]="x" where property was not an
+   * identifier
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static const AngularWarningCode INVALID_CSS_PROPERTY_NAME =
+      const AngularWarningCode('INVALID_CSS_PROPERTY_NAME',
+          'The css property {0} is not a valid css identifier');
+
+  /**
+   * An error code indicating that a binding was not a * dart identifier, or
+   * [class.classname], or [attr.attrname], or [style.property], or
+   * [style.property.unit].
+   */
+  static const AngularWarningCode INVALID_BINDING_NAME =
+      const AngularWarningCode(
+          'INVALID_BINDING_NAME',
+          'The binding {} is not a valid dart identifer, attribute, style, ' +
+              'or class binding');
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be

@@ -35,7 +35,7 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
-enum AttributeBoundType { input, output, twoWay }
+enum AttributeBoundType { input, output, twoWay, attr, clazz, style }
 
 /**
  * Information about an attribute.
@@ -307,7 +307,21 @@ class HtmlTreeConverter {
         } else if (propName.startsWith('[') && propName.endsWith(']')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
-          bound = AttributeBoundType.input;
+          if (propName.startsWith('class.')) {
+            bound = AttributeBoundType.clazz;
+            propName = propName.substring('class.'.length);
+            propNameOffset += 'class.'.length;
+          } else if (propName.startsWith('attr.')) {
+            bound = AttributeBoundType.attr;
+            propName = propName.substring('attr.'.length);
+            propNameOffset += 'attr.'.length;
+          } else if (propName.startsWith('style.')) {
+            propName = propName.substring('style.'.length);
+            propNameOffset += 'style.'.length;
+            bound = AttributeBoundType.style;
+          } else {
+            bound = AttributeBoundType.input;
+          }
         } else if (propName.startsWith('bind-')) {
           int bindLength = 'bind-'.length;
           propNameOffset += bindLength;
@@ -708,11 +722,10 @@ class TemplateResolver {
         if (attribute.bound == AttributeBoundType.twoWay) {
           if (!expression.isAssignable) {
             errorListener.onError(new AnalysisError(
-              templateSource,
-              attribute.valueOffset,
-              attribute.value.length,
-              AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
-            ));
+                templateSource,
+                attribute.valueOffset,
+                attribute.value.length,
+                AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE));
           }
 
           var outputMatched = false;
@@ -742,6 +755,14 @@ class TemplateResolver {
           }
         }
 
+        if (attribute.bound == AttributeBoundType.clazz) {
+          _resolveClassAttribute(attribute, expression);
+        } else if (attribute.bound == AttributeBoundType.style) {
+          _resolveStyleAttribute(attribute, expression);
+        } else if (attribute.bound == AttributeBoundType.attr) {
+          _resolveAttributeBoundAttribute(attribute, expression);
+        }
+
         if (attribute.bound == AttributeBoundType.input ||
             attribute.bound == AttributeBoundType.twoWay) {
           unboundErrorCode = AngularWarningCode.NONEXIST_INPUT_BOUND;
@@ -764,7 +785,7 @@ class TemplateResolver {
           }
         }
 
-        if (!matched) {
+        if (!matched && unboundErrorCode != null) {
           errorListener.onError(new AnalysisError(templateSource,
               attribute.nameOffset, attribute.name.length, unboundErrorCode));
         }
@@ -776,6 +797,93 @@ class TemplateResolver {
         _resolveTextExpressions(valueOffset, value);
       }
     }
+  }
+
+  /**
+   * Quick regex to match the spec, but doesn't handle unicode. They can start
+   * with a dash, but if so must be followed by an alphabetic or underscore or
+   * escaped character. Cannot start with a number.
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static final RegExp _cssIdentifierRegexp =
+      new RegExp(r"^(-?[a-zA-Z_]|\\.)([a-zA-Z0-9\-_]|\\.)*$");
+
+  bool _isCssIdentifier(String input) {
+    return _cssIdentifierRegexp.hasMatch(input);
+  }
+
+  /**
+   * Resolve attributes of type [class.some-class]="someBoolExpr", ensuring
+   * the class is a valid css identifier and that the expression is of boolean
+   * type
+   */
+  _resolveClassAttribute(AttributeInfo attribute, Expression expression) {
+    if (!_isCssIdentifier(attribute.propertyName)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.propertyNameOffset,
+          attribute.propertyName.length,
+          AngularWarningCode.INVALID_HTML_CLASSNAME,
+          [attribute.propertyName]));
+    }
+
+    if (!expression.bestType.isAssignableTo(typeProvider.boolType)) {
+      errorListener.onError(new AnalysisError(
+        templateSource,
+        attribute.valueOffset,
+        attribute.value.length,
+        AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN,
+      ));
+    }
+  }
+
+  /**
+   * Resolve attributes of type [style.color]="someExpr" and
+   * [style.background-width.px]="someNumExpr" which bind a css style property
+   * with optional units.
+   */
+  _resolveStyleAttribute(AttributeInfo attribute, Expression expression) {
+    var cssPropertyName = attribute.propertyName;
+    var dotpos = attribute.propertyName.indexOf('.');
+    if (dotpos != -1) {
+      cssPropertyName = attribute.propertyName.substring(0, dotpos);
+      var cssUnitName = attribute.propertyName.substring(dotpos + '.'.length);
+      if (!_isCssIdentifier(cssUnitName)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.propertyNameOffset + dotpos + 1,
+            cssUnitName.length,
+            AngularWarningCode.INVALID_CSS_UNIT_NAME,
+            [cssUnitName]));
+      }
+      if (!expression.bestType.isAssignableTo(typeProvider.numType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.valueOffset,
+            attribute.value.length,
+            AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER));
+      }
+    }
+
+    if (!_isCssIdentifier(cssPropertyName)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.propertyNameOffset,
+          cssPropertyName.length,
+          AngularWarningCode.INVALID_CSS_PROPERTY_NAME,
+          [cssPropertyName]));
+    }
+  }
+
+  /**
+   * Resolve attributes of type [attribute.some-attribute]="someExpr"
+   */
+  _resolveAttributeBoundAttribute(
+      AttributeInfo attribute, Expression expression) {
+    // TODO validate the type? Or against a dictionary?
+    // note that the attribute name is valid by definition as it was discovered
+    // within an attribute! (took me a while to realize why I couldn't make any
+    // failing tests for this)
   }
 
   /**

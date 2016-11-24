@@ -379,6 +379,179 @@ class TestPanel {
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
   }
 
+  void test_expression_attrBinding_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [attr.aria-title]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_attrBinding_expressionTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int pixels;
+}
+''');
+    var code = r"""
+<span [attr.aria]='pixels.length'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticTypeWarningCode.UNDEFINED_GETTER, code, "length");
+  }
+
+  void test_expression_classBinding_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [class.my-class]='text == null'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_classBinding_invalidClassName() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String title;
+}
+''');
+    var code = r"""
+<span [class.invalid.class]='title == null'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "invalid.class");
+  }
+
+  void test_expression_classBinding_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String notBoolean;
+}
+''');
+    var code = r"""
+<span [class.aria]='notBoolean'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN, code, "notBoolean");
+  }
+
+  void test_expression_styleBinding_noUnit_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [style.background-color]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_styleBinding_noUnit_invalidCssProperty() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [style.invalid*property]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "invalid*property");
+  }
+
+  void test_expression_styleBinding_noUnit_expressionTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int noLength; // 1
+}
+''');
+    var code = r"""
+<span [style.background-color]='noLength.length'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticTypeWarningCode.UNDEFINED_GETTER, code, "length");
+  }
+
+  void test_expression_styleBinding_withUnit_invalidPropertyName() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int pixels; // 1
+}
+''');
+    var code = r"""
+<span [style.border&radius.px]='pixels'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "border&radius");
+  }
+
+  void test_expression_styleBinding_withUnit_invalidUnitName() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  double pixels; // 1
+}
+''');
+    var code = r"""
+<span [style.border-radius.p|x]='pixels'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
+  }
+
+  void test_expression_styleBinding_withUnit_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String notNumber; // 1
+}
+''');
+    var code = r"""
+<span [style.border-radius.px]='notNumber'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
+  }
+
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {
