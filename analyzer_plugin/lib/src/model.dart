@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.model;
 
 import 'package:analyzer/dart/element/element.dart' as dart;
+import 'package:analyzer/dart/element/type.dart' as dart;
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
@@ -196,6 +197,8 @@ class OutputElement extends AngularElementImpl {
 
   final dart.PropertyAccessorElement getter;
 
+  final dart.DartType eventType;
+
   /**
    * The [SourceRange] where [getter] is referenced in the input declaration.
    * May be the same as this element offset/length in shorthand variants where
@@ -204,7 +207,7 @@ class OutputElement extends AngularElementImpl {
   final SourceRange getterRange;
 
   OutputElement(String name, int nameOffset, int nameLength, Source source,
-      this.getter, this.getterRange)
+      this.getter, this.getterRange, this.eventType)
       : super(name, nameOffset, nameLength, source);
 
   @override

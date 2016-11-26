@@ -202,6 +202,7 @@ abstract class Selector {
     List<Selector> selectors = <Selector>[];
     int lastOffset = 0;
     Iterable<Match> matches = _regExp.allMatches(str);
+    int ignoring = 0;
     for (Match match in matches) {
       // no content should be skipped
       {
@@ -213,8 +214,21 @@ abstract class Selector {
       }
       // :not start
       if (match[1] != null) {
+        ignoring++;
         // TODO(scheglov) implement this
       }
+      // :not end
+      if (match[6] != null) {
+        ignoring--;
+        // TODO(scheglov) implement this
+      }
+
+      // Skip nots carefully until we support them! If we skip them
+      // carelessly, we break core selectors such as the one in ngModel
+      if (ignoring != 0) {
+        continue;
+      }
+
       // element name
       if (match[2] != null) {
         int nameOffset = offset + match.start;
@@ -238,10 +252,6 @@ abstract class Selector {
         selectors.add(new AttributeSelector(
             new SelectorName(name, nameOffset, name.length, source), match[5]));
         continue;
-      }
-      // :not end
-      if (match[6] != null) {
-        // TODO(scheglov) implement this
       }
       // or
       if (match[7] != null) {

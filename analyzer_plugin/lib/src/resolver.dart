@@ -35,7 +35,7 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
-enum AttributeBoundType { input, output }
+enum AttributeBoundType { input, output, twoWay, attr, clazz, style }
 
 /**
  * Information about an attribute.
@@ -300,10 +300,28 @@ class HtmlTreeConverter {
         AttributeBoundType bound = null;
         String propName = name;
         int propNameOffset = nameOffset;
-        if (propName.startsWith('[') && propName.endsWith(']')) {
+        if (propName.startsWith('[(') && propName.endsWith(')]')) {
+          propNameOffset += 2;
+          bound = AttributeBoundType.twoWay;
+          propName = propName.substring(2, propName.length - 2);
+        } else if (propName.startsWith('[') && propName.endsWith(']')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
-          bound = AttributeBoundType.input;
+          if (propName.startsWith('class.')) {
+            bound = AttributeBoundType.clazz;
+            propName = propName.substring('class.'.length);
+            propNameOffset += 'class.'.length;
+          } else if (propName.startsWith('attr.')) {
+            bound = AttributeBoundType.attr;
+            propName = propName.substring('attr.'.length);
+            propNameOffset += 'attr.'.length;
+          } else if (propName.startsWith('style.')) {
+            propName = propName.substring('style.'.length);
+            propNameOffset += 'style.'.length;
+            bound = AttributeBoundType.style;
+          } else {
+            bound = AttributeBoundType.input;
+          }
         } else if (propName.startsWith('bind-')) {
           int bindLength = 'bind-'.length;
           propNameOffset += bindLength;
@@ -670,19 +688,22 @@ class TemplateResolver {
     for (AttributeInfo attribute in attributes) {
       int valueOffset = attribute.valueOffset;
       String value = attribute.value;
+      dart.DartType eventType = null;
       // already handled
       if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         continue;
       }
       // bound
       if (attribute.bound != null) {
+        AngularWarningCode unboundErrorCode;
         var matched = false;
         if (attribute.bound == AttributeBoundType.output) {
+          unboundErrorCode = AngularWarningCode.NONEXIST_OUTPUT_BOUND;
           for (AbstractDirective directive in directives) {
             for (OutputElement output in directive.outputs) {
               if (output.name == attribute.propertyName) {
-                // TODO add $event as a dart var of the proper type
                 // TODO what if this matches two directives?
+                eventType = output.eventType;
                 matched = true;
               }
             }
@@ -691,14 +712,60 @@ class TemplateResolver {
 
         Expression expression = attribute.expression;
         if (expression == null) {
-          expression = _resolveDartExpressionAt(valueOffset, value);
+          expression = _resolveDartExpressionAt(valueOffset, value, eventType);
           attribute.expression = expression;
         }
         if (expression != null) {
           _recordExpressionResolvedRanges(expression);
         }
 
-        if (attribute.bound == AttributeBoundType.input) {
+        if (attribute.bound == AttributeBoundType.twoWay) {
+          if (!expression.isAssignable) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.valueOffset,
+                attribute.value.length,
+                AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE));
+          }
+
+          var outputMatched = false;
+          for (AbstractDirective directive in directives) {
+            for (OutputElement output in directive.outputs) {
+              if (output.name == attribute.propertyName + "Change") {
+                outputMatched = true;
+                if (!output.eventType.isAssignableTo(expression.bestType)) {
+                  errorListener.onError(new AnalysisError(
+                      templateSource,
+                      attribute.valueOffset,
+                      attribute.value.length,
+                      AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
+                      [output.eventType, expression.bestType]));
+                }
+              }
+            }
+          }
+
+          if (!outputMatched) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
+                [attribute.propertyName, attribute.propertyName + "Change"]));
+          }
+        }
+
+        if (attribute.bound == AttributeBoundType.clazz) {
+          _resolveClassAttribute(attribute, expression);
+        } else if (attribute.bound == AttributeBoundType.style) {
+          _resolveStyleAttribute(attribute, expression);
+        } else if (attribute.bound == AttributeBoundType.attr) {
+          _resolveAttributeBoundAttribute(attribute, expression);
+        }
+
+        if (attribute.bound == AttributeBoundType.input ||
+            attribute.bound == AttributeBoundType.twoWay) {
+          unboundErrorCode = AngularWarningCode.NONEXIST_INPUT_BOUND;
           for (AbstractDirective directive in directives) {
             for (InputElement input in directive.inputs) {
               if (input.name == attribute.propertyName) {
@@ -718,14 +785,9 @@ class TemplateResolver {
           }
         }
 
-        if (!matched) {
-          errorListener.onError(new AnalysisError(
-              templateSource,
-              attribute.nameOffset,
-              attribute.name.length,
-              attribute.bound == AttributeBoundType.input
-                  ? AngularWarningCode.NONEXIST_INPUT_BOUND
-                  : AngularWarningCode.NONEXIST_OUTPUT_BOUND));
+        if (!matched && unboundErrorCode != null) {
+          errorListener.onError(new AnalysisError(templateSource,
+              attribute.nameOffset, attribute.name.length, unboundErrorCode));
         }
 
         continue;
@@ -738,9 +800,96 @@ class TemplateResolver {
   }
 
   /**
+   * Quick regex to match the spec, but doesn't handle unicode. They can start
+   * with a dash, but if so must be followed by an alphabetic or underscore or
+   * escaped character. Cannot start with a number.
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static final RegExp _cssIdentifierRegexp =
+      new RegExp(r"^(-?[a-zA-Z_]|\\.)([a-zA-Z0-9\-_]|\\.)*$");
+
+  bool _isCssIdentifier(String input) {
+    return _cssIdentifierRegexp.hasMatch(input);
+  }
+
+  /**
+   * Resolve attributes of type [class.some-class]="someBoolExpr", ensuring
+   * the class is a valid css identifier and that the expression is of boolean
+   * type
+   */
+  _resolveClassAttribute(AttributeInfo attribute, Expression expression) {
+    if (!_isCssIdentifier(attribute.propertyName)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.propertyNameOffset,
+          attribute.propertyName.length,
+          AngularWarningCode.INVALID_HTML_CLASSNAME,
+          [attribute.propertyName]));
+    }
+
+    if (!expression.bestType.isAssignableTo(typeProvider.boolType)) {
+      errorListener.onError(new AnalysisError(
+        templateSource,
+        attribute.valueOffset,
+        attribute.value.length,
+        AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN,
+      ));
+    }
+  }
+
+  /**
+   * Resolve attributes of type [style.color]="someExpr" and
+   * [style.background-width.px]="someNumExpr" which bind a css style property
+   * with optional units.
+   */
+  _resolveStyleAttribute(AttributeInfo attribute, Expression expression) {
+    var cssPropertyName = attribute.propertyName;
+    var dotpos = attribute.propertyName.indexOf('.');
+    if (dotpos != -1) {
+      cssPropertyName = attribute.propertyName.substring(0, dotpos);
+      var cssUnitName = attribute.propertyName.substring(dotpos + '.'.length);
+      if (!_isCssIdentifier(cssUnitName)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.propertyNameOffset + dotpos + 1,
+            cssUnitName.length,
+            AngularWarningCode.INVALID_CSS_UNIT_NAME,
+            [cssUnitName]));
+      }
+      if (!expression.bestType.isAssignableTo(typeProvider.numType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.valueOffset,
+            attribute.value.length,
+            AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER));
+      }
+    }
+
+    if (!_isCssIdentifier(cssPropertyName)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.propertyNameOffset,
+          cssPropertyName.length,
+          AngularWarningCode.INVALID_CSS_PROPERTY_NAME,
+          [cssPropertyName]));
+    }
+  }
+
+  /**
+   * Resolve attributes of type [attribute.some-attribute]="someExpr"
+   */
+  _resolveAttributeBoundAttribute(
+      AttributeInfo attribute, Expression expression) {
+    // TODO validate the type? Or against a dictionary?
+    // note that the attribute name is valid by definition as it was discovered
+    // within an attribute! (took me a while to realize why I couldn't make any
+    // failing tests for this)
+  }
+
+  /**
    * Resolve the given [expression] and report errors.
    */
-  void _resolveDartExpression(Expression expression) {
+  void _resolveDartExpression(Expression expression, dart.DartType eventType) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     ResolverVisitor resolver = new ResolverVisitor(
@@ -753,8 +902,9 @@ class TemplateResolver {
     localVariables.values.forEach((LocalVariable local) {
       localScope.define(local.dartVariable);
     });
-    // TODO(scheglov) hack, use actual variables
-    _defineBuiltInVariable(localScope, typeProvider.dynamicType, r'$event', -1);
+    if (eventType != null) {
+      _defineBuiltInVariable(localScope, eventType, r'$event', -1);
+    }
     // do resolve
     expression.accept(resolver);
     // verify
@@ -766,10 +916,11 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(int offset, String code) {
+  Expression _resolveDartExpressionAt(
+      int offset, String code, DartType eventType) {
     Expression expression = _parseDartExpression(offset, code);
     if (expression != null) {
-      _resolveDartExpression(expression);
+      _resolveDartExpression(expression, eventType);
     }
     return expression;
   }
@@ -825,7 +976,7 @@ class TemplateResolver {
    * Record [ResolvedRange]s.
    */
   Expression _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpressionAt(offset, code);
+    Expression expression = _resolveDartExpressionAt(offset, code, null);
     _recordExpressionResolvedRanges(expression);
     return expression;
   }
@@ -990,7 +1141,7 @@ class TemplateResolver {
       Expression expression;
       if (token.type != TokenType.EOF && !_isTemplateVarBeginToken(token)) {
         expression = _parseDartExpressionAtToken(token);
-        _resolveDartExpression(expression);
+        _resolveDartExpression(expression, null);
         token = expression.endToken.next;
       }
       // add the attribute to resolve to an input

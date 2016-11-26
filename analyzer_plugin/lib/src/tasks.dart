@@ -5,6 +5,7 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/src/generated/constant.dart';
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/engine.dart';
@@ -422,12 +423,38 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       PropertyAccessorElement getter =
           _resolveGetter(classElement, expression, name);
 
+      var eventType = getEventType(getter, name);
+
       return new OutputElement(boundName, boundRange.offset, boundRange.length,
-          target.source, getter, nameRange);
+          target.source, getter, nameRange, eventType);
     } else {
       // TODO(mfairhurst) report a warning
       return null;
     }
+  }
+
+  DartType getEventType(PropertyAccessorElement getter, String name) {
+    if (getter != null && getter.type != null) {
+      var returntype = getter.type.returnType;
+      if (returntype != null && returntype is InterfaceType) {
+        // TODO allow subtypes of EventEmitter
+        if (returntype.element.name == 'EventEmitter') {
+          return returntype.typeArguments[0]; // may be null
+        } else {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+              new SourceRange(getter.nameOffset, getter.name.length),
+              [name]);
+        }
+      } else {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+            new SourceRange(getter.nameOffset, getter.name.length),
+            [name]);
+      }
+    }
+
+    return null;
   }
 
   List<InputElement> _parseHeaderInputs(
@@ -486,7 +513,25 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       ast.VariableDeclaration variable = node.fields.variables.first;
       FieldElement fieldElement = variable.element;
       property = isInput ? fieldElement.setter : fieldElement.getter;
+    } else if (node is ast.MethodDeclaration) {
+      if (isInput && node.isSetter) {
+        property = node.element;
+      } else if (isOutput && node.isGetter) {
+        property = node.element;
+      } else {
+        errorReporter.reportErrorForNode(
+            isInput
+                ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
+                : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+            new SourceRange(node.element.nameOffset, node.element.name.length));
+        return null;
+      }
     } else {
+      errorReporter.reportErrorForNode(
+          isInput
+              ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
+              : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+          new SourceRange(node.element.nameOffset, node.element.name.length));
       return null;
     }
 
@@ -519,8 +564,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       inputElements.add(new InputElement(
           name, nameOffset, nameLength, target.source, property, null));
     } else {
-      outputElements.add(new OutputElement(
-          name, nameOffset, nameLength, target.source, property, null));
+      var eventType = getEventType(property, name);
+      outputElements.add(new OutputElement(name, nameOffset, nameLength,
+          target.source, property, null, eventType));
     }
   }
 
@@ -1324,14 +1370,46 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   List<OutputElement> _buildOutputs() {
     return _captureAspects((Map<String, OutputElement> outputMap,
         PropertyAccessorElement accessor) {
-      String name = decapitalize(accessor.displayName.substring('on'.length));
+      String domName = _getDomName(accessor);
+      if (domName == null) {
+        return;
+      }
+
+      // Event domnames start with Element.on or Document.on
+      int offset = domName.indexOf(".") + ".on".length;
+      String name = domName.substring(offset);
+
       if (!outputMap.containsKey(name)) {
         if (accessor.isGetter) {
+          var returntype =
+              accessor.type == null ? null : accessor.type.returnType;
+          DartType eventtype = null;
+          if (returntype != null && returntype is InterfaceType) {
+            // TODO allow subtypes of ElementStream? This is a generated file
+            // so might not be necessary.
+            if (returntype.element.name == 'ElementStream') {
+              eventtype = returntype.typeArguments[0]; // may be null
+            }
+          }
           outputMap[name] = new OutputElement(name, accessor.nameOffset,
-              accessor.nameLength, accessor.source, accessor, null);
+              accessor.nameLength, accessor.source, accessor, null, eventtype);
         }
       }
     });
+  }
+
+  String _getDomName(Element element) {
+    for (ElementAnnotation annotation in element.metadata) {
+      // this has caching built in, so we can compute every time
+      var value = annotation.computeConstantValue();
+      if (value != null && value.type is InterfaceType) {
+        if (value.type.element.name == 'DomName') {
+          return value.getField("name").toStringValue();
+        }
+      }
+    }
+
+    return null;
   }
 
   List/*<T>*/ _captureAspects(CaptureAspectFn/*<T>*/ addAspect) {

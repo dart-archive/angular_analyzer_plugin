@@ -173,12 +173,20 @@ library dart.html;
 import 'dart:async';
 
 class Event {}
+class MouseEvent extends Event {}
+
+class DomName {
+  final String name;
+  const DomName(this.name);
+}
 
 abstract class ElementStream<T extends Event> implements Stream<T> {}
 
 class HtmlElement {
   int tabIndex;
+  @DomName('Element.onchange')
   ElementStream<Event> get onChange => null;
+  @DomName('Element.onclick')
   ElementStream<MouseEvent> get onClick => null;
   bool hidden;
 }
@@ -214,7 +222,8 @@ class InputElement extends HtmlElement {
   factory InputElement() => document.createElement("input");
   String value;
   String validationMessage;
-  ElementStream<Event> get onKeyup => null;
+  @DomName('Element.onkeyup')
+  ElementStream<Event> get onKeyUp => null;
 }
 ''');
 
