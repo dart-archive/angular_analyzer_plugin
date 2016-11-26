@@ -196,6 +196,39 @@ class TestPanel {
         AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "(title)");
   }
 
+  void test_expression_detect_eof_post_semicolon() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String name = "TestPanel";
+}
+''');
+
+    var code = r"""
+<p>{{name; bad portion}}</p>
+ """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TRAILING_EXPRESSION, code, "; bad portion");
+  }
+
+  void test_expression_detect_eof_ellipsis() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String name = "TestPanel";
+}
+''');
+    var code = r"""
+<p>{{name...}}</p>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TRAILING_EXPRESSION, code, "...");
+  }
+
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {
