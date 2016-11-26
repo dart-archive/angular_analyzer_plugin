@@ -228,6 +228,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
 class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     with _AnnotationProcessorMixin {
   static const String UNIT_INPUT = 'UNIT_INPUT';
+  static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'BuildUnitDirectivesTask',
@@ -241,8 +242,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   @override
   TaskDescriptor get descriptor => DESCRIPTOR;
 
+  TypeProvider typeProvider;
+
   @override
   void internalPerform() {
+    typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     initAnnotationProcessor(target);
     //
     // Prepare inputs.
@@ -437,9 +441,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     if (getter != null && getter.type != null) {
       var returntype = getter.type.returnType;
       if (returntype != null && returntype is InterfaceType) {
-        // TODO allow subtypes of EventEmitter
-        if (returntype.element.name == 'EventEmitter') {
-          return returntype.typeArguments[0]; // may be null
+        dart.DartType streamType = typeProvider.streamType;
+        dart.DartType streamedType =
+            context.typeSystem.mostSpecificTypeArgument(returntype, streamType);
+        if (streamedType != null) {
+          return streamedType;
         } else {
           errorReporter.reportErrorForNode(
               AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
@@ -454,7 +460,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       }
     }
 
-    return null;
+    return typeProvider.dynamicType;
   }
 
   List<InputElement> _parseHeaderInputs(
@@ -650,7 +656,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    * given [target].
    */
   static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
-    return <String, TaskInput>{UNIT_INPUT: RESOLVED_UNIT.of(target)};
+    return <String, TaskInput>{
+      UNIT_INPUT: RESOLVED_UNIT.of(target),
+      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request)
+    };
   }
 
   /**
