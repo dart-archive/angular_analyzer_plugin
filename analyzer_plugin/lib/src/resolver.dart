@@ -1218,8 +1218,9 @@ class TemplateResolver {
       Expression expression = _resolveExpression(fileOffset + begin, code);
       textOffset = end + 2;
 
-      if (expression.endToken.next.type != TokenType.EOF){
-        errorListener.onError(new AnalysisError(templateSource,
+      if (expression.endToken.next.type != TokenType.EOF) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
             expression.endToken.next.offset,
             _computeTokenLengthToEOF(expression.endToken.next),
             AngularWarningCode.TRAILING_EXPRESSION));
@@ -1241,9 +1242,9 @@ class TemplateResolver {
    * Given a Token chain, computes length from current token
    * until the EOF token
    */
-  int _computeTokenLengthToEOF(Token token){
+  int _computeTokenLengthToEOF(Token token) {
     int startOffset = token.offset;
-    while (token.type != TokenType.EOF){
+    while (token.type != TokenType.EOF) {
       token = token.next;
     }
     return token.offset - startOffset;
