@@ -1392,16 +1392,16 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         if (accessor.isGetter) {
           var returnType =
               accessor.type == null ? null : accessor.type.returnType;
-          DartType eventtype = null;
+          DartType eventType = null;
           if (returnType != null && returnType is InterfaceType) {
             // TODO allow subtypes of ElementStream? This is a generated file
             // so might not be necessary.
             if (returnType.element.name == 'ElementStream') {
-              eventtype = returnType.typeArguments[0]; // may be null
+              eventType = returnType.typeArguments[0]; // may be null
             }
           }
           outputMap[name] = new OutputElement(name, accessor.nameOffset,
-              accessor.nameLength, accessor.source, accessor, null, eventtype);
+              accessor.nameLength, accessor.source, accessor, null, eventType);
         }
       }
     });
