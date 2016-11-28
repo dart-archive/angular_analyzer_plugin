@@ -620,12 +620,135 @@ class MyComponent {
     errorListener.assertNoErrors();
   }
 
+  void test_outputs_streamIsOk() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'dart:async';
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent {
+  @Output()
+  Stream<int> myOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("int"));
+    }
+  }
+
+  void test_outputs_extendStreamIsOk() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'dart:async';
+
+abstract class MyStream<T> implements Stream<T> { }
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent {
+  @Output()
+  MyStream<int> myOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("int"));
+    }
+  }
+
+  void test_outputs_extendStreamSpecializedIsOk() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'dart:async';
+
+class MyStream extends Stream<int> { }
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent {
+  @Output()
+  MyStream myOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("int"));
+    }
+  }
+
+  void test_outputs_extendStreamUntypedIsOk() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'dart:async';
+
+class MyStream extends Stream { }
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent {
+  @Output()
+  MyStream myOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
+  }
+
   void test_outputs_notEventEmitterTypeError() {
     String code = r'''
 import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   int badOutput;
@@ -637,6 +760,34 @@ class MyComponent {
     fillErrorListener(DIRECTIVES_ERRORS);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER, code, "badOutput");
+  }
+
+  void test_outputs_extendStreamNotStreamHasDynamicEventType() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent {
+  @Output()
+  int badOutput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
   }
 
   void test_noDirectives() {
