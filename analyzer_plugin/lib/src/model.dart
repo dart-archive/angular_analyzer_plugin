@@ -172,6 +172,8 @@ class InputElement extends AngularElementImpl {
 
   final dart.PropertyAccessorElement setter;
 
+  final dart.DartType setterType;
+
   /**
    * The [SourceRange] where [setter] is referenced in the input declaration.
    * May be the same as this element offset/length in shorthand variants where
@@ -180,7 +182,7 @@ class InputElement extends AngularElementImpl {
   final SourceRange setterRange;
 
   InputElement(String name, int nameOffset, int nameLength, Source source,
-      this.setter, this.setterRange)
+      this.setter, this.setterRange, this.setterType)
       : super(name, nameOffset, nameLength, source);
 
   @override

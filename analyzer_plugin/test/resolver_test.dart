@@ -552,6 +552,184 @@ class TestPanel {
         AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
   }
 
+  void test_expression_inputAndOutputBinding_genericDirective_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String string;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T> {
+  @Output() EventEmitter<T> output;
+  @Input() T input;
+
+  @Output() EventEmitter<T> twoWayChange;
+  @Input() T twoWay;
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputAndOutputBinding_genericDirective_chain_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String string;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T extends E, E> {
+  @Output() EventEmitter<T> output;
+  @Input() T input;
+
+  @Output() EventEmitter<T> twoWayChange;
+  @Input() T twoWay;
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputAndOutputBinding_genericDirective_nested_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  List<String> stringList;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T> {
+  @Output() EventEmitter<List<T>> output;
+  @Input() List<T> input;
+
+  @Output() EventEmitter<List<T>> twoWayChange;
+  @Input() List<T> twoWay;
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event[0].length' [input]="stringList" [(twoWay)]="stringList"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputBinding_genericDirective_lowerBoundTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  int notString;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T extends String> {
+  @Input() T string;
+}
+''');
+    var code = r"""
+<generic-comp [string]="notString"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notString");
+  }
+
+  void test_expression_input_genericDirective_lowerBoundChainTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  int notString;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T extends O, O extends String> {
+  @Input() T string;
+}
+''');
+    var code = r"""
+<generic-comp [string]="notString"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notString");
+  }
+
+  void test_expression_input_genericDirective_lowerBoundNestedTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  List<int> notStringList;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T extends String> {
+  @Input() List<T> stringList;
+}
+''');
+    var code = r"""
+<generic-comp [stringList]="notStringList"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notStringList");
+  }
+
+  void test_expression_outputBinding_genericDirective_lowerBoundTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  takeInt(int i) {}
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T extends String> {
+  @Output() EventEmitter<T> string;
+}
+''');
+    var code = r"""
+<generic-comp (string)="takeInt($event)"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r"$event");
+  }
+
+  void test_expression_twoWayBinding_genericDirective_lowerBoundTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  int anInt;
+}
+@Component(selector: 'generic-comp', template: '')
+class GenericComponent<T extends String> {
+  @Output() EventEmitter<T> stringChange;
+  @Input() dynamic string;
+}
+''');
+    var code = r"""
+<generic-comp [(string)]="anInt"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "anInt");
+  }
+
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {
