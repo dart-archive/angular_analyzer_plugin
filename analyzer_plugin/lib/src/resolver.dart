@@ -18,10 +18,10 @@ import 'package:analyzer/src/dart/ast/token.dart' hide SimpleToken;
 import 'package:analyzer/src/dart/scanner/reader.dart';
 import 'package:analyzer/src/dart/scanner/scanner.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:angular2_analyzer_plugin/src/strings.dart';
-import 'package:angular2_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/strings.dart';
+import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
@@ -35,6 +35,8 @@ html.Element _firstElement(html.Node node) {
   return null;
 }
 
+enum AttributeBoundType { input, output, twoWay, attr, clazz, style }
+
 /**
  * Information about an attribute.
  */
@@ -42,10 +44,10 @@ class AttributeInfo {
   final String name;
   final int nameOffset;
 
-  final String inputName;
-  final int inputNameOffset;
-  final int inputNameLength;
-  final bound;
+  final String propertyName;
+  final int propertyNameOffset;
+  final int propertyNameLength;
+  final AttributeBoundType bound;
 
   final String value;
   final int valueOffset;
@@ -55,9 +57,9 @@ class AttributeInfo {
   AttributeInfo(
       this.name,
       this.nameOffset,
-      this.inputName,
-      this.inputNameOffset,
-      this.inputNameLength,
+      this.propertyName,
+      this.propertyNameOffset,
+      this.propertyNameLength,
       this.bound,
       this.value,
       this.valueOffset);
@@ -67,7 +69,7 @@ class AttributeInfo {
   @override
   String toString() {
     return '([$name, $nameOffset],'
-        '[$inputName, $inputNameOffset, $inputNameLength, $bound],'
+        '[$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
         '[$value, $valueOffset, $valueLength], [$expression])';
   }
 }
@@ -96,7 +98,10 @@ class DartTemplateResolver {
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
-      document = parser.parseFragment('template');
+
+      // Don't parse as a fragment, but parse as a document. That way there
+      // will be a single first element with all contents.
+      document = parser.parse();
       _addParseErrors(parser);
     }
     // Create and resolve Template.
@@ -113,6 +118,13 @@ class DartTemplateResolver {
   void _addParseErrors(html.HtmlParser parser) {
     List<html.ParseError> parseErrors = parser.errors;
     for (html.ParseError parseError in parseErrors) {
+      // We parse this as a full document rather than as a template so
+      // that everything is in the first document element. But then we
+      // get these errors which don't apply -- suppress them.
+      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
+          parseError.errorCode == 'expected-doctype-but-got-chars') {
+        continue;
+      }
       SourceSpan span = parseError.span;
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
@@ -148,6 +160,7 @@ class ElementInfo extends NodeInfo {
   final bool isTemplate;
   final bool hasTemplateAttribute;
   final List<AttributeInfo> attributes;
+  List<AbstractDirective> directives = <AbstractDirective>[];
 
   ElementInfo(
       this.localName,
@@ -192,9 +205,9 @@ class ElementViewImpl implements ElementView {
 
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
-      String name = attribute.inputName;
-      attributeNameSpans[name] =
-          new SourceRange(attribute.inputNameOffset, attribute.inputNameLength);
+      String name = attribute.propertyName;
+      attributeNameSpans[name] = new SourceRange(
+          attribute.propertyNameOffset, attribute.propertyNameLength);
       if (attribute.value != null) {
         attributeValueSpans[name] =
             new SourceRange(attribute.valueOffset, attribute.valueLength);
@@ -275,29 +288,54 @@ class HtmlTreeConverter {
     element.attributes.forEach((name, String value) {
       if (name is String) {
         String lowerName = name.toLowerCase();
-        int nameOffset = element.attributeSpans[lowerName].start.offset;
+        int nameOffset;
+        try {
+          nameOffset = element.attributeSpans[lowerName].start.offset;
+        } catch (e) {
+          // See https://github.com/dart-lang/html/issues/44, this creates
+          // an error. Catch it so that analysis else where continues.
+          return;
+        }
         // name
-        bool bound = false;
+        AttributeBoundType bound = null;
         String propName = name;
         int propNameOffset = nameOffset;
-        if (propName.startsWith('[') && propName.endsWith(']')) {
+        if (propName.startsWith('[(') && propName.endsWith(')]')) {
+          propNameOffset += 2;
+          bound = AttributeBoundType.twoWay;
+          propName = propName.substring(2, propName.length - 2);
+        } else if (propName.startsWith('[') && propName.endsWith(']')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
-          bound = true;
+          if (propName.startsWith('class.')) {
+            bound = AttributeBoundType.clazz;
+            propName = propName.substring('class.'.length);
+            propNameOffset += 'class.'.length;
+          } else if (propName.startsWith('attr.')) {
+            bound = AttributeBoundType.attr;
+            propName = propName.substring('attr.'.length);
+            propNameOffset += 'attr.'.length;
+          } else if (propName.startsWith('style.')) {
+            propName = propName.substring('style.'.length);
+            propNameOffset += 'style.'.length;
+            bound = AttributeBoundType.style;
+          } else {
+            bound = AttributeBoundType.input;
+          }
         } else if (propName.startsWith('bind-')) {
           int bindLength = 'bind-'.length;
           propNameOffset += bindLength;
           propName = propName.substring(bindLength);
-          bound = true;
+          bound = AttributeBoundType.input;
         } else if (propName.startsWith('on-')) {
           int bindLength = 'on-'.length;
           propNameOffset += bindLength;
           propName = propName.substring(bindLength);
-          bound = true;
+          bound = AttributeBoundType.output;
         } else if (propName.startsWith('(') && propName.endsWith(')')) {
           propNameOffset += 1;
           propName = propName.substring(1, propName.length - 1);
-          bound = true;
+          bound = AttributeBoundType.output;
         }
         int propNameLength = propName != null ? propName.length : null;
         // value
@@ -460,13 +498,18 @@ class TemplateResolver {
       internalVariables[r'$implicit'] = new InternalVariable(
           r'$implicit', new DartElement(classElement), classElement.type);
     }
+  }
+
+  void _defineNgForVariables(
+      List<AttributeInfo> attributes, AbstractDirective directive) {
     // TODO(scheglov) Once Angular has a way to describe variables, reimplement
     // https://github.com/angular/angular/issues/4850
     if (directive.classElement.displayName == 'NgFor') {
       internalVariables['index'] = new InternalVariable('index',
           new DartElement(directive.classElement), typeProvider.intType);
       for (AttributeInfo attribute in attributes) {
-        if (attribute.inputName == 'ngForOf' && attribute.expression != null) {
+        if (attribute.propertyName == 'ngForOf' &&
+            attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
           internalVariables[r'$implicit'] = new InternalVariable(
               r'$implicit', new DartElement(directive.classElement), itemType);
@@ -482,15 +525,24 @@ class TemplateResolver {
     for (AttributeInfo attribute in attributes) {
       int offset = attribute.nameOffset;
       String name = attribute.name;
+
       // check if defines local variable
-      if (name.startsWith('#')) {
-        offset++;
-        name = name.substring(1);
+      var isLet = name.startsWith('let-'); // ng-for
+      var isRef = name.startsWith('ref-'); // not ng-for
+      var isHash = name.startsWith('#'); // not ng-for
+      var isVar =
+          name.startsWith('var-'); // either (deprecated but still works)
+      if (isHash || isLet || isVar || isRef) {
+        var prefixLen = isHash ? 1 : 4;
+        name = name.substring(prefixLen);
+        offset += prefixLen;
+
         // prepare internal variable name
         String internalName = attribute.value;
         if (internalName == null) {
           internalName = r'$implicit';
         }
+
         // maybe an internal variable reference
         DartType type;
         InternalVariable internalVar = internalVariables[internalName];
@@ -611,10 +663,18 @@ class TemplateResolver {
       List<AttributeInfo> attributes, AbstractDirective directive) {
     for (AttributeInfo attribute in attributes) {
       for (InputElement input in directive.inputs) {
-        if (attribute.inputName == input.name) {
+        if (attribute.propertyName == input.name) {
           SourceRange range = new SourceRange(
-              attribute.inputNameOffset, attribute.inputNameLength);
+              attribute.propertyNameOffset, attribute.propertyNameLength);
           template.addRange(range, input);
+        }
+      }
+
+      for (OutputElement output in directive.outputs) {
+        if (attribute.propertyName == output.name) {
+          SourceRange range = new SourceRange(
+              attribute.propertyNameOffset, attribute.propertyNameLength);
+          template.addRange(range, output);
         }
       }
     }
@@ -623,24 +683,113 @@ class TemplateResolver {
   /**
    * Resolve values of [attributes].
    */
-  void _resolveAttributeValues(List<AttributeInfo> attributes) {
+  void _resolveAttributeValues(
+      List<AttributeInfo> attributes, List<AbstractDirective> directives) {
     for (AttributeInfo attribute in attributes) {
       int valueOffset = attribute.valueOffset;
       String value = attribute.value;
+      dart.DartType eventType = null;
       // already handled
       if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         continue;
       }
       // bound
-      if (attribute.bound) {
+      if (attribute.bound != null) {
+        AngularWarningCode unboundErrorCode;
+        var matched = false;
+        if (attribute.bound == AttributeBoundType.output) {
+          unboundErrorCode = AngularWarningCode.NONEXIST_OUTPUT_BOUND;
+          for (AbstractDirective directive in directives) {
+            for (OutputElement output in directive.outputs) {
+              if (output.name == attribute.propertyName) {
+                // TODO what if this matches two directives?
+                eventType = output.eventType;
+                matched = true;
+              }
+            }
+          }
+        }
+
         Expression expression = attribute.expression;
         if (expression == null) {
-          expression = _resolveDartExpressionAt(valueOffset, value);
+          expression = _resolveDartExpressionAt(valueOffset, value, eventType);
           attribute.expression = expression;
         }
         if (expression != null) {
           _recordExpressionResolvedRanges(expression);
         }
+
+        if (attribute.bound == AttributeBoundType.twoWay) {
+          if (!expression.isAssignable) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.valueOffset,
+                attribute.value.length,
+                AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE));
+          }
+
+          var outputMatched = false;
+          for (AbstractDirective directive in directives) {
+            for (OutputElement output in directive.outputs) {
+              if (output.name == attribute.propertyName + "Change") {
+                outputMatched = true;
+                if (!output.eventType.isAssignableTo(expression.bestType)) {
+                  errorListener.onError(new AnalysisError(
+                      templateSource,
+                      attribute.valueOffset,
+                      attribute.value.length,
+                      AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
+                      [output.eventType, expression.bestType]));
+                }
+              }
+            }
+          }
+
+          if (!outputMatched) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
+                [attribute.propertyName, attribute.propertyName + "Change"]));
+          }
+        }
+
+        if (attribute.bound == AttributeBoundType.clazz) {
+          _resolveClassAttribute(attribute, expression);
+        } else if (attribute.bound == AttributeBoundType.style) {
+          _resolveStyleAttribute(attribute, expression);
+        } else if (attribute.bound == AttributeBoundType.attr) {
+          _resolveAttributeBoundAttribute(attribute, expression);
+        }
+
+        if (attribute.bound == AttributeBoundType.input ||
+            attribute.bound == AttributeBoundType.twoWay) {
+          unboundErrorCode = AngularWarningCode.NONEXIST_INPUT_BOUND;
+          for (AbstractDirective directive in directives) {
+            for (InputElement input in directive.inputs) {
+              if (input.name == attribute.propertyName) {
+                var attrType = expression.bestType;
+                var inputType = input.setter.variable.type;
+                if (!attrType.isAssignableTo(inputType)) {
+                  errorListener.onError(new AnalysisError(
+                      templateSource,
+                      attribute.valueOffset,
+                      attribute.value.length,
+                      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+                      [attrType, inputType]));
+                }
+                matched = true;
+              }
+            }
+          }
+        }
+
+        if (!matched && unboundErrorCode != null) {
+          errorListener.onError(new AnalysisError(templateSource,
+              attribute.nameOffset, attribute.name.length, unboundErrorCode));
+        }
+
         continue;
       }
       // text interpolations
@@ -651,9 +800,96 @@ class TemplateResolver {
   }
 
   /**
+   * Quick regex to match the spec, but doesn't handle unicode. They can start
+   * with a dash, but if so must be followed by an alphabetic or underscore or
+   * escaped character. Cannot start with a number.
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static final RegExp _cssIdentifierRegexp =
+      new RegExp(r"^(-?[a-zA-Z_]|\\.)([a-zA-Z0-9\-_]|\\.)*$");
+
+  bool _isCssIdentifier(String input) {
+    return _cssIdentifierRegexp.hasMatch(input);
+  }
+
+  /**
+   * Resolve attributes of type [class.some-class]="someBoolExpr", ensuring
+   * the class is a valid css identifier and that the expression is of boolean
+   * type
+   */
+  _resolveClassAttribute(AttributeInfo attribute, Expression expression) {
+    if (!_isCssIdentifier(attribute.propertyName)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.propertyNameOffset,
+          attribute.propertyName.length,
+          AngularWarningCode.INVALID_HTML_CLASSNAME,
+          [attribute.propertyName]));
+    }
+
+    if (!expression.bestType.isAssignableTo(typeProvider.boolType)) {
+      errorListener.onError(new AnalysisError(
+        templateSource,
+        attribute.valueOffset,
+        attribute.value.length,
+        AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN,
+      ));
+    }
+  }
+
+  /**
+   * Resolve attributes of type [style.color]="someExpr" and
+   * [style.background-width.px]="someNumExpr" which bind a css style property
+   * with optional units.
+   */
+  _resolveStyleAttribute(AttributeInfo attribute, Expression expression) {
+    var cssPropertyName = attribute.propertyName;
+    var dotpos = attribute.propertyName.indexOf('.');
+    if (dotpos != -1) {
+      cssPropertyName = attribute.propertyName.substring(0, dotpos);
+      var cssUnitName = attribute.propertyName.substring(dotpos + '.'.length);
+      if (!_isCssIdentifier(cssUnitName)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.propertyNameOffset + dotpos + 1,
+            cssUnitName.length,
+            AngularWarningCode.INVALID_CSS_UNIT_NAME,
+            [cssUnitName]));
+      }
+      if (!expression.bestType.isAssignableTo(typeProvider.numType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.valueOffset,
+            attribute.value.length,
+            AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER));
+      }
+    }
+
+    if (!_isCssIdentifier(cssPropertyName)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.propertyNameOffset,
+          cssPropertyName.length,
+          AngularWarningCode.INVALID_CSS_PROPERTY_NAME,
+          [cssPropertyName]));
+    }
+  }
+
+  /**
+   * Resolve attributes of type [attribute.some-attribute]="someExpr"
+   */
+  _resolveAttributeBoundAttribute(
+      AttributeInfo attribute, Expression expression) {
+    // TODO validate the type? Or against a dictionary?
+    // note that the attribute name is valid by definition as it was discovered
+    // within an attribute! (took me a while to realize why I couldn't make any
+    // failing tests for this)
+  }
+
+  /**
    * Resolve the given [expression] and report errors.
    */
-  void _resolveDartExpression(Expression expression) {
+  void _resolveDartExpression(Expression expression, dart.DartType eventType) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     ResolverVisitor resolver = new ResolverVisitor(
@@ -666,8 +902,9 @@ class TemplateResolver {
     localVariables.values.forEach((LocalVariable local) {
       localScope.define(local.dartVariable);
     });
-    // TODO(scheglov) hack, use actual variables
-    _defineBuiltInVariable(localScope, typeProvider.dynamicType, r'$event', -1);
+    if (eventType != null) {
+      _defineBuiltInVariable(localScope, eventType, r'$event', -1);
+    }
     // do resolve
     expression.accept(resolver);
     // verify
@@ -679,10 +916,11 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(int offset, String code) {
+  Expression _resolveDartExpressionAt(
+      int offset, String code, DartType eventType) {
     Expression expression = _parseDartExpression(offset, code);
     if (expression != null) {
-      _resolveDartExpression(expression);
+      _resolveDartExpression(expression, eventType);
     }
     return expression;
   }
@@ -720,7 +958,7 @@ class TemplateResolver {
         }
       }
       // process all non-template nodes
-      _resolveNodeNames(element, true, templateElements);
+      _resolveNodeDirectives(element, true, templateElements);
       _resolveNodeExpressions(element, true);
       // process templates with their sub-trees
       for (ElementInfo templateElement in templateElements) {
@@ -738,21 +976,30 @@ class TemplateResolver {
    * Record [ResolvedRange]s.
    */
   Expression _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpressionAt(offset, code);
+    Expression expression = _resolveDartExpressionAt(offset, code, null);
     _recordExpressionResolvedRanges(expression);
     return expression;
   }
 
   _resolveNodeExpressions(NodeInfo node, bool enterTemplate) {
     if (node is ElementInfo) {
-      if (node.isTemplate) {
-        _resolveAttributeValues(node.attributes);
-      }
+      // Can't resolve attributes until the directives have been found.
+      // Templates are sometimes skipped in resolving directives, so
+      // we have to match that behavior here.
       if (!enterTemplate && node.isOrHasTemplateAttribute) {
         return;
       }
-      if (!node.isTemplate) {
-        _resolveAttributeValues(node.attributes);
+
+      _resolveAttributeValues(node.attributes, node.directives);
+
+      // For the case of <template ngFor....> we have to check the
+      // attributes to get a type. Now that that's done, load let-var
+      if (node.isTemplate) {
+        for (AbstractDirective directive in node.directives) {
+          _defineNgForVariables(node.attributes, directive);
+        }
+
+        _defineLocalVariablesForAttributes(node.attributes);
       }
     }
     if (node is TextInfo) {
@@ -763,7 +1010,7 @@ class TemplateResolver {
     }
   }
 
-  _resolveNodeNames(
+  _resolveNodeDirectives(
       NodeInfo node, bool enterTemplate, List<ElementInfo> templateElements) {
     if (node is ElementInfo) {
       // skip template
@@ -771,13 +1018,15 @@ class TemplateResolver {
         templateElements.add(node);
         return;
       }
-      // apply directives
-      bool tagIsStandard = _isStandardTagName(node.localName);
-      bool tagIsResolved = false;
+
       ElementView elementView = new ElementViewImpl(node.attributes, node);
+      bool tagIsResolved = false;
+      bool tagIsStandard = _isStandardTagName(node.localName);
+
       for (AbstractDirective directive in allDirectives) {
         Selector selector = directive.selector;
         if (selector.match(elementView, template)) {
+          node.directives.add(directive);
           if (selector is ElementNameSelector) {
             tagIsResolved = true;
           }
@@ -789,12 +1038,19 @@ class TemplateResolver {
         _reportErrorForRange(node.openingNameSpan,
             AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
       }
-      // define local variables
-      _defineLocalVariablesForAttributes(node.attributes);
+
+      // In the case of <template ngFor...> we don't want to define variables
+      // until we have resolved our attribute expressions types...and we can't
+      // do that until all directives are resolved.
+      if (!node.isTemplate) {
+        // define local variables
+        _defineLocalVariablesForAttributes(node.attributes);
+      }
     }
+
     // process children
     for (NodeInfo child in node.children) {
-      _resolveNodeNames(child, false, templateElements);
+      _resolveNodeDirectives(child, false, templateElements);
     }
   }
 
@@ -839,8 +1095,16 @@ class TemplateResolver {
           token = token.next;
         }
         // declare the local variable
-        attributes.add(new AttributeInfo('#$localVarName', localVarOffset - 1,
-            null, -1, -1, false, internalVarName, internalVarOffset));
+        // Note the care that the varname's offset is preserved in place.
+        attributes.add(new AttributeInfo(
+            'let-$localVarName',
+            localVarOffset - 'let-'.length,
+            null,
+            -1,
+            -1,
+            null,
+            internalVarName,
+            internalVarOffset));
         continue;
       }
       // key
@@ -877,51 +1141,90 @@ class TemplateResolver {
       Expression expression;
       if (token.type != TokenType.EOF && !_isTemplateVarBeginToken(token)) {
         expression = _parseDartExpressionAtToken(token);
-        _resolveDartExpression(expression);
+        _resolveDartExpression(expression, null);
         token = expression.endToken.next;
       }
       // add the attribute to resolve to an input
-      AttributeInfo attributeInfo = new AttributeInfo(key, keyOffset, key,
-          keyOffset, keyLength, expression != null, 'some-value', -1);
+      AttributeInfo attributeInfo = new AttributeInfo(
+          key,
+          keyOffset,
+          key,
+          keyOffset,
+          keyLength,
+          expression != null ? AttributeBoundType.input : null,
+          'some-value',
+          -1);
       attributeInfo.expression = expression;
       attributes.add(attributeInfo);
     }
-    // match directives
+    // match directives, requiring a match
     ElementView elementView = new ElementViewImpl(attributes, null);
+    var directives = <AbstractDirective>[];
     for (AbstractDirective directive in allDirectives) {
       if (directive.selector.match(elementView, template)) {
+        directives.add(directive);
         _defineDirectiveVariables(attributes, directive);
+        _defineNgForVariables(attributes, directive);
         _defineLocalVariablesForAttributes(attributes);
         _resolveAttributeNames(attributes, directive);
-        break;
       }
     }
-    _resolveAttributeValues(attributes);
+
+    // TODO: report error if no directives matched here?
+    _resolveAttributeValues(attributes, directives);
   }
 
   /**
    * Scan the given [text] staring at the given [offset] and resolve all of
    * its embedded expressions.
    */
-  void _resolveTextExpressions(int offset, String text) {
-    int lastEnd = 0;
+  void _resolveTextExpressions(int fileOffset, String text) {
+    int textOffset = 0;
     while (true) {
       // begin
-      int begin = text.indexOf('{{', lastEnd);
-      if (begin == -1) {
+      int begin = text.indexOf('{{', textOffset);
+      int nextBegin = text.indexOf('{{', begin + 2);
+      int end = text.indexOf('}}', textOffset);
+      if (begin == -1 && end == -1) {
         break;
       }
-      // end
-      lastEnd = text.indexOf('}}', begin);
-      if (lastEnd == -1) {
-        errorListener.onError(new AnalysisError(templateSource, offset + begin,
-            2, AngularWarningCode.UNTERMINATED_MUSTACHE));
-        break;
+
+      if (end == -1) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
+        // Move the cursor ahead and keep looking for more unmatched mustaches.
+        textOffset = begin + 2;
+        continue;
+      }
+
+      if (begin == -1) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
+        // Move the cursor ahead and keep looking for more unmatched mustaches.
+        textOffset = end + 2;
+        continue;
+      }
+
+      if (nextBegin != -1 && nextBegin < end) {
+        errorListener.onError(new AnalysisError(templateSource,
+            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
+        // Skip this open mustache, check the next open we found
+        textOffset = begin + 2;
+        continue;
       }
       // resolve
       begin += 2;
-      String code = text.substring(begin, lastEnd);
-      _resolveExpression(offset + begin, code);
+      String code = text.substring(begin, end);
+      Expression expression = _resolveExpression(fileOffset + begin, code);
+      textOffset = end + 2;
+
+      if (expression.endToken.next.type != TokenType.EOF) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            expression.endToken.next.offset,
+            _computeTokenLengthToEOF(expression.endToken.next),
+            AngularWarningCode.TRAILING_EXPRESSION));
+      }
     }
   }
 
@@ -936,6 +1239,18 @@ class TemplateResolver {
   }
 
   /**
+   * Given a Token chain, computes length from current token
+   * until the EOF token
+   */
+  int _computeTokenLengthToEOF(Token token) {
+    int startOffset = token.offset;
+    while (token.type != TokenType.EOF) {
+      token = token.next;
+    }
+    return token.offset - startOffset;
+  }
+
+  /**
    * Check whether the given [name] is a standard HTML5 tag name.
    */
   static bool _isStandardTagName(String name) {
@@ -944,8 +1259,8 @@ class TemplateResolver {
   }
 
   static bool _isTemplateVarBeginToken(Token token) {
-    return token.type == TokenType.HASH ||
-        token is KeywordToken && token.keyword == Keyword.VAR;
+    return token is KeywordToken && token.keyword == Keyword.VAR ||
+        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let');
   }
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>

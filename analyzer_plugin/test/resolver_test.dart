@@ -1,9 +1,11 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular2_analyzer_plugin/src/model.dart';
-import 'package:angular2_analyzer_plugin/src/selector.dart';
-import 'package:angular2_analyzer_plugin/src/tasks.dart';
+import 'package:analyzer/src/error/codes.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/tasks.dart';
+import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -107,20 +109,190 @@ class TestPanel {
     _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
-  void test_expression_inputBinding() {
+  void test_expression_inputBinding_valid() {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+}
+''');
+    _addHtmlSource(r"""
+<span titled [title]='text'></span>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputBinding_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+}
+''');
+    var code = r"""
+<title-comp [title]='text'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_inputBinding_boundToNothing() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
 ''');
-    _addHtmlSource(r"""
+    var code = r"""
 <span [title]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[title]");
+  }
+
+  void test_expression_twoWayBinding_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    _addHtmlSource(r"""
+<span titled [(title)]='text'></span>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
-    _assertElement("text'>").dart.getter.at('text; // 1');
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_twoWayBinding_inputTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]='text'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_twoWayBinding_outputTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+  @Output() EventEmitter<int> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]='text'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_twoWayBinding_notAssignableError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]="text.toUpperCase()"></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
+        code,
+        "text.toUpperCase()");
+  }
+
+  void test_expression_twoWayBinding_noInputToBind() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Output() EventEmitter<String> titleChange;
+}
+''');
+    var code = r"""
+<title-comp [(title)]="text"></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[(title)]");
+  }
+
+  void test_expression_twoWayBinding_noOutputToBind() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String title;
+}
+''');
+    var code = r"""
+<title-comp [(title)]="text"></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "[(title)]");
   }
 
   void test_expression_inputBinding_bind() {
@@ -137,6 +309,280 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
     _assertElement("text'>").dart.getter.at('text; // 1');
+  }
+
+  void test_expression_outputBinding_boundToNothing() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span (title)='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "(title)");
+  }
+
+  void test_expression_outputBinding_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  takeString(String arg);
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Output() EventEmitter<int> output;
+}
+''');
+    var code = r"""
+<title-comp (output)='takeString($event)'></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r"$event");
+  }
+
+  void test_expression_inputBinding_noEvent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+<h1 [hidden]="$event">
+</h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
+  }
+
+  void test_expression_mustache_noEvent() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+<h1>{{$event}}</h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
+  }
+
+  void test_expression_attrBinding_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [attr.aria-title]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_attrBinding_expressionTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int pixels;
+}
+''');
+    var code = r"""
+<span [attr.aria]='pixels.length'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticTypeWarningCode.UNDEFINED_GETTER, code, "length");
+  }
+
+  void test_expression_classBinding_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [class.my-class]='text == null'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_classBinding_invalidClassName() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String title;
+}
+''');
+    var code = r"""
+<span [class.invalid.class]='title == null'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "invalid.class");
+  }
+
+  void test_expression_classBinding_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String notBoolean;
+}
+''');
+    var code = r"""
+<span [class.aria]='notBoolean'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN, code, "notBoolean");
+  }
+
+  void test_expression_styleBinding_noUnit_valid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [style.background-color]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_styleBinding_noUnit_invalidCssProperty() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span [style.invalid*property]='text'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "invalid*property");
+  }
+
+  void test_expression_styleBinding_noUnit_expressionTypeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int noLength; // 1
+}
+''');
+    var code = r"""
+<span [style.background-color]='noLength.length'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticTypeWarningCode.UNDEFINED_GETTER, code, "length");
+  }
+
+  void test_expression_styleBinding_withUnit_invalidPropertyName() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int pixels; // 1
+}
+''');
+    var code = r"""
+<span [style.border&radius.px]='pixels'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "border&radius");
+  }
+
+  void test_expression_styleBinding_withUnit_invalidUnitName() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  double pixels; // 1
+}
+''');
+    var code = r"""
+<span [style.border-radius.p|x]='pixels'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
+  }
+
+  void test_expression_styleBinding_withUnit_typeError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String notNumber; // 1
+}
+''');
+    var code = r"""
+<span [style.border-radius.px]='notNumber'></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
+  }
+
+  void test_expression_detect_eof_post_semicolon() {
+    _addDartSource(r''' 
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html') 
+class TestPanel { 
+  String name = "TestPanel"; 
+} 
+''');
+
+    var code = r""" 
+<p>{{name; bad portion}}</p> 
+ """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TRAILING_EXPRESSION, code, "; bad portion");
+  }
+
+  void test_expression_detect_eof_ellipsis() {
+    _addDartSource(r''' 
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html') 
+class TestPanel { 
+  String name = "TestPanel"; 
+} 
+''');
+    var code = r""" 
+<p>{{name...}}</p> 
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TRAILING_EXPRESSION, code, "...");
   }
 
   void test_inheritedFields() {
@@ -187,6 +633,50 @@ class TestPanel {}
     _assertElement("ccc=").input.at("ccc']");
   }
 
+  void test_outputReference() {
+    _addDartSource(r'''
+@Component(selector: 'name-panel',
+    template: r"<div>AAA</div>")
+class NamePanel {
+  @Output() EventEmitter aaa;
+  @Output() EventEmitter bbb;
+  @Output() EventEmitter ccc;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<name-panel aaa='1' (bbb)='2' on-ccc='3'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement("aaa=").output.at("aaa;");
+    _assertElement("bbb)=").output.at("bbb;");
+    _assertElement("ccc=").output.at("ccc;");
+  }
+
+  void test_twoWayReference() {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  @Input() int value;
+  @Output() EventEmitter<int> valueChange;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {
+  int value;
+}
+''');
+    _addHtmlSource(r"""
+<name-panel [(value)]='value'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement("value)]").input.at("value;");
+  }
+
   void test_localVariable_camelCaseName() {
     _addDartSource(r'''
 import 'dart:html';
@@ -194,13 +684,13 @@ import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
-  void handleKeyUp(Element e) {}
+  void handleClick(Element e) {}
 }
 ''');
     _addHtmlSource(r"""
-<div (keyup)='handleKeyUp(myTargetElement)'>
+<h1 (click)='handleClick(myTargetElement)'>
   <div #myTargetElement></div>
-</div>
+</h1>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
@@ -256,6 +746,7 @@ class TestPanel {}
 </div>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("handle'>").local.at("handle></bbb>").type('ComponentB');
   }
 
@@ -286,11 +777,12 @@ class MyIterable<T> extends BaseIterable<T> {
 }
 ''');
     _addHtmlSource(r"""
-<li template='ngFor #item of items'>
+<li template='ngFor let item of items'>
   {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("item.").local.at('item of').type('String');
     _assertElement("length}}").dart.getter;
   }
@@ -304,11 +796,34 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='#operator of operators'>
+<li *ngFor='let operator of operators'>
   {{operator.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    expect(template.ranges, hasLength(7));
+    _assertElement("ngFor=").selector.inFileName('ng_for.dart');
+    _assertElement("operator of").local.declaration.type('String');
+    _assertElement("length}}").dart.getter;
+    errorListener.assertNoErrors();
+  }
+
+  void test_ngFor_operatorLocalVariableVarKeyword() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> operators = [];
+}
+''');
+    _addHtmlSource(r"""
+<li *ngFor='var operator of operators'>
+  {{operator.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     expect(template.ranges, hasLength(7));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
     _assertElement("operator of").local.declaration.type('String');
@@ -325,11 +840,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='#item of items; #i = index'>
+<li *ngFor='let item of items; let i = index'>
   {{i}} {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     expect(template.ranges, hasLength(10));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
@@ -348,7 +864,7 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
-  void test_ngFor_star_itemVisibleInElement() {
+  void test_ngFor_star_itemHiddenInElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -357,11 +873,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='var item of items' [visible]='item != null'>
-</li>
+<h1 *ngFor='let item of items' [hidden]='item == null'>
+</h1>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("item != null").local.at('item of items');
+    errorListener.assertNoErrors();
+    _assertElement("item == null").local.at('item of items');
   }
 
   void test_ngFor_templateAttribute() {
@@ -373,12 +890,13 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li template='ngFor #item of items; #i = index'>
+<li template='ngFor let item of items; let i = index'>
   {{i}} {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("ngFor #").selector.inFileName('ng_for.dart');
+    errorListener.assertNoErrors();
+    _assertElement("ngFor let").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
     _assertSelectorElement("of items")
         .selector
@@ -404,11 +922,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li template='ngFor: #item, of = items, #i=index'>
+<li template='ngFor: let item, of = items, let i=index'>
   {{i}} {{item.length}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertElement("ngFor:").selector.inFileName('ng_for.dart');
     _assertElement("item, of").local.declaration.type('String');
     _assertSelectorElement("of = items,")
@@ -435,12 +954,13 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<template ngFor #item [ngForOf]='items' #i='index'>
+<template ngFor let-item [ngForOf]='items' let-i='index'>
   <li>{{i}} {{item.length}}</li>
 </template>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("ngFor #").selector.inFileName('ng_for.dart');
+    errorListener.assertNoErrors();
+    _assertElement("ngFor let").selector.inFileName('ng_for.dart');
     _assertElement("item [").local.declaration.type('String');
     _assertSelectorElement("ngForOf]")
         .selector
@@ -457,6 +977,72 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
+  void test_ngFor_templateElementVar() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<template ngFor var-item [ngForOf]='items' var-i='index'>
+  <li>{{i}} {{item.length}}</li>
+</template>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement("item [").local.declaration.type('String');
+    _assertElement("i='index").local.declaration.type('int');
+    _assertElement("i}}").local.at("i='index");
+    _assertElement("item.").local.at('item [');
+  }
+
+  void test_ngFor_variousKinds_useLowerIdentifier() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    _addHtmlSource(r"""
+<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
+  {{item1.length}}
+</template>
+<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
+  {{item2.length}}
+</li>
+<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
+  {{item3.length}}
+</li>
+<div #lowerEl></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_ngForSugar_dartExpression() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> getItems(int unused) => [];
+  int unused;
+}
+''');
+    _addHtmlSource(r"""
+<li template="ngFor let item1 of getItems(unused + 5); let i=index">
+  {{item1.length}}
+</li>
+<li *ngFor="let item2 of getItems(unused + 5); let i=index">
+  {{item2.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_ngIf_star() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -469,6 +1055,7 @@ class TestPanel {
 <span *ngIf='text.length != 0'>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertSelectorElement("ngIf=").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf=").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
@@ -487,6 +1074,7 @@ class TestPanel {
 <span template='ngIf text.length != 0'>
 """);
     _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
     _assertSelectorElement("ngIf text").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf text").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
@@ -531,8 +1119,34 @@ class TestPanel {
     _assertElement('value, ').dart.getter.inCoreHtml;
     _assertElement('inputEl.validationMessage').local.at('inputEl M');
     _assertElement('validationMessage)').dart.getter.inCoreHtml;
+    _assertElement('change)').output.inCoreHtml;
     errorListener.assertNoErrors();
-    expect(ranges, hasLength(7));
+    expect(ranges, hasLength(8));
+  }
+
+  void test_standardHtmlComponentUsingRef() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void inputChange(String value, String validationMessage) {}
+}
+''');
+    _addHtmlSource(r"""
+<input ref-inputEl M
+       (change)='inputChange(inputEl.value, inputEl.validationMessage)'>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('input ref').selector.inCoreHtml.at('input");');
+    _assertElement('inputEl M').local.at('inputEl M');
+    _assertElement('inputChange(inputEl').dart.method.at('inputChange(Str');
+    _assertElement('inputEl.value').local.at('inputEl M');
+    _assertElement('value, ').dart.getter.inCoreHtml;
+    _assertElement('inputEl.validationMessage').local.at('inputEl M');
+    _assertElement('validationMessage)').dart.getter.inCoreHtml;
+    _assertElement('change)').output.inCoreHtml;
+    errorListener.assertNoErrors();
+    expect(ranges, hasLength(8));
   }
 
   void test_template_attribute_withoutValue() {
@@ -571,6 +1185,22 @@ class TestPanel {
     expect(ranges, hasLength(2));
     _assertElement('aaa}}').dart.getter.at('aaa; // 1');
     _assertElement('bbb}}').dart.getter.at('bbb; // 2');
+  }
+
+  // see https://github.com/dart-lang/html/issues/44
+  void test_catchPkgHtmlGithubBug44() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  String aaa; // 1
+  String bbb; // 2
+}
+''');
+    _addHtmlSource(r"""<button attr<="value"></button>""");
+    _resolveSingleTemplate(dartSource);
+
+    // no assertion...this throws in the github bug
   }
 
   void _addDartSource(String code) {

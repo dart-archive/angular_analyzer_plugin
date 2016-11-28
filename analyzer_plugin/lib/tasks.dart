@@ -96,6 +96,145 @@ class AngularWarningCode extends ErrorCode {
           'UNTERMINATED_MUSTACHE', 'Unterminated mustache');
 
   /**
+   * An error code indicating that a mustache ending was found unopened
+   */
+  static const AngularWarningCode UNOPENED_MUSTACHE = const AngularWarningCode(
+      'UNOPENED_MUSTACHE', 'Mustache terminator with no opening');
+
+  /**
+   * An error code indicating that a nonexist input was bound
+   */
+  static const AngularWarningCode NONEXIST_INPUT_BOUND =
+      const AngularWarningCode('NONEXIST_INPUT_BOUND',
+          'The bound input does not exist on any directives');
+
+  /**
+   * An error code indicating that a nonexist output was bound
+   */
+  static const AngularWarningCode NONEXIST_OUTPUT_BOUND =
+      const AngularWarningCode('NONEXIST_OUTPUT_BOUND',
+          'The bound output does not exist on any directives');
+
+  /**
+   * An error code indicating that a nonexist output was bound, perhaps
+   * because an input was two way bound. The nonexist bound output is
+   * an implementation detail, so give its own error.
+   */
+  static const AngularWarningCode NONEXIST_TWO_WAY_OUTPUT_BOUND =
+      const AngularWarningCode('NONEXIST_TWO_WAY_OUTPUT_BOUND',
+          'The two-way binding {0} requires a bindable output of name {1}');
+
+  /**
+   * An error code indicating that the output event in a two-way binding
+   * doesn't match the input
+   */
+  static const AngularWarningCode TWO_WAY_BINDING_OUTPUT_TYPE_ERROR =
+      const AngularWarningCode(
+          'TWO_WAY_BINDING_OUTPUT_TYPE_ERROR',
+          'Output event in two-way binding (of type {0}) ' +
+              'is not assignable to component input (of type {1})');
+
+  /**
+   * An error code indicating that an input was bound with a incorrectly
+   * typed expression
+   */
+  static const AngularWarningCode INPUT_BINDING_TYPE_ERROR =
+      const AngularWarningCode(
+          'INPUT_BINDING_TYPE_ERROR',
+          'Attribute value expression (of type {0}) ' +
+              'is not assignable to component input (of type {1})');
+
+  static const AngularWarningCode TRAILING_EXPRESSION =
+      const AngularWarningCode(
+          'TRAILING_EXPRESSION', 'Expressions must end with an EOF');
+
+  /**
+   * An error code indicating that an @Output is not an EventEmitter
+   */
+  static const AngularWarningCode OUTPUT_MUST_BE_EVENTEMITTER =
+      const AngularWarningCode('OUTPUT_MUST_BE_EVENTEMMITTER',
+          'Output (of name {0}) must return an EventEmitter');
+
+  /**
+   * An error code indicating that a two-way binding expression was not
+   * a assignable (and therefore could only be one-way bound...)
+   */
+  static const AngularWarningCode TWO_WAY_BINDING_NOT_ASSIGNABLE =
+      const AngularWarningCode('TWO_WAY_BINDING_NOT_ASSIGNABLE',
+          'Only assignable expressions can be two-way bound');
+
+  /**
+   * An error code indicating that an @Input annottaion was used in the wrong
+   * place
+   */
+  static const AngularWarningCode INPUT_ANNOTATION_PLACEMENT_INVALID =
+      const AngularWarningCode('INPUT_ANNOTATION_PLACEMENT_INVALID',
+          'The @Input() annotation can only be put on properties and setters');
+
+  /**
+   * An error code indicating that an @Output annottaion was used in the wrong
+   * place
+   */
+  static const AngularWarningCode OUTPUT_ANNOTATION_PLACEMENT_INVALID =
+      const AngularWarningCode('OUTPUT_ANNOTATION_PLACEMENT_INVALID',
+          'The @Output() annotation can only be put on properties and getters');
+
+  /**
+   * An error code indicating that a html classname was bound via
+   * [class.classname]="x" where classname is not a css identifier
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static const AngularWarningCode INVALID_HTML_CLASSNAME =
+      const AngularWarningCode('INVALID_HTML_CLASSNAME',
+          'The html classname {0} is not a valid classname');
+
+  /**
+   * An error code indicating that a html classname was bound via
+   * [class.classname]="x" where x was not a boolean
+   */
+  static const AngularWarningCode CLASS_BINDING_NOT_BOOLEAN =
+      const AngularWarningCode('CLASS_BINDING_NOT_BOOLEAN',
+          'Binding to a classname requires a boolean');
+
+  /**
+   * An error code indicating that a css property with a unit was bound via
+   * [style.property.unit]="x" where x was not a number
+   */
+  static const AngularWarningCode CSS_UNIT_BINDING_NOT_NUMBER =
+      const AngularWarningCode('CSS_UNIT_BINDING_NOT_NUMBER',
+          'Binding to a css property with a unit requires a number');
+
+  /**
+   * An error code indicating that a css property with a unit was bound via
+   * [style.property.unit]="x" where unit was not an identifier
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static const AngularWarningCode INVALID_CSS_UNIT_NAME =
+      const AngularWarningCode('INVALID_CSS_UNIT_NAME',
+          'The css unit {0} is not a valid css identifier');
+
+  /**
+   * An error code indicating that a css property bound via
+   * [style.property]="x" or [style.property.unit]="x" where property was not an
+   * identifier
+   * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+   */
+  static const AngularWarningCode INVALID_CSS_PROPERTY_NAME =
+      const AngularWarningCode('INVALID_CSS_PROPERTY_NAME',
+          'The css property {0} is not a valid css identifier');
+
+  /**
+   * An error code indicating that a binding was not a * dart identifier, or
+   * [class.classname], or [attr.attrname], or [style.property], or
+   * [style.property.unit].
+   */
+  static const AngularWarningCode INVALID_BINDING_NAME =
+      const AngularWarningCode(
+          'INVALID_BINDING_NAME',
+          'The binding {} is not a valid dart identifer, attribute, style, ' +
+              'or class binding');
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be
