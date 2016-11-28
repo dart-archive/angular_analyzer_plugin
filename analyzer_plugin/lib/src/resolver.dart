@@ -1212,12 +1212,19 @@ class TemplateResolver {
         textOffset = begin + 2;
         continue;
       }
-
       // resolve
       begin += 2;
       String code = text.substring(begin, end);
-      _resolveExpression(fileOffset + begin, code);
+      Expression expression = _resolveExpression(fileOffset + begin, code);
       textOffset = end + 2;
+
+      if (expression.endToken.next.type != TokenType.EOF) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            expression.endToken.next.offset,
+            _computeTokenLengthToEOF(expression.endToken.next),
+            AngularWarningCode.TRAILING_EXPRESSION));
+      }
     }
   }
 
@@ -1229,6 +1236,18 @@ class TemplateResolver {
     CharSequenceReader reader = new CharSequenceReader(text);
     Scanner scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
+  }
+
+  /**
+   * Given a Token chain, computes length from current token
+   * until the EOF token
+   */
+  int _computeTokenLengthToEOF(Token token) {
+    int startOffset = token.offset;
+    while (token.type != TokenType.EOF) {
+      token = token.next;
+    }
+    return token.offset - startOffset;
   }
 
   /**
