@@ -439,11 +439,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   DartType getEventType(PropertyAccessorElement getter, String name) {
     if (getter != null && getter.type != null) {
-      var returntype = getter.type.returnType;
-      if (returntype != null && returntype is InterfaceType) {
+      var returnType = getter.type.returnType;
+      if (returnType != null && returnType is InterfaceType) {
         dart.DartType streamType = typeProvider.streamType;
         dart.DartType streamedType =
-            context.typeSystem.mostSpecificTypeArgument(returntype, streamType);
+            context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
         if (streamedType != null) {
           return streamedType;
         } else {
@@ -1390,14 +1390,14 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
       if (!outputMap.containsKey(name)) {
         if (accessor.isGetter) {
-          var returntype =
+          var returnType =
               accessor.type == null ? null : accessor.type.returnType;
           DartType eventtype = null;
-          if (returntype != null && returntype is InterfaceType) {
+          if (returnType != null && returnType is InterfaceType) {
             // TODO allow subtypes of ElementStream? This is a generated file
             // so might not be necessary.
-            if (returntype.element.name == 'ElementStream') {
-              eventtype = returntype.typeArguments[0]; // may be null
+            if (returnType.element.name == 'ElementStream') {
+              eventtype = returnType.typeArguments[0]; // may be null
             }
           }
           outputMap[name] = new OutputElement(name, accessor.nameOffset,

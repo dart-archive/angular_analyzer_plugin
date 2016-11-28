@@ -627,6 +627,7 @@ import 'dart:async';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   Stream<int> myOutput;
@@ -657,6 +658,7 @@ abstract class MyStream<T> implements Stream<T> { }
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   MyStream<int> myOutput;
@@ -687,6 +689,7 @@ class MyStream extends Stream<int> { }
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   MyStream myOutput;
@@ -717,6 +720,7 @@ class MyStream extends Stream { }
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   MyStream myOutput;
@@ -744,6 +748,7 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   int badOutput;
@@ -763,6 +768,7 @@ import '/angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
+    template: '<p></p>')
 class MyComponent {
   @Output()
   int badOutput;
