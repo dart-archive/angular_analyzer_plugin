@@ -488,18 +488,14 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
     // See #91 for discussion about bugs related to bounds
     var getBound = (p) {
-      var type = p.bound;
-      while (type != null && type is TypeParameterType) {
-        type = type.bound;
-      }
-      return type ?? typeProvider.dynamicType;
+      return p.bound == null
+          ? typeProvider.dynamicType
+          : p.bound.resolveToBound(typeProvider.dynamicType);
     };
 
     var getType = (p) => p.type;
-    var bounds = new List<DartType>()
-      ..addAll(classElement.typeParameters.map(getBound));
-    var parameters = new List<DartType>()
-      ..addAll(classElement.typeParameters.map(getType));
+    var bounds = classElement.typeParameters.map(getBound).toList();
+    var parameters = classElement.typeParameters.map(getType).toList();
     return parameterizedType.substitute2(bounds, parameters);
   }
 
