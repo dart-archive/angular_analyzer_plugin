@@ -986,10 +986,11 @@ class TemplateResolver {
     _recordExpressionResolvedRanges(expression);
 
     if (expression.endToken.next.type != TokenType.EOF) {
+      int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
-          expression.endToken.next.offset,
-          offset + code.length - expression.endToken.next.offset,
+          trailingExpressionBegin,
+          offset + code.length - trailingExpressionBegin,
           AngularWarningCode.TRAILING_EXPRESSION));
     }
     return expression;
