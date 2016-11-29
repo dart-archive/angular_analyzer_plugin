@@ -984,6 +984,15 @@ class TemplateResolver {
   Expression _resolveExpression(int offset, String code) {
     Expression expression = _resolveDartExpressionAt(offset, code, null);
     _recordExpressionResolvedRanges(expression);
+
+    if (expression.endToken.next.type != TokenType.EOF) {
+      int trailingExpressionBegin = expression.endToken.next.offset;
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          trailingExpressionBegin,
+          offset + code.length - trailingExpressionBegin,
+          AngularWarningCode.TRAILING_EXPRESSION));
+    }
     return expression;
   }
 
@@ -1218,7 +1227,6 @@ class TemplateResolver {
         textOffset = begin + 2;
         continue;
       }
-
       // resolve
       begin += 2;
       String code = text.substring(begin, end);

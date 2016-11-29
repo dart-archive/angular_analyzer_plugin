@@ -144,6 +144,10 @@ class AngularWarningCode extends ErrorCode {
           'Attribute value expression (of type {0}) ' +
               'is not assignable to component input (of type {1})');
 
+  static const AngularWarningCode TRAILING_EXPRESSION =
+      const AngularWarningCode(
+          'TRAILING_EXPRESSION', 'Expressions must end with an EOF');
+
   /**
    * An error code indicating that an @Output is not an EventEmitter
    */
