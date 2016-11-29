@@ -698,12 +698,15 @@ class TemplateResolver {
         AngularWarningCode unboundErrorCode;
         var matched = false;
         if (attribute.bound == AttributeBoundType.output) {
+          // Set the event type to dynamic, for if we don't match anything
+          eventType = typeProvider.dynamicType;
           unboundErrorCode = AngularWarningCode.NONEXIST_OUTPUT_BOUND;
           for (AbstractDirective directive in directives) {
             for (OutputElement output in directive.outputs) {
+              // TODO what if this matches two directives?
               if (output.name == attribute.propertyName) {
-                // TODO what if this matches two directives?
                 eventType = output.eventType;
+                // Parameterized directives, use the lower bound
                 matched = true;
               }
             }
@@ -733,7 +736,9 @@ class TemplateResolver {
             for (OutputElement output in directive.outputs) {
               if (output.name == attribute.propertyName + "Change") {
                 outputMatched = true;
-                if (!output.eventType.isAssignableTo(expression.bestType)) {
+                var eventType = output.eventType;
+
+                if (!eventType.isAssignableTo(expression.bestType)) {
                   errorListener.onError(new AnalysisError(
                       templateSource,
                       attribute.valueOffset,
@@ -770,7 +775,8 @@ class TemplateResolver {
             for (InputElement input in directive.inputs) {
               if (input.name == attribute.propertyName) {
                 var attrType = expression.bestType;
-                var inputType = input.setter.variable.type;
+                var inputType = input.setterType;
+
                 if (!attrType.isAssignableTo(inputType)) {
                   errorListener.onError(new AnalysisError(
                       templateSource,

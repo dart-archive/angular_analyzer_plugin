@@ -406,8 +406,14 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       PropertyAccessorElement setter =
           _resolveSetter(classElement, expression, name);
 
-      return new InputElement(boundName, boundRange.offset, boundRange.length,
-          target.source, setter, nameRange);
+      return new InputElement(
+          boundName,
+          boundRange.offset,
+          boundRange.length,
+          target.source,
+          setter,
+          nameRange,
+          _getSetterType(classElement, setter));
     } else {
       // TODO(mfairhurst) report a warning
       return null;
@@ -427,7 +433,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       PropertyAccessorElement getter =
           _resolveGetter(classElement, expression, name);
 
-      var eventType = getEventType(getter, name);
+      var eventType = getEventType(classElement, getter, name);
 
       return new OutputElement(boundName, boundRange.offset, boundRange.length,
           target.source, getter, nameRange, eventType);
@@ -437,7 +443,18 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
   }
 
-  DartType getEventType(PropertyAccessorElement getter, String name) {
+  DartType _getSetterType(
+      ClassElement classElement, PropertyAccessorElement setter) {
+    if (setter != null && setter.variable != null) {
+      var type = setter.variable.type;
+      return _deparameterizeType(classElement, type);
+    }
+
+    return null;
+  }
+
+  DartType getEventType(
+      ClassElement classElement, PropertyAccessorElement getter, String name) {
     if (getter != null && getter.type != null) {
       var returnType = getter.type.returnType;
       if (returnType != null && returnType is InterfaceType) {
@@ -445,7 +462,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         dart.DartType streamedType =
             context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
         if (streamedType != null) {
-          return streamedType;
+          return _deparameterizeType(classElement, streamedType);
         } else {
           errorReporter.reportErrorForNode(
               AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
@@ -461,6 +478,25 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
 
     return typeProvider.dynamicType;
+  }
+
+  DartType _deparameterizeType(
+      ClassElement classElement, DartType parameterizedType) {
+    if (parameterizedType == null) {
+      return null;
+    }
+
+    // See #91 for discussion about bugs related to bounds
+    var getBound = (p) {
+      return p.bound == null
+          ? typeProvider.dynamicType
+          : p.bound.resolveToBound(typeProvider.dynamicType);
+    };
+
+    var getType = (p) => p.type;
+    var bounds = classElement.typeParameters.map(getBound).toList();
+    var parameters = classElement.typeParameters.map(getType).toList();
+    return parameterizedType.substitute2(bounds, parameters);
   }
 
   List<InputElement> _parseHeaderInputs(
@@ -504,8 +540,12 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    * the given `@Input` or `@Output` [annotation], and add it to the
    * [inputElements] or [outputElements] array.
    */
-  _parseMemberInputOrOutput(ast.ClassMember node, ast.Annotation annotation,
-      List<InputElement> inputElements, List<OutputElement> outputElements) {
+  _parseMemberInputOrOutput(
+      ClassElement classElement,
+      ast.ClassMember node,
+      ast.Annotation annotation,
+      List<InputElement> inputElements,
+      List<OutputElement> outputElements) {
     // analyze the annotation
     final isInput = _isAngularAnnotation(annotation, 'Input');
     final isOutput = _isAngularAnnotation(annotation, 'Output');
@@ -568,9 +608,15 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
     if (isInput) {
       inputElements.add(new InputElement(
-          name, nameOffset, nameLength, target.source, property, null));
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          null,
+          _getSetterType(classElement, property)));
     } else {
-      var eventType = getEventType(property, name);
+      var eventType = getEventType(classElement, property, name);
       outputElements.add(new OutputElement(name, nameOffset, nameLength,
           target.source, property, null, eventType));
     }
@@ -585,7 +631,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     for (ast.ClassMember member in node.members) {
       for (ast.Annotation annotation in member.metadata) {
         _parseMemberInputOrOutput(
-            member, annotation, inputElements, outputElements);
+            node.element, member, annotation, inputElements, outputElements);
       }
     }
   }
@@ -1369,8 +1415,14 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       String name = accessor.displayName;
       if (!inputMap.containsKey(name)) {
         if (accessor.isSetter) {
-          inputMap[name] = new InputElement(name, accessor.nameOffset,
-              accessor.nameLength, accessor.source, accessor, null);
+          inputMap[name] = new InputElement(
+              name,
+              accessor.nameOffset,
+              accessor.nameLength,
+              accessor.source,
+              accessor,
+              null,
+              accessor.variable.type);
         }
       }
     });
