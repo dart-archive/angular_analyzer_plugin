@@ -52,16 +52,13 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         InputElement input = inputs.singleWhere((i) => i.name == 'href');
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
+        expect(input.setterType.toString(), equals("String"));
       }
       {
         InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
-      }
-      {
-        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
-        expect(input, isNotNull);
-        expect(input.setter, isNotNull);
+        expect(input.setterType.toString(), equals("int"));
       }
       {
         OutputElement outputElement =
@@ -84,11 +81,13 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         InputElement input = inputs.singleWhere((i) => i.name == 'autofocus');
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
+        expect(input.setterType.toString(), equals("bool"));
       }
       {
         InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
+        expect(input.setterType.toString(), equals("int"));
       }
       {
         OutputElement outputElement =
@@ -410,9 +409,9 @@ import '/angular2/angular2.dart';
     inputs: const ['leadingText', 'trailingText: tailText'])
 class MyComponent {
   String leadingText;
-  String trailingText;
+  int trailingText;
   @Input()
-  String firstField;
+  bool firstField;
   @Input('secondInput')
   String secondField;
   @Input()
@@ -437,6 +436,7 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'leadingText');
+      expect(input.setterType.toString(), equals("String"));
     }
     {
       InputElement input = inputs[1];
@@ -447,6 +447,7 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'trailingText');
+      expect(input.setterType.toString(), equals("int"));
     }
     {
       InputElement input = inputs[2];
@@ -457,6 +458,7 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'firstField');
+      expect(input.setterType.toString(), equals("bool"));
     }
     {
       InputElement input = inputs[3];
@@ -466,6 +468,7 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'secondField');
+      expect(input.setterType.toString(), equals("String"));
     }
     {
       InputElement input = inputs[4];
@@ -475,6 +478,7 @@ class MyComponent {
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'someSetter');
+      expect(input.setterType.toString(), equals("String"));
     }
 
     // assert no syntax errors, etc
@@ -788,6 +792,91 @@ class MyComponent {
       expect(output.eventType, isNotNull);
       expect(output.eventType.toString(), equals("dynamic"));
     }
+  }
+
+  void test_parameterizedInputsOutputs() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent<T, A extends String, B extends A> {
+  @Output() EventEmitter<T> dynamicOutput;
+  @Input() T dynamicInput;
+  @Output() EventEmitter<A> stringOutput;
+  @Input() A stringInput;
+  @Output() EventEmitter<B> stringOutput2;
+  @Input() B stringInput2;
+  @Output() EventEmitter<List<B>> listOutput;
+  @Input() List<B> listInput;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> compInputs = component.inputs;
+    expect(compInputs, hasLength(4));
+    {
+      InputElement input = compInputs[0];
+      expect(input.name, 'dynamicInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("dynamic"));
+    }
+    {
+      InputElement input = compInputs[1];
+      expect(input.name, 'stringInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("String"));
+    }
+    {
+      InputElement input = compInputs[2];
+      expect(input.name, 'stringInput2');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("String"));
+    }
+    {
+      InputElement input = compInputs[3];
+      expect(input.name, 'listInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("List<String>"));
+    }
+
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(4));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.name, 'dynamicOutput');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
+    {
+      OutputElement output = compOutputs[1];
+      expect(output.name, 'stringOutput');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
+    }
+    {
+      OutputElement output = compOutputs[2];
+      expect(output.name, 'stringOutput2');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
+    }
+    {
+      OutputElement output = compOutputs[3];
+      expect(output.name, 'listOutput');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("List<String>"));
+    }
+
+    // assert no syntax errors, etc
+    computeResult(source, DART_ERRORS);
+    fillErrorListener(DART_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   void test_noDirectives() {
