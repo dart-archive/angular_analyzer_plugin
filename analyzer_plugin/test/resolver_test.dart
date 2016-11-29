@@ -756,7 +756,6 @@ class GenericComponent<T extends String> {
 ''');
     var code = r"""
 <generic-comp [(string)]="anInt"></generic-comp>
->>>>>>> 593afa40db6a1638b59d840716ca66bcc846f136
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
