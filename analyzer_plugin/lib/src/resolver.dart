@@ -792,8 +792,12 @@ class TemplateResolver {
         }
 
         if (!matched && unboundErrorCode != null) {
-          errorListener.onError(new AnalysisError(templateSource,
-              attribute.nameOffset, attribute.name.length, unboundErrorCode));
+          errorListener.onError(new AnalysisError(
+              templateSource,
+              attribute.nameOffset,
+              attribute.name.length,
+              unboundErrorCode,
+              [attribute.propertyName]));
         }
 
         continue;
