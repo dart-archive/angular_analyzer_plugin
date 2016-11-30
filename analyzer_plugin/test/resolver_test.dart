@@ -552,7 +552,7 @@ class TestPanel {
         AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
   }
 
-  void test_expression_detect_eof_post_semicolon() {
+  void test_expression_detect_eof_post_semicolon_in_moustache() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -569,7 +569,7 @@ class TestPanel {
         AngularWarningCode.TRAILING_EXPRESSION, code, "; bad portion");
   }
 
-  void test_expression_detect_eof_ellipsis() {
+  void test_expression_detect_eof_ellipsis_in_moustache() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -578,6 +578,41 @@ class TestPanel {
 ''');
     var code = r"""
 <p>{{name...}}</p>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TRAILING_EXPRESSION, code, "...");
+  }
+
+  void test_expression_detect_eof_post_semicolon_in_property_binding() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int a = 1;
+  int b = 1;
+}
+''');
+
+    var code = r"""
+<div [class.selected]="a == b; bad portion"></div>
+ """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TRAILING_EXPRESSION, code, "; bad portion");
+  }
+
+  void test_expression_detect_eof_ellipsis_in_property_binding() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int a = 1;
+  int b = 1;
+}
+''');
+    var code = r"""
+<div [class.selected]="a==b..."></div>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
