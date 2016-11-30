@@ -907,6 +907,93 @@ class MyComponent<T, A extends String, B extends A> {
     errorListener.assertNoErrors();
   }
 
+  void test_parameterizedInheritedInputsOutputs() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+class Generic<T> {
+  T input;
+  EventEmitter<T> output;
+}
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>',
+    inputs: const ['input'],
+    outputs: const ['output'])
+class MyComponent extends Generic {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> compInputs = component.inputs;
+    expect(compInputs, hasLength(1));
+    {
+      InputElement input = compInputs[0];
+      expect(input.name, 'input');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("dynamic"));
+    }
+
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.name, 'output');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
+  }
+
+  void test_parameterizedInheritedInputsOutputsSpecified() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+class Generic<T> {
+  T input;
+  EventEmitter<T> output;
+}
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>',
+    inputs: const ['input'],
+    outputs: const ['output'])
+class MyComponent extends Generic<String> {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> compInputs = component.inputs;
+    expect(compInputs, hasLength(1));
+    {
+      InputElement input = compInputs[0];
+      expect(input.name, 'input');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("String"));
+    }
+
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.name, 'output');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
+    }
+  }
+
   void test_noDirectives() {
     Source source = newSource(
         '/test.dart',

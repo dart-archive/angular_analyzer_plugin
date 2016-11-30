@@ -260,6 +260,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   TypeProvider typeProvider;
 
+  // Since <my-comp></my-comp> represents an instantiation of MyComp,
+  // especially when MyComp is generic or its superclasses are, we need
+  // this. Cache instead of passing around everywhere.
+  InterfaceType _instantiatedClassType;
+
   @override
   void internalPerform() {
     typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
@@ -297,6 +302,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   AbstractDirective _createDirective(
       ast.ClassDeclaration classDeclaration, ast.Annotation node) {
     ClassElement classElement = classDeclaration.element;
+    _instantiatedClassType = _instantiateClass(classElement);
     // TODO(scheglov) add support for all the arguments
     bool isComponent = _isAngularAnnotation(node, 'Component');
     bool isDirective = _isAngularAnnotation(node, 'Directive');
@@ -461,9 +467,14 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   DartType _getSetterType(
       ClassElement classElement, PropertyAccessorElement setter) {
+    if (setter != null) {
+      setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
+          thisType: true);
+    }
+
     if (setter != null && setter.variable != null) {
       var type = setter.variable.type;
-      return _deparameterizeType(classElement, type);
+      return type;
     }
 
     return null;
@@ -471,6 +482,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   DartType getEventType(
       ClassElement classElement, PropertyAccessorElement getter, String name) {
+    if (getter != null) {
+      getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
+          thisType: true);
+    }
+
     if (getter != null && getter.type != null) {
       var returnType = getter.type.returnType;
       if (returnType != null && returnType is InterfaceType) {
@@ -478,7 +494,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         dart.DartType streamedType =
             context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
         if (streamedType != null) {
-          return _deparameterizeType(classElement, streamedType);
+          return streamedType;
         } else {
           errorReporter.reportErrorForNode(
               AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
@@ -496,12 +512,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return typeProvider.dynamicType;
   }
 
-  DartType _deparameterizeType(
-      ClassElement classElement, DartType parameterizedType) {
-    if (parameterizedType == null) {
-      return null;
-    }
-
+  DartType _instantiateClass(ClassElement classElement) {
+    // TODO use `insantiateToBounds` for better all around support
     // See #91 for discussion about bugs related to bounds
     var getBound = (p) {
       return p.bound == null
@@ -509,10 +521,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
           : p.bound.resolveToBound(typeProvider.dynamicType);
     };
 
-    var getType = (p) => p.type;
     var bounds = classElement.typeParameters.map(getBound).toList();
-    var parameters = classElement.typeParameters.map(getType).toList();
-    return parameterizedType.substitute2(bounds, parameters);
+    return classElement.type.instantiate(bounds);
   }
 
   List<InputElement> _parseHeaderInputs(
