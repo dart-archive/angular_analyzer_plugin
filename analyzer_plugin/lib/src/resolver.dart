@@ -938,7 +938,9 @@ class TemplateResolver {
           offset + code.length - trailingExpressionBegin,
           AngularWarningCode.TRAILING_EXPRESSION));
     }
-    _resolveDartExpression(expression, eventType);
+    if (expression != null) {
+      _resolveDartExpression(expression, eventType);
+    }
     return expression;
   }
 
@@ -996,14 +998,6 @@ class TemplateResolver {
     Expression expression = _resolveDartExpressionAt(offset, code, null);
     _recordExpressionResolvedRanges(expression);
 
-    if (expression.endToken.next.type != TokenType.EOF) {
-      int trailingExpressionBegin = expression.endToken.next.offset;
-      errorListener.onError(new AnalysisError(
-          templateSource,
-          trailingExpressionBegin,
-          offset + code.length - trailingExpressionBegin,
-          AngularWarningCode.TRAILING_EXPRESSION));
-    }
     return expression;
   }
 
