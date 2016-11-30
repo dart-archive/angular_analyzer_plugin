@@ -105,15 +105,19 @@ class AngularWarningCode extends ErrorCode {
    * An error code indicating that a nonexist input was bound
    */
   static const AngularWarningCode NONEXIST_INPUT_BOUND =
-      const AngularWarningCode('NONEXIST_INPUT_BOUND',
-          'The bound input does not exist on any directives');
+      const AngularWarningCode(
+          'NONEXIST_INPUT_BOUND',
+          'The bound input {0} does not exist on any directives or ' +
+              'on the element');
 
   /**
    * An error code indicating that a nonexist output was bound
    */
   static const AngularWarningCode NONEXIST_OUTPUT_BOUND =
-      const AngularWarningCode('NONEXIST_OUTPUT_BOUND',
-          'The bound output does not exist on any directives');
+      const AngularWarningCode(
+          'NONEXIST_OUTPUT_BOUND',
+          'The bound output {0} does not exist on any directives or ' +
+              'on the element');
 
   /**
    * An error code indicating that a nonexist output was bound, perhaps
