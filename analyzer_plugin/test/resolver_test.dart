@@ -87,8 +87,31 @@ class TestPanel {
 <div (click)='handleClick()'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
+    expect(ranges, hasLength(2));
+    _assertElement('click)').output.inCoreHtml;
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+  }
+
+  void test_expression_nativeEventBindingOnComponent() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [SomeComponent])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+
+@Component(selector: 'some-comp', template: '')
+class SomeComponent {
+}
+''');
+    _addHtmlSource(r"""
+<some-comp (click)='handleClick($event)'></some-comp>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('click').output.inCoreHtml;
   }
 
   void test_expression_eventBinding_on() {
@@ -105,7 +128,8 @@ class TestPanel {
 <div on-click='handleClick()'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
+    expect(ranges, hasLength(2));
+    _assertElement('click=').output.inCoreHtml;
     _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
