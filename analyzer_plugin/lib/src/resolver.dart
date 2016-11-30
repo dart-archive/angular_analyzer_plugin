@@ -122,7 +122,8 @@ class DartTemplateResolver {
       // that everything is in the first document element. But then we
       // get these errors which don't apply -- suppress them.
       if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
-          parseError.errorCode == 'expected-doctype-but-got-chars') {
+          parseError.errorCode == 'expected-doctype-but-got-chars' ||
+          parseError.errorCode == 'expected-doctype-but-got-eof') {
         continue;
       }
       SourceSpan span = parseError.span;
