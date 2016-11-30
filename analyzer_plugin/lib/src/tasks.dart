@@ -122,6 +122,16 @@ final ListResultDescriptor<Component> STANDARD_HTML_COMPONENTS =
         'ANGULAR_STANDARD_HTML_COMPONENTS', const <Component>[]);
 
 /**
+ * The standard HtmlElement [OutputElement]s.
+ *
+ * This result is produced for the [AnalysisContext].
+ */
+final ResultDescriptor<Map<String, OutputElement>>
+    STANDARD_HTML_ELEMENT_EVENTS = new ResultDescriptor(
+        'ANGULAR_STANDARD_HTML_ELEMENT_EVENTS',
+        const <Map<String, OutputElement>>[]);
+
+/**
  * The [View]s with this HTML template file.
  *
  * The result is only available for HTML [Source]s.
@@ -156,7 +166,8 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /**
- * A task that builds [STANDARD_HTML_COMPONENTS].
+ * A task that builds [STANDARD_HTML_COMPONENTS] and
+ * [STANDARD_HTML_ELEMENT_EVENTS].
  */
 class BuildStandardHtmlComponentsTask extends AnalysisTask {
   static const String UNITS = 'UNITS';
@@ -164,8 +175,10 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'BuildStandardHtmlComponentsTask',
       createTask,
-      buildInputs,
-      <ResultDescriptor>[STANDARD_HTML_COMPONENTS]);
+      buildInputs, <ResultDescriptor>[
+    STANDARD_HTML_COMPONENTS,
+    STANDARD_HTML_ELEMENT_EVENTS
+  ]);
 
   BuildStandardHtmlComponentsTask(
       AnalysisContext context, AnalysisTarget target)
@@ -189,14 +202,17 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     // Build components in each unit.
     //
     Map<String, Component> components = <String, Component>{};
+    Map<String, OutputElement> events = <String, OutputElement>{};
     for (ast.CompilationUnit unit in units) {
       Source source = unit.element.source;
-      unit.accept(new _BuildStandardHtmlComponentsVisitor(components, source));
+      unit.accept(
+          new _BuildStandardHtmlComponentsVisitor(components, events, source));
     }
     //
     // Record outputs.
     //
     outputs[STANDARD_HTML_COMPONENTS] = components.values.toList();
+    outputs[STANDARD_HTML_ELEMENT_EVENTS] = events;
   }
 
   /**
@@ -1083,6 +1099,7 @@ class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
 class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
+  static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String VIEWS_INPUT = 'VIEWS_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -1106,6 +1123,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     //
     TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
+    Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     List<View> views = getRequiredInput(VIEWS_INPUT);
     //
     // Resolve inline view templates.
@@ -1114,7 +1132,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     for (View view in views) {
       if (view.templateText != null) {
         Template template = new DartTemplateResolver(
-                typeProvider, htmlComponents, errorListener, view)
+                typeProvider, htmlComponents, htmlEvents, errorListener, view)
             .resolve();
         if (template != null) {
           templates.add(template);
@@ -1138,6 +1156,8 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_COMPONENTS_INPUT:
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
+      HTML_EVENTS_INPUT:
+          STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       VIEWS_INPUT: VIEWS.of(target),
     };
   }
@@ -1213,6 +1233,7 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
 class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
+  static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -1245,13 +1266,14 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     //
     TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
+    Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
     //
     // Resolve.
     //
     View view = target;
-    Template template = new HtmlTemplateResolver(
-            typeProvider, htmlComponents, errorListener, view, document)
+    Template template = new HtmlTemplateResolver(typeProvider, htmlComponents,
+            htmlEvents, errorListener, view, document)
         .resolve();
     //
     // Record outputs.
@@ -1270,6 +1292,8 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_COMPONENTS_INPUT:
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
+      HTML_EVENTS_INPUT:
+          STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateUriSource),
     };
   }
@@ -1357,16 +1381,24 @@ class _AnnotationProcessorMixin {
 
 class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, Component> components;
+  final Map<String, OutputElement> events;
   final Source source;
 
   ClassElement classElement;
 
-  _BuildStandardHtmlComponentsVisitor(this.components, this.source);
+  _BuildStandardHtmlComponentsVisitor(
+      this.components, this.events, this.source);
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
     classElement = node.element;
     super.visitClassDeclaration(node);
+    if (classElement.name == 'HtmlElement') {
+      List<OutputElement> outputElements = _buildOutputs(false);
+      for (OutputElement outputElement in outputElements) {
+        events[outputElement.name] = outputElement;
+      }
+    }
     classElement = null;
   }
 
@@ -1401,7 +1433,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
    */
   Component _buildComponent(String tag, int tagOffset) {
     List<InputElement> inputElements = _buildInputs();
-    List<OutputElement> outputElements = _buildOutputs();
+    List<OutputElement> outputElements = _buildOutputs(true);
     return new Component(classElement,
         inputs: inputElements,
         outputs: outputElements,
@@ -1425,10 +1457,10 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.variable.type);
         }
       }
-    });
+    }, false); // don't skip HtmlElement+ inputs, those belong to this component.
   }
 
-  List<OutputElement> _buildOutputs() {
+  List<OutputElement> _buildOutputs(bool skipHtmlElement) {
     return _captureAspects((Map<String, OutputElement> outputMap,
         PropertyAccessorElement accessor) {
       String domName = _getDomName(accessor);
@@ -1456,7 +1488,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.nameLength, accessor.source, accessor, null, eventType);
         }
       }
-    });
+    }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
   }
 
   String _getDomName(Element element) {
@@ -1473,15 +1505,22 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     return null;
   }
 
-  List/*<T>*/ _captureAspects(CaptureAspectFn/*<T>*/ addAspect) {
+  List/*<T>*/ _captureAspects(
+      CaptureAspectFn/*<T>*/ addAspect, bool skipHtmlElement) {
     Map<String, /*T*/ dynamic> aspectMap = <String, /*T*/ dynamic>{};
     Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
 
     void addAspects(InterfaceType type) {
       if (type != null && visitedTypes.add(type)) {
-        type.accessors.forEach((/*T*/ dynamic t) => addAspect(aspectMap, t));
-        type.mixins.forEach(addAspects);
-        addAspects(type.superclass);
+        // The events defined here are handled specially because everything
+        // (even directives) can use them. Note, this leaves only a few
+        // special elements with outputs such as BodyElement, everything else
+        // relies on standardHtmlEvents checked after the outputs.
+        if (!skipHtmlElement || type.name != 'HtmlElement') {
+          type.accessors.forEach((/*T*/ dynamic t) => addAspect(aspectMap, t));
+          type.mixins.forEach(addAspects);
+          addAspects(type.superclass);
+        }
       }
     }
 
