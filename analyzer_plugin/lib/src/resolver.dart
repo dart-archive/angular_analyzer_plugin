@@ -715,6 +715,10 @@ class TemplateResolver {
         }
 
         Expression expression = attribute.expression;
+
+        //Check if bound == OUTPUT:
+        //  If so, branch off and deal as statement,
+        //  otherwise, continue stack
         if (expression == null) {
           expression = _resolveDartExpressionAt(valueOffset, value, eventType);
           attribute.expression = expression;
