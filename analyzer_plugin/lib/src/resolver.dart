@@ -925,9 +925,16 @@ class TemplateResolver {
   Expression _resolveDartExpressionAt(
       int offset, String code, DartType eventType) {
     Expression expression = _parseDartExpression(offset, code);
-    if (expression != null) {
-      _resolveDartExpression(expression, eventType);
+    //TODO: Once resolveDartStatement is implemented, remove 1st condition
+    if (eventType == null && expression.endToken.next.type != TokenType.EOF) {
+      int trailingExpressionBegin = expression.endToken.next.offset;
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          trailingExpressionBegin,
+          offset + code.length - trailingExpressionBegin,
+          AngularWarningCode.TRAILING_EXPRESSION));
     }
+    _resolveDartExpression(expression, eventType);
     return expression;
   }
 
@@ -985,14 +992,6 @@ class TemplateResolver {
     Expression expression = _resolveDartExpressionAt(offset, code, null);
     _recordExpressionResolvedRanges(expression);
 
-    if (expression.endToken.next.type != TokenType.EOF) {
-      int trailingExpressionBegin = expression.endToken.next.offset;
-      errorListener.onError(new AnalysisError(
-          templateSource,
-          trailingExpressionBegin,
-          offset + code.length - trailingExpressionBegin,
-          AngularWarningCode.TRAILING_EXPRESSION));
-    }
     return expression;
   }
 
