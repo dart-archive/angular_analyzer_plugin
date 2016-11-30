@@ -202,17 +202,17 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     // Build components in each unit.
     //
     Map<String, Component> components = <String, Component>{};
-    Map<String, OutputElement> standardEvents = <String, OutputElement>{};
+    Map<String, OutputElement> events = <String, OutputElement>{};
     for (ast.CompilationUnit unit in units) {
       Source source = unit.element.source;
-      unit.accept(new _BuildStandardHtmlComponentsVisitor(
-          components, standardEvents, source));
+      unit.accept(
+          new _BuildStandardHtmlComponentsVisitor(components, events, source));
     }
     //
     // Record outputs.
     //
     outputs[STANDARD_HTML_COMPONENTS] = components.values.toList();
-    outputs[STANDARD_HTML_ELEMENT_EVENTS] = standardEvents;
+    outputs[STANDARD_HTML_ELEMENT_EVENTS] = events;
   }
 
   /**
@@ -1381,13 +1381,13 @@ class _AnnotationProcessorMixin {
 
 class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, Component> components;
-  final Map<String, OutputElement> standardEvents;
+  final Map<String, OutputElement> events;
   final Source source;
 
   ClassElement classElement;
 
   _BuildStandardHtmlComponentsVisitor(
-      this.components, this.standardEvents, this.source);
+      this.components, this.events, this.source);
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
@@ -1396,7 +1396,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     if (classElement.name == 'HtmlElement') {
       List<OutputElement> outputElements = _buildOutputs(false);
       for (OutputElement outputElement in outputElements) {
-        standardEvents[outputElement.name] = outputElement;
+        events[outputElement.name] = outputElement;
       }
     }
     classElement = null;
