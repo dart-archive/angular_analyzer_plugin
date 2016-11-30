@@ -80,11 +80,12 @@ class AttributeInfo {
 class DartTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
+  final Map<String, OutputElement> standardHtmlEvents;
   final AnalysisErrorListener errorListener;
   final View view;
 
   DartTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.errorListener, this.view);
+      this.standardHtmlEvents, this.errorListener, this.view);
 
   Template resolve() {
     String templateText = view.templateText;
@@ -107,7 +108,8 @@ class DartTemplateResolver {
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
     view.template = template;
-    new TemplateResolver(typeProvider, standardHtmlComponents, errorListener)
+    new TemplateResolver(typeProvider, standardHtmlComponents,
+            standardHtmlEvents, errorListener)
         .resolve(template);
     return template;
   }
@@ -231,18 +233,20 @@ class ElementViewImpl implements ElementView {
 class HtmlTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
+  final Map<String, OutputElement> standardHtmlEvents;
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
 
   HtmlTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.errorListener, this.view, this.document);
+      this.standardHtmlEvents, this.errorListener, this.view, this.document);
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
         new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
     view.template = template;
-    new TemplateResolver(typeProvider, standardHtmlComponents, errorListener)
+    new TemplateResolver(typeProvider, standardHtmlComponents,
+            standardHtmlEvents, errorListener)
         .resolve(template);
     return template;
   }
@@ -420,6 +424,7 @@ class NodeInfo {
 class TemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
+  final Map<String, OutputElement> standardHtmlEvents;
   final AnalysisErrorListener errorListener;
 
   Template template;
@@ -431,6 +436,8 @@ class TemplateResolver {
   CompilationUnitElementImpl htmlCompilationUnitElement;
   ClassElementImpl htmlClassElement;
   MethodElementImpl htmlMethodElement;
+
+  Map<String, OutputElement> nativeDomOutputs;
 
   /**
    * The map from names of bound attributes to resolve expressions.
@@ -456,8 +463,8 @@ class TemplateResolver {
   Map<LocalVariableElement, LocalVariable> dartVariables =
       new HashMap<LocalVariableElement, LocalVariable>();
 
-  TemplateResolver(
-      this.typeProvider, this.standardHtmlComponents, this.errorListener);
+  TemplateResolver(this.typeProvider, this.standardHtmlComponents,
+      this.standardHtmlEvents, this.errorListener);
 
   void resolve(Template template) {
     this.template = template;
@@ -735,6 +742,18 @@ class TemplateResolver {
                 // Parameterized directives, use the lower bound
                 matched = true;
               }
+            }
+          }
+
+          // standard HTML events bubble up, so everything supports them
+          if (!matched) {
+            var standardHtmlEvent = standardHtmlEvents[attribute.propertyName];
+            if (standardHtmlEvent != null) {
+              matched = true;
+              eventType = standardHtmlEvent.eventType;
+              SourceRange range = new SourceRange(
+                  attribute.propertyNameOffset, attribute.propertyNameLength);
+              template.addRange(range, standardHtmlEvent);
             }
           }
         }
