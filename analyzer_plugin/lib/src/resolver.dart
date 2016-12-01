@@ -669,7 +669,7 @@ class TemplateResolver {
    * Record [ResolvedRange]s for the given [AstNode].
    */
   void _recordAstNodeResolvedRanges(AstNode astNode) {
-    if (astNode != null){
+    if (astNode != null) {
       astNode.accept(new _DartReferencesRecorder(template, dartVariables));
     }
   }
@@ -749,8 +749,9 @@ class TemplateResolver {
           }
 
           //TODO: Refactor the following chunk of statement resolver
-          List<Statement> statements = _resolveDartStatementsAt(valueOffset, value, eventType);
-          for (Statement statement in statements){
+          List<Statement> statements =
+              _resolveDartStatementsAt(valueOffset, value, eventType);
+          for (Statement statement in statements) {
             _recordAstNodeResolvedRanges(statement);
           }
 
@@ -1032,10 +1033,10 @@ class TemplateResolver {
    * Resolve the Dart statement with the given [code] at [offset].
    */
   List<Statement> _resolveDartStatementsAt(
-      int offset, String code, DartType eventType){
+      int offset, String code, DartType eventType) {
     code = code + ";";
     List<Statement> statements = _parseDartStatements(offset, code);
-    if (statements != null){
+    if (statements != null) {
       for (Statement statement in statements) {
         _resolveDartAstNode(statement, eventType);
       }
