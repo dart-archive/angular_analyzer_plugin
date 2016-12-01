@@ -1023,7 +1023,6 @@ class TemplateResolver {
           AngularWarningCode.TRAILING_EXPRESSION));
     }
     if (expression != null) {
-      //_resolveDartExpression(expression, eventType);
       _resolveDartAstNode(expression, eventType);
     }
     return expression;
