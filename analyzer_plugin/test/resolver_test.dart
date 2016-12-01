@@ -1101,6 +1101,26 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
+  void test_ngFor_noStarError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    var code = r"""
+<li ngFor='let item of items; let i = index'>
+</li>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+        code,
+        "ngFor");
+  }
+
   void test_ngFor_star_itemHiddenInElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -1297,6 +1317,25 @@ class TestPanel {
     _assertInputElement("ngIf=").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
     _assertElement("length != 0").dart.getter;
+  }
+
+  void test_ngIf_noStarError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span ngIf='text.length != 0'>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+        code,
+        "ngIf");
   }
 
   void test_ngIf_templateAttribute() {
