@@ -644,9 +644,9 @@ class TemplateResolver {
   /**
    * Parse the given Dart [code] that starts ot [offset].
    */
-  List<Statement> _parseDartStatement(int offset, String code) {
+  List<Statement> _parseDartStatements(int offset, String code) {
     Token token = _scanDartCode(offset, code);
-    return _parseDartStatementAtToken(token);
+    return _parseDartStatementsAtToken(token);
   }
 
   /**
@@ -660,7 +660,7 @@ class TemplateResolver {
   /**
    * Parse the Dart statement starting at the given [token].
    */
-  List<Statement> _parseDartStatementAtToken(Token token) {
+  List<Statement> _parseDartStatementsAtToken(Token token) {
     Parser parser = new Parser(templateSource, errorListener);
     return parser.parseStatements(token);
   }
@@ -756,6 +756,23 @@ class TemplateResolver {
               template.addRange(range, standardHtmlEvent);
             }
           }
+
+          //TODO: Refactor the following chunk of statement resolver
+          List<Statement> statements = _resolveDartStatementsAt(valueOffset, value, eventType);
+          for (Statement statement in statements){
+            _recordAstNodeResolvedRanges(statement);
+          }
+
+          if (!matched && unboundErrorCode != null) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                unboundErrorCode,
+                [attribute.propertyName]));
+          }
+
+          continue;
         }
 
         Expression expression = attribute.expression;
@@ -1025,9 +1042,10 @@ class TemplateResolver {
   /**
    * Resolve the Dart statement with the given [code] at [offset].
    */
-  List<Statement> _resolveDartStatementAt(
+  List<Statement> _resolveDartStatementsAt(
       int offset, String code, DartType eventType){
-    List<Statement> statements = _parseDartStatement(offset, code);
+    code = code + ";";
+    List<Statement> statements = _parseDartStatements(offset, code);
     if (statements != null){
       for (Statement statement in statements) {
         _resolveDartAstNode(statement, eventType);

@@ -84,7 +84,7 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<div (click)='handleClick($event)'></div>
+<div (click)='handleClick()'></div>
 """);
     _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2));
@@ -836,7 +836,6 @@ class TestPanel {
 <div (click)='handleClick($event)'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
     errorListener.assertNoErrors();
   }
@@ -855,8 +854,24 @@ class TestPanel {
 <div (click)='handleClick($event);'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_return_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<h2 (click)='return 5;'></h2>
+""");
+    _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
@@ -874,7 +889,6 @@ class TestPanel {
 <div (click)='handleClick($event); 5+5;'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
     errorListener.assertNoErrors();
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
   }
@@ -890,12 +904,12 @@ class TestPanel {
 }
 ''');
     String code = r"""
-<div (click)='handleClick(); unknownFunction()'></div>
+<div (click)='handleClick($event); unknownFunction()'></div>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction()");
+        StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction");
   }
 
   void test_inheritedFields() {
