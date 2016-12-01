@@ -260,10 +260,18 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   TypeProvider typeProvider;
 
-  // Since <my-comp></my-comp> represents an instantiation of MyComp,
-  // especially when MyComp is generic or its superclasses are, we need
-  // this. Cache instead of passing around everywhere.
+  /**
+   * Since <my-comp></my-comp> represents an instantiation of MyComp,
+   * especially when MyComp is generic or its superclasses are, we need
+   * this. Cache instead of passing around everywhere.
+   */
   InterfaceType _instantiatedClassType;
+
+  /**
+   * The [ClassElement] being used to create the current component,
+   * stored here instead of passing around everywhere.
+   */
+  ClassElement _currentClassElement;
 
   @override
   void internalPerform() {
@@ -301,8 +309,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    */
   AbstractDirective _createDirective(
       ast.ClassDeclaration classDeclaration, ast.Annotation node) {
-    ClassElement classElement = classDeclaration.element;
-    _instantiatedClassType = _instantiateClass(classElement);
+    _currentClassElement = classDeclaration.element;
+    _instantiatedClassType = _instantiateClass(_currentClassElement);
     // TODO(scheglov) add support for all the arguments
     bool isComponent = _isAngularAnnotation(node, 'Component');
     bool isDirective = _isAngularAnnotation(node, 'Directive');
@@ -315,20 +323,20 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       List<InputElement> inputElements = <InputElement>[];
       List<OutputElement> outputElements = <OutputElement>[];
       {
-        inputElements.addAll(_parseHeaderInputs(classElement, node));
-        outputElements.addAll(_parseHeaderOutputs(classElement, node));
+        inputElements.addAll(_parseHeaderInputs(node));
+        outputElements.addAll(_parseHeaderOutputs(node));
         _parseMemberInputsAndOutputs(
             classDeclaration, inputElements, outputElements);
       }
       if (isComponent) {
-        return new Component(classElement,
+        return new Component(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
             selector: selector);
       }
       if (isDirective) {
-        return new Directive(classElement,
+        return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
@@ -415,8 +423,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
   }
 
-  InputElement _parseHeaderInput(
-      ClassElement classElement, ast.Expression expression) {
+  InputElement _parseHeaderInput(ast.Expression expression) {
     Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
         _parseHeaderNameValueSourceRanges(expression);
     if (nameValueAndRanges != null) {
@@ -425,25 +432,17 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var name = nameValueAndRanges.item3;
       var nameRange = nameValueAndRanges.item4;
 
-      PropertyAccessorElement setter =
-          _resolveSetter(classElement, expression, name);
+      PropertyAccessorElement setter = _resolveSetter(expression, name);
 
-      return new InputElement(
-          boundName,
-          boundRange.offset,
-          boundRange.length,
-          target.source,
-          setter,
-          nameRange,
-          _getSetterType(classElement, setter));
+      return new InputElement(boundName, boundRange.offset, boundRange.length,
+          target.source, setter, nameRange, _getSetterType(setter));
     } else {
       // TODO(mfairhurst) report a warning
       return null;
     }
   }
 
-  OutputElement _parseHeaderOutput(
-      ClassElement classElement, ast.Expression expression) {
+  OutputElement _parseHeaderOutput(ast.Expression expression) {
     Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
         _parseHeaderNameValueSourceRanges(expression);
     if (nameValueAndRanges != null) {
@@ -452,10 +451,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var name = nameValueAndRanges.item3;
       var nameRange = nameValueAndRanges.item4;
 
-      PropertyAccessorElement getter =
-          _resolveGetter(classElement, expression, name);
+      PropertyAccessorElement getter = _resolveGetter(expression, name);
 
-      var eventType = getEventType(classElement, getter, name);
+      var eventType = getEventType(getter, name);
 
       return new OutputElement(boundName, boundRange.offset, boundRange.length,
           target.source, getter, nameRange, eventType);
@@ -465,8 +463,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
   }
 
-  DartType _getSetterType(
-      ClassElement classElement, PropertyAccessorElement setter) {
+  DartType _getSetterType(PropertyAccessorElement setter) {
     if (setter != null) {
       setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
           thisType: true);
@@ -480,8 +477,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return null;
   }
 
-  DartType getEventType(
-      ClassElement classElement, PropertyAccessorElement getter, String name) {
+  DartType getEventType(PropertyAccessorElement getter, String name) {
     if (getter != null) {
       getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
           thisType: true);
@@ -525,8 +521,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return classElement.type.instantiate(bounds);
   }
 
-  List<InputElement> _parseHeaderInputs(
-      ClassElement classElement, ast.Annotation node) {
+  List<InputElement> _parseHeaderInputs(ast.Annotation node) {
     ast.ListLiteral descList = _getListLiteralNamedArgument(
         node, const <String>['inputs', 'properties']);
     if (descList == null) {
@@ -535,7 +530,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Create an input for each element.
     List<InputElement> inputElements = <InputElement>[];
     for (ast.Expression element in descList.elements) {
-      InputElement inputElement = _parseHeaderInput(classElement, element);
+      InputElement inputElement = _parseHeaderInput(element);
       if (inputElement != null) {
         inputElements.add(inputElement);
       }
@@ -543,8 +538,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return inputElements;
   }
 
-  List<OutputElement> _parseHeaderOutputs(
-      ClassElement classElement, ast.Annotation node) {
+  List<OutputElement> _parseHeaderOutputs(ast.Annotation node) {
     ast.ListLiteral descList =
         _getListLiteralNamedArgument(node, const <String>['outputs']);
     if (descList == null) {
@@ -553,7 +547,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Create an output for each element.
     List<OutputElement> outputs = <OutputElement>[];
     for (ast.Expression element in descList.elements) {
-      OutputElement outputElement = _parseHeaderOutput(classElement, element);
+      OutputElement outputElement = _parseHeaderOutput(element);
       if (outputElement != null) {
         outputs.add(outputElement);
       }
@@ -566,12 +560,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    * the given `@Input` or `@Output` [annotation], and add it to the
    * [inputElements] or [outputElements] array.
    */
-  _parseMemberInputOrOutput(
-      ClassElement classElement,
-      ast.ClassMember node,
-      ast.Annotation annotation,
-      List<InputElement> inputElements,
-      List<OutputElement> outputElements) {
+  _parseMemberInputOrOutput(ast.ClassMember node, ast.Annotation annotation,
+      List<InputElement> inputElements, List<OutputElement> outputElements) {
     // analyze the annotation
     final isInput = _isAngularAnnotation(annotation, 'Input');
     final isOutput = _isAngularAnnotation(annotation, 'Output');
@@ -633,16 +623,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
 
     if (isInput) {
-      inputElements.add(new InputElement(
-          name,
-          nameOffset,
-          nameLength,
-          target.source,
-          property,
-          null,
-          _getSetterType(classElement, property)));
+      inputElements.add(new InputElement(name, nameOffset, nameLength,
+          target.source, property, null, _getSetterType(property)));
     } else {
-      var eventType = getEventType(classElement, property, name);
+      var eventType = getEventType(property, name);
       outputElements.add(new OutputElement(name, nameOffset, nameLength,
           target.source, property, null, eventType));
     }
@@ -657,7 +641,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     for (ast.ClassMember member in node.members) {
       for (ast.Annotation annotation in member.metadata) {
         _parseMemberInputOrOutput(
-            node.element, member, annotation, inputElements, outputElements);
+            member, annotation, inputElements, outputElements);
       }
     }
   }
@@ -693,31 +677,31 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   }
 
   /**
-   * Resolve the input setter with the given [name] in [classElement].
+   * Resolve the input setter with the given [name] in [_currentClassElement].
    * If undefined, report a warning and return `null`.
    */
   PropertyAccessorElement _resolveSetter(
-      ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
+      ast.SimpleStringLiteral literal, String name) {
     PropertyAccessorElement setter =
-        classElement.lookUpSetter(name, classElement.library);
+        _currentClassElement.lookUpSetter(name, _currentClassElement.library);
     if (setter == null) {
       errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_SETTER,
-          literal, [name, classElement.displayName]);
+          literal, [name, _currentClassElement.displayName]);
     }
     return setter;
   }
 
   /**
-   * Resolve the output getter with the given [name] in [classElement].
+   * Resolve the output getter with the given [name] in [_currentClassElement].
    * If undefined, report a warning and return `null`.
    */
   PropertyAccessorElement _resolveGetter(
-      ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
+      ast.SimpleStringLiteral literal, String name) {
     PropertyAccessorElement getter =
-        classElement.lookUpGetter(name, classElement.library);
+        _currentClassElement.lookUpGetter(name, _currentClassElement.library);
     if (getter == null) {
       errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_GETTER,
-          literal, [name, classElement.displayName]);
+          literal, [name, _currentClassElement.displayName]);
     }
     return getter;
   }
