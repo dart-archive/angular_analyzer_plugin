@@ -87,8 +87,31 @@ class TestPanel {
 <div (click)='handleClick()'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
+    expect(ranges, hasLength(2));
+    _assertElement('click)').output.inCoreHtml;
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+  }
+
+  void test_expression_nativeEventBindingOnComponent() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [SomeComponent])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+
+@Component(selector: 'some-comp', template: '')
+class SomeComponent {
+}
+''');
+    _addHtmlSource(r"""
+<some-comp (click)='handleClick($event)'></some-comp>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('click').output.inCoreHtml;
   }
 
   void test_expression_eventBinding_on() {
@@ -105,7 +128,8 @@ class TestPanel {
 <div on-click='handleClick()'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(1));
+    expect(ranges, hasLength(2));
+    _assertElement('click=').output.inCoreHtml;
     _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
@@ -644,6 +668,60 @@ class GenericComponent<T> {
     errorListener.assertNoErrors();
   }
 
+  void test_expression_inputAndOutputBinding_genericDirectiveChild_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String string;
+}
+class Generic<T> {
+  EventEmitter<T> output;
+  T input;
+
+  EventEmitter<T> twoWayChange;
+  T twoWay;
+}
+@Component(selector: 'generic-comp', template: '',
+    inputs: ['input', 'twoWay'], outputs: ['output', 'twoWayChange'])
+class GenericComponent<T> extends Generic<T> {
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputAndOutputBinding_extendGenericUnbounded_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String string;
+}
+class Generic<T> {
+  EventEmitter<T> output;
+  T input;
+
+  EventEmitter<T> twoWayChange;
+  T twoWay;
+}
+@Component(selector: 'generic-comp', template: '',
+    inputs: ['input', 'twoWay'], outputs: ['output', 'twoWayChange'])
+class GenericComponent<T> extends Generic {
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_expression_inputAndOutputBinding_genericDirective_chain_ok() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
@@ -796,6 +874,96 @@ class GenericComponent<T extends String> {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "anInt");
+  }
+
+  void test_statement_eventBinding_single_statement_without_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick($event)'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_single_statement_with_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick($event);'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_return_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<h2 (click)='return 5;'></h2>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_double_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick($event); 5+5;'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+  }
+
+  void test_statement_eventBinding_error_on_second_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='handleClick($event); unknownFunction()'></div>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction");
   }
 
   void test_inheritedFields() {
@@ -1077,6 +1245,26 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
+  void test_ngFor_noStarError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    var code = r"""
+<li ngFor='let item of items; let i = index'>
+</li>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+        code,
+        "ngFor");
+  }
+
   void test_ngFor_star_itemHiddenInElement() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -1273,6 +1461,25 @@ class TestPanel {
     _assertInputElement("ngIf=").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
     _assertElement("length != 0").dart.getter;
+  }
+
+  void test_ngIf_noStarError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+class TestPanel {
+  String text; // 1
+}
+''');
+    var code = r"""
+<span ngIf='text.length != 0'>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+        code,
+        "ngIf");
   }
 
   void test_ngIf_templateAttribute() {

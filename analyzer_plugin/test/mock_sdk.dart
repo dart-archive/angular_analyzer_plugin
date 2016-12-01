@@ -182,12 +182,20 @@ class DomName {
 
 abstract class ElementStream<T extends Event> implements Stream<T> {}
 
-class HtmlElement {
+abstract class Element {
+  /// Stream of `cut` events handled by this [Element].
+  @DomName('Element.oncut')
+  ElementStream<Event> get onCut => null;
+}
+
+class HtmlElement extends Element {
   int tabIndex;
   @DomName('Element.onchange')
   ElementStream<Event> get onChange => null;
   @DomName('Element.onclick')
   ElementStream<MouseEvent> get onClick => null;
+  @DomName('Element.onkeyup')
+  ElementStream<Event> get onKeyUp => null;
   bool hidden;
 }
 
@@ -200,8 +208,12 @@ class AnchorElement extends HtmlElement {
   String href;
 }
 
+@DomName('HTMLBodyElement')
 class BodyElement extends HtmlElement {
   factory BodyElement() => document.createElement("body");
+
+  @DomName('HTMLBodyElement.onunload')
+  ElementStream<Event> get onUnload => null;
 }
 
 class ButtonElement extends HtmlElement {
@@ -222,8 +234,6 @@ class InputElement extends HtmlElement {
   factory InputElement() => document.createElement("input");
   String value;
   String validationMessage;
-  @DomName('Element.onkeyup')
-  ElementStream<Event> get onKeyUp => null;
 }
 ''');
 

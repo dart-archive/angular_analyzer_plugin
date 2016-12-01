@@ -60,14 +60,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("int"));
       }
-      {
-        OutputElement outputElement =
-            outputElements.singleWhere((o) => o.name == 'click');
-        expect(outputElement, isNotNull);
-        expect(outputElement.getter, isNotNull);
-        expect(outputElement.eventType, isNotNull);
-        expect(outputElement.eventType.toString(), equals("MouseEvent"));
-      }
+      expect(outputElements, hasLength(0));
     }
     // button
     {
@@ -89,14 +82,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("int"));
       }
-      {
-        OutputElement outputElement =
-            outputElements.singleWhere((o) => o.name == 'click');
-        expect(outputElement, isNotNull);
-        expect(outputElement.getter, isNotNull);
-        expect(outputElement.eventType, isNotNull);
-        expect(outputElement.eventType.toString(), equals('MouseEvent'));
-      }
+      expect(outputElements, hasLength(0));
     }
     // input
     {
@@ -104,13 +90,20 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(component, isNotNull);
       expect(component.classElement.displayName, 'InputElement');
       expect(component.selector.toString(), 'input');
-      List<OutputElement> outputElems = component.outputs;
+      List<OutputElement> outputElements = component.outputs;
+      expect(outputElements, hasLength(0));
+    }
+    // body is one of the few elements with special events
+    {
+      Component component = map['body'];
+      expect(component, isNotNull);
+      expect(component.classElement.displayName, 'BodyElement');
+      expect(component.selector.toString(), 'body');
+      List<OutputElement> outputElements = component.outputs;
+      expect(outputElements, hasLength(1));
       {
-        // This one is important because it proves we're using @DomAttribute
-        // to generate the output name and not the method in the sdk.
-        OutputElement output =
-            outputElems.singleWhere((o) => o.name == 'keyup');
-        expect(output, isNotNull);
+        OutputElement output = outputElements[0];
+        expect(output.name, equals("unload"));
         expect(output.getter, isNotNull);
         expect(output.eventType, isNotNull);
       }
@@ -119,6 +112,41 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     expect(map['h1'], isNotNull);
     expect(map['h2'], isNotNull);
     expect(map['h3'], isNotNull);
+  }
+
+  test_buildStandardHtmlEvents() {
+    computeResult(AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS);
+    expect(task, new isInstanceOf<BuildStandardHtmlComponentsTask>());
+    // validate
+    Map<String, OutputElement> outputElements =
+        outputs[STANDARD_HTML_ELEMENT_EVENTS];
+    {
+      // This one is important because it proves we're using @DomAttribute
+      // to generate the output name and not the method in the sdk.
+      OutputElement outputElement = outputElements['keyup'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+    }
+    {
+      OutputElement outputElement = outputElements['cut'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+    }
+    {
+      OutputElement outputElement = outputElements['click'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), equals('MouseEvent'));
+    }
+    {
+      OutputElement outputElement = outputElements['change'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+    }
   }
 }
 
@@ -877,6 +905,93 @@ class MyComponent<T, A extends String, B extends A> {
     computeResult(source, DART_ERRORS);
     fillErrorListener(DART_ERRORS);
     errorListener.assertNoErrors();
+  }
+
+  void test_parameterizedInheritedInputsOutputs() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+class Generic<T> {
+  T input;
+  EventEmitter<T> output;
+}
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>',
+    inputs: const ['input'],
+    outputs: const ['output'])
+class MyComponent extends Generic {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> compInputs = component.inputs;
+    expect(compInputs, hasLength(1));
+    {
+      InputElement input = compInputs[0];
+      expect(input.name, 'input');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("dynamic"));
+    }
+
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.name, 'output');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
+  }
+
+  void test_parameterizedInheritedInputsOutputsSpecified() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+class Generic<T> {
+  T input;
+  EventEmitter<T> output;
+}
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>',
+    inputs: const ['input'],
+    outputs: const ['output'])
+class MyComponent extends Generic<String> {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> compInputs = component.inputs;
+    expect(compInputs, hasLength(1));
+    {
+      InputElement input = compInputs[0];
+      expect(input.name, 'input');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("String"));
+    }
+
+    List<OutputElement> compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      OutputElement output = compOutputs[0];
+      expect(output.name, 'output');
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
+    }
   }
 
   void test_noDirectives() {

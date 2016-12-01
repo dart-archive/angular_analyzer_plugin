@@ -122,6 +122,16 @@ final ListResultDescriptor<Component> STANDARD_HTML_COMPONENTS =
         'ANGULAR_STANDARD_HTML_COMPONENTS', const <Component>[]);
 
 /**
+ * The standard HtmlElement [OutputElement]s.
+ *
+ * This result is produced for the [AnalysisContext].
+ */
+final ResultDescriptor<Map<String, OutputElement>>
+    STANDARD_HTML_ELEMENT_EVENTS = new ResultDescriptor(
+        'ANGULAR_STANDARD_HTML_ELEMENT_EVENTS',
+        const <Map<String, OutputElement>>[]);
+
+/**
  * The [View]s with this HTML template file.
  *
  * The result is only available for HTML [Source]s.
@@ -156,7 +166,8 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /**
- * A task that builds [STANDARD_HTML_COMPONENTS].
+ * A task that builds [STANDARD_HTML_COMPONENTS] and
+ * [STANDARD_HTML_ELEMENT_EVENTS].
  */
 class BuildStandardHtmlComponentsTask extends AnalysisTask {
   static const String UNITS = 'UNITS';
@@ -164,8 +175,10 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'BuildStandardHtmlComponentsTask',
       createTask,
-      buildInputs,
-      <ResultDescriptor>[STANDARD_HTML_COMPONENTS]);
+      buildInputs, <ResultDescriptor>[
+    STANDARD_HTML_COMPONENTS,
+    STANDARD_HTML_ELEMENT_EVENTS
+  ]);
 
   BuildStandardHtmlComponentsTask(
       AnalysisContext context, AnalysisTarget target)
@@ -189,14 +202,17 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     // Build components in each unit.
     //
     Map<String, Component> components = <String, Component>{};
+    Map<String, OutputElement> events = <String, OutputElement>{};
     for (ast.CompilationUnit unit in units) {
       Source source = unit.element.source;
-      unit.accept(new _BuildStandardHtmlComponentsVisitor(components, source));
+      unit.accept(
+          new _BuildStandardHtmlComponentsVisitor(components, events, source));
     }
     //
     // Record outputs.
     //
     outputs[STANDARD_HTML_COMPONENTS] = components.values.toList();
+    outputs[STANDARD_HTML_ELEMENT_EVENTS] = events;
   }
 
   /**
@@ -244,6 +260,19 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
   TypeProvider typeProvider;
 
+  /**
+   * Since <my-comp></my-comp> represents an instantiation of MyComp,
+   * especially when MyComp is generic or its superclasses are, we need
+   * this. Cache instead of passing around everywhere.
+   */
+  InterfaceType _instantiatedClassType;
+
+  /**
+   * The [ClassElement] being used to create the current component,
+   * stored here instead of passing around everywhere.
+   */
+  ClassElement _currentClassElement;
+
   @override
   void internalPerform() {
     typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
@@ -280,7 +309,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    */
   AbstractDirective _createDirective(
       ast.ClassDeclaration classDeclaration, ast.Annotation node) {
-    ClassElement classElement = classDeclaration.element;
+    _currentClassElement = classDeclaration.element;
+    _instantiatedClassType = _instantiateClass(_currentClassElement);
     // TODO(scheglov) add support for all the arguments
     bool isComponent = _isAngularAnnotation(node, 'Component');
     bool isDirective = _isAngularAnnotation(node, 'Directive');
@@ -293,20 +323,20 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       List<InputElement> inputElements = <InputElement>[];
       List<OutputElement> outputElements = <OutputElement>[];
       {
-        inputElements.addAll(_parseHeaderInputs(classElement, node));
-        outputElements.addAll(_parseHeaderOutputs(classElement, node));
+        inputElements.addAll(_parseHeaderInputs(node));
+        outputElements.addAll(_parseHeaderOutputs(node));
         _parseMemberInputsAndOutputs(
             classDeclaration, inputElements, outputElements);
       }
       if (isComponent) {
-        return new Component(classElement,
+        return new Component(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
             selector: selector);
       }
       if (isDirective) {
-        return new Directive(classElement,
+        return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
@@ -393,8 +423,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
   }
 
-  InputElement _parseHeaderInput(
-      ClassElement classElement, ast.Expression expression) {
+  InputElement _parseHeaderInput(ast.Expression expression) {
     Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
         _parseHeaderNameValueSourceRanges(expression);
     if (nameValueAndRanges != null) {
@@ -403,25 +432,17 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var name = nameValueAndRanges.item3;
       var nameRange = nameValueAndRanges.item4;
 
-      PropertyAccessorElement setter =
-          _resolveSetter(classElement, expression, name);
+      PropertyAccessorElement setter = _resolveSetter(expression, name);
 
-      return new InputElement(
-          boundName,
-          boundRange.offset,
-          boundRange.length,
-          target.source,
-          setter,
-          nameRange,
-          _getSetterType(classElement, setter));
+      return new InputElement(boundName, boundRange.offset, boundRange.length,
+          target.source, setter, nameRange, _getSetterType(setter));
     } else {
       // TODO(mfairhurst) report a warning
       return null;
     }
   }
 
-  OutputElement _parseHeaderOutput(
-      ClassElement classElement, ast.Expression expression) {
+  OutputElement _parseHeaderOutput(ast.Expression expression) {
     Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
         _parseHeaderNameValueSourceRanges(expression);
     if (nameValueAndRanges != null) {
@@ -430,10 +451,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var name = nameValueAndRanges.item3;
       var nameRange = nameValueAndRanges.item4;
 
-      PropertyAccessorElement getter =
-          _resolveGetter(classElement, expression, name);
+      PropertyAccessorElement getter = _resolveGetter(expression, name);
 
-      var eventType = getEventType(classElement, getter, name);
+      var eventType = getEventType(getter, name);
 
       return new OutputElement(boundName, boundRange.offset, boundRange.length,
           target.source, getter, nameRange, eventType);
@@ -443,18 +463,26 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
   }
 
-  DartType _getSetterType(
-      ClassElement classElement, PropertyAccessorElement setter) {
+  DartType _getSetterType(PropertyAccessorElement setter) {
+    if (setter != null) {
+      setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
+          thisType: true);
+    }
+
     if (setter != null && setter.variable != null) {
       var type = setter.variable.type;
-      return _deparameterizeType(classElement, type);
+      return type;
     }
 
     return null;
   }
 
-  DartType getEventType(
-      ClassElement classElement, PropertyAccessorElement getter, String name) {
+  DartType getEventType(PropertyAccessorElement getter, String name) {
+    if (getter != null) {
+      getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
+          thisType: true);
+    }
+
     if (getter != null && getter.type != null) {
       var returnType = getter.type.returnType;
       if (returnType != null && returnType is InterfaceType) {
@@ -462,7 +490,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         dart.DartType streamedType =
             context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
         if (streamedType != null) {
-          return _deparameterizeType(classElement, streamedType);
+          return streamedType;
         } else {
           errorReporter.reportErrorForNode(
               AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
@@ -480,12 +508,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return typeProvider.dynamicType;
   }
 
-  DartType _deparameterizeType(
-      ClassElement classElement, DartType parameterizedType) {
-    if (parameterizedType == null) {
-      return null;
-    }
-
+  DartType _instantiateClass(ClassElement classElement) {
+    // TODO use `insantiateToBounds` for better all around support
     // See #91 for discussion about bugs related to bounds
     var getBound = (p) {
       return p.bound == null
@@ -493,14 +517,11 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
           : p.bound.resolveToBound(typeProvider.dynamicType);
     };
 
-    var getType = (p) => p.type;
     var bounds = classElement.typeParameters.map(getBound).toList();
-    var parameters = classElement.typeParameters.map(getType).toList();
-    return parameterizedType.substitute2(bounds, parameters);
+    return classElement.type.instantiate(bounds);
   }
 
-  List<InputElement> _parseHeaderInputs(
-      ClassElement classElement, ast.Annotation node) {
+  List<InputElement> _parseHeaderInputs(ast.Annotation node) {
     ast.ListLiteral descList = _getListLiteralNamedArgument(
         node, const <String>['inputs', 'properties']);
     if (descList == null) {
@@ -509,7 +530,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Create an input for each element.
     List<InputElement> inputElements = <InputElement>[];
     for (ast.Expression element in descList.elements) {
-      InputElement inputElement = _parseHeaderInput(classElement, element);
+      InputElement inputElement = _parseHeaderInput(element);
       if (inputElement != null) {
         inputElements.add(inputElement);
       }
@@ -517,8 +538,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     return inputElements;
   }
 
-  List<OutputElement> _parseHeaderOutputs(
-      ClassElement classElement, ast.Annotation node) {
+  List<OutputElement> _parseHeaderOutputs(ast.Annotation node) {
     ast.ListLiteral descList =
         _getListLiteralNamedArgument(node, const <String>['outputs']);
     if (descList == null) {
@@ -527,7 +547,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Create an output for each element.
     List<OutputElement> outputs = <OutputElement>[];
     for (ast.Expression element in descList.elements) {
-      OutputElement outputElement = _parseHeaderOutput(classElement, element);
+      OutputElement outputElement = _parseHeaderOutput(element);
       if (outputElement != null) {
         outputs.add(outputElement);
       }
@@ -540,12 +560,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    * the given `@Input` or `@Output` [annotation], and add it to the
    * [inputElements] or [outputElements] array.
    */
-  _parseMemberInputOrOutput(
-      ClassElement classElement,
-      ast.ClassMember node,
-      ast.Annotation annotation,
-      List<InputElement> inputElements,
-      List<OutputElement> outputElements) {
+  _parseMemberInputOrOutput(ast.ClassMember node, ast.Annotation annotation,
+      List<InputElement> inputElements, List<OutputElement> outputElements) {
     // analyze the annotation
     final isInput = _isAngularAnnotation(annotation, 'Input');
     final isOutput = _isAngularAnnotation(annotation, 'Output');
@@ -607,16 +623,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
 
     if (isInput) {
-      inputElements.add(new InputElement(
-          name,
-          nameOffset,
-          nameLength,
-          target.source,
-          property,
-          null,
-          _getSetterType(classElement, property)));
+      inputElements.add(new InputElement(name, nameOffset, nameLength,
+          target.source, property, null, _getSetterType(property)));
     } else {
-      var eventType = getEventType(classElement, property, name);
+      var eventType = getEventType(property, name);
       outputElements.add(new OutputElement(name, nameOffset, nameLength,
           target.source, property, null, eventType));
     }
@@ -631,7 +641,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     for (ast.ClassMember member in node.members) {
       for (ast.Annotation annotation in member.metadata) {
         _parseMemberInputOrOutput(
-            node.element, member, annotation, inputElements, outputElements);
+            member, annotation, inputElements, outputElements);
       }
     }
   }
@@ -667,31 +677,31 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   }
 
   /**
-   * Resolve the input setter with the given [name] in [classElement].
+   * Resolve the input setter with the given [name] in [_currentClassElement].
    * If undefined, report a warning and return `null`.
    */
   PropertyAccessorElement _resolveSetter(
-      ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
+      ast.SimpleStringLiteral literal, String name) {
     PropertyAccessorElement setter =
-        classElement.lookUpSetter(name, classElement.library);
+        _currentClassElement.lookUpSetter(name, _currentClassElement.library);
     if (setter == null) {
       errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_SETTER,
-          literal, [name, classElement.displayName]);
+          literal, [name, _currentClassElement.displayName]);
     }
     return setter;
   }
 
   /**
-   * Resolve the output getter with the given [name] in [classElement].
+   * Resolve the output getter with the given [name] in [_currentClassElement].
    * If undefined, report a warning and return `null`.
    */
   PropertyAccessorElement _resolveGetter(
-      ClassElement classElement, ast.SimpleStringLiteral literal, String name) {
+      ast.SimpleStringLiteral literal, String name) {
     PropertyAccessorElement getter =
-        classElement.lookUpGetter(name, classElement.library);
+        _currentClassElement.lookUpGetter(name, _currentClassElement.library);
     if (getter == null) {
       errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_GETTER,
-          literal, [name, classElement.displayName]);
+          literal, [name, _currentClassElement.displayName]);
     }
     return getter;
   }
@@ -1083,6 +1093,7 @@ class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
 class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
+  static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String VIEWS_INPUT = 'VIEWS_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -1106,6 +1117,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     //
     TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
+    Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     List<View> views = getRequiredInput(VIEWS_INPUT);
     //
     // Resolve inline view templates.
@@ -1114,7 +1126,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     for (View view in views) {
       if (view.templateText != null) {
         Template template = new DartTemplateResolver(
-                typeProvider, htmlComponents, errorListener, view)
+                typeProvider, htmlComponents, htmlEvents, errorListener, view)
             .resolve();
         if (template != null) {
           templates.add(template);
@@ -1138,6 +1150,8 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_COMPONENTS_INPUT:
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
+      HTML_EVENTS_INPUT:
+          STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       VIEWS_INPUT: VIEWS.of(target),
     };
   }
@@ -1213,6 +1227,7 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
 class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
+  static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
@@ -1245,13 +1260,14 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     //
     TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
+    Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
     //
     // Resolve.
     //
     View view = target;
-    Template template = new HtmlTemplateResolver(
-            typeProvider, htmlComponents, errorListener, view, document)
+    Template template = new HtmlTemplateResolver(typeProvider, htmlComponents,
+            htmlEvents, errorListener, view, document)
         .resolve();
     //
     // Record outputs.
@@ -1270,6 +1286,8 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_COMPONENTS_INPUT:
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
+      HTML_EVENTS_INPUT:
+          STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateUriSource),
     };
   }
@@ -1357,16 +1375,24 @@ class _AnnotationProcessorMixin {
 
 class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, Component> components;
+  final Map<String, OutputElement> events;
   final Source source;
 
   ClassElement classElement;
 
-  _BuildStandardHtmlComponentsVisitor(this.components, this.source);
+  _BuildStandardHtmlComponentsVisitor(
+      this.components, this.events, this.source);
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
     classElement = node.element;
     super.visitClassDeclaration(node);
+    if (classElement.name == 'HtmlElement') {
+      List<OutputElement> outputElements = _buildOutputs(false);
+      for (OutputElement outputElement in outputElements) {
+        events[outputElement.name] = outputElement;
+      }
+    }
     classElement = null;
   }
 
@@ -1401,7 +1427,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
    */
   Component _buildComponent(String tag, int tagOffset) {
     List<InputElement> inputElements = _buildInputs();
-    List<OutputElement> outputElements = _buildOutputs();
+    List<OutputElement> outputElements = _buildOutputs(true);
     return new Component(classElement,
         inputs: inputElements,
         outputs: outputElements,
@@ -1425,10 +1451,10 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.variable.type);
         }
       }
-    });
+    }, false); // don't skip HtmlElement+ inputs, those belong to this component.
   }
 
-  List<OutputElement> _buildOutputs() {
+  List<OutputElement> _buildOutputs(bool skipHtmlElement) {
     return _captureAspects((Map<String, OutputElement> outputMap,
         PropertyAccessorElement accessor) {
       String domName = _getDomName(accessor);
@@ -1456,7 +1482,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.nameLength, accessor.source, accessor, null, eventType);
         }
       }
-    });
+    }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
   }
 
   String _getDomName(Element element) {
@@ -1473,15 +1499,22 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     return null;
   }
 
-  List/*<T>*/ _captureAspects(CaptureAspectFn/*<T>*/ addAspect) {
+  List/*<T>*/ _captureAspects(
+      CaptureAspectFn/*<T>*/ addAspect, bool skipHtmlElement) {
     Map<String, /*T*/ dynamic> aspectMap = <String, /*T*/ dynamic>{};
     Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
 
     void addAspects(InterfaceType type) {
       if (type != null && visitedTypes.add(type)) {
-        type.accessors.forEach((/*T*/ dynamic t) => addAspect(aspectMap, t));
-        type.mixins.forEach(addAspects);
-        addAspects(type.superclass);
+        // The events defined here are handled specially because everything
+        // (even directives) can use them. Note, this leaves only a few
+        // special elements with outputs such as BodyElement, everything else
+        // relies on standardHtmlEvents checked after the outputs.
+        if (!skipHtmlElement || type.name != 'HtmlElement') {
+          type.accessors.forEach((/*T*/ dynamic t) => addAspect(aspectMap, t));
+          type.mixins.forEach(addAspects);
+          addAspects(type.superclass);
+        }
       }
     }
 

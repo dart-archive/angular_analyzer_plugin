@@ -13,6 +13,8 @@
         * navigation from input declarations to setters, e.g. to `text` in `inputs: const ['text: my-text']`.
 * Occurrences extension reports regions where every Dart element or an input is used in a Dart or HTML file. So, clients of DAS can highlight all of the whe user select one.
 
+![Preview gif](https://raw.githubusercontent.com/dart-lang/angular_analyzer_plugin/master/assets/angular-dart-intellij-plugin-demo.gif "Preview gif")
+
 ## Chart of Current Features
 
 All regular dart errros (that is to say, errors defined purely by the dart language spec) are not shown in this list.
