@@ -242,7 +242,8 @@ class AngularWarningCode extends ErrorCode {
    * An error code indicating that ngIf or ngFor were used without a template
    */
   static const AngularWarningCode STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE =
-      const AngularWarningCode('STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE',
+      const AngularWarningCode(
+          'STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE',
           'Structural directive {0} requires a template. Did you mean ' +
               '*{0}="..." or template="{0} ..." or <template {0} ...>?');
 
