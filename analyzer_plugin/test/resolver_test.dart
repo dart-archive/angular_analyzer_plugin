@@ -668,6 +668,60 @@ class GenericComponent<T> {
     errorListener.assertNoErrors();
   }
 
+  void test_expression_inputAndOutputBinding_genericDirectiveChild_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String string;
+}
+class Generic<T> {
+  EventEmitter<T> output;
+  T input;
+
+  EventEmitter<T> twoWayChange;
+  T twoWay;
+}
+@Component(selector: 'generic-comp', template: '',
+    inputs: ['input', 'twoWay'], outputs: ['output', 'twoWayChange'])
+class GenericComponent<T> extends Generic<T> {
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_inputAndOutputBinding_extendGenericUnbounded_ok() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String string;
+}
+class Generic<T> {
+  EventEmitter<T> output;
+  T input;
+
+  EventEmitter<T> twoWayChange;
+  T twoWay;
+}
+@Component(selector: 'generic-comp', template: '',
+    inputs: ['input', 'twoWay'], outputs: ['output', 'twoWayChange'])
+class GenericComponent<T> extends Generic {
+}
+''');
+    var code = r"""
+<generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_expression_inputAndOutputBinding_genericDirective_chain_ok() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
