@@ -239,6 +239,14 @@ class AngularWarningCode extends ErrorCode {
               'or class binding');
 
   /**
+   * An error code indicating that ngIf or ngFor were used without a template
+   */
+  static const AngularWarningCode STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE =
+      const AngularWarningCode('STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE',
+          'Structural directive {0} requires a template. Did you mean ' +
+              '*{0}="..." or template="{0} ..." or <template {0} ...>?');
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be
