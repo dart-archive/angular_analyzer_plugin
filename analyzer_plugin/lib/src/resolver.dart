@@ -666,15 +666,6 @@ class TemplateResolver {
   }
 
   /**
-   * Record [ResolvedRange]s for the given [expression].
-   */
-  void _recordExpressionResolvedRanges(Expression expression) {
-    if (expression != null) {
-      expression.accept(new _DartReferencesRecorder(template, dartVariables));
-    }
-  }
-
-  /**
    * Record [ResolvedRange]s for the given [AstNode].
    */
   void _recordAstNodeResolvedRanges(AstNode astNode) {
@@ -785,7 +776,6 @@ class TemplateResolver {
           attribute.expression = expression;
         }
         if (expression != null) {
-          //_recordExpressionResolvedRanges(expression);
           _recordAstNodeResolvedRanges(expression);
         }
 
@@ -1106,7 +1096,6 @@ class TemplateResolver {
    */
   Expression _resolveExpression(int offset, String code) {
     Expression expression = _resolveDartExpressionAt(offset, code, null);
-    //_recordExpressionResolvedRanges(expression);
     _recordAstNodeResolvedRanges(expression);
     return expression;
   }
