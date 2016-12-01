@@ -1155,6 +1155,10 @@ class TemplateResolver {
             AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
       }
 
+      if (!node.isOrHasTemplateAttribute) {
+        _checkNoStructuralDirectives(node.attributes);
+      }
+
       // In the case of <template ngFor...> we don't want to define variables
       // until we have resolved our attribute expressions types...and we can't
       // do that until all directives are resolved.
@@ -1167,6 +1171,17 @@ class TemplateResolver {
     // process children
     for (NodeInfo child in node.children) {
       _resolveNodeDirectives(child, false, templateElements);
+    }
+  }
+
+  _checkNoStructuralDirectives(List<AttributeInfo> attributes) {
+    for (AttributeInfo attribute in attributes) {
+      if (attribute.name == 'ngFor' || attribute.name == 'ngIf') {
+        _reportErrorForRange(
+            new SourceRange(attribute.nameOffset, attribute.name.length),
+            AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+            [attribute.name]);
+      }
     }
   }
 
