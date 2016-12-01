@@ -876,6 +876,96 @@ class GenericComponent<T extends String> {
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "anInt");
   }
 
+  void test_statement_eventBinding_single_statement_without_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick($event)'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_single_statement_with_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick($event);'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_return_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<h2 (click)='return 5;'></h2>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_double_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (click)='handleClick($event); 5+5;'></div>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+  }
+
+  void test_statement_eventBinding_error_on_second_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='handleClick($event); unknownFunction()'></div>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction");
+  }
+
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {

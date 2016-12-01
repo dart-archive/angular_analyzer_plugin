@@ -642,6 +642,14 @@ class TemplateResolver {
   }
 
   /**
+   * Parse the given Dart [code] that starts ot [offset].
+   */
+  List<Statement> _parseDartStatements(int offset, String code) {
+    Token token = _scanDartCode(offset, code);
+    return _parseDartStatementsAtToken(token);
+  }
+
+  /**
    * Parse the Dart expression starting at the given [token].
    */
   Expression _parseDartExpressionAtToken(Token token) {
@@ -650,11 +658,19 @@ class TemplateResolver {
   }
 
   /**
-   * Record [ResolvedRange]s for the given [expression].
+   * Parse the Dart statement starting at the given [token].
    */
-  void _recordExpressionResolvedRanges(Expression expression) {
-    if (expression != null) {
-      expression.accept(new _DartReferencesRecorder(template, dartVariables));
+  List<Statement> _parseDartStatementsAtToken(Token token) {
+    Parser parser = new Parser(templateSource, errorListener);
+    return parser.parseStatements(token);
+  }
+
+  /**
+   * Record [ResolvedRange]s for the given [AstNode].
+   */
+  void _recordAstNodeResolvedRanges(AstNode astNode) {
+    if (astNode != null) {
+      astNode.accept(new _DartReferencesRecorder(template, dartVariables));
     }
   }
 
@@ -731,15 +747,34 @@ class TemplateResolver {
               template.addRange(range, standardHtmlEvent);
             }
           }
+
+          //TODO: Refactor the following chunk of statement resolver
+          List<Statement> statements =
+              _resolveDartStatementsAt(valueOffset, value, eventType);
+          for (Statement statement in statements) {
+            _recordAstNodeResolvedRanges(statement);
+          }
+
+          if (!matched && unboundErrorCode != null) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                unboundErrorCode,
+                [attribute.propertyName]));
+          }
+
+          continue;
         }
 
         Expression expression = attribute.expression;
+
         if (expression == null) {
           expression = _resolveDartExpressionAt(valueOffset, value, eventType);
           attribute.expression = expression;
         }
         if (expression != null) {
-          _recordExpressionResolvedRanges(expression);
+          _recordAstNodeResolvedRanges(expression);
         }
 
         if (attribute.bound == AttributeBoundType.twoWay) {
@@ -944,6 +979,33 @@ class TemplateResolver {
   }
 
   /**
+   * Resolve the given [AstNode] ([expression] or [statement]) and report errors.
+   */
+  void _resolveDartAstNode(AstNode astNode, dart.DartType eventType) {
+    ClassElement classElement = view.classElement;
+    LibraryElement library = classElement.library;
+    ResolverVisitor resolver = new ResolverVisitor(
+        library, templateSource, typeProvider, errorListener);
+    // fill the name scope
+    ClassScope classScope = new ClassScope(resolver.nameScope, classElement);
+    EnclosedScope localScope = new EnclosedScope(classScope);
+    resolver.nameScope = localScope;
+    resolver.enclosingClass = classElement;
+    localVariables.values.forEach((LocalVariable local) {
+      localScope.define(local.dartVariable);
+    });
+    if (eventType != null) {
+      _defineBuiltInVariable(localScope, eventType, r'$event', -1);
+    }
+    // do resolve
+    astNode.accept(resolver);
+    // verify
+    ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
+        typeProvider, new InheritanceManager(library), false, false);
+    astNode.accept(verifier);
+  }
+
+  /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
   Expression _resolveDartExpressionAt(
@@ -959,9 +1021,24 @@ class TemplateResolver {
           AngularWarningCode.TRAILING_EXPRESSION));
     }
     if (expression != null) {
-      _resolveDartExpression(expression, eventType);
+      _resolveDartAstNode(expression, eventType);
     }
     return expression;
+  }
+
+  /**
+   * Resolve the Dart statement with the given [code] at [offset].
+   */
+  List<Statement> _resolveDartStatementsAt(
+      int offset, String code, DartType eventType) {
+    code = code + ";";
+    List<Statement> statements = _parseDartStatements(offset, code);
+    if (statements != null) {
+      for (Statement statement in statements) {
+        _resolveDartAstNode(statement, eventType);
+      }
+    }
+    return statements;
   }
 
   /**
@@ -1016,8 +1093,7 @@ class TemplateResolver {
    */
   Expression _resolveExpression(int offset, String code) {
     Expression expression = _resolveDartExpressionAt(offset, code, null);
-    _recordExpressionResolvedRanges(expression);
-
+    _recordAstNodeResolvedRanges(expression);
     return expression;
   }
 
