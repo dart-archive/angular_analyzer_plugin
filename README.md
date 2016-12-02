@@ -30,7 +30,7 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 `<div [attr.role]="myAriaRole">` | :last_quarter_moon: soundness of expression, but no other validation | :x: | :x: | :x:
 `<div [class.extra-sparkle]="isDelightful">` | :white_check_mark: validity of clasname, soundness of expression, type of expression must be bool | :x: | :x: | :x:
 `<div [style.width.px]="mySize">` | :waning_gibbous_moon: soundness of expression, css properties are generally checked but not against a dictionary, same for units, expression must type to `int` if units are present | :x: | :x: | :x:
-`<button (click)="readRainbow($event)">` | :white_check_mark: soundness of expression, type of `$event`, existence of
+`<button (click)="readRainbow($event)">` | :white_check_mark: soundness of expression, type of `$event`, existence of output on component/element and DOM events which propagate can be tracked anywhere | :x: | :x: | :x:
 `<button on-click="readRainbow($event)">` | :white_check_mark: | :x: | :x: | :x:
 `<div title="Hello {{ponyName}}">` | :white_check_mark: soundness of expression, matching mustache delimiters | :x: | :x: | :x:
 `<p>Hello {{ponyName}}</p>` | :white_check_mark: soundness of expression, matching mustache delimiters | :x: | :x: | :x:
