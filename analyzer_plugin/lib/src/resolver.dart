@@ -562,25 +562,31 @@ class TemplateResolver {
                 new SourceRange(attribute.valueOffset, attribute.valueLength),
                 internalVar.element);
           }
+        } else if (attribute.value != null) {
+          errorListener.onError(new AnalysisError(
+              templateSource,
+              attribute.valueOffset,
+              attribute.value.length,
+              AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
+              [attribute.value]));
         }
-        // must be the element reference
-        if (attribute.value == null && type == null) {
+
+        // any unmatched values should be dynamic to prevent secondary errors
+        if (type == null) {
           type = typeProvider.dynamicType;
         }
+
         // add a new local variable with type
-        if (type != null) {
-          LocalVariableElement dartVariable =
-              _newLocalVariableElement(-1, name, type);
-          LocalVariable localVariable = new LocalVariable(
-              name, offset, name.length, templateSource, dartVariable);
-          localVariables[name] = localVariable;
-          dartVariables[dartVariable] = localVariable;
-          // add local declaration
-          template.addRange(
-              new SourceRange(
-                  localVariable.nameOffset, localVariable.nameLength),
-              localVariable);
-        }
+        LocalVariableElement dartVariable =
+            _newLocalVariableElement(-1, name, type);
+        LocalVariable localVariable = new LocalVariable(
+            name, offset, name.length, templateSource, dartVariable);
+        localVariables[name] = localVariable;
+        dartVariables[dartVariable] = localVariable;
+        // add local declaration
+        template.addRange(
+            new SourceRange(localVariable.nameOffset, localVariable.nameLength),
+            localVariable);
       }
     }
   }

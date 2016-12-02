@@ -1102,6 +1102,27 @@ class TestPanel {}
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
   }
 
+  void test_localVariable_exportAs_notFound() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    var code = r"""
+<div #value='noSuchExportedValue'>
+  {{value.aaa}}
+  assertErrorInCodeAtPosition fails when it sees multiple errors.
+  this shouldn't err because 'value' should be known as uncheckable.
+</div>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
+        code,
+        "noSuchExportedValue");
+  }
+
   void test_localVariable_scope_forwardReference() {
     _addDartSource(r'''
 import 'dart:html';
