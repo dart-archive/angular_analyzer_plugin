@@ -27,7 +27,7 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 ----------------|------------|---------------|------------|-------------
 `<input [value]="firstName">` | :white_check_mark: soundness of expression, type of expression, existence of `value` on element or directive | :x: | :x: | :x:
 `<input bind-value="firstName">` | :white_check_mark: | :x: | :x: | :x:
-`<div [attr.role]="myAriaRole">` | :last_quarter_moon: No false errors, no validation either | :x: | :x: | :x:
+`<div [attr.role]="myAriaRole">` | :last_quarter_moon: soundness of expression, but no other validation | :x: | :x: | :x:
 `<div [class.extra-sparkle]="isDelightful">` | :white_check_mark: validity of clasname, soundness of expression, type of expression must be bool | :x: | :x: | :x:
 `<div [style.width.px]="mySize">` | :waning_gibbous_moon: soundness of expression, css properties are generally checked but not against a dictionary, same for units, expression must type to `int` if units are present | :x: | :x: | :x:
 `<button (click)="readRainbow($event)">` | :white_check_mark: soundness of expression, type of `$event`, existence of
@@ -36,21 +36,21 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 `<p>Hello {{ponyName}}</p>` | :white_check_mark: soundness of expression, matching mustache delimiters | :x: | :x: | :x:
 `<my-cmp></my-cmp>` | :white_check_mark: Existence of directive | :x: | :x: | :x:
 `<my-cmp [(title)]="name">` | :white_check_mark: soundness of expression, existence of `title` input and `titleChange` output on directive or component with proper type | :x: | :x: | :x:
-`<video #movieplayer ...></vide><button (click)="movieplayer.play()">` | :white_check_mark: Type of new variable tracked and checked in other expressions | :x: | :x: | :x:
-`<video re-movieplayer ...></vide><button (click)="movieplayer.play()">` | :white_check_mark: | :x: | :x: | :x:
+`<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: Type of new variable tracked and checked in other expressions | :x: | :x: | :x:
+`<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: | :x: | :x: | :x:
 `<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :x: | :x: | :x:
 `<p>Card No.: {{cardNumber | myCardNumberFormatter}}</p>` | :poop: false errors will be reported | :x: | :x: | :x:
 
 Built-in directives | Validation | Auto-Complete | Navigation | Refactoring
 --------------------|------------|---------------|------------|-------------
-`<section *ngIf="showSection">` | :white_check_mark: type checking :warning: does not yet check for the star | :x: | :x: | :x:
-`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var :warning: does not check for the star | :x: | :x: | :x:
+`<section *ngIf="showSection">` | :white_check_mark: type checking, check for the star | :x: | :x: | :x:
+`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star | :x: | :x: | :x:
 `<div [ngClass]="{active: isActive, disabled: isDisabled}">` | :warning: Requires quotes around key value strings to work | :x: | :x: | :x:
 
 Forms | Validation | Auto-Complete | Navigation | Refactoring
 ------|------------|---------------|------------|-------------
 `<input [(ngModel)]="userName">` | :white_check_mark: | :x: | :x: | :x:
-`<form #myform="ngForm">` | :waning_gibbous_moon: if `ngForm` is not an exported directive, you get an error but not the right one | :x: | :x: | :x:
+`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :x: | :x: | :x:
 
 Class decorators | Validation | Auto-Complete | Navigation | Refactoring
 -----------------|------------|---------------|------------|-------------
