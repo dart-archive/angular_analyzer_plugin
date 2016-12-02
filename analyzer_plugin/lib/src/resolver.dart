@@ -716,67 +716,19 @@ class TemplateResolver {
   void _resolveAttributeValues(
       List<AttributeInfo> attributes, List<AbstractDirective> directives) {
     for (AttributeInfo attribute in attributes) {
-      int valueOffset = attribute.valueOffset;
-      String value = attribute.value;
-      dart.DartType eventType = null;
       // already handled
       if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         continue;
       }
+
       // bound
-      if (attribute.bound != null) {
-        AngularWarningCode unboundErrorCode;
-        var matched = false;
-        if (attribute.bound == AttributeBoundType.output) {
-          // Set the event type to dynamic, for if we don't match anything
-          eventType = typeProvider.dynamicType;
-          unboundErrorCode = AngularWarningCode.NONEXIST_OUTPUT_BOUND;
-          for (AbstractDirective directive in directives) {
-            for (OutputElement output in directive.outputs) {
-              // TODO what if this matches two directives?
-              if (output.name == attribute.propertyName) {
-                eventType = output.eventType;
-                // Parameterized directives, use the lower bound
-                matched = true;
-              }
-            }
-          }
-
-          // standard HTML events bubble up, so everything supports them
-          if (!matched) {
-            var standardHtmlEvent = standardHtmlEvents[attribute.propertyName];
-            if (standardHtmlEvent != null) {
-              matched = true;
-              eventType = standardHtmlEvent.eventType;
-              SourceRange range = new SourceRange(
-                  attribute.propertyNameOffset, attribute.propertyNameLength);
-              template.addRange(range, standardHtmlEvent);
-            }
-          }
-
-          //TODO: Refactor the following chunk of statement resolver
-          List<Statement> statements =
-              _resolveDartStatementsAt(valueOffset, value, eventType);
-          for (Statement statement in statements) {
-            _recordAstNodeResolvedRanges(statement);
-          }
-
-          if (!matched && unboundErrorCode != null) {
-            errorListener.onError(new AnalysisError(
-                templateSource,
-                attribute.nameOffset,
-                attribute.name.length,
-                unboundErrorCode,
-                [attribute.propertyName]));
-          }
-
-          continue;
-        }
-
+      if (attribute.bound == AttributeBoundType.output) {
+        _resolveOutputBoundAttributeValues(attribute, directives);
+      } else if (attribute.bound != null) {
         Expression expression = attribute.expression;
-
         if (expression == null) {
-          expression = _resolveDartExpressionAt(valueOffset, value, eventType);
+          expression =
+              _resolveDartExpressionAt(attribute.valueOffset, attribute.value);
           attribute.expression = expression;
         }
         if (expression != null) {
@@ -784,89 +736,150 @@ class TemplateResolver {
         }
 
         if (attribute.bound == AttributeBoundType.twoWay) {
-          if (!expression.isAssignable) {
-            errorListener.onError(new AnalysisError(
-                templateSource,
-                attribute.valueOffset,
-                attribute.value.length,
-                AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE));
-          }
-
-          var outputMatched = false;
-          for (AbstractDirective directive in directives) {
-            for (OutputElement output in directive.outputs) {
-              if (output.name == attribute.propertyName + "Change") {
-                outputMatched = true;
-                var eventType = output.eventType;
-
-                if (!eventType.isAssignableTo(expression.bestType)) {
-                  errorListener.onError(new AnalysisError(
-                      templateSource,
-                      attribute.valueOffset,
-                      attribute.value.length,
-                      AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
-                      [output.eventType, expression.bestType]));
-                }
-              }
-            }
-          }
-
-          if (!outputMatched) {
-            errorListener.onError(new AnalysisError(
-                templateSource,
-                attribute.nameOffset,
-                attribute.name.length,
-                AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
-                [attribute.propertyName, attribute.propertyName + "Change"]));
-          }
-        }
-
-        if (attribute.bound == AttributeBoundType.clazz) {
+          _resolveTwoWayBoundAttributeValues(attribute, directives, expression);
+        } else if (attribute.bound == AttributeBoundType.input) {
+          _resolveInputBoundAttributeValues(attribute, directives, expression);
+        } else if (attribute.bound == AttributeBoundType.clazz) {
           _resolveClassAttribute(attribute, expression);
         } else if (attribute.bound == AttributeBoundType.style) {
           _resolveStyleAttribute(attribute, expression);
         } else if (attribute.bound == AttributeBoundType.attr) {
           _resolveAttributeBoundAttribute(attribute, expression);
         }
+      } // text interpolations
+      else if (attribute.value != null) {
+        _resolveTextExpressions(attribute.valueOffset, attribute.value);
+      }
+    }
+  }
 
-        if (attribute.bound == AttributeBoundType.input ||
-            attribute.bound == AttributeBoundType.twoWay) {
-          unboundErrorCode = AngularWarningCode.NONEXIST_INPUT_BOUND;
-          for (AbstractDirective directive in directives) {
-            for (InputElement input in directive.inputs) {
-              if (input.name == attribute.propertyName) {
-                var attrType = expression.bestType;
-                var inputType = input.setterType;
+  /**
+   * Resolve output-bound values of [attributes] as statements.
+   */
+  void _resolveOutputBoundAttributeValues(
+      AttributeInfo attribute, List<AbstractDirective> directives) {
+    dart.DartType eventType = typeProvider.dynamicType;
+    var matched = false;
 
-                if (!attrType.isAssignableTo(inputType)) {
-                  errorListener.onError(new AnalysisError(
-                      templateSource,
-                      attribute.valueOffset,
-                      attribute.value.length,
-                      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
-                      [attrType, inputType]));
-                }
-                matched = true;
-              }
-            }
+    for (AbstractDirective directive in directives) {
+      for (OutputElement output in directive.outputs) {
+        //TODO what if this matches two directives?
+        if (output.name == attribute.propertyName) {
+          eventType = output.eventType;
+          //Parameterized directives, use the lower bound
+          matched = true;
+        }
+      }
+    }
+
+    //standard HTML events bubble up, so everything supports them
+    if (!matched) {
+      var standardHtmlEvent = standardHtmlEvents[attribute.propertyName];
+      if (standardHtmlEvent != null) {
+        matched = true;
+        eventType = standardHtmlEvent.eventType;
+        SourceRange range = new SourceRange(
+            attribute.propertyNameOffset, attribute.propertyNameLength);
+        template.addRange(range, standardHtmlEvent);
+      }
+    }
+
+    List<Statement> statements = _resolveDartStatementsAt(
+        attribute.valueOffset, attribute.value, eventType);
+    for (Statement statement in statements) {
+      _recordAstNodeResolvedRanges(statement);
+    }
+
+    if (!matched) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.nameOffset,
+          attribute.name.length,
+          AngularWarningCode.NONEXIST_OUTPUT_BOUND,
+          [attribute.propertyName]));
+    }
+  }
+
+  /**
+   * Resolve TwoWay-bound values of [attributes] as expressions.
+   */
+  void _resolveTwoWayBoundAttributeValues(AttributeInfo attribute,
+      List<AbstractDirective> directives, Expression expression) {
+    bool outputMatched = false;
+
+    if (!expression.isAssignable) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.valueOffset,
+          attribute.value.length,
+          AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE));
+    }
+
+    for (AbstractDirective directive in directives) {
+      for (OutputElement output in directive.outputs) {
+        if (output.name == attribute.propertyName + "Change") {
+          outputMatched = true;
+          var eventType = output.eventType;
+
+          if (!eventType.isAssignableTo(expression.bestType)) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.valueOffset,
+                attribute.value.length,
+                AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
+                [output.eventType, expression.bestType]));
           }
         }
+      }
+    }
 
-        if (!matched && unboundErrorCode != null) {
-          errorListener.onError(new AnalysisError(
-              templateSource,
-              attribute.nameOffset,
-              attribute.name.length,
-              unboundErrorCode,
-              [attribute.propertyName]));
+    if (!outputMatched) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.nameOffset,
+          attribute.name.length,
+          AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
+          [attribute.propertyName, attribute.propertyName + "Change"]));
+    }
+
+    _resolveInputBoundAttributeValues(attribute, directives, expression);
+  }
+
+  /**
+   * Resolve input-bound values of [attributes] as expressions.
+   * Also used by _resolveTwoWwayBoundAttributeValues.
+   */
+  void _resolveInputBoundAttributeValues(AttributeInfo attribute,
+      List<AbstractDirective> directives, Expression expression) {
+    bool inputMatched = false;
+
+    for (AbstractDirective directive in directives) {
+      for (InputElement input in directive.inputs) {
+        if (input.name == attribute.propertyName) {
+          var attrType = expression.bestType;
+          var inputType = input.setterType;
+
+          if (!attrType.isAssignableTo(inputType)) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.valueOffset,
+                attribute.value.length,
+                AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+                [attrType, inputType]));
+          }
+
+          inputMatched = true;
         }
+      }
+    }
 
-        continue;
-      }
-      // text interpolations
-      if (value != null) {
-        _resolveTextExpressions(valueOffset, value);
-      }
+    if (!inputMatched) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.nameOffset,
+          attribute.name.length,
+          AngularWarningCode.NONEXIST_INPUT_BOUND,
+          [attribute.propertyName]));
     }
   }
 
@@ -1014,11 +1027,9 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(
-      int offset, String code, DartType eventType) {
+  Expression _resolveDartExpressionAt(int offset, String code) {
     Expression expression = _parseDartExpression(offset, code);
-    //TODO: Once resolveDartStatement is implemented, remove 1st condition
-    if (eventType == null && expression.endToken.next.type != TokenType.EOF) {
+    if (expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
@@ -1027,7 +1038,7 @@ class TemplateResolver {
           AngularWarningCode.TRAILING_EXPRESSION));
     }
     if (expression != null) {
-      _resolveDartAstNode(expression, eventType);
+      _resolveDartAstNode(expression, null);
     }
     return expression;
   }
@@ -1098,7 +1109,7 @@ class TemplateResolver {
    * Record [ResolvedRange]s.
    */
   Expression _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpressionAt(offset, code, null);
+    Expression expression = _resolveDartExpressionAt(offset, code);
     _recordAstNodeResolvedRanges(expression);
     return expression;
   }
