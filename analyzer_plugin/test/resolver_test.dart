@@ -912,9 +912,9 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_return_statement() {
+  void test_statement_eventBinding_return_statement_without_semicolon() {
     _addDartSource(r'''
-import 'dart:html';
+import 'dart:html'
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
@@ -922,11 +922,70 @@ class TestPanel {
   }
 }
 ''');
-    _addHtmlSource(r"""
-<h2 (click)='return 5;'></h2>
-""");
+    String code = r"""<h2 (click)='return 5'></h2>""";
+    _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "return 5");
+  }
+
+  void test_statement_eventBinding_return_statement_with_semicolon() {
+    _addDartSource(r'''
+import 'dart:html'
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""<h2 (click)='return 5;'></h2>""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "return 5");
+  }
+
+  void test_statement_eventBinding_if_statement_without_semicolon() {
+    _addDartSource(r'''
+import 'dart:html'
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""<h2 (click)='if(true){}'></h2>""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "if(true){}");
+  }
+
+  void test_statement_eventBinding_if_statement_with_semicolon() {
+    _addDartSource(r'''
+import 'dart:html'
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""<h2 (click)='if(true){};'></h2>""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "if(true){}");
   }
 
   void test_statement_eventBinding_double_statement() {

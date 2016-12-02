@@ -787,6 +787,15 @@ class TemplateResolver {
     List<Statement> statements = _resolveDartStatementsAt(
         attribute.valueOffset, attribute.value, eventType);
     for (Statement statement in statements) {
+      if (statement is! ExpressionStatement && statement is! EmptyStatement) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            statement.offset,
+            (statement.endToken.type == TokenType.SEMICOLON)
+                ? statement.length - 1
+                : statement.length,
+            AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT));
+      }
       _recordAstNodeResolvedRanges(statement);
     }
 

@@ -148,6 +148,10 @@ class AngularWarningCode extends ErrorCode {
           'Attribute value expression (of type {0}) ' +
               'is not assignable to component input (of type {1})');
 
+  /**
+   * An error code indicating that an expression did not correctly
+   * end with an EOF token.
+   */
   static const AngularWarningCode TRAILING_EXPRESSION =
       const AngularWarningCode(
           'TRAILING_EXPRESSION', 'Expressions must end with an EOF');
@@ -253,6 +257,15 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME =
       const AngularWarningCode('NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME',
           'No directives matching this element are exported by the name {0}');
+
+  /**
+   * An error code indicating that an output-bound statement
+   * must be an [ExpressionStatement].
+   */
+  static const AngularWarningCode
+      OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT = const AngularWarningCode(
+          'OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT',
+          'An output-bound statement must be an ExpressionStatement');
 
   /**
    * Initialize a newly created error code to have the given [name].
