@@ -710,25 +710,19 @@ class TemplateResolver {
   void _resolveAttributeValues(
       List<AttributeInfo> attributes, List<AbstractDirective> directives) {
     for (AttributeInfo attribute in attributes) {
-      int valueOffset = attribute.valueOffset;
-      String value = attribute.value;
-
       // already handled
       if (attribute.name == 'template' || attribute.name.startsWith('*')) {
         continue;
       }
 
       // bound
-      if (attribute.bound != null) {
-        if (attribute.bound == AttributeBoundType.output) {
-          _resolveOutputBoundAttributeValues(
-              valueOffset, value, attribute, directives);
-          continue;
-        }
-
+      if (attribute.bound == AttributeBoundType.output) {
+        _resolveOutputBoundAttributeValues(attribute, directives);
+      } else if (attribute.bound != null) {
         Expression expression = attribute.expression;
         if (expression == null) {
-          expression = _resolveDartExpressionAt(valueOffset, value);
+          expression =
+              _resolveDartExpressionAt(attribute.valueOffset, attribute.value);
           attribute.expression = expression;
         }
         if (expression != null) {
@@ -736,26 +730,19 @@ class TemplateResolver {
         }
 
         if (attribute.bound == AttributeBoundType.twoWay) {
-          _resolveTwoWayBoundAttributeValues(
-              valueOffset, value, attribute, directives, expression);
-        }
-        if (attribute.bound == AttributeBoundType.input) {
-          _resolveInputBoundAttributeValues(
-              valueOffset, value, attribute, directives, expression);
-        }
-        if (attribute.bound == AttributeBoundType.clazz) {
+          _resolveTwoWayBoundAttributeValues(attribute, directives, expression);
+        } else if (attribute.bound == AttributeBoundType.input) {
+          _resolveInputBoundAttributeValues(attribute, directives, expression);
+        } else if (attribute.bound == AttributeBoundType.clazz) {
           _resolveClassAttribute(attribute, expression);
         } else if (attribute.bound == AttributeBoundType.style) {
           _resolveStyleAttribute(attribute, expression);
         } else if (attribute.bound == AttributeBoundType.attr) {
           _resolveAttributeBoundAttribute(attribute, expression);
         }
-
-        continue;
-      }
-      // text interpolations
-      if (value != null) {
-        _resolveTextExpressions(valueOffset, value);
+      } // text interpolations
+      else if (attribute.value != null) {
+        _resolveTextExpressions(attribute.valueOffset, attribute.value);
       }
     }
   }
@@ -763,7 +750,7 @@ class TemplateResolver {
   /**
    * Resolve output-bound values of [attributes] as statements.
    */
-  void _resolveOutputBoundAttributeValues(int valueOffset, String value,
+  void _resolveOutputBoundAttributeValues(
       AttributeInfo attribute, List<AbstractDirective> directives) {
     dart.DartType eventType = typeProvider.dynamicType;
     var matched = false;
@@ -791,8 +778,8 @@ class TemplateResolver {
       }
     }
 
-    List<Statement> statements =
-        _resolveDartStatementsAt(valueOffset, value, eventType);
+    List<Statement> statements = _resolveDartStatementsAt(
+        attribute.valueOffset, attribute.value, eventType);
     for (Statement statement in statements) {
       _recordAstNodeResolvedRanges(statement);
     }
@@ -810,12 +797,8 @@ class TemplateResolver {
   /**
    * Resolve TwoWay-bound values of [attributes] as expressions.
    */
-  void _resolveTwoWayBoundAttributeValues(
-      int valueOffset,
-      String value,
-      AttributeInfo attribute,
-      List<AbstractDirective> directives,
-      Expression expression) {
+  void _resolveTwoWayBoundAttributeValues(AttributeInfo attribute,
+      List<AbstractDirective> directives, Expression expression) {
     bool outputMatched = false;
 
     if (!expression.isAssignable) {
@@ -853,20 +836,15 @@ class TemplateResolver {
           [attribute.propertyName, attribute.propertyName + "Change"]));
     }
 
-    _resolveInputBoundAttributeValues(
-        valueOffset, value, attribute, directives, expression);
+    _resolveInputBoundAttributeValues(attribute, directives, expression);
   }
 
   /**
    * Resolve input-bound values of [attributes] as expressions.
    * Also used by _resolveTwoWwayBoundAttributeValues.
    */
-  void _resolveInputBoundAttributeValues(
-      int valueOffset,
-      String value,
-      AttributeInfo attribute,
-      List<AbstractDirective> directives,
-      Expression expression) {
+  void _resolveInputBoundAttributeValues(AttributeInfo attribute,
+      List<AbstractDirective> directives, Expression expression) {
     bool inputMatched = false;
 
     for (AbstractDirective directive in directives) {
