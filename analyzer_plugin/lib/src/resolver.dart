@@ -784,18 +784,9 @@ class TemplateResolver {
       }
     }
 
-    List<Statement> statements = _resolveDartStatementsAt(
+    List<Statement> statements = _resolveDartExpressionStatementsAt(
         attribute.valueOffset, attribute.value, eventType);
     for (Statement statement in statements) {
-      if (statement is! ExpressionStatement && statement is! EmptyStatement) {
-        errorListener.onError(new AnalysisError(
-            templateSource,
-            statement.offset,
-            (statement.endToken.type == TokenType.SEMICOLON)
-                ? statement.length - 1
-                : statement.length,
-            AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT));
-      }
       _recordAstNodeResolvedRanges(statement);
     }
 
@@ -1053,15 +1044,26 @@ class TemplateResolver {
   }
 
   /**
-   * Resolve the Dart statement with the given [code] at [offset].
+   * Resolve the Dart ExpressionStatement with the given [code] at [offset].
    */
-  List<Statement> _resolveDartStatementsAt(
+  List<Statement> _resolveDartExpressionStatementsAt(
       int offset, String code, DartType eventType) {
     code = code + ";";
     List<Statement> statements = _parseDartStatements(offset, code);
     if (statements != null) {
       for (Statement statement in statements) {
-        _resolveDartAstNode(statement, eventType);
+        if (statement is! ExpressionStatement && statement is! EmptyStatement) {
+          errorListener.onError(new AnalysisError(
+              templateSource,
+              statement.offset,
+              (statement.endToken.type == TokenType.SEMICOLON)
+                  ? statement.length - 1
+                  : statement.length,
+              AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT));
+        }
+        else {
+          _resolveDartAstNode(statement, eventType);
+        }
       }
     }
     return statements;
