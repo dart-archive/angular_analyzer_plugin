@@ -1059,9 +1059,9 @@ class TemplateResolver {
               (statement.endToken.type == TokenType.SEMICOLON)
                   ? statement.length - 1
                   : statement.length,
-              AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT));
-        }
-        else {
+              AngularWarningCode
+                  .OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT));
+        } else {
           _resolveDartAstNode(statement, eventType);
         }
       }
