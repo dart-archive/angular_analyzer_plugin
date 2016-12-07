@@ -333,9 +333,9 @@ class NgFor {
 
     List<AnalysisError> errors = errorListener.errors;
     errors.forEach((currErr) {
-      expect(true, expectedErrors.containsKey(currErr.errorCode));
+      expect(expectedErrors.containsKey(currErr.errorCode), true);
       expect(
-          true, expectedErrors[currErr.errorCode].containsKey(currErr.offset));
+          expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
       expect(currErr.length,
           expectedErrors[currErr.errorCode][currErr.offset].length);
     });
