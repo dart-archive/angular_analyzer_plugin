@@ -265,7 +265,7 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode
       OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT = const AngularWarningCode(
           'OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT',
-          'An output-bound statement must be an ExpressionStatement');
+          "Syntax Error: unexpected {0}");
 
   /**
    * Initialize a newly created error code to have the given [name].

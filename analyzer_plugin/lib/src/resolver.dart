@@ -649,10 +649,38 @@ class TemplateResolver {
 
   /**
    * Parse the given Dart [code] that starts ot [offset].
+   * Also removes and reports dangling closing brackets.
    */
   List<Statement> _parseDartStatements(int offset, String code) {
+    List<Statement> allStatements = new List<Statement>();
     Token token = _scanDartCode(offset, code);
-    return _parseDartStatementsAtToken(token);
+
+    while (token.type != TokenType.EOF) {
+      List<Statement> currentStatements = _parseDartStatementsAtToken(token);
+
+      if (currentStatements.isNotEmpty) {
+        allStatements.addAll(currentStatements);
+        token = currentStatements.last.endToken.next;
+      } else {
+        if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
+          int startCloseBracket = token.offset;
+          while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
+            token = token.next;
+          }
+          int length = token.offset - startCloseBracket;
+          errorListener.onError(new AnalysisError(
+              templateSource,
+              startCloseBracket,
+              length,
+              ParserErrorCode.UNEXPECTED_TOKEN,
+              ["}" * length]));
+          continue;
+        }
+        //Nothing should trigger here, but just in case to prevent infinite loop
+        token = token.next;
+      }
+    }
+    return allStatements;
   }
 
   /**
@@ -1050,23 +1078,56 @@ class TemplateResolver {
       int offset, String code, DartType eventType) {
     code = code + ";";
     List<Statement> statements = _parseDartStatements(offset, code);
-    if (statements != null) {
-      for (Statement statement in statements) {
-        if (statement is! ExpressionStatement && statement is! EmptyStatement) {
-          errorListener.onError(new AnalysisError(
-              templateSource,
-              statement.offset,
-              (statement.endToken.type == TokenType.SEMICOLON)
-                  ? statement.length - 1
-                  : statement.length,
-              AngularWarningCode
-                  .OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT));
-        } else {
-          _resolveDartAstNode(statement, eventType);
-        }
+
+    for (Statement statement in statements) {
+      if (statement is! ExpressionStatement && statement is! EmptyStatement) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            statement.offset,
+            (statement.endToken.type == TokenType.SEMICOLON)
+                ? statement.length - 1
+                : statement.length,
+            AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+            [_getOutputStatementErrorDescription(statement)]));
+      } else {
+        _resolveDartAstNode(statement, eventType);
       }
     }
     return statements;
+  }
+
+  /**
+   * Get helpful description based on statement type to report in
+   * OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT
+   */
+  String _getOutputStatementErrorDescription(Statement stmt) {
+    if (stmt is Block) {
+      return 'block';
+    } else if (stmt is VariableDeclarationStatement) {
+      return 'variable declaration';
+    } else if (stmt is ForStatement || stmt is ForEachStatement) {
+      return "token 'for'";
+    } else if (stmt is WhileStatement) {
+      return "token 'while'";
+    } else if (stmt is DoStatement) {
+      return "token 'do'";
+    } else if (stmt is SwitchStatement) {
+      return "token 'switch'";
+    } else if (stmt is IfStatement) {
+      return "token 'if'";
+    } else if (stmt is TryStatement) {
+      return "token 'try'";
+    } else if (stmt is BreakStatement) {
+      return "token 'break'";
+    } else if (stmt is ContinueStatement) {
+      return "token 'continue'";
+    } else if (stmt is ReturnStatement) {
+      return "token 'return'";
+    } else if (stmt is FunctionDeclarationStatement) {
+      return 'function declaration';
+    } else {
+      return 'statement type';
+    }
   }
 
   /**

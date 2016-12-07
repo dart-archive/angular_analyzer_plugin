@@ -915,7 +915,7 @@ class TestPanel {
 
   void test_statement_eventBinding_return_statement_without_semicolon() {
     _addDartSource(r'''
-import 'dart:html'
+import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
@@ -934,7 +934,7 @@ class TestPanel {
 
   void test_statement_eventBinding_return_statement_with_semicolon() {
     _addDartSource(r'''
-import 'dart:html'
+import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
@@ -953,7 +953,7 @@ class TestPanel {
 
   void test_statement_eventBinding_if_statement_without_semicolon() {
     _addDartSource(r'''
-import 'dart:html'
+import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
@@ -972,7 +972,7 @@ class TestPanel {
 
   void test_statement_eventBinding_if_statement_with_semicolon() {
     _addDartSource(r'''
-import 'dart:html'
+import 'dart:html';
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1084,7 +1084,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_single_variable1() {
+  void test_statement_eventBinding_single_variable() {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1103,7 +1103,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_single_variable2() {
+  void test_statement_eventBinding_unexpected_closing_brackets_at_end() {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1111,18 +1111,17 @@ import 'dart:html';
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
-  String random_string = "";
 }
 ''');
     String code = r"""
-<div (click)='random_string;'></div>
+<div (click)='handleClick($event);}}}}'></div>
     """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
+    assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}}}');
   }
 
-  void test_statement_eventBinding_unexpected_closing_bracket() {
+  void test_statement_eventBinding_unexpected_closing_brackets_at_start() {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1133,29 +1132,11 @@ class TestPanel {
 }
 ''');
     String code = r"""
-<div (click)='handleClick($event)}'></div>
+<div (click)='}}handleClick($event)'></div>
     """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}');
-  }
-
-  void test_statement_eventBinding_unexpected_closing_bracket_with_semicolon() {
-    _addDartSource(r'''
-import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
-class TestPanel {
-  void handleClick(MouseEvent e) {
-  }
-}
-''');
-    String code = r"""
-<div (click)='handleClick($event)};'></div>
-    """;
-    _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}');
+    assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}');
   }
 
   void test_inheritedFields() {
