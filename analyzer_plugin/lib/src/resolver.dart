@@ -673,7 +673,7 @@ class TemplateResolver {
               startCloseBracket,
               length,
               ParserErrorCode.UNEXPECTED_TOKEN,
-              ["}" * length]));
+              ["}"]));
           continue;
         }
         //Nothing should trigger here, but just in case to prevent infinite loop
@@ -1101,32 +1101,11 @@ class TemplateResolver {
    * OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT
    */
   String _getOutputStatementErrorDescription(Statement stmt) {
-    if (stmt is Block) {
-      return 'block';
-    } else if (stmt is VariableDeclarationStatement) {
-      return 'variable declaration';
-    } else if (stmt is ForStatement || stmt is ForEachStatement) {
-      return "token 'for'";
-    } else if (stmt is WhileStatement) {
-      return "token 'while'";
-    } else if (stmt is DoStatement) {
-      return "token 'do'";
-    } else if (stmt is SwitchStatement) {
-      return "token 'switch'";
-    } else if (stmt is IfStatement) {
-      return "token 'if'";
-    } else if (stmt is TryStatement) {
-      return "token 'try'";
-    } else if (stmt is BreakStatement) {
-      return "token 'break'";
-    } else if (stmt is ContinueStatement) {
-      return "token 'continue'";
-    } else if (stmt is ReturnStatement) {
-      return "token 'return'";
-    } else if (stmt is FunctionDeclarationStatement) {
-      return 'function declaration';
+    String potentialToken = stmt.beginToken.keyword.toString().toLowerCase();
+    if (potentialToken != "null") {
+      return "token '" + potentialToken + "'";
     } else {
-      return 'statement type';
+      return stmt.runtimeType.toString().replaceFirst("Impl", "");
     }
   }
 

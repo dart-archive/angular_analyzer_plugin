@@ -1139,6 +1139,27 @@ class TestPanel {
     assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}');
   }
 
+  void test_statement_eventBinding_typechecking_after_unexpected_bracket() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='}1.length'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertMultipleErrorsInCodeAtPositions(code, {
+      ParserErrorCode.UNEXPECTED_TOKEN: '}',
+      StaticTypeWarningCode.UNDEFINED_GETTER: 'length'
+    });
+  }
+
   void test_inheritedFields() {
     _addDartSource(r'''
 class BaseComponent {
