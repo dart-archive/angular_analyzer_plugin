@@ -2,6 +2,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/error/codes.dart';
+import 'package:analyzer/src/dart/error/syntactic_errors.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -912,7 +913,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_return_statement() {
+  void test_statement_eventBinding_return_statement_without_semicolon() {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -922,11 +923,70 @@ class TestPanel {
   }
 }
 ''');
-    _addHtmlSource(r"""
-<h2 (click)='return 5;'></h2>
-""");
+    String code = r"""<h2 (click)='return 5'></h2>""";
+    _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "return 5");
+  }
+
+  void test_statement_eventBinding_return_statement_with_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""<h2 (click)='return 5;'></h2>""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "return 5");
+  }
+
+  void test_statement_eventBinding_if_statement_without_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""<h2 (click)='if(true){}'></h2>""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "if(true){}");
+  }
+
+  void test_statement_eventBinding_if_statement_with_semicolon() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""<h2 (click)='if(true){};'></h2>""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "if(true){}");
   }
 
   void test_statement_eventBinding_double_statement() {
@@ -964,6 +1024,140 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction");
+  }
+
+  void test_statement_eventBinding_error_on_assignment_statement() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='handleClick($event); String s;'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+        code,
+        "String s");
+  }
+
+  void test_statement_eventBinding_typeError() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='handleClick($event); 1 + "asdf";'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '"asdf"');
+  }
+
+  void test_statement_eventBinding_all_semicolons() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)=';;;;;;;;;;;;;'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_single_variable() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+  String random_string = "";
+}
+''');
+    String code = r"""
+<div (click)='handleClick;'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_statement_eventBinding_unexpected_closing_brackets_at_end() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='handleClick($event);}}}}'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}}}');
+  }
+
+  void test_statement_eventBinding_unexpected_closing_brackets_at_start() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='}}handleClick($event)'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}');
+  }
+
+  void test_statement_eventBinding_typechecking_after_unexpected_bracket() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+<div (click)='}1.length'></div>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertMultipleErrorsInCodeAtPositions(code, {
+      ParserErrorCode.UNEXPECTED_TOKEN: '}',
+      StaticTypeWarningCode.UNDEFINED_GETTER: 'length'
+    });
   }
 
   void test_inheritedFields() {
@@ -1100,6 +1294,27 @@ class TestPanel {}
     _assertElement("exportedValue'>").angular.at("exportedValue')");
     _assertElement("value.aaa").local.at("value=");
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
+  }
+
+  void test_localVariable_exportAs_notFound() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    var code = r"""
+<div #value='noSuchExportedValue'>
+  {{value.aaa}}
+  assertErrorInCodeAtPosition fails when it sees multiple errors.
+  this shouldn't err because 'value' should be known as uncheckable.
+</div>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
+        code,
+        "noSuchExportedValue");
   }
 
   void test_localVariable_scope_forwardReference() {
