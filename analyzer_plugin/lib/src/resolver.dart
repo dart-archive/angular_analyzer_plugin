@@ -660,25 +660,24 @@ class TemplateResolver {
 
       if (currentStatements.isNotEmpty) {
         allStatements.addAll(currentStatements);
-        token = currentStatements.last.endToken.next;
-      } else {
-        if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
-          int startCloseBracket = token.offset;
-          while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
-            token = token.next;
-          }
-          int length = token.offset - startCloseBracket;
-          errorListener.onError(new AnalysisError(
-              templateSource,
-              startCloseBracket,
-              length,
-              ParserErrorCode.UNEXPECTED_TOKEN,
-              ["}"]));
-          continue;
-        }
-        //Nothing should trigger here, but just in case to prevent infinite loop
-        token = token.next;
+        token = currentStatements.last.endToken;
       }
+      if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
+        int startCloseBracket = token.offset;
+        while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
+          token = token.next;
+        }
+        int length = token.offset - startCloseBracket;
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            startCloseBracket,
+            length,
+            ParserErrorCode.UNEXPECTED_TOKEN,
+            ["}"]));
+        continue;
+      }
+      //Nothing should trigger here, but just in case to prevent infinite loop
+      token = token.next;
     }
     return allStatements;
   }
