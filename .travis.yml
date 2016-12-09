@@ -10,7 +10,11 @@ before_script:
   - export PATH=`pwd`/depot_tools:"$PATH"
 
   # Checkout everything if we're building the SDK
-  - '(cd .. && gclient config --spec=''solutions = [ { "name": "sdk", "url": "https://github.com/dart-lang/sdk.git", "deps_file": "DEPS", "managed": False } ]'' && glient sync)'
+  - cd ..
+  - 'gclient config --spec=''solutions = [ { "name": "sdk", "url": "https://github.com/dart-lang/sdk.git", "deps_file": "DEPS", "managed": False } ]'''
+  - gclient sync
+  - cd $TRAVIS_BUILD_DIR
+
 script:
   - ./tools/check_format.sh
   - ./tools/travis.sh
