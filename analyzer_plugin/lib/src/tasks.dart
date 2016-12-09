@@ -486,8 +486,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     if (getter != null && getter.type != null) {
       var returnType = getter.type.returnType;
       if (returnType != null && returnType is InterfaceType) {
-        dart.DartType streamType = typeProvider.streamType;
-        dart.DartType streamedType =
+        DartType streamType = typeProvider.streamType;
+        DartType streamedType =
             context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
         if (streamedType != null) {
           return streamedType;
