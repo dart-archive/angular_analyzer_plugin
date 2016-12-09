@@ -492,15 +492,17 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         if (streamedType != null) {
           return streamedType;
         } else {
-          errorReporter.reportErrorForNode(
+          errorReporter.reportErrorForOffset(
               AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
-              new SourceRange(getter.nameOffset, getter.name.length),
+              getter.nameOffset,
+              getter.name.length,
               [name]);
         }
       } else {
-        errorReporter.reportErrorForNode(
+        errorReporter.reportErrorForOffset(
             AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
-            new SourceRange(getter.nameOffset, getter.name.length),
+            getter.nameOffset,
+            getter.name.length,
             [name]);
       }
     }
@@ -581,19 +583,21 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       } else if (isOutput && node.isGetter) {
         property = node.element;
       } else {
-        errorReporter.reportErrorForNode(
+        errorReporter.reportErrorForOffset(
             isInput
                 ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
                 : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-            new SourceRange(node.element.nameOffset, node.element.name.length));
+            node.element.nameOffset,
+            node.element.name.length);
         return null;
       }
     } else {
-      errorReporter.reportErrorForNode(
+      errorReporter.reportErrorForOffset(
           isInput
               ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
               : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-          new SourceRange(node.element.nameOffset, node.element.name.length));
+          node.element.nameOffset,
+          node.element.name.length);
       return null;
     }
 
