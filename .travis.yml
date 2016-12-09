@@ -10,7 +10,7 @@ before_script:
   - export PATH=`pwd`/depot_tools:"$PATH"
 
   # Checkout everything if we're building the SDK
-  - 'gclient config --spec=''solutions = [ { "name": "sdk", "url": "git@github.com:dart-lang/sdk.git", "deps_file": "DEPS", "managed": False } ]'''
+  - 'gclient config --spec=''solutions = [ { "name": "sdk", "url": "https://github.com/dart-lang/sdk.git", "deps_file": "DEPS", "managed": False } ]'''
   - gclient sync
 script:
   - ./tools/check_format.sh
