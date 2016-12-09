@@ -6,7 +6,12 @@ cache:
   directories:
     - $HOME/.pub-cache
 before_script:
-  - "(cd .. && git clone --depth=10 https://github.com/dart-lang/sdk.git)" 
+  - git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+  - export PATH=`pwd`/depot_tools:"$PATH"
+
+  # Checkout everything if we're building the SDK
+  - 'gclient config --spec=''solutions = [ { "name": "sdk", "url": "git@github.com:dart-lang/sdk.git", "deps_file": "DEPS", "managed": False } ]'''
+  - gclient sync
 script:
   - ./tools/check_format.sh
   - ./tools/travis.sh
