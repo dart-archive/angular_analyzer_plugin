@@ -486,21 +486,23 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     if (getter != null && getter.type != null) {
       var returnType = getter.type.returnType;
       if (returnType != null && returnType is InterfaceType) {
-        dart.DartType streamType = typeProvider.streamType;
-        dart.DartType streamedType =
+        DartType streamType = typeProvider.streamType;
+        DartType streamedType =
             context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
         if (streamedType != null) {
           return streamedType;
         } else {
-          errorReporter.reportErrorForNode(
+          errorReporter.reportErrorForOffset(
               AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
-              new SourceRange(getter.nameOffset, getter.name.length),
+              getter.nameOffset,
+              getter.name.length,
               [name]);
         }
       } else {
-        errorReporter.reportErrorForNode(
+        errorReporter.reportErrorForOffset(
             AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
-            new SourceRange(getter.nameOffset, getter.name.length),
+            getter.nameOffset,
+            getter.name.length,
             [name]);
       }
     }
@@ -581,19 +583,21 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       } else if (isOutput && node.isGetter) {
         property = node.element;
       } else {
-        errorReporter.reportErrorForNode(
+        errorReporter.reportErrorForOffset(
             isInput
                 ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
                 : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-            new SourceRange(node.element.nameOffset, node.element.name.length));
+            node.element.nameOffset,
+            node.element.name.length);
         return null;
       }
     } else {
-      errorReporter.reportErrorForNode(
+      errorReporter.reportErrorForOffset(
           isInput
               ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
               : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-          new SourceRange(node.element.nameOffset, node.element.name.length));
+          node.element.nameOffset,
+          node.element.name.length);
       return null;
     }
 

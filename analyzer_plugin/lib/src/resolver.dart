@@ -93,7 +93,7 @@ class DartTemplateResolver {
       return null;
     }
     // Parse HTML.
-    html.DocumentFragment document;
+    html.Document document;
     {
       String fragmentText = ' ' * view.templateOffset + templateText;
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
@@ -789,7 +789,7 @@ class TemplateResolver {
    */
   void _resolveOutputBoundAttributeValues(
       AttributeInfo attribute, List<AbstractDirective> directives) {
-    dart.DartType eventType = typeProvider.dynamicType;
+    DartType eventType = typeProvider.dynamicType;
     var matched = false;
 
     for (AbstractDirective directive in directives) {
@@ -1004,7 +1004,7 @@ class TemplateResolver {
   /**
    * Resolve the given [expression] and report errors.
    */
-  void _resolveDartExpression(Expression expression, dart.DartType eventType) {
+  void _resolveDartExpression(Expression expression, DartType eventType) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     ResolverVisitor resolver = new ResolverVisitor(
@@ -1031,7 +1031,7 @@ class TemplateResolver {
   /**
    * Resolve the given [AstNode] ([expression] or [statement]) and report errors.
    */
-  void _resolveDartAstNode(AstNode astNode, dart.DartType eventType) {
+  void _resolveDartAstNode(AstNode astNode, DartType eventType) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     ResolverVisitor resolver = new ResolverVisitor(
