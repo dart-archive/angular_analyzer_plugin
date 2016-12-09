@@ -315,6 +315,31 @@ class NgFor {
     expect(error.offset, snippetIndex);
     expect(errorListener.errors.single.length, snippet.length);
   }
+
+/**
+ * Assert multiple [errCode] is reported for [code], highlighting the [snippet].
+ */
+  void assertMultipleErrorsInCodeAtPositions(
+      String code, Map<ErrorCode, String> errCodesAndSnippet) {
+    Map<ErrorCode, Map<int, String>> expectedErrors = new Map<ErrorCode, Map>();
+    errCodesAndSnippet.forEach((errCode, snippet) {
+      int snippetIndex = code.indexOf(snippet);
+      expect(snippetIndex, greaterThan(-1),
+          reason: 'Error in test: snippet ${snippet} not part of code ${code}');
+      Map currErrorList = expectedErrors.putIfAbsent(errCode, () => new Map());
+      currErrorList.putIfAbsent(snippetIndex, () => snippet);
+    });
+    errorListener.assertErrorsWithCodes(expectedErrors.keys);
+
+    List<AnalysisError> errors = errorListener.errors;
+    errors.forEach((currErr) {
+      expect(expectedErrors.containsKey(currErr.errorCode), true);
+      expect(
+          expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
+      expect(currErr.length,
+          expectedErrors[currErr.errorCode][currErr.offset].length);
+    });
+  }
 }
 
 /**

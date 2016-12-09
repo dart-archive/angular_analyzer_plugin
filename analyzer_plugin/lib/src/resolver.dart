@@ -649,10 +649,41 @@ class TemplateResolver {
 
   /**
    * Parse the given Dart [code] that starts ot [offset].
+   * Also removes and reports dangling closing brackets.
    */
   List<Statement> _parseDartStatements(int offset, String code) {
+    List<Statement> allStatements = new List<Statement>();
     Token token = _scanDartCode(offset, code);
-    return _parseDartStatementsAtToken(token);
+
+    while (token.type != TokenType.EOF) {
+      List<Statement> currentStatements = _parseDartStatementsAtToken(token);
+
+      if (currentStatements.isNotEmpty) {
+        allStatements.addAll(currentStatements);
+        token = currentStatements.last.endToken.next;
+      }
+      if (token.type == TokenType.EOF) {
+        break;
+      }
+      if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
+        int startCloseBracket = token.offset;
+        while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
+          token = token.next;
+        }
+        int length = token.offset - startCloseBracket;
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            startCloseBracket,
+            length,
+            ParserErrorCode.UNEXPECTED_TOKEN,
+            ["}"]));
+        continue;
+      } else {
+        //Nothing should trigger here, but just in case to prevent infinite loop
+        token = token.next;
+      }
+    }
+    return allStatements;
   }
 
   /**
@@ -784,7 +815,7 @@ class TemplateResolver {
       }
     }
 
-    List<Statement> statements = _resolveDartStatementsAt(
+    List<Statement> statements = _resolveDartExpressionStatementsAt(
         attribute.valueOffset, attribute.value, eventType);
     for (Statement statement in statements) {
       _recordAstNodeResolvedRanges(statement);
@@ -1044,18 +1075,41 @@ class TemplateResolver {
   }
 
   /**
-   * Resolve the Dart statement with the given [code] at [offset].
+   * Resolve the Dart ExpressionStatement with the given [code] at [offset].
    */
-  List<Statement> _resolveDartStatementsAt(
+  List<Statement> _resolveDartExpressionStatementsAt(
       int offset, String code, DartType eventType) {
     code = code + ";";
     List<Statement> statements = _parseDartStatements(offset, code);
-    if (statements != null) {
-      for (Statement statement in statements) {
+
+    for (Statement statement in statements) {
+      if (statement is! ExpressionStatement && statement is! EmptyStatement) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            statement.offset,
+            (statement.endToken.type == TokenType.SEMICOLON)
+                ? statement.length - 1
+                : statement.length,
+            AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+            [_getOutputStatementErrorDescription(statement)]));
+      } else {
         _resolveDartAstNode(statement, eventType);
       }
     }
     return statements;
+  }
+
+  /**
+   * Get helpful description based on statement type to report in
+   * OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT
+   */
+  String _getOutputStatementErrorDescription(Statement stmt) {
+    String potentialToken = stmt.beginToken.keyword.toString().toLowerCase();
+    if (potentialToken != "null") {
+      return "token '" + potentialToken + "'";
+    } else {
+      return stmt.runtimeType.toString().replaceFirst("Impl", "");
+    }
   }
 
   /**
