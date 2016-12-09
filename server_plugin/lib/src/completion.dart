@@ -5,6 +5,7 @@ import 'package:analysis_server/src/provisional/completion/dart/completion_dart.
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
 import 'package:analyzer/task/dart.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 
@@ -52,13 +53,11 @@ class TemplateCompleter {
       CompletionRequest request, List<Template> templates) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      for (EmbeddedExpression expression in template.embeddedExpressions) {
-        if (expression.range.offset <= request.offset &&
-            expression.range.offset + expression.range.length >=
-                request.offset) {
+      for (Expression expression in template.embeddedExpressions) {
+        if (expression.offset <= request.offset &&
+            expression.offset + expression.length >= request.offset) {
           EmbeddedDartCompletionRequest dartRequest =
-              new EmbeddedDartCompletionRequest.from(
-                  request, expression.expression);
+              new EmbeddedDartCompletionRequest.from(request, expression);
 
           dartRequest.libraryElement = template.view.classElement.library;
           TypeMemberContributor memberContributor = new TypeMemberContributor();

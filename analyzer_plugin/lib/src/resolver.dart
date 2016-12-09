@@ -645,7 +645,6 @@ class TemplateResolver {
   Expression _parseDartExpression(int offset, String code) {
     Token token = _scanDartCode(offset, code);
     Expression expression = _parseDartExpressionAtToken(token);
-    template.addExpression(new SourceRange(offset, code.length), expression);
     return expression;
   }
 
@@ -1072,6 +1071,7 @@ class TemplateResolver {
     }
     if (expression != null) {
       _resolveDartAstNode(expression, null);
+      template.addExpression(expression);
     }
     return expression;
   }
@@ -1343,9 +1343,10 @@ class TemplateResolver {
       }
       // expression
       Expression expression;
-      if (token.type != TokenType.EOF && !_isTemplateVarBeginToken(token)) {
+      if (!_isTemplateVarBeginToken(token)) {
         expression = _parseDartExpressionAtToken(token);
         _resolveDartExpression(expression, null);
+        template.addExpression(expression);
         token = expression.endToken.next;
       }
       // add the attribute to resolve to an input

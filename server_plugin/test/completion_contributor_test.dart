@@ -195,4 +195,50 @@ class MyComp {
     expect(replacementLength, 0);
     assertSuggestGetter('length', 'int');
   }
+
+  test_completeDotMemberInNgFor() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let item of text.^"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('length', 'int');
+  }
+
+  test_completeMemberInNgFor() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let item of ^"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('text', 'String');
+    assertSuggestMethod('toString', 'Object', 'String');
+    assertSuggestGetter('hashCode', 'int');
+  }
 }

@@ -244,25 +244,6 @@ class ResolvedRange {
   }
 }
 
-class EmbeddedExpression {
-  /**
-   * The [SourceRange] where [element] is referenced.
-   */
-  final SourceRange range;
-
-  /**
-   * The [Expression] referenced at [range].
-   */
-  final dart.Expression expression;
-
-  EmbeddedExpression(this.range, this.expression);
-
-  @override
-  String toString() {
-    return '$range=[$expression]';
-  }
-}
-
 /**
  * An Angular template.
  * Templates can be embedded into Dart.
@@ -286,9 +267,9 @@ class Template {
   final List<ResolvedRange> ranges = <ResolvedRange>[];
 
   /**
-   * The [EmbeddedExpression]s of the template.
+   * The [Expression]s of the template.
    */
-  final List<EmbeddedExpression> embeddedExpressions = <EmbeddedExpression>[];
+  final List<dart.Expression> embeddedExpressions = <dart.Expression>[];
 
   Template(this.view, this.element);
 
@@ -305,11 +286,8 @@ class Template {
   /**
    * Records that the given [expression] occurs at given [range].
    */
-  void addExpression(SourceRange range, dart.Expression expression) {
-    assert(range != null);
-    assert(range.offset != null);
-    assert(range.offset >= 0);
-    embeddedExpressions.add(new EmbeddedExpression(range, expression));
+  void addExpression(dart.Expression expression) {
+    embeddedExpressions.add(expression);
   }
 
   @override
