@@ -13,6 +13,7 @@ before_script:
   - cd ..
   - 'gclient config --spec=''solutions = [ { "name": "sdk", "url": "https://github.com/dart-lang/sdk.git", "deps_file": "DEPS", "managed": False } ]'''
   - gclient sync
+  - cd ~
 script:
   - ./tools/check_format.sh
   - ./tools/travis.sh
