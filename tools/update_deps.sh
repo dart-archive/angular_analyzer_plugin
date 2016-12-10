@@ -17,7 +17,7 @@ echo done
 echo
 
 echo Copying pub .packages to be useful to this repo
-cat deps/.packages | grep -v 'path' | grep -v 'stacktrace' >> .packages
+cat deps/.packages | grep -v 'path' | grep -v 'stack_trace' >> .packages
 echo done
 echo
 
