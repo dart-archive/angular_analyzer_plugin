@@ -7,11 +7,9 @@ set -e
 cd $PACKAGE
 pub get
 
-cd test
-
 # Analyze the test first
 dartanalyzer lib test
 
 # Run the actual tests
-dart test_all.dart
+dart test/test_all.dart
 
