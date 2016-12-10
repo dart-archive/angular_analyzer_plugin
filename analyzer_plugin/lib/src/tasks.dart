@@ -23,7 +23,6 @@ import 'package:analyzer/task/model.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:tuple/tuple.dart';
@@ -127,9 +126,9 @@ final ListResultDescriptor<Component> STANDARD_HTML_COMPONENTS =
  * This result is produced for the [AnalysisContext].
  */
 final ResultDescriptor<Map<String, OutputElement>>
-    STANDARD_HTML_ELEMENT_EVENTS = new ResultDescriptor(
+    STANDARD_HTML_ELEMENT_EVENTS = new ResultDescriptor<Map<String, OutputElement>>(
         'ANGULAR_STANDARD_HTML_ELEMENT_EVENTS',
-        const <Map<String, OutputElement>>[]);
+        const <String, OutputElement>{});
 
 /**
  * The [View]s with this HTML template file.
@@ -233,7 +232,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
    * Create a task based on the given [target] in the given [context].
    */
   static BuildStandardHtmlComponentsTask createTask(
-      AnalysisContext context, AnalysisContextTarget target) {
+      AnalysisContext context, AnalysisTarget target) {
     return new BuildStandardHtmlComponentsTask(context, target);
   }
 }
@@ -513,7 +512,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   DartType _instantiateClass(ClassElement classElement) {
     // TODO use `insantiateToBounds` for better all around support
     // See #91 for discussion about bugs related to bounds
-    var getBound = (p) {
+    var getBound = (TypeParameterElement p) {
       return p.bound == null
           ? typeProvider.dynamicType
           : p.bound.resolveToBound(typeProvider.dynamicType);
@@ -715,7 +714,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    * task input descriptors describing those inputs for a task with the
    * given [target].
    */
-  static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
       UNIT_INPUT: RESOLVED_UNIT.of(target),
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request)
@@ -726,7 +725,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
    * Create a task based on the given [target] in the given [context].
    */
   static BuildUnitDirectivesTask createTask(
-      AnalysisContext context, LibrarySpecificUnit target) {
+      AnalysisContext context, AnalysisTarget target) {
     return new BuildUnitDirectivesTask(context, target);
   }
 }
@@ -978,9 +977,9 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
    * task input descriptors describing those inputs for a task with the
    * given [target].
    */
-  static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
-      DIRECTIVES_INPUT: DIRECTIVES_IN_LIBRARY.of(target.library),
+      DIRECTIVES_INPUT: DIRECTIVES_IN_LIBRARY.of((target as LibrarySpecificUnit).library),
       UNIT_INPUT: RESOLVED_UNIT.of(target)
     };
   }
@@ -989,7 +988,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
    * Create a task based on the given [target] in the given [context].
    */
   static BuildUnitViewsTask createTask(
-      AnalysisContext context, LibrarySpecificUnit target) {
+      AnalysisContext context, AnalysisTarget target) {
     return new BuildUnitViewsTask(context, target);
   }
 }
@@ -1067,7 +1066,7 @@ class ComputeDirectivesInLibraryTask extends SourceBasedAnalysisTask {
     outputs[DIRECTIVES_IN_LIBRARY] = directives.toList();
   }
 
-  static Map<String, TaskInput> buildInputs(Source librarySource) {
+  static Map<String, TaskInput> buildInputs(AnalysisTarget librarySource) {
     return <String, TaskInput>{
       DIRECTIVES_INPUT:
           LIBRARY_SPECIFIC_UNITS.of(librarySource).toListOf(DIRECTIVES_IN_UNIT),
@@ -1149,7 +1148,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
    * task input descriptors describing those inputs for a task with the
    * given [target].
    */
-  static Map<String, TaskInput> buildInputs(LibrarySpecificUnit target) {
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_COMPONENTS_INPUT:
@@ -1164,7 +1163,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
    * Create a task based on the given [target] in the given [context].
    */
   static ResolveDartTemplatesTask createTask(
-      AnalysisContext context, LibrarySpecificUnit target) {
+      AnalysisContext context, AnalysisTarget target) {
     return new ResolveDartTemplatesTask(context, target);
   }
 }
@@ -1209,7 +1208,7 @@ class ResolveHtmlTemplatesTask extends SourceBasedAnalysisTask {
    * task input descriptors describing those inputs for a task with the
    * given [target].
    */
-  static Map<String, TaskInput> buildInputs(Source target) {
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
       TEMPLATES_INPUT: TEMPLATE_VIEWS.of(target).toListOf(HTML_TEMPLATE),
       ERRORS_INPUT: TEMPLATE_VIEWS.of(target).toListOf(HTML_TEMPLATE_ERRORS),
@@ -1285,14 +1284,14 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
    * task input descriptors describing those inputs for a task with the
    * given [target].
    */
-  static Map<String, TaskInput> buildInputs(View target) {
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
       TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_COMPONENTS_INPUT:
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
       HTML_EVENTS_INPUT:
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of(target.templateUriSource),
+      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of((target as View).templateUriSource),
     };
   }
 
@@ -1300,7 +1299,7 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
    * Create a task based on the given [target] in the given [context].
    */
   static ResolveHtmlTemplateTask createTask(
-      AnalysisContext context, View target) {
+      AnalysisContext context, AnalysisTarget target) {
     return new ResolveHtmlTemplateTask(context, target);
   }
 }
@@ -1503,9 +1502,9 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     return null;
   }
 
-  List/*<T>*/ _captureAspects(
-      CaptureAspectFn/*<T>*/ addAspect, bool skipHtmlElement) {
-    Map<String, /*T*/ dynamic> aspectMap = <String, /*T*/ dynamic>{};
+  List<T> _captureAspects<T>(
+      CaptureAspectFn<T> addAspect, bool skipHtmlElement) {
+    Map<String, T> aspectMap = <String, T>{};
     Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
 
     void addAspects(InterfaceType type) {
@@ -1515,7 +1514,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         // special elements with outputs such as BodyElement, everything else
         // relies on standardHtmlEvents checked after the outputs.
         if (!skipHtmlElement || type.name != 'HtmlElement') {
-          type.accessors.forEach((/*T*/ dynamic t) => addAspect(aspectMap, t));
+          type.accessors.forEach((PropertyAccessorElement elem) => addAspect(aspectMap, elem));
           type.mixins.forEach(addAspects);
           addAspects(type.superclass);
         }
@@ -1527,5 +1526,5 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   }
 }
 
-typedef T CaptureAspectFn<T>(
+typedef void CaptureAspectFn<T>(
     Map<String, T> aspectMap, PropertyAccessorElement accessor);
