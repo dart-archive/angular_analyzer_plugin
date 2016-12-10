@@ -10,7 +10,7 @@ pub get
 cd test
 
 # Analyze the test first
-dartanalyzer test_all.dart
+dartanalyzer lib test
 
 # Run the actual tests
 dart test_all.dart
