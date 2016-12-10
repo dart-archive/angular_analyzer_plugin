@@ -128,9 +128,9 @@ class DartElement extends AngularElementImpl {
   final dart.Element element;
 
   DartElement(dart.Element element)
-      : super(element.name, element.nameOffset, element.nameLength,
-            element.source),
-        element = element;
+      : element = element,
+        super(element.name, element.nameOffset, element.nameLength,
+            element.source);
 }
 
 /**
