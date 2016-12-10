@@ -12,12 +12,12 @@ echo
 cd ..
 
 echo Copying and transforming sdk .packages to be useful to this repo
-cat deps/sdk/.packages | grep -v '^test' | sed 's/:/:deps\/sdk\//' > .packages
+cat deps/sdk/.packages | grep -v '^test' | grep -v '^typed_mock' | grep -v '^unittest' | sed 's/:/:deps\/sdk\//' > .packages
 echo done
 echo
 
 echo Copying pub .packages to be useful to this repo
-cat deps/.packages >> .packages
+cat deps/.packages | grep -v 'path' | grep -v 'stacktrace' >> .packages
 echo done
 echo
 
