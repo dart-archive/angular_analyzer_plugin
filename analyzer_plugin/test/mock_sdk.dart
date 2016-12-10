@@ -255,8 +255,8 @@ class InputElement extends HtmlElement {
   AnalysisContextImpl _analysisContext;
 
   MockSdk() {
-    LIBRARIES.forEach((_MockSdkLibrary library) {
-      provider.newFile(library.path, library.content);
+    LIBRARIES.forEach((SdkLibrary library) {
+      provider.newFile(library.path, (library as _MockSdkLibrary).content);
     });
   }
 
