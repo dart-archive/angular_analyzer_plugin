@@ -1024,7 +1024,7 @@ class TemplateResolver {
     expression.accept(resolver);
     // verify
     ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), false, false);
+        typeProvider, new InheritanceManager(library), false);
     expression.accept(verifier);
   }
 
@@ -1051,7 +1051,7 @@ class TemplateResolver {
     astNode.accept(resolver);
     // verify
     ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), false, false);
+        typeProvider, new InheritanceManager(library), false);
     astNode.accept(verifier);
   }
 

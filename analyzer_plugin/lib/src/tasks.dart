@@ -126,7 +126,8 @@ final ListResultDescriptor<Component> STANDARD_HTML_COMPONENTS =
  * This result is produced for the [AnalysisContext].
  */
 final ResultDescriptor<Map<String, OutputElement>>
-    STANDARD_HTML_ELEMENT_EVENTS = new ResultDescriptor<Map<String, OutputElement>>(
+    STANDARD_HTML_ELEMENT_EVENTS =
+    new ResultDescriptor<Map<String, OutputElement>>(
         'ANGULAR_STANDARD_HTML_ELEMENT_EVENTS',
         const <String, OutputElement>{});
 
@@ -979,7 +980,8 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
    */
   static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
-      DIRECTIVES_INPUT: DIRECTIVES_IN_LIBRARY.of((target as LibrarySpecificUnit).library),
+      DIRECTIVES_INPUT:
+          DIRECTIVES_IN_LIBRARY.of((target as LibrarySpecificUnit).library),
       UNIT_INPUT: RESOLVED_UNIT.of(target)
     };
   }
@@ -1514,7 +1516,8 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         // special elements with outputs such as BodyElement, everything else
         // relies on standardHtmlEvents checked after the outputs.
         if (!skipHtmlElement || type.name != 'HtmlElement') {
-          type.accessors.forEach((PropertyAccessorElement elem) => addAspect(aspectMap, elem));
+          type.accessors.forEach(
+              (PropertyAccessorElement elem) => addAspect(aspectMap, elem));
           type.mixins.forEach(addAspects);
           addAspects(type.superclass);
         }

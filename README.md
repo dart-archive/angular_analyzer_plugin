@@ -15,6 +15,19 @@
 
 ![Preview gif](https://raw.githubusercontent.com/dart-lang/angular_analyzer_plugin/master/assets/angular-dart-intellij-plugin-demo.gif "Preview gif")
 
+## Installing
+
+Download chrome depot tools, and clone this repository.
+
+Then run 
+```
+./tools/get_deps.sh
+cd server_plugin/bin
+./make_snapshot
+```
+
+Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
+
 ## Chart of Current Features
 
 All regular dart errros (that is to say, errors defined purely by the dart language spec) are not shown in this list.
