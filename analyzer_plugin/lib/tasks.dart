@@ -69,6 +69,13 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode('EXPECTED_IDENTIFIER', 'Expected identifier');
 
   /**
+   * An error code indicating that an hash was unexpected in template.
+   */
+  static const AngularWarningCode UNEXPECTED_HASH_IN_TEMPLATE =
+      const AngularWarningCode(
+          'UNEXPECTED_HASH_IN_TEMPLATE', 'Unexpected hash in template');
+
+  /**
    * An error code indicating that the value of an expression is not a string.
    */
   static const AngularWarningCode STRING_VALUE_EXPECTED =
