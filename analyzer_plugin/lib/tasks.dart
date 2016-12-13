@@ -73,7 +73,7 @@ class AngularWarningCode extends ErrorCode {
    */
   static const AngularWarningCode UNEXPECTED_HASH_IN_TEMPLATE =
       const AngularWarningCode(
-          'UNEXPECTED_HASH_IN_TEMPLATE', 'Unexpected hash in template');
+          'UNEXPECTED_HASH_IN_TEMPLATE', "Did you mean 'let' instead?");
 
   /**
    * An error code indicating that the value of an expression is not a string.

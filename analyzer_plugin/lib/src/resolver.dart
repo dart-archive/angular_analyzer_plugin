@@ -1262,12 +1262,6 @@ class TemplateResolver {
   void _resolveTemplateAttribute(int offset, String code) {
     List<AttributeInfo> attributes = <AttributeInfo>[];
     Token token = _scanDartCode(offset, code);
-    Token hashToken = _tokenChainContainsTokenType(token, TokenType.HASH);
-    if (hashToken != null) {
-      errorReporter.reportErrorForToken(
-          AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, hashToken);
-      return;
-    }
     String prefix = null;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
@@ -1277,6 +1271,10 @@ class TemplateResolver {
       }
       // maybe a local variable
       if (_isTemplateVarBeginToken(token)) {
+        if (token.type == TokenType.HASH) {
+          errorReporter.reportErrorForToken(
+              AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
+        }
         token = token.next;
         // get the local variable name
         if (!_tokenMatchesIdentifier(token)) {
@@ -1448,7 +1446,8 @@ class TemplateResolver {
 
   static bool _isTemplateVarBeginToken(Token token) {
     return token is KeywordToken && token.keyword == Keyword.VAR ||
-        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let');
+        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
+        token.type == TokenType.HASH;
   }
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
@@ -1457,19 +1456,6 @@ class TemplateResolver {
   static bool _tokenMatchesIdentifier(Token token) =>
       token.type == TokenType.IDENTIFIER ||
       _tokenMatchesBuiltInIdentifier(token);
-
-  /**
-   * Checks for TokenType in token chain; does not work with EOF token type.
-   * Returns token when found. If it doesn't exist, return null.
-   */
-  static Token _tokenChainContainsTokenType(Token token, TokenType type) {
-    if (token == null) return null;
-    while (token.type != TokenType.EOF) {
-      if (token.type == type) return token;
-      token = token.next;
-    }
-    return null;
-  }
 }
 
 /**
