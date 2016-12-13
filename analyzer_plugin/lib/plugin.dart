@@ -2,7 +2,7 @@ library angular2.src.analysis.analyzer_plugin;
 
 import 'package:analyzer/plugin/task.dart';
 import 'package:analyzer/src/generated/engine.dart'
-    show InternalAnalysisContext;
+    show InternalAnalysisContext, AnalysisEngine;
 import 'package:angular_analyzer_plugin/src/angular_work_manager.dart';
 import 'package:plugin/plugin.dart';
 
@@ -40,14 +40,14 @@ class AngularAnalyzerPlugin implements Plugin {
     }
     // tasks
     {
-      String id = TASK_EXTENSION_POINT_ID;
-      registerExtension(id, BuildStandardHtmlComponentsTask.DESCRIPTOR);
-      registerExtension(id, BuildUnitDirectivesTask.DESCRIPTOR);
-      registerExtension(id, BuildUnitViewsTask.DESCRIPTOR);
-      registerExtension(id, ComputeDirectivesInLibraryTask.DESCRIPTOR);
-      registerExtension(id, ResolveDartTemplatesTask.DESCRIPTOR);
-      registerExtension(id, ResolveHtmlTemplatesTask.DESCRIPTOR);
-      registerExtension(id, ResolveHtmlTemplateTask.DESCRIPTOR);
+      AnalysisEngine.instance.taskManager
+        ..addTaskDescriptor(BuildStandardHtmlComponentsTask.DESCRIPTOR)
+        ..addTaskDescriptor(BuildUnitDirectivesTask.DESCRIPTOR)
+        ..addTaskDescriptor(BuildUnitViewsTask.DESCRIPTOR)
+        ..addTaskDescriptor(ComputeDirectivesInLibraryTask.DESCRIPTOR)
+        ..addTaskDescriptor(ResolveDartTemplatesTask.DESCRIPTOR)
+        ..addTaskDescriptor(ResolveHtmlTemplatesTask.DESCRIPTOR)
+        ..addTaskDescriptor(ResolveHtmlTemplateTask.DESCRIPTOR);
     }
     // work manager
     registerExtension(WORK_MANAGER_EXTENSION_POINT_ID,
