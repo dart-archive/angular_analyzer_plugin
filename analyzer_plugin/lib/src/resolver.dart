@@ -758,8 +758,8 @@ class TemplateResolver {
       } else if (attribute.bound != null) {
         Expression expression = attribute.expression;
         if (expression == null) {
-          expression =
-              _resolveDartExpressionAt(attribute.valueOffset, attribute.value);
+          expression = _resolveDartExpressionAt(
+              attribute.valueOffset, attribute.value, true);
           attribute.expression = expression;
         }
         if (expression != null) {
@@ -1058,9 +1058,10 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(int offset, String code) {
+  Expression _resolveDartExpressionAt(
+      int offset, String code, bool detectTrailing) {
     Expression expression = _parseDartExpression(offset, code);
-    if (expression.endToken.next.type != TokenType.EOF) {
+    if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
@@ -1162,8 +1163,9 @@ class TemplateResolver {
    * Resolve the given Angular [code] at the given [offset].
    * Record [ResolvedRange]s.
    */
-  Expression _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpressionAt(offset, code);
+  Expression _resolveExpression(int offset, String code, bool detectTrailing) {
+    Expression expression =
+        _resolveDartExpressionAt(offset, code, detectTrailing);
     _recordAstNodeResolvedRanges(expression);
     return expression;
   }
@@ -1388,6 +1390,7 @@ class TemplateResolver {
       int nextBegin = text.indexOf('{{', begin + 2);
       int end = text.indexOf('}}', textOffset);
       int exprBegin, exprEnd;
+      bool detectTrailing = false;
       if (begin == -1 && end == -1) {
         break;
       }
@@ -1417,10 +1420,11 @@ class TemplateResolver {
         exprBegin = begin;
         exprEnd = end;
         textOffset = end + 2;
+        detectTrailing = true;
       }
       // resolve
       String code = text.substring(exprBegin, exprEnd);
-      _resolveExpression(fileOffset + exprBegin, code);
+      _resolveExpression(fileOffset + exprBegin, code, detectTrailing);
     }
   }
 
