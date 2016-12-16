@@ -18,8 +18,6 @@ class NgExprParser extends Parser {
 
   final TypeProvider typeProvider;
 
-  @override
-
   /**
    * Parse a bitwise or expression to be treated as a pipe.
    * Return the resolved left-hand expression as a dynamic type.
@@ -30,19 +28,19 @@ class NgExprParser extends Parser {
   @override
   Expression parseBitwiseOrExpression() {
     Expression expression;
-    Token tempEndToken = null;
+    Token beforePipeToken = null;
     expression = parseBitwiseXorExpression();
     while (_currentToken.type == TokenType.BAR) {
-      if (tempEndToken == null) tempEndToken = _currentToken.previous;
+      if (beforePipeToken == null) beforePipeToken = _currentToken.previous;
       getAndAdvance();
       parsePipeExpression();
     }
-    if (tempEndToken != null) {
+    if (beforePipeToken != null) {
       Token asToken = new KeywordToken(Keyword.AS, 0);
       Token dynamicIdToken =
           new StringToken(TokenType.IDENTIFIER, "dynamic", 0);
 
-      tempEndToken.setNext(asToken);
+      beforePipeToken.setNext(asToken);
       asToken.setNext(dynamicIdToken);
       dynamicIdToken.setNext(_currentToken);
 

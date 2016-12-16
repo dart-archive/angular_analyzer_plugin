@@ -885,7 +885,7 @@ class TestPanel {
 }
 ''');
     var code = r"""
-<p>{{name | pipe1 | pipe2:param1:param2}}</p>
+<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (2 | pipe3:4:2))}}</p>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
@@ -900,7 +900,7 @@ class TestPanel {
 }
 ''');
     var code = r"""
-<p>{{error1 | pipe1 | pipe2:param1:param2}}</p>
+<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (error1 | pipe3:4:2))}}</p>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
