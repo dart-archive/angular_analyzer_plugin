@@ -1444,9 +1444,6 @@ class TemplateResolver {
     return scanner.tokenize();
   }
 
-  bool _expressionIsDynamic(Expression expression) =>
-      expression.propagatedType == typeProvider.dynamicType;
-
   /**
    * Check whether the given [name] is a standard HTML5 tag name.
    */
