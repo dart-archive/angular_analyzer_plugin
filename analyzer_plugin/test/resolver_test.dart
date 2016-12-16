@@ -1638,6 +1638,24 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
+  void test_ngFor_hash_instead_of_let() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> items = [];
+}
+''');
+    var code = r"""
+<li *ngFor='#item of items; let i = index'>
+</li>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, code, "#");
+  }
+
   void test_ngForSugar_dartExpression() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
