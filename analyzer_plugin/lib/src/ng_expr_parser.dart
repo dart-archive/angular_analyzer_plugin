@@ -1,5 +1,3 @@
-library angular2.src.analysis.analyzer_plugin.src.ng_expr_parser.dart;
-
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/error/listener.dart';
