@@ -758,8 +758,8 @@ class TemplateResolver {
       } else if (attribute.bound != null) {
         Expression expression = attribute.expression;
         if (expression == null) {
-          expression =
-              _resolveDartExpressionAt(attribute.valueOffset, attribute.value);
+          expression = _resolveDartExpressionAt(
+              attribute.valueOffset, attribute.value, true);
           attribute.expression = expression;
         }
         if (expression != null) {
@@ -1058,9 +1058,10 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(int offset, String code) {
+  Expression _resolveDartExpressionAt(
+      int offset, String code, bool detectTrailing) {
     Expression expression = _parseDartExpression(offset, code);
-    if (expression.endToken.next.type != TokenType.EOF) {
+    if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
@@ -1162,8 +1163,9 @@ class TemplateResolver {
    * Resolve the given Angular [code] at the given [offset].
    * Record [ResolvedRange]s.
    */
-  Expression _resolveExpression(int offset, String code) {
-    Expression expression = _resolveDartExpressionAt(offset, code);
+  Expression _resolveExpression(int offset, String code, bool detectTrailing) {
+    Expression expression =
+        _resolveDartExpressionAt(offset, code, detectTrailing);
     _recordAstNodeResolvedRanges(expression);
     return expression;
   }
@@ -1387,6 +1389,8 @@ class TemplateResolver {
       int begin = text.indexOf('{{', textOffset);
       int nextBegin = text.indexOf('{{', begin + 2);
       int end = text.indexOf('}}', textOffset);
+      int exprBegin, exprEnd;
+      bool detectTrailing = false;
       if (begin == -1 && end == -1) {
         break;
       }
@@ -1396,29 +1400,31 @@ class TemplateResolver {
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = begin + 2;
-        continue;
-      }
-
-      if (begin == -1) {
+        exprBegin = textOffset;
+        exprEnd = text.length;
+      } else if (begin == -1) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = end + 2;
         continue;
-      }
-
-      if (nextBegin != -1 && nextBegin < end) {
+      } else if (nextBegin != -1 && nextBegin < end) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Skip this open mustache, check the next open we found
         textOffset = begin + 2;
-        continue;
+        exprBegin = textOffset;
+        exprEnd = nextBegin;
+      } else {
+        begin += 2;
+        exprBegin = begin;
+        exprEnd = end;
+        textOffset = end + 2;
+        detectTrailing = true;
       }
       // resolve
-      begin += 2;
-      String code = text.substring(begin, end);
-      _resolveExpression(fileOffset + begin, code);
-      textOffset = end + 2;
+      String code = text.substring(exprBegin, exprEnd);
+      _resolveExpression(fileOffset + exprBegin, code, detectTrailing);
     }
   }
 
