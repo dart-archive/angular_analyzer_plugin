@@ -22,6 +22,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
@@ -690,7 +691,8 @@ class TemplateResolver {
    * Parse the Dart expression starting at the given [token].
    */
   Expression _parseDartExpressionAtToken(Token token) {
-    Parser parser = new Parser(templateSource, errorListener);
+    Parser parser =
+        new NgExprParser(templateSource, errorListener, typeProvider);
     return parser.parseExpression(token);
   }
 
@@ -1061,7 +1063,9 @@ class TemplateResolver {
   Expression _resolveDartExpressionAt(
       int offset, String code, bool detectTrailing) {
     Expression expression = _parseDartExpression(offset, code);
-    if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
+    bool isDynamicExpression = _expressionIsDynamic(expression);
+    if (detectTrailing &&
+        expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
@@ -1071,6 +1075,9 @@ class TemplateResolver {
     }
     if (expression != null) {
       _resolveDartAstNode(expression, null);
+    }
+    if (isDynamicExpression && !_expressionIsDynamic(expression)) {
+      expression.propagatedType = typeProvider.dynamicType;
     }
     return expression;
   }
@@ -1437,6 +1444,9 @@ class TemplateResolver {
     Scanner scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
   }
+
+  bool _expressionIsDynamic(Expression expression) =>
+      expression.propagatedType == typeProvider.dynamicType;
 
   /**
    * Check whether the given [name] is a standard HTML5 tag name.
