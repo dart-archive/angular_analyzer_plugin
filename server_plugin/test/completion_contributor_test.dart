@@ -241,4 +241,116 @@ class MyComp {
     assertSuggestMethod('toString', 'Object', 'String');
     assertSuggestGetter('hashCode', 'int');
   }
+
+  test_completeNgForItem() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let item of items">{{^}}</div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLocalVar('item', 'String');
+  }
+
+  test_completeHashVar() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+}
+    ''');
+
+    addTestSource('<button #buttonEl>button</button> {{^}}');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLocalVar('buttonEl', 'ButtonElement');
+  }
+
+  test_completeNgVars_notAfterDot() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource(
+        '<button #buttonEl>button</button><div *ngFor="item of items">{{hashCode.^}}</div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('buttonEl');
+    assertNotSuggested('item');
+  }
+
+  test_findCompletionTarget_afterUnclosedDom() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<input /> {{^}}');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('text', 'String');
+  }
+
+  test_completeStartedStatements() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<button (click)="t^"></button>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLocalVar(r'$event', 'MouseEvent');
+    assertSuggestGetter('text', 'String');
+  }
 }

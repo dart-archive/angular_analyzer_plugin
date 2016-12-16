@@ -1,14 +1,21 @@
 import 'dart:async';
 
+import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
+    show Element, ElementKind;
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
+import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
+
+import 'package:analysis_server/src/protocol_server.dart'
+    show CompletionSuggestion, CompletionSuggestionKind, Location;
 
 import 'package:analysis_server/src/protocol_server.dart'
     show CompletionSuggestion;
@@ -42,18 +49,19 @@ class DartSnippetExtractor extends AngularAstVisitor {
   @override
   visitElementInfo(ElementInfo element) {}
   @override
-  visitTextAttribute(ElementInfo element) {}
+  visitTextAttr(TextAttribute attr) {}
 
   @override
   visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
-    if (offsetContained(offset, attr.expression.offset, attr.expression.length)) {
+    if (offsetContained(
+        offset, attr.expression.offset, attr.expression.length)) {
       dartSnippet = attr.expression;
     }
   }
 
   @override
   visitStatementsBoundAttr(StatementsBoundAttribute attr) {
-    for (statement in attr.statements) {
+    for (Statement statement in attr.statements) {
       if (offsetContained(offset, statement.offset, statement.length)) {
         dartSnippet = statement;
       }
@@ -62,9 +70,35 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   visitMustache(Mustache mustache) {
-    if (offsetContained(offset, mustache.expression.offset, mustache.expression.length)) {
+    if (offsetContained(
+        offset, mustache.expression.offset, mustache.expression.length)) {
       dartSnippet = mustache.expression;
     }
+  }
+}
+
+class LocalVariablesExtractor extends AngularAstVisitor {
+  Map<String, LocalVariable> variables = null;
+
+  // don't recurse, findTarget already did that
+  @override
+  visitElementInfo(ElementInfo element) {}
+  @override
+  visitTextAttr(TextAttribute attr) {}
+
+  @override
+  visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    variables = attr.localVariables;
+  }
+
+  @override
+  visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    variables = attr.localVariables;
+  }
+
+  @override
+  visitMustache(Mustache mustache) {
+    variables = mustache.localVariables;
   }
 }
 
@@ -113,7 +147,8 @@ class TemplateCompleter {
       target.accept(extractor);
       if (extractor.dartSnippet != null) {
         EmbeddedDartCompletionRequest dartRequest =
-            new EmbeddedDartCompletionRequest.from(request, extractor.dartSnippet);
+            new EmbeddedDartCompletionRequest.from(
+                request, extractor.dartSnippet);
 
         dartRequest.libraryElement = template.view.classElement.library;
         TypeMemberContributor memberContributor = new TypeMemberContributor();
@@ -124,9 +159,59 @@ class TemplateCompleter {
             skipChildClass: false));
         suggestions
             .addAll(await memberContributor.computeSuggestions(dartRequest));
+
+        if (dartRequest.opType.includeIdentifiers) {
+          LocalVariablesExtractor varExtractor = new LocalVariablesExtractor();
+          target.accept(varExtractor);
+          if (varExtractor.variables != null) {
+            addLocalVariables(
+                suggestions, varExtractor.variables, dartRequest.opType);
+          }
+        }
       }
     }
 
     return suggestions;
+  }
+
+  addLocalVariables(List<CompletionSuggestion> suggestions,
+      Map<String, LocalVariable> localVars, OpType optype) {
+    for (LocalVariable eachVar in localVars.values) {
+      suggestions.add(_addLocalVariableSuggestion(
+          eachVar,
+          eachVar.dartVariable.type,
+          protocol.ElementKind.LOCAL_VARIABLE,
+          optype,
+          relevance: DART_RELEVANCE_LOCAL_VARIABLE));
+    }
+  }
+
+  CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
+      DartType typeName, protocol.ElementKind elemKind, OpType optype,
+      {int relevance: DART_RELEVANCE_DEFAULT}) {
+    relevance = optype.returnValueSuggestionsFilter(
+            variable.dartVariable.type, relevance) ??
+        DART_RELEVANCE_DEFAULT;
+    return _createLocalSuggestion(variable, relevance, typeName,
+        _createLocalElement(variable, elemKind, typeName));
+  }
+
+  CompletionSuggestion _createLocalSuggestion(LocalVariable localVar,
+      int defaultRelevance, DartType type, protocol.Element element) {
+    String completion = localVar.name;
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        returnType: type.toString(), element: element);
+  }
+
+  protocol.Element _createLocalElement(
+      LocalVariable localVar, protocol.ElementKind kind, DartType type) {
+    String name = localVar.name;
+    Location location = new Location(localVar.source.fullName,
+        localVar.nameOffset, localVar.nameLength, 0, 0);
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, name, flags,
+        location: location, returnType: type.toString());
   }
 }

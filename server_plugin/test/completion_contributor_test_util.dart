@@ -533,6 +533,31 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestLocalVar(String name, String returnType,
+      {int relevance: DART_RELEVANCE_LOCAL_VARIABLE,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
+      String importUri}) {
+    CompletionSuggestion cs = assertSuggest(name,
+        csKind: kind, relevance: relevance, importUri: importUri);
+    if (returnType != null) {
+      expect(cs.returnType, returnType);
+    } else if (isNullExpectedReturnTypeConsideredDynamic) {
+      expect(cs.returnType, 'dynamic');
+    }
+    protocol.Element element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LOCAL_VARIABLE));
+    expect(element.name, equals(name));
+    expect(element.parameters, isNull);
+    if (returnType != null) {
+      expect(element.returnType, returnType);
+    } else if (isNullExpectedReturnTypeConsideredDynamic) {
+      expect(element.returnType, 'dynamic');
+    }
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   /**
    * Return a [Future] that completes with the containing library information
    * after it is accessible via [context.getLibrariesContaining].

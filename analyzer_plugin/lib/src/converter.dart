@@ -372,7 +372,7 @@ class EmbeddedDartParser {
       begin += 2;
       String code = text.substring(begin, end);
       Expression expression = parseDartExpression(fileOffset + begin, code);
-      mustaches.add(new Mustache(begin - 2, end + 2, expression));
+      mustaches.add(new Mustache(fileOffset + begin - 2, end + 2, expression));
       textOffset = end + 2;
     }
 

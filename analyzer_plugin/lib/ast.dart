@@ -231,6 +231,7 @@ class ElementInfo extends NodeInfo {
 
   int get offset => openingSpan.offset;
   int get length =>
+      closingSpan == null ? openingSpan.length :
       closingSpan.offset + closingSpan.length - openingSpan.offset;
 
   List<AngularAstNode> get children {
