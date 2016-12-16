@@ -1880,6 +1880,7 @@ import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', template: r"<div> {{text </div>")
 class TextPanel {
+  Strint text = "text";
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -1919,29 +1920,7 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', template: r"<div> {{text {{ text}} </div>")
-class TextPanel {
-  String text;
-}
-''';
-    Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // validate
-    List<Template> templates = outputs[DART_TEMPLATES];
-    expect(templates, hasLength(1));
-    // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
-    errorListener
-        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
-  }
-
-  void test_textExpression_hasError_MultipleUnclosedMustaches() {
-    String code = r'''
-import '/angular2/angular2.dart';
-
-@Component(selector: 'text-panel', template: r"<div> {{open {{open {{text}} close}} close}} </div>")
+@Component(selector: 'text-panel', template: r"<div> {{text {{ error}} </div>")
 class TextPanel {
   String text;
 }
@@ -1957,7 +1936,32 @@ class TextPanel {
     fillErrorListener(DART_TEMPLATES_ERRORS);
     errorListener.assertErrorsWithCodes([
       AngularWarningCode.UNTERMINATED_MUSTACHE,
+      StaticWarningCode.UNDEFINED_IDENTIFIER
+    ]);
+  }
+
+  void test_textExpression_hasError_MultipleUnclosedMustaches() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> {{open {{error {{text}} close}} close}} </div>")
+class TextPanel {
+  String text, open, close;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // has errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertErrorsWithCodes([
       AngularWarningCode.UNTERMINATED_MUSTACHE,
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
       AngularWarningCode.UNOPENED_MUSTACHE,
       AngularWarningCode.UNOPENED_MUSTACHE
     ]);

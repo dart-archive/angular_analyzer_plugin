@@ -1104,5 +1104,4 @@ class SingleScopeResolver extends AngularAstVisitor {
       astNode.accept(new _DartReferencesRecorder(template, dartVariables));
     }
   }
-
 }
