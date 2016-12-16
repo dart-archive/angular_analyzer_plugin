@@ -7,6 +7,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
+import 'package:front_end/src/scanner/token.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(
@@ -29,12 +30,28 @@ class NgExprParser extends Parser {
   @override
   Expression parseBitwiseOrExpression() {
     Expression expression;
+    Token tempEndToken = null;
     expression = parseBitwiseXorExpression();
     while (_currentToken.type == TokenType.BAR) {
+      if (tempEndToken == null) tempEndToken = _currentToken.previous;
       getAndAdvance();
       parsePipeExpression();
     }
-    expression.propagatedType = typeProvider.dynamicType;
+    if (tempEndToken != null) {
+      Token asToken = new KeywordToken(Keyword.AS, 0);
+      Token dynamicIdToken =
+          new StringToken(TokenType.IDENTIFIER, "dynamic", 0);
+
+      tempEndToken.setNext(asToken);
+      asToken.setNext(dynamicIdToken);
+      dynamicIdToken.setNext(_currentToken);
+
+      Expression dynamicIdentifier =
+          astFactory.simpleIdentifier(dynamicIdToken);
+
+      expression = astFactory.asExpression(
+          expression, asToken, astFactory.typeName(dynamicIdentifier, null));
+    }
     return expression;
   }
 
@@ -42,14 +59,13 @@ class NgExprParser extends Parser {
    * Parse a bitwise or expression to be treated as a pipe.
    * Return the resolved left-hand expression as a dynamic type.
    *
-   *     pipeExpression ::= assignableExpression[:param]*
+   *     pipeExpression ::= identifier[':' expression]*
    */
-  Expression parsePipeExpression() {
-    parseAssignableExpression(true);
+  void parsePipeExpression() {
+    parseIdentifierList();
     while (_currentToken.type == TokenType.COLON) {
       getAndAdvance();
-      parseArgument();
+      parseExpression2();
     }
-    return null;
   }
 }

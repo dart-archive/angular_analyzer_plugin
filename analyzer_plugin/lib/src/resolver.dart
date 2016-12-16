@@ -1063,9 +1063,7 @@ class TemplateResolver {
   Expression _resolveDartExpressionAt(
       int offset, String code, bool detectTrailing) {
     Expression expression = _parseDartExpression(offset, code);
-    bool isDynamicExpression = _expressionIsDynamic(expression);
-    if (detectTrailing &&
-        expression.endToken.next.type != TokenType.EOF) {
+    if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
@@ -1075,9 +1073,6 @@ class TemplateResolver {
     }
     if (expression != null) {
       _resolveDartAstNode(expression, null);
-    }
-    if (isDynamicExpression && !_expressionIsDynamic(expression)) {
-      expression.propagatedType = typeProvider.dynamicType;
     }
     return expression;
   }
