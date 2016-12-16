@@ -168,7 +168,7 @@ class HtmlTreeConverter {
         valueOffset,
         origName,
         origNameOffset,
-        dartParser.parseDartExpression(valueOffset, value),
+        dartParser.parseDartExpression(valueOffset, value, true),
         bound);
   }
 
@@ -244,11 +244,11 @@ class EmbeddedDartParser {
   /**
    * Parse the given Dart [code] that starts at [offset].
    */
-  Expression parseDartExpression(int offset, String code) {
+  Expression parseDartExpression(int offset, String code, bool detectTrailing) {
     Token token = _scanDartCode(offset, code);
     Expression expression = _parseDartExpressionAtToken(token);
 
-    if (expression.endToken.next.type != TokenType.EOF) {
+    if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
@@ -342,6 +342,8 @@ class EmbeddedDartParser {
       int begin = text.indexOf('{{', textOffset);
       int nextBegin = text.indexOf('{{', begin + 2);
       int end = text.indexOf('}}', textOffset);
+      int exprBegin, exprEnd;
+      bool detectTrailing = false;
       if (begin == -1 && end == -1) {
         break;
       }
@@ -351,29 +353,32 @@ class EmbeddedDartParser {
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = begin + 2;
-        continue;
-      }
-
-      if (begin == -1) {
+        exprBegin = textOffset;
+        exprEnd = text.length;
+      } else if (begin == -1) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = end + 2;
         continue;
-      }
-
-      if (nextBegin != -1 && nextBegin < end) {
+      } else if (nextBegin != -1 && nextBegin < end) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Skip this open mustache, check the next open we found
         textOffset = begin + 2;
-        continue;
+        exprBegin = textOffset;
+        exprEnd = nextBegin;
+      } else {
+        begin += 2;
+        exprBegin = begin;
+        exprEnd = end;
+        textOffset = end + 2;
+        detectTrailing = true;
       }
-      begin += 2;
-      String code = text.substring(begin, end);
-      Expression expression = parseDartExpression(fileOffset + begin, code);
-      mustaches.add(new Mustache(fileOffset + begin - 2, end + 2, expression));
-      textOffset = end + 2;
+      // resolve
+      String code = text.substring(exprBegin, exprEnd);
+      Expression expression = parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
+      mustaches.add(new Mustache(fileOffset + begin, end + 2, expression));
     }
 
     return mustaches;
@@ -394,6 +399,10 @@ class EmbeddedDartParser {
       }
       // maybe a local variable
       if (_isTemplateVarBeginToken(token)) {
+        if (token.type == TokenType.HASH) {
+          errorReporter.reportErrorForToken(
+              AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
+        }
         token = token.next;
         // get the local variable name
         if (!_tokenMatchesIdentifier(token)) {
@@ -486,7 +495,8 @@ class EmbeddedDartParser {
 
   static bool _isTemplateVarBeginToken(Token token) {
     return token is KeywordToken && token.keyword == Keyword.VAR ||
-        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let');
+        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
+        token.type == TokenType.HASH;
   }
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
