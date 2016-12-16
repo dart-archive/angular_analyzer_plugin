@@ -8,11 +8,65 @@ import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
 
 import 'package:analysis_server/src/protocol_server.dart'
     show CompletionSuggestion;
 
 import 'embedded_dart_completion_request.dart';
+
+bool offsetContained(int offset, int start, int length) {
+  return start <= offset && start + length >= offset;
+}
+
+AngularAstNode findTarget(int offset, AngularAstNode root) {
+  for (AngularAstNode child in root.children) {
+    if (child is ElementInfo && child.openingSpan == null) {
+      var target = findTarget(offset, child);
+      if (!(target is ElementInfo && child.openingSpan == null)) {
+        return target;
+      }
+    } else if (offsetContained(offset, child.offset, child.length)) {
+      return findTarget(offset, child);
+    }
+  }
+
+  return root;
+}
+
+class DartSnippetExtractor extends AngularAstVisitor {
+  AstNode dartSnippet = null;
+  int offset;
+
+  // don't recurse, findTarget already did that
+  @override
+  visitElementInfo(ElementInfo element) {}
+  @override
+  visitTextAttribute(ElementInfo element) {}
+
+  @override
+  visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    if (offsetContained(offset, attr.expression.offset, attr.expression.length)) {
+      dartSnippet = attr.expression;
+    }
+  }
+
+  @override
+  visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    for (statement in attr.statements) {
+      if (offsetContained(offset, statement.offset, statement.length)) {
+        dartSnippet = statement;
+      }
+    }
+  }
+
+  @override
+  visitMustache(Mustache mustache) {
+    if (offsetContained(offset, mustache.expression.offset, mustache.expression.length)) {
+      dartSnippet = mustache.expression;
+    }
+  }
+}
 
 class AngularDartCompletionContributor extends DartCompletionContributor {
   /**
@@ -53,22 +107,23 @@ class TemplateCompleter {
       CompletionRequest request, List<Template> templates) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      for (Expression expression in template.embeddedExpressions) {
-        if (expression.offset <= request.offset &&
-            expression.offset + expression.length >= request.offset) {
-          EmbeddedDartCompletionRequest dartRequest =
-              new EmbeddedDartCompletionRequest.from(request, expression);
+      AngularAstNode target = findTarget(request.offset, template.ast);
+      DartSnippetExtractor extractor = new DartSnippetExtractor();
+      extractor.offset = request.offset;
+      target.accept(extractor);
+      if (extractor.dartSnippet != null) {
+        EmbeddedDartCompletionRequest dartRequest =
+            new EmbeddedDartCompletionRequest.from(request, extractor.dartSnippet);
 
-          dartRequest.libraryElement = template.view.classElement.library;
-          TypeMemberContributor memberContributor = new TypeMemberContributor();
-          InheritedReferenceContributor inheritedContributor =
-              new InheritedReferenceContributor();
-          suggestions.addAll(inheritedContributor.computeSuggestionsForClass(
-              template.view.classElement, dartRequest,
-              skipChildClass: false));
-          suggestions
-              .addAll(await memberContributor.computeSuggestions(dartRequest));
-        }
+        dartRequest.libraryElement = template.view.classElement.library;
+        TypeMemberContributor memberContributor = new TypeMemberContributor();
+        InheritedReferenceContributor inheritedContributor =
+            new InheritedReferenceContributor();
+        suggestions.addAll(inheritedContributor.computeSuggestionsForClass(
+            template.view.classElement, dartRequest,
+            skipChildClass: false));
+        suggestions
+            .addAll(await memberContributor.computeSuggestions(dartRequest));
       }
     }
 

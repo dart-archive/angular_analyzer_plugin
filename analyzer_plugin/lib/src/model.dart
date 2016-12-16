@@ -7,6 +7,7 @@ import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:html/dom.dart' as html;
 
 /**
@@ -267,9 +268,9 @@ class Template {
   final List<ResolvedRange> ranges = <ResolvedRange>[];
 
   /**
-   * The [Expression]s of the template.
+   * The [ElementInfo] that begins the AST of the resolved template
    */
-  final List<dart.Expression> embeddedExpressions = <dart.Expression>[];
+  ElementInfo _ast;
 
   Template(this.view, this.element);
 
@@ -293,6 +294,15 @@ class Template {
   @override
   String toString() {
     return 'Template(ranges=$ranges)';
+  }
+
+  ElementInfo get ast => _ast;
+  set ast(ElementInfo ast) {
+    if (_ast != null) {
+      throw new StateError("AST is already set, shouldn't be set again");
+    }
+      
+    _ast = ast;
   }
 }
 

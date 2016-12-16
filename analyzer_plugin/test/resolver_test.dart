@@ -187,7 +187,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[title]");
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "title");
   }
 
   void test_expression_twoWayBinding_valid() {
@@ -287,16 +287,16 @@ class TestPanel {
 }
 @Component(selector: 'title-comp', template: '', inputs: 'title')
 class TitleComponent {
-  @Output() EventEmitter<String> titleChange;
+  @Output() EventEmitter<String> noInputChange;
 }
 ''');
     var code = r"""
-<title-comp [(title)]="text"></title-comp>
+<title-comp [(noInput)]="text"></title-comp>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[(title)]");
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "noInput");
   }
 
   void test_expression_twoWayBinding_noOutputToBind() {
@@ -308,16 +308,16 @@ class TestPanel {
 }
 @Component(selector: 'title-comp', template: '', inputs: 'title')
 class TitleComponent {
-  @Input() String title;
+  @Input() String inputOnly;
 }
 ''');
     var code = r"""
-<title-comp [(title)]="text"></title-comp>
+<title-comp [(inputOnly)]="text"></title-comp>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "[(title)]");
+        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "inputOnly");
   }
 
   void test_expression_inputBinding_bind() {
@@ -349,7 +349,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "(title)");
+        AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "title");
   }
 
   void test_expression_outputBinding_typeError() {
@@ -1203,7 +1203,6 @@ class TestPanel {}
 <name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("aaa=").input.at("aaa', ");
     _assertElement("bbb]=").input.at("bbb', ");
     _assertElement("ccc=").input.at("ccc']");
   }
@@ -1225,7 +1224,6 @@ class TestPanel {}
 <name-panel aaa='1' (bbb)='2' on-ccc='3'></name-panel>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("aaa=").output.at("aaa;");
     _assertElement("bbb)=").output.at("bbb;");
     _assertElement("ccc=").output.at("ccc;");
   }
