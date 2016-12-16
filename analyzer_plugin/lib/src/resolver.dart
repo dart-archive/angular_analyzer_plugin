@@ -1273,6 +1273,10 @@ class TemplateResolver {
       }
       // maybe a local variable
       if (_isTemplateVarBeginToken(token)) {
+        if (token.type == TokenType.HASH) {
+          errorReporter.reportErrorForToken(
+              AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
+        }
         token = token.next;
         // get the local variable name
         if (!_tokenMatchesIdentifier(token)) {
@@ -1448,7 +1452,8 @@ class TemplateResolver {
 
   static bool _isTemplateVarBeginToken(Token token) {
     return token is KeywordToken && token.keyword == Keyword.VAR ||
-        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let');
+        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
+        token.type == TokenType.HASH;
   }
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
