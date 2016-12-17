@@ -197,7 +197,7 @@ class TextInfo extends NodeInfo {
 
   TextInfo(this.offset, this.text, this.mustaches);
 
-  int get length => offset + text.length;
+  int get length => text.length;
 
   void accept(AngularAstVisitor visitor) => visitor.visitTextInfo(this);
 }

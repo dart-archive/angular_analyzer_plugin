@@ -339,9 +339,9 @@ class EmbeddedDartParser {
     int textOffset = 0;
     while (true) {
       // begin
-      int begin = text.indexOf('{{', textOffset);
-      int nextBegin = text.indexOf('{{', begin + 2);
-      int end = text.indexOf('}}', textOffset);
+      final int begin = text.indexOf('{{', textOffset);
+      final int nextBegin = text.indexOf('{{', begin + 2);
+      final int end = text.indexOf('}}', textOffset);
       int exprBegin, exprEnd;
       bool detectTrailing = false;
       if (begin == -1 && end == -1) {
@@ -354,7 +354,7 @@ class EmbeddedDartParser {
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = begin + 2;
         exprBegin = textOffset;
-        exprEnd = text.length;
+        exprEnd = _startsWithWhitespace(text.substring(exprBegin)) ? exprBegin : text.length;
       } else if (begin == -1) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
@@ -369,8 +369,7 @@ class EmbeddedDartParser {
         exprBegin = textOffset;
         exprEnd = nextBegin;
       } else {
-        begin += 2;
-        exprBegin = begin;
+        exprBegin = begin + 2;
         exprEnd = end;
         textOffset = end + 2;
         detectTrailing = true;
@@ -378,10 +377,24 @@ class EmbeddedDartParser {
       // resolve
       String code = text.substring(exprBegin, exprEnd);
       Expression expression = parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
-      mustaches.add(new Mustache(fileOffset + begin, end + 2, expression));
+
+      var offset = fileOffset + begin;
+      var length;
+      if (end == -1) {
+        length = expression.offset + expression.length - offset;
+      } else {
+        length = end + 2 - begin;
+      }
+
+      mustaches.add(new Mustache(offset, length, expression));
     }
 
     return mustaches;
+  }
+
+  bool _startsWithWhitespace(String string) {
+    // trim returns the original string when no changes were made
+    return !identical(string.trimLeft(), string);
   }
 
   /**

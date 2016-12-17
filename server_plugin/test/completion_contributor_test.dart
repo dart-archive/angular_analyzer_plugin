@@ -331,7 +331,7 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeStartedStatements() async {
+  test_completeStatements() async {
     Source dartSource = newSource(
         '/completionTest.dart',
         '''
@@ -342,7 +342,7 @@ class MyComp {
 }
     ''');
 
-    addTestSource('<button (click)="t^"></button>');
+    addTestSource('<button (click)="^"></button>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
@@ -351,6 +351,28 @@ class MyComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestLocalVar(r'$event', 'MouseEvent');
+    assertSuggestGetter('text', 'String');
+  }
+
+  test_completeUnclosedMustache() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('some text and {{^   <div>some html</div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertSuggestGetter('text', 'String');
   }
 }
