@@ -60,8 +60,14 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
     if (target.containingNode == dart) {
       opType.includeReturnValueSuggestions = true;
       opType.includeTypeNameSuggestions = true;
-      // only embedded statements should return void
+      // expressions always have nonvoid returns
       opType.includeVoidReturnSuggestions = !(dart is Expression);
+    }
+
+    // NG Expressions (not statements) always must return something. We have to
+    // force that ourselves here.
+    if (dart is Expression) {
+      opType.includeVoidReturnSuggestions = false;
     }
 
     AstNode node = target.containingNode;

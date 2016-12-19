@@ -375,4 +375,50 @@ class MyComp {
     expect(replacementLength, 0);
     assertSuggestGetter('text', 'String');
   }
+
+  test_completeEmptyExpressionDoesntIncludeVoid() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  void dontCompleteMe() {}
+}
+    ''');
+
+    addTestSource('{{^}}');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("dontCompleteMe");
+  }
+
+  test_completeInMiddleOfExpressionDoesntIncludeVoid() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  bool takesArg(dynamic arg) {};
+  void dontCompleteMe() {}
+}
+    ''');
+
+    addTestSource('{{takesArg(^)}}');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("dontCompleteMe");
+  }
+
 }
