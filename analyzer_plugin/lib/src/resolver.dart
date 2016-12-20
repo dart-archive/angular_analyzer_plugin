@@ -253,17 +253,29 @@ class TemplateResolver {
     internalVariables = new HashMap.from(internalVariables);
     localVariables = new HashMap.from(localVariables);
     try {
+      DartVariableManager dartVarManager =
+          new DartVariableManager(template, templateSource, errorListener);
+      // Prepare the scopes
       element.accept(new PrepareScopeVisitor(
           internalVariables,
           localVariables,
           template,
           templateSource,
           typeProvider,
-          standardHtmlEvents,
+          dartVarManager,
           errorListener));
-      new SingleScopeResolver(view, template, templateSource, typeProvider,
-              errorListener, errorReporter)
-          .visitElementInfo(element);
+      // Load $event into the scopes
+      element.accept(new PrepareEventScopeVisitor(
+          standardHtmlEvents,
+          template,
+          templateSource,
+          localVariables,
+          typeProvider,
+          dartVarManager,
+          errorListener));
+      // Resolve the scopes
+      element.accept(new SingleScopeResolver(view, template, templateSource,
+          typeProvider, errorListener, errorReporter));
 
       // Now the next scope is ready to be resolved
       var tplSearch = new NextTemplateElementsSearch();
@@ -311,52 +323,117 @@ class _DartReferencesRecorder extends RecursiveAstVisitor {
  * unlike in most languages, angular template semantics lets you use a variable
  * before its declared, ie `<a>{{b}}</a><p #b></p>` so long as they share a
  * scope. Also note that a template both ends a scope and begins it: all
- * the bindings in the template are from the old scope, and yet they add to the
- * new scope.
+ * the bindings in the template are from the old scope, and yet let-vars add to
+ * the new new scope.
  *
- * Therefore, we have to make a first pass to a scope to merely find the vars
- * and their types. While we do that, we tell each binding what its scope is
- * (using a shared reference so order doesn't matter). Only after that is
- * complete can we typecheck.
+ * This means we need to have a multiple-pass process, and that means we spend
+ * a good chunk of time merely following the rules of scoping. This visitor
+ * will enforce that for you.
  *
- * Note that if we are looking at the root element of the scope and it's a
- * template, that means we have to use the template bindings to load the scope
- * accordingly, but shouldn't affect the scopes of the bindings themselves. Or,
- * if we are looking at a branch (not root) of the scope and its a template, we
- * have to tell those template attributes to use our scope but cannot beyond.
+ * Just don't @override visitElementInfo (or do so carefully), and this visitor
+ * naturally walk over all the attributes in scope by what you give it. You can
+ * also hook into what happens when it hits the elements by overriding:
  *
- * Only once [NgForOf] has the right scope, properly prepared, can it be
- * typechecked. And only after it has been typechecked can we prepare the next
- * nested scope.
+ * * visitBorderScopeTemplateAttribute(templateAttribute)
+ * * visitScopeRootElementWithTemplateAttribute(element)
+ * * visitBorderScopeTemplateElement(element)
+ * * visitScopeRootTemplateElement(element)
+ * * visitElementInScope(element)
  *
- * Then as a last complication, I'm using this to put $event vars in the scopes
- * because the code for that is nontrivial and all here. But that means copying
- * the scopes, so they have to be 100% ready otherwise, so we do that in a
- * second pass.
+ * Which should allow you to do specialty things, such as what the
+ * [PrepareScopeVisitor] does by using out-of-scope properties to affect the
+ * in-scope ones.
  */
-class PrepareScopeVisitor extends AngularAstVisitor {
+class AngularScopeVisitor extends AngularAstVisitor {
+  bool visitingRoot = true;
+
+  void visitElementInfo(ElementInfo element) {
+    var isRoot = visitingRoot;
+    visitingRoot = false;
+    if (element.templateAttribute != null) {
+      if (!isRoot) {
+        visitBorderScopeTemplateAttribute(element.templateAttribute);
+        return;
+      } else {
+        visitScopeRootElementWithTemplateAttribute(element);
+      }
+    } else if (element.isTemplate) {
+      if (isRoot) {
+        visitScopeRootTemplateElement(element);
+      } else {
+        visitBorderScopeTemplateElement(element);
+      }
+    } else {
+      visitElementInScope(element);
+    }
+  }
+
+  void visitScopeRootTemplateElement(ElementInfo element) {
+    // the children are in this scope, the template itself is borderlands
+    for (NodeInfo child in element.childNodes) {
+      child.accept(this);
+    }
+  }
+
+  void visitBorderScopeTemplateElement(ElementInfo element) {
+    // the attributes are in this scope, the children aren't
+    for (AttributeInfo attr in element.attributes) {
+      attr.accept(this);
+    }
+  }
+
+  void visitScopeRootElementWithTemplateAttribute(ElementInfo element) {
+    var children =
+        element.children.where((child) => child is! TemplateAttribute);
+    for (AngularAstNode child in children) {
+      child.accept(this);
+    }
+  }
+
+  void visitBorderScopeTemplateAttribute(TemplateAttribute attr) {
+    // Border to the next scope. The virtual properties belong here, the real
+    // element does not
+    visitTemplateAttr(attr);
+  }
+
+  void visitElementInScope(ElementInfo element) {
+    for (NodeInfo child in element.children) {
+      child.accept(this);
+    }
+  }
+}
+
+/**
+ * We have to collect all vars and their types before we can resolve the
+ * bindings, since variables can be used before they are declared. This does
+ * that. 
+ *
+ * It loads each node's [localVariables] property so that the resolver has
+ * everything it needs, keeping those local variables around for autocomplete.
+ * As the scope is built up it is attached to the nodes -- and thanks to
+ * mutability + a shared reference, that works just fine.
+ *
+ * However, `$event` vars require a copy of the scope, not a shared reference,
+ * so that the `$event` can be added. Therefore this visitor does not handle
+ * output bindings. That is [PrepareEventScopeVisitor]'s job, only to be
+ * performed after this step has completed.
+ */
+class PrepareScopeVisitor extends AngularScopeVisitor {
   /**
    * The full map of names to internal variables in the current scope
    */
-  Map<String, InternalVariable> internalVariables;
+  final Map<String, InternalVariable> internalVariables;
 
   /**
    * The full map of names to local variables in the current scope
    */
-  Map<String, LocalVariable> localVariables;
+  final Map<String, LocalVariable> localVariables;
 
-  Template template;
-  Source templateSource;
-  TypeProvider typeProvider;
-  final Map<String, OutputElement> standardHtmlEvents;
-  AnalysisErrorListener errorListener;
-
-  CompilationUnitElementImpl htmlCompilationUnitElement;
-  ClassElementImpl htmlClassElement;
-  MethodElementImpl htmlMethodElement;
-
-  bool visitingRoot = true;
-  bool handlingEvents = false;
+  final Template template;
+  final Source templateSource;
+  final TypeProvider typeProvider;
+  final DartVariableManager dartVariableManager;
+  final AnalysisErrorListener errorListener;
 
   List<AbstractDirective> directives;
 
@@ -366,147 +443,80 @@ class PrepareScopeVisitor extends AngularAstVisitor {
       this.template,
       this.templateSource,
       this.typeProvider,
-      this.standardHtmlEvents,
+      this.dartVariableManager,
       this.errorListener);
 
-  void visitElementInfo(ElementInfo element) {
-    var isRoot = visitingRoot;
-    visitingRoot = false;
-    if (!handlingEvents) {
-      if (element.templateAttribute != null) {
-        var templateAttr = element.templateAttribute;
-        // Border to the next scope. Make sure the virtual properties are bound
-        // to the scope we're building now.
-        if (!isRoot) {
-          visitTemplateAttr(templateAttr);
-          // But nothing inside this template belongs to our scope.
-          return;
-        } else {
-          // If this is how our scope begins, like we're within an ngFor, then
-          // let the ngFor alter the current scope.
-          for (AbstractDirective directive in templateAttr.directives) {
-            _defineDirectiveVariables(
-                templateAttr.virtualAttributes, directive);
-            _defineNgForVariables(templateAttr.virtualAttributes, directive);
-          }
-
-          _defineLocalVariablesForAttributes(templateAttr.virtualAttributes);
-        }
-        // No else here. *ngIf="x" #withvar for the root still applies
-      }
-
-      // Don't do ngForVariables etc on templates unless its the root
-      if (!element.isTemplate || isRoot) {
-        // Regular element or component. Look for `#var`s.
-        for (AbstractDirective directive in element.directives) {
-          _defineDirectiveVariables(element.attributes, directive);
-          // This must be here for <template> tags.
-          _defineNgForVariables(element.attributes, directive);
-        }
-
-        _defineLocalVariablesForAttributes(element.attributes);
-      }
+  @override
+  void visitScopeRootTemplateElement(ElementInfo element) {
+    for (AbstractDirective directive in element.directives) {
+      _defineDirectiveVariables(element.attributes, directive);
+      // This must be here for <template> tags.
+      _defineNgForVariables(element.attributes, directive);
     }
 
-    // Attrs on the template are in scope if not root; children are in
-    // scope if root. Never both.
-    if (element.isTemplate) {
-      directives = element.directives;
-      if (isRoot) {
-        for (NodeInfo child in element.childNodes) {
-          child.accept(this);
-        }
-        handlingEvents = true;
-        for (NodeInfo child in element.childNodes) {
-          child.accept(this);
-        }
-      } else {
-        for (AttributeInfo child in element.attributes) {
-          child.accept(this);
-        }
-      }
-      return;
-    }
+    _defineLocalVariablesForAttributes(element.attributes);
 
     directives = element.directives;
-    for (NodeInfo child in element.children) {
-      child.accept(this);
+    super.visitScopeRootTemplateElement(element);
+  }
+
+  @override
+  void visitScopeRootElementWithTemplateAttribute(ElementInfo element) {
+    TemplateAttribute templateAttr = element.templateAttribute;
+
+    // If this is how our scope begins, like we're within an ngFor, then
+    // let the ngFor alter the current scope.
+    for (AbstractDirective directive in templateAttr.directives) {
+      _defineDirectiveVariables(templateAttr.virtualAttributes, directive);
+      _defineNgForVariables(templateAttr.virtualAttributes, directive);
     }
 
-    // Everything is good! We're ready to copy all our outputs and add $event
-    if (isRoot) {
-      handlingEvents = true;
-      directives = element.directives;
-      for (AngularAstNode child in element.children) {
-        child.accept(this);
-      }
+    _defineLocalVariablesForAttributes(templateAttr.virtualAttributes);
+
+    // Make sure the regular element also alters the current scope
+    for (AbstractDirective directive in element.directives) {
+      _defineDirectiveVariables(element.attributes, directive);
+      // This must be here for <template> tags.
+      _defineNgForVariables(element.attributes, directive);
     }
+
+    _defineLocalVariablesForAttributes(element.attributes);
+
+    directives = element.directives;
+    super.visitScopeRootElementWithTemplateAttribute(element);
+  }
+
+  @override
+  void visitBorderScopeTemplateAttribute(TemplateAttribute attr) {
+    // Border to the next scope. Make sure the virtual properties are bound
+    // to the scope we're building now. But nothing else.
+    directives = attr.directives;
+    visitTemplateAttr(attr);
+  }
+
+  @override
+  void visitElementInScope(ElementInfo element) {
+    // Regular element or component. Look for `#var`s.
+    for (AbstractDirective directive in element.directives) {
+      _defineDirectiveVariables(element.attributes, directive);
+      // This must be here for <template> tags.
+      _defineNgForVariables(element.attributes, directive);
+    }
+
+    _defineLocalVariablesForAttributes(element.attributes);
+
+    directives = element.directives;
+    super.visitElementInScope(element);
   }
 
   @override
   visitMustache(Mustache mustache) {
-    if (handlingEvents) {
-      return; // already got here
-    }
     mustache.localVariables = localVariables;
   }
 
   @override
   visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
-    if (handlingEvents) {
-      return; // already got here
-    }
     attr.localVariables = localVariables;
-  }
-
-  @override
-  visitStatementsBoundAttr(StatementsBoundAttribute attr) {
-    if (!handlingEvents) {
-      return;
-    }
-
-    DartType eventType = typeProvider.dynamicType;
-    var matched = false;
-
-    for (AbstractDirective directive in directives) {
-      for (OutputElement output in directive.outputs) {
-        //TODO what if this matches two directives?
-        if (output.name == attr.name) {
-          eventType = output.eventType;
-          matched = true;
-          SourceRange range =
-              new SourceRange(attr.nameOffset, attr.name.length);
-          template.addRange(range, output);
-        }
-      }
-    }
-
-    //standard HTML events bubble up, so everything supports them
-    if (!matched) {
-      var standardHtmlEvent = standardHtmlEvents[attr.name];
-      if (standardHtmlEvent != null) {
-        matched = true;
-        eventType = standardHtmlEvent.eventType;
-        SourceRange range = new SourceRange(attr.nameOffset, attr.name.length);
-        template.addRange(range, standardHtmlEvent);
-      }
-    }
-
-    if (!matched) {
-      errorListener.onError(new AnalysisError(
-          templateSource,
-          attr.nameOffset,
-          attr.name.length,
-          AngularWarningCode.NONEXIST_OUTPUT_BOUND,
-          [attr.name]));
-    }
-
-    attr.localVariables = new HashMap.from(localVariables);
-    LocalVariableElement dartVariable =
-        _newLocalVariableElement(-1, r'$event', eventType);
-    LocalVariable localVariable =
-        new LocalVariable(r'$event', -1, 6, templateSource, dartVariable);
-    attr.localVariables[r'$event'] = localVariable;
   }
 
   void _defineNgForVariables(
@@ -602,7 +612,7 @@ class PrepareScopeVisitor extends AngularAstVisitor {
 
         // add a new local variable with type
         LocalVariableElement dartVariable =
-            _newLocalVariableElement(-1, name, type);
+            dartVariableManager.newLocalVariableElement(-1, name, type);
         LocalVariable localVariable = new LocalVariable(
             name, offset, name.length, templateSource, dartVariable);
         localVariables[name] = localVariable;
@@ -615,7 +625,41 @@ class PrepareScopeVisitor extends AngularAstVisitor {
     }
   }
 
-  LocalVariableElement _newLocalVariableElement(
+  DartType _getIterableItemType(Expression expression) {
+    DartType itemsType = expression.bestType;
+    if (itemsType is InterfaceType) {
+      DartType iteratorType = _lookupGetterReturnType(itemsType, 'iterator');
+      if (iteratorType is InterfaceType) {
+        DartType currentType = _lookupGetterReturnType(iteratorType, 'current');
+        if (currentType != null) {
+          return currentType;
+        }
+      }
+    }
+    return typeProvider.dynamicType;
+  }
+
+  /**
+   * Return the return type of the executable element with the given [name].
+   * May return `null` if the [type] does not define one.
+   */
+  DartType _lookupGetterReturnType(InterfaceType type, String name) {
+    return type.lookUpInheritedGetter(name)?.returnType;
+  }
+}
+
+class DartVariableManager {
+  Template template;
+  Source templateSource;
+  AnalysisErrorListener errorListener;
+
+  DartVariableManager(this.template, this.templateSource, this.errorListener);
+
+  CompilationUnitElementImpl htmlCompilationUnitElement;
+  ClassElementImpl htmlClassElement;
+  MethodElementImpl htmlMethodElement;
+
+  LocalVariableElement newLocalVariableElement(
       int offset, String name, DartType type) {
     // ensure artificial Dart elements in the template source
     if (htmlMethodElement == null) {
@@ -640,27 +684,83 @@ class PrepareScopeVisitor extends AngularAstVisitor {
     htmlMethodElement.localVariables = localVariables;
     return localVariable;
   }
+}
 
-  DartType _getIterableItemType(Expression expression) {
-    DartType itemsType = expression.bestType;
-    if (itemsType is InterfaceType) {
-      DartType iteratorType = _lookupGetterReturnType(itemsType, 'iterator');
-      if (iteratorType is InterfaceType) {
-        DartType currentType = _lookupGetterReturnType(iteratorType, 'current');
-        if (currentType != null) {
-          return currentType;
+class PrepareEventScopeVisitor extends AngularScopeVisitor {
+  List<AbstractDirective> directives;
+  final Template template;
+  final Source templateSource;
+  final Map<String, LocalVariable> localVariables;
+  final Map<String, OutputElement> standardHtmlEvents;
+  final TypeProvider typeProvider;
+  final DartVariableManager dartVariableManager;
+  final AnalysisErrorListener errorListener;
+
+  PrepareEventScopeVisitor(
+      this.standardHtmlEvents,
+      this.template,
+      this.templateSource,
+      this.localVariables,
+      this.typeProvider,
+      this.dartVariableManager,
+      this.errorListener);
+
+  @override
+  visitElementInfo(ElementInfo elem) {
+    directives = elem.directives;
+    super.visitElementInfo(elem);
+  }
+
+  @override
+  visitTemplateAttr(TemplateAttribute templateAttr) {
+    directives = templateAttr.directives;
+    super.visitTemplateAttr(templateAttr);
+  }
+
+  @override
+  visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    DartType eventType = typeProvider.dynamicType;
+    var matched = false;
+
+    for (AbstractDirective directive in directives) {
+      for (OutputElement output in directive.outputs) {
+        //TODO what if this matches two directives?
+        if (output.name == attr.name) {
+          eventType = output.eventType;
+          matched = true;
+          SourceRange range =
+              new SourceRange(attr.nameOffset, attr.name.length);
+          template.addRange(range, output);
         }
       }
     }
-    return typeProvider.dynamicType;
-  }
 
-  /**
-   * Return the return type of the executable element with the given [name].
-   * May return `null` if the [type] does not define one.
-   */
-  DartType _lookupGetterReturnType(InterfaceType type, String name) {
-    return type.lookUpInheritedGetter(name)?.returnType;
+    //standard HTML events bubble up, so everything supports them
+    if (!matched) {
+      var standardHtmlEvent = standardHtmlEvents[attr.name];
+      if (standardHtmlEvent != null) {
+        matched = true;
+        eventType = standardHtmlEvent.eventType;
+        SourceRange range = new SourceRange(attr.nameOffset, attr.name.length);
+        template.addRange(range, standardHtmlEvent);
+      }
+    }
+
+    if (!matched) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attr.nameOffset,
+          attr.name.length,
+          AngularWarningCode.NONEXIST_OUTPUT_BOUND,
+          [attr.name]));
+    }
+
+    attr.localVariables = new HashMap.from(localVariables);
+    LocalVariableElement dartVariable =
+        dartVariableManager.newLocalVariableElement(-1, r'$event', eventType);
+    LocalVariable localVariable =
+        new LocalVariable(r'$event', -1, 6, templateSource, dartVariable);
+    attr.localVariables[r'$event'] = localVariable;
   }
 }
 
@@ -773,11 +873,8 @@ class DirectiveResolver extends AngularAstVisitor {
  * This will typecheck the contents of mustaches and attribute bindings against
  * their scopes, and ensure that all attribute bindings exist on a directive and
  * match the type of the binding where there is one. Then records references.
- *
- * Only real hitch in this code is that it has to make sure it only gets the
- * current scope by skipping templates that aren't the root.
  */
-class SingleScopeResolver extends AngularAstVisitor {
+class SingleScopeResolver extends AngularScopeVisitor {
   List<AbstractDirective> directives;
   View view;
   Template template;
@@ -785,8 +882,6 @@ class SingleScopeResolver extends AngularAstVisitor {
   TypeProvider typeProvider;
   AnalysisErrorListener errorListener;
   ErrorReporter errorReporter;
-
-  bool visitingRoot = true;
 
   /**
    * The full map of names to local variables in the current context
@@ -798,35 +893,14 @@ class SingleScopeResolver extends AngularAstVisitor {
 
   @override
   void visitElementInfo(ElementInfo element) {
-    var isRoot = visitingRoot;
-    visitingRoot = false;
+    directives = element.directives;
+    super.visitElementInfo(element);
+  }
 
-    // If this is the root, the nonsugared stuff is in scope. Otherwise, the
-    // sugar is the only stuff in scope.
-    if (element.templateAttribute != null && !isRoot) {
-      directives = element.templateAttribute.directives;
-      visitTemplateAttr(element.templateAttribute);
-      return;
-    }
-
-    // templates mark the root of a scope, but they aren't actually in it.
-    if (!isRoot || !element.isTemplate) {
-      directives = element.directives;
-      for (AttributeInfo attribute in element.attributes) {
-        // This is only in scope in the case handled above
-        if (attribute != element.templateAttribute) {
-          attribute.accept(this);
-        }
-      }
-      directives = [];
-    }
-
-    // The children are in scope if its not a template
-    if (!element.isTemplate || isRoot) {
-      for (NodeInfo child in element.childNodes) {
-        child.accept(this);
-      }
-    }
+  @override
+  void visitTemplateAttr(TemplateAttribute templateAttr) {
+    directives = templateAttr.directives;
+    super.visitTemplateAttr(templateAttr);
   }
 
   @override
