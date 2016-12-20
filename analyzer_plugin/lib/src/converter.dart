@@ -6,8 +6,10 @@ import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/dart/ast/token.dart' hide SimpleToken;
 import 'package:analyzer/src/dart/scanner/reader.dart';
 import 'package:analyzer/src/dart/scanner/scanner.dart';
+import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
@@ -236,10 +238,11 @@ class HtmlTreeConverter {
 class EmbeddedDartParser {
   final Source templateSource;
   final AnalysisErrorListener errorListener;
+  final TypeProvider typeProvider;
   final ErrorReporter errorReporter;
 
   EmbeddedDartParser(
-      this.templateSource, this.errorListener, this.errorReporter);
+      this.templateSource, this.errorListener, this.typeProvider, this.errorReporter);
 
   /**
    * Parse the given Dart [code] that starts at [offset].
@@ -304,7 +307,8 @@ class EmbeddedDartParser {
    * Parse the Dart expression starting at the given [token].
    */
   Expression _parseDartExpressionAtToken(Token token) {
-    Parser parser = new Parser(templateSource, errorListener);
+    Parser parser =
+        new NgExprParser(templateSource, errorListener, typeProvider);
     return parser.parseExpression(token);
   }
 
