@@ -218,8 +218,8 @@ class TemplateResolver {
     this.view = template.view;
     this.templateSource = view.templateSource;
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
-    EmbeddedDartParser parser =
-        new EmbeddedDartParser(templateSource, errorListener, typeProvider, errorReporter);
+    EmbeddedDartParser parser = new EmbeddedDartParser(
+        templateSource, errorListener, typeProvider, errorReporter);
     ElementInfo root = new HtmlTreeConverter(parser).convert(template.element);
 
     var allDirectives = <AbstractDirective>[]

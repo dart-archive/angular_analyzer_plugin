@@ -241,8 +241,8 @@ class EmbeddedDartParser {
   final TypeProvider typeProvider;
   final ErrorReporter errorReporter;
 
-  EmbeddedDartParser(
-      this.templateSource, this.errorListener, this.typeProvider, this.errorReporter);
+  EmbeddedDartParser(this.templateSource, this.errorListener, this.typeProvider,
+      this.errorReporter);
 
   /**
    * Parse the given Dart [code] that starts at [offset].
