@@ -92,10 +92,14 @@ class HtmlTreeConverter {
               value = null;
             }
 
-            attributes.add(new TextAttribute(name, _nameOffset(element, name),
-                value, valueOffset, dartParser.findMustaches(value, valueOffset)));
+            attributes.add(new TextAttribute(
+                name,
+                _nameOffset(element, name),
+                value,
+                valueOffset,
+                dartParser.findMustaches(value, valueOffset)));
           }
-        } on IgnorableHtmlInternalError catch (e) {
+        } on IgnorableHtmlInternalError {
           // See https://github.com/dart-lang/html/issues/44, this error will
           // be thrown looking for nameOffset. Catch it so that analysis else
           // where continues.
@@ -106,7 +110,8 @@ class HtmlTreeConverter {
     return attributes;
   }
 
-  TemplateAttribute _convertTemplateAttribute(html.Element element, String origName, bool starSugar) {
+  TemplateAttribute _convertTemplateAttribute(
+      html.Element element, String origName, bool starSugar) {
     int origNameOffset = _nameOffset(element, origName);
     String value = element.attributes[origName];
     int valueOffset = _valueOffset(element, origName);
@@ -116,21 +121,17 @@ class HtmlTreeConverter {
     if (starSugar) {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
-      virtualAttributes = dartParser.parseTemplateVirtualAttributes(nameOffset, name + (' ' * '="'.length) + value);
+      virtualAttributes = dartParser.parseTemplateVirtualAttributes(
+          nameOffset, name + (' ' * '="'.length) + value);
     } else {
       name = origName;
       nameOffset = origNameOffset;
-      virtualAttributes = dartParser.parseTemplateVirtualAttributes(valueOffset, value);
+      virtualAttributes =
+          dartParser.parseTemplateVirtualAttributes(valueOffset, value);
     }
 
-    return new TemplateAttribute(
-        name,
-        nameOffset,
-        value,
-        valueOffset,
-        origName,
-        origNameOffset,
-        virtualAttributes);
+    return new TemplateAttribute(name, nameOffset, value, valueOffset, origName,
+        origNameOffset, virtualAttributes);
   }
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
@@ -230,16 +231,15 @@ class HtmlTreeConverter {
     }
     return null;
   }
-
 }
 
 class EmbeddedDartParser {
-
   final Source templateSource;
   final AnalysisErrorListener errorListener;
   final ErrorReporter errorReporter;
 
-  EmbeddedDartParser(this.templateSource, this.errorListener, this.errorReporter);
+  EmbeddedDartParser(
+      this.templateSource, this.errorListener, this.errorReporter);
 
   /**
    * Parse the given Dart [code] that starts at [offset].
@@ -377,7 +377,8 @@ class EmbeddedDartParser {
       }
       // resolve
       String code = text.substring(exprBegin, exprEnd);
-      Expression expression = parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
+      Expression expression =
+          parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
       mustaches.add(new Mustache(fileOffset + begin, end + 2, expression));
     }
 
@@ -472,21 +473,10 @@ class EmbeddedDartParser {
         token = expression.endToken.next;
         var end = token.offset - offset;
         var exprCode = code.substring(start, end);
-        attributes.add(new ExpressionBoundAttribute(
-            key,
-            keyOffset,
-            key,
-            keyOffset,
-            exprCode,
-            start,
-            expression,
-            ExpressionBoundType.input));
+        attributes.add(new ExpressionBoundAttribute(key, keyOffset, key,
+            keyOffset, exprCode, start, expression, ExpressionBoundType.input));
       } else {
-        attributes.add(new TextAttribute(
-            key,
-            keyOffset,
-            null,
-            null, []));
+        attributes.add(new TextAttribute(key, keyOffset, null, null, []));
       }
     }
 

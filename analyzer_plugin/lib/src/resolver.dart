@@ -130,8 +130,8 @@ class ElementViewImpl implements ElementView {
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
       String name = attribute.name;
-      attributeNameSpans[name] = new SourceRange(
-          attribute.nameOffset, attribute.name.length);
+      attributeNameSpans[name] =
+          new SourceRange(attribute.nameOffset, attribute.name.length);
       if (attribute.value != null) {
         attributeValueSpans[name] =
             new SourceRange(attribute.valueOffset, attribute.valueLength);
@@ -218,13 +218,15 @@ class TemplateResolver {
     this.view = template.view;
     this.templateSource = view.templateSource;
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
-    EmbeddedDartParser parser = new EmbeddedDartParser(templateSource, errorListener, errorReporter);
+    EmbeddedDartParser parser =
+        new EmbeddedDartParser(templateSource, errorListener, errorReporter);
     ElementInfo root = new HtmlTreeConverter(parser).convert(template.element);
 
     var allDirectives = <AbstractDirective>[]
       ..addAll(standardHtmlComponents)
       ..addAll(view.directives);
-    DirectiveResolver directiveResolver = new DirectiveResolver(allDirectives, templateSource, template, errorListener);
+    DirectiveResolver directiveResolver = new DirectiveResolver(
+        allDirectives, templateSource, template, errorListener);
     root.accept(directiveResolver);
 
     _resolveScope(root);
@@ -251,8 +253,17 @@ class TemplateResolver {
     internalVariables = new HashMap.from(internalVariables);
     localVariables = new HashMap.from(localVariables);
     try {
-      element.accept(new PrepareScopeVisitor(internalVariables, localVariables, template, templateSource, typeProvider, standardHtmlEvents, errorListener));
-      new SingleScopeResolver(view, template, templateSource, typeProvider, errorListener, errorReporter).visitElementInfo(element);
+      element.accept(new PrepareScopeVisitor(
+          internalVariables,
+          localVariables,
+          template,
+          templateSource,
+          typeProvider,
+          standardHtmlEvents,
+          errorListener));
+      new SingleScopeResolver(view, template, templateSource, typeProvider,
+              errorListener, errorReporter)
+          .visitElementInfo(element);
 
       // Now the next scope is ready to be resolved
       var tplSearch = new NextTemplateElementsSearch();
@@ -324,7 +335,6 @@ class _DartReferencesRecorder extends RecursiveAstVisitor {
  * second pass.
  */
 class PrepareScopeVisitor extends AngularAstVisitor {
-
   /**
    * The full map of names to internal variables in the current scope
    */
@@ -350,7 +360,14 @@ class PrepareScopeVisitor extends AngularAstVisitor {
 
   List<AbstractDirective> directives;
 
-  PrepareScopeVisitor(this.internalVariables, this.localVariables, this.template, this.templateSource, this.typeProvider, this.standardHtmlEvents, this.errorListener);
+  PrepareScopeVisitor(
+      this.internalVariables,
+      this.localVariables,
+      this.template,
+      this.templateSource,
+      this.typeProvider,
+      this.standardHtmlEvents,
+      this.errorListener);
 
   void visitElementInfo(ElementInfo element) {
     var isRoot = visitingRoot;
@@ -368,7 +385,8 @@ class PrepareScopeVisitor extends AngularAstVisitor {
           // If this is how our scope begins, like we're within an ngFor, then
           // let the ngFor alter the current scope.
           for (AbstractDirective directive in templateAttr.directives) {
-            _defineDirectiveVariables(templateAttr.virtualAttributes, directive);
+            _defineDirectiveVariables(
+                templateAttr.virtualAttributes, directive);
             _defineNgForVariables(templateAttr.virtualAttributes, directive);
           }
 
@@ -403,7 +421,7 @@ class PrepareScopeVisitor extends AngularAstVisitor {
           child.accept(this);
         }
       } else {
-        for (NodeInfo child in element.attributes) {
+        for (AttributeInfo child in element.attributes) {
           child.accept(this);
         }
       }
@@ -456,8 +474,8 @@ class PrepareScopeVisitor extends AngularAstVisitor {
         if (output.name == attr.name) {
           eventType = output.eventType;
           matched = true;
-          SourceRange range = new SourceRange(
-              attr.nameOffset, attr.name.length);
+          SourceRange range =
+              new SourceRange(attr.nameOffset, attr.name.length);
           template.addRange(range, output);
         }
       }
@@ -469,8 +487,7 @@ class PrepareScopeVisitor extends AngularAstVisitor {
       if (standardHtmlEvent != null) {
         matched = true;
         eventType = standardHtmlEvent.eventType;
-        SourceRange range = new SourceRange(
-            attr.nameOffset, attr.name.length);
+        SourceRange range = new SourceRange(attr.nameOffset, attr.name.length);
         template.addRange(range, standardHtmlEvent);
       }
     }
@@ -487,8 +504,8 @@ class PrepareScopeVisitor extends AngularAstVisitor {
     attr.localVariables = new HashMap.from(localVariables);
     LocalVariableElement dartVariable =
         _newLocalVariableElement(-1, r'$event', eventType);
-    LocalVariable localVariable = new LocalVariable(
-        r'$event', -1, 6, templateSource, dartVariable);
+    LocalVariable localVariable =
+        new LocalVariable(r'$event', -1, 6, templateSource, dartVariable);
     attr.localVariables[r'$event'] = localVariable;
   }
 
@@ -500,7 +517,8 @@ class PrepareScopeVisitor extends AngularAstVisitor {
       internalVariables['index'] = new InternalVariable('index',
           new DartElement(directive.classElement), typeProvider.intType);
       for (AttributeInfo attribute in attributes) {
-        if (attribute is ExpressionBoundAttribute && attribute.name == 'ngForOf' &&
+        if (attribute is ExpressionBoundAttribute &&
+            attribute.name == 'ngForOf' &&
             attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
           internalVariables[r'$implicit'] = new InternalVariable(
@@ -590,7 +608,8 @@ class PrepareScopeVisitor extends AngularAstVisitor {
         localVariables[name] = localVariable;
         // add local declaration
         template.addRange(
-            new SourceRange(localVariable.nameOffset, localVariable.name.length),
+            new SourceRange(
+                localVariable.nameOffset, localVariable.name.length),
             localVariable);
       }
     }
@@ -650,7 +669,6 @@ class PrepareScopeVisitor extends AngularAstVisitor {
  * you visit.
  */
 class NextTemplateElementsSearch extends AngularAstVisitor {
-
   bool visitingRoot = true;
 
   List<ElementInfo> results = [];
@@ -660,7 +678,7 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
     if (element.isOrHasTemplateAttribute && !visitingRoot) {
       results.add(element);
       return;
-    } 
+    }
 
     visitingRoot = false;
     for (NodeInfo child in element.childNodes) {
@@ -670,19 +688,19 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
 }
 
 class DirectiveResolver extends AngularAstVisitor {
-
   final List<AbstractDirective> allDirectives;
   final Source templateSource;
   final Template template;
   final AnalysisErrorListener errorListener;
 
-  DirectiveResolver(this.allDirectives, this.templateSource, this.template, this.errorListener);
+  DirectiveResolver(this.allDirectives, this.templateSource, this.template,
+      this.errorListener);
 
   @override
   void visitElementInfo(ElementInfo element) {
     if (element.templateAttribute != null) {
       visitTemplateAttr(element.templateAttribute);
-    } 
+    }
 
     ElementView elementView = new ElementViewImpl(element.attributes, element);
     bool tagIsResolved = false;
@@ -760,7 +778,6 @@ class DirectiveResolver extends AngularAstVisitor {
  * current scope by skipping templates that aren't the root.
  */
 class SingleScopeResolver extends AngularAstVisitor {
-
   List<AbstractDirective> directives;
   View view;
   Template template;
@@ -776,13 +793,14 @@ class SingleScopeResolver extends AngularAstVisitor {
    */
   Map<String, LocalVariable> localVariables;
 
-  SingleScopeResolver(this.view, this.template, this.templateSource, this.typeProvider, this.errorListener, this.errorReporter);
+  SingleScopeResolver(this.view, this.template, this.templateSource,
+      this.typeProvider, this.errorListener, this.errorReporter);
 
   @override
   void visitElementInfo(ElementInfo element) {
     var isRoot = visitingRoot;
     visitingRoot = false;
-    
+
     // If this is the root, the nonsugared stuff is in scope. Otherwise, the
     // sugar is the only stuff in scope.
     if (element.templateAttribute != null && !isRoot) {
@@ -917,8 +935,8 @@ class SingleScopeResolver extends AngularAstVisitor {
                 [attrType, inputType]));
           }
 
-          SourceRange range = new SourceRange(
-              attribute.nameOffset, attribute.name.length);
+          SourceRange range =
+              new SourceRange(attribute.nameOffset, attribute.name.length);
           template.addRange(range, input);
 
           inputMatched = true;
@@ -1058,8 +1076,7 @@ class SingleScopeResolver extends AngularAstVisitor {
   /**
    * Resolve the Dart ExpressionStatement with the given [code] at [offset].
    */
-  void _resolveDartExpressionStatements(
-      List<Statement> statements) {
+  void _resolveDartExpressionStatements(List<Statement> statements) {
     for (Statement statement in statements) {
       if (statement is! ExpressionStatement && statement is! EmptyStatement) {
         errorListener.onError(new AnalysisError(
