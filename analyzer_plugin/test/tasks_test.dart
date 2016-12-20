@@ -332,6 +332,27 @@ class ComponentA {
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
   }
 
+  void test_exportAs_constantStringExpressionOk() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', exportAs: 'a' + 'b')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // has a directive
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(1));
+    // has no errors
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   void test_hasError_ArgumentSelectorMissing() {
     Source source = newSource(
         '/test.dart',
@@ -376,7 +397,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'comp' + '-a')
+@Component(selector: 55)
 class ComponentA {
 }
 ''');
@@ -387,6 +408,24 @@ class ComponentA {
     fillErrorListener(DIRECTIVES_ERRORS);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+  }
+
+  void test_selector_constantExpressionOk() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'a' + '[b]')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   void test_hasError_UndefinedSetter_fullSyntax() {
@@ -1157,7 +1196,46 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'aaa', template: 'bad' + 'template')
+@Component(selector: 'aaa', template: 55)
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+  }
+
+  void test_constantExpressionTemplateOk() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'abc' + 'bcd')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_constantExpressionTemplateComplexIsOnlyError() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+const String tooComplex = 'bcd';
+
+@Component(selector: 'aaa', template: 'abc' + tooComplex + "{{invalid {{stuff")
 class ComponentA {
 }
 ''');
@@ -1346,7 +1424,8 @@ class MyComponent {}
       View view = getViewByClassName(views, 'MyComponent');
       expect(
           view.component, getComponentByClassName(directives, 'MyComponent'));
-      expect(view.templateText, 'My template');
+      expect(view.templateText, ' My template '); // spaces preserve offsets
+      expect(view.templateOffset, code.indexOf('My template') - 1);
       expect(view.templateUriSource, isNull);
       expect(view.templateSource, source);
       {
@@ -1391,7 +1470,8 @@ class MyComponent {}
       View view = getViewByClassName(views, 'MyComponent');
       expect(
           view.component, getComponentByClassName(directives, 'MyComponent'));
-      expect(view.templateText, 'My template');
+      expect(view.templateText, ' My template '); // spaces preserve offsets
+      expect(view.templateOffset, code.indexOf('My template') - 1);
       expect(view.templateUriSource, isNull);
       expect(view.templateSource, source);
       {
