@@ -284,13 +284,6 @@ class Template {
     ranges.add(new ResolvedRange(range, element));
   }
 
-  /**
-   * Records that the given [expression] occurs at given [range].
-   */
-  void addExpression(dart.Expression expression) {
-    embeddedExpressions.add(expression);
-  }
-
   @override
   String toString() {
     return 'Template(ranges=$ranges)';
