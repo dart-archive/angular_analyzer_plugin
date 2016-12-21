@@ -51,7 +51,9 @@ abstract class AttributeInfo extends AngularAstNode {
   final int valueOffset;
 
   int get offset => nameOffset;
-  int get length => valueOffset == null ? name.length : valueOffset + value.length - nameOffset;
+  int get length => valueOffset == null
+      ? name.length
+      : valueOffset + value.length - nameOffset;
 
   AttributeInfo(this.name, this.nameOffset, this.value, this.valueOffset);
 
@@ -223,9 +225,9 @@ class ElementInfo extends NodeInfo {
       this.templateAttribute);
 
   int get offset => openingSpan.offset;
-  int get length =>
-      closingSpan == null ? openingSpan.length :
-      closingSpan.offset + closingSpan.length - openingSpan.offset;
+  int get length => closingSpan == null
+      ? openingSpan.length
+      : closingSpan.offset + closingSpan.length - openingSpan.offset;
 
   List<AngularAstNode> get children {
     var list = new List<AngularAstNode>.from(attributes);
