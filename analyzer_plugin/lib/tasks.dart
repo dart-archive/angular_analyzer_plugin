@@ -127,6 +127,12 @@ class AngularWarningCode extends ErrorCode {
               'on the element');
 
   /**
+   * An error code indicating that a nonexist output was bound
+   */
+  static const AngularWarningCode EMPTY_BINDING = const AngularWarningCode(
+      'EMPTY_BINDING', 'The binding {0} does not have a value specified');
+
+  /**
    * An error code indicating that a nonexist output was bound, perhaps
    * because an input was two way bound. The nonexist bound output is
    * an implementation detail, so give its own error.

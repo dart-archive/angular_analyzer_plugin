@@ -174,6 +174,48 @@ class TitleComponent {
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
   }
 
+  void test_expression_inputBinding_noValue() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+}
+''');
+    var code = r"""
+<title-comp [title]></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[title]");
+  }
+
+  void test_expression_inputBinding_empty() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+}
+''');
+    var code = r"""
+<title-comp [title]=""></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[title]");
+  }
+
   void test_expression_inputBinding_boundToNothing() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -252,6 +294,27 @@ class TitleComponent {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "text");
+  }
+
+  void test_expression_outputBinding_noValue() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Output() EventEmitter<int> title;
+}
+''');
+    var code = r"""
+<title-comp (title)></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "(title)");
   }
 
   void test_expression_twoWayBinding_notAssignableError() {
