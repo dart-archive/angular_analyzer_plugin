@@ -351,7 +351,7 @@ class MyComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestLocalVar(r'$event', 'MouseEvent');
-    assertSuggestGetter('text', 'String');
+    assertSuggestField('text', 'String');
   }
 
   test_completeUnclosedMustache() async {
@@ -420,5 +420,4 @@ class MyComp {
     expect(replacementLength, 0);
     assertNotSuggested("dontCompleteMe");
   }
-
 }
