@@ -420,4 +420,110 @@ class MyComp {
     expect(replacementLength, 0);
     assertNotSuggested("dontCompleteMe");
   }
+
+  test_completeInputOutput() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[name]");
+    assertSuggestGetter("(nameEvent)", "String");
+  }
+
+  test_noCompleteInputInCloseTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+}
+    ''');
+
+    addTestSource('<my-tag></my-tag ^>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[name]");
+  }
+
+  test_noCompleteEmptyTagContents() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+}
+    ''');
+
+    addTestSource('<my-tag>^</my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[name]");
+  }
+
+  test_noCompleteInputsOnTagNameCompletion() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+}
+    ''');
+
+    addTestSource('<my-tag^></my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[name]");
+  }
 }

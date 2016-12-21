@@ -30,7 +30,7 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
   for (AngularAstNode child in root.children) {
     if (child is ElementInfo && child.openingSpan == null) {
       var target = findTarget(offset, child);
-      if (!(target is ElementInfo && child.openingSpan == null)) {
+      if (!(target is ElementInfo && target.openingSpan == null)) {
         return target;
       }
     } else if (offsetContained(offset, child.offset, child.length)) {
@@ -168,6 +168,30 @@ class TemplateCompleter {
                 suggestions, varExtractor.variables, dartRequest.opType);
           }
         }
+      } else if (target is ElementInfo &&
+          target.openingSpan != null &&
+          target.openingNameSpan != null &&
+          offsetContained(request.offset, target.openingSpan.offset,
+              target.openingSpan.length - '>'.length) &&
+          !offsetContained(request.offset, target.openingNameSpan.offset,
+              target.openingNameSpan.length)) {
+        // TODO suggest these things if the target is ExpressionBoundInput with
+        // boundType of input
+        for (AbstractDirective directive in target.directives) {
+          for (InputElement input in directive.inputs) {
+            suggestions.add(_createInputSuggestion(
+                input,
+                DART_RELEVANCE_DEFAULT,
+                _createInputElement(input, protocol.ElementKind.SETTER)));
+          }
+          // TODO suggest default html events
+          for (OutputElement output in directive.outputs) {
+            suggestions.add(_createOutputSuggestion(
+                output,
+                DART_RELEVANCE_DEFAULT,
+                _createOutputElement(output, protocol.ElementKind.GETTER)));
+          }
+        }
       }
     }
 
@@ -209,9 +233,44 @@ class TemplateCompleter {
     String name = localVar.name;
     Location location = new Location(localVar.source.fullName,
         localVar.nameOffset, localVar.nameLength, 0, 0);
-    int flags = protocol.Element
-        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    int flags = protocol.Element.makeFlags();
     return new protocol.Element(kind, name, flags,
         location: location, returnType: type.toString());
+  }
+
+  CompletionSuggestion _createInputSuggestion(InputElement inputElement,
+      int defaultRelevance, protocol.Element element) {
+    String completion = '[' + inputElement.name + ']';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  protocol.Element _createInputElement(
+      InputElement inputElement, protocol.ElementKind kind) {
+    String name = '[' + inputElement.name + ']';
+    Location location = new Location(inputElement.source.fullName,
+        inputElement.nameOffset, inputElement.nameLength, 0, 0);
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, name, flags, location: location);
+  }
+
+  CompletionSuggestion _createOutputSuggestion(OutputElement outputElement,
+      int defaultRelevance, protocol.Element element) {
+    String completion = '(' + outputElement.name + ')';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element, returnType: outputElement.eventType.toString());
+  }
+
+  protocol.Element _createOutputElement(
+      OutputElement outputElement, protocol.ElementKind kind) {
+    String name = '(' + outputElement.name + ')';
+    Location location = new Location(outputElement.source.fullName,
+        outputElement.nameOffset, outputElement.nameLength, 0, 0);
+    int flags = protocol.Element.makeFlags();
+    return new protocol.Element(kind, name, flags,
+        location: location, returnType: outputElement.eventType.toString());
   }
 }
