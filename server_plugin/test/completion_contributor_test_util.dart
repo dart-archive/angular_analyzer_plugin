@@ -113,7 +113,7 @@ abstract class AbstractCompletionContributorTest
     Completer<CompletionRequest> requestCompleter =
         new Completer<CompletionRequest>();
     requestCompleter.complete(request);
-    request = await performAnalysis(times, requestCompleter);
+    request = await performAnalysis<CompletionRequest>(times, requestCompleter);
 
     replacementOffset = request.offset;
     replacementLength = 0;
@@ -142,7 +142,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
   int completionOffset;
   int replacementOffset;
   int replacementLength;
-  CompletionRequest request;
   List<CompletionSuggestion> suggestions;
 
   /**
@@ -625,7 +624,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     return cs;
   }
 
-  Future/*<E>*/ performAnalysis/*<E>*/(int times, Completer/*<E>*/ completer) {
+  Future<E> performAnalysis<E>(int times, Completer<E> completer) {
     if (completer.isCompleted) {
       return completer.future;
     }
