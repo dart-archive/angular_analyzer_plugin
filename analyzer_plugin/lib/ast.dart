@@ -20,8 +20,7 @@ abstract class AngularAstVisitor {
 
   void visitTextAttr(TextAttribute textAttr) => _visitAllChildren(textAttr);
 
-  void visitTemplateAttr(TemplateAttribute attr) =>
-      _visitAllChildren(attr);
+  void visitTemplateAttr(TemplateAttribute attr) => _visitAllChildren(attr);
 
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) =>
       _visitAllChildren(attr);
@@ -87,26 +86,20 @@ class TemplateAttribute extends BoundAttributeInfo {
   final List<AttributeInfo> virtualAttributes;
   List<AbstractDirective> directives = <AbstractDirective>[];
 
-  TemplateAttribute(
-      String name,
-      int nameOffset,
-      String value,
-      int valueOffset,
-      String originalName,
-      int originalNameOffset,
-      this.virtualAttributes)
+  TemplateAttribute(String name, int nameOffset, String value, int valueOffset,
+      String originalName, int originalNameOffset, this.virtualAttributes)
       : super(name, nameOffset, value, valueOffset, originalName,
             originalNameOffset);
 
-  List<AngularAstNode> get children => new List<AngularAstNode>.from(virtualAttributes);
+  List<AngularAstNode> get children =>
+      new List<AngularAstNode>.from(virtualAttributes);
 
   @override
   String toString() {
     return '(' + super.toString() + ', [$virtualAttributes])';
   }
 
-  void accept(AngularAstVisitor visitor) =>
-      visitor.visitTemplateAttr(this);
+  void accept(AngularAstVisitor visitor) => visitor.visitTemplateAttr(this);
 }
 
 class ExpressionBoundAttribute extends BoundAttributeInfo {
@@ -159,7 +152,8 @@ class TextAttribute extends AttributeInfo {
   final List<Mustache> mustaches;
   List<AngularAstNode> get children => new List<AngularAstNode>.from(mustaches);
 
-  TextAttribute(String name, int nameOffset, String value, int valueOffset, this.mustaches)
+  TextAttribute(String name, int nameOffset, String value, int valueOffset,
+      this.mustaches)
       : super(name, nameOffset, value, valueOffset);
 
   void accept(AngularAstVisitor visitor) => visitor.visitTextAttr(this);
@@ -208,7 +202,6 @@ class TextInfo extends NodeInfo {
 class ElementInfo extends NodeInfo {
   final List<NodeInfo> childNodes = <NodeInfo>[];
 
-
   final String localName;
   final SourceRange openingSpan;
   final SourceRange closingSpan;
@@ -246,7 +239,6 @@ class ElementInfo extends NodeInfo {
 
   void accept(AngularAstVisitor visitor) => visitor.visitElementInfo(this);
 }
-
 
 /**
  * A variable defined by a [AbstractDirective].

@@ -301,7 +301,7 @@ class Template {
     if (_ast != null) {
       throw new StateError("AST is already set, shouldn't be set again");
     }
-      
+
     _ast = ast;
   }
 }
