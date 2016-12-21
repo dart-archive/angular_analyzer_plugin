@@ -220,7 +220,9 @@ class TemplateResolver {
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
     EmbeddedDartParser parser = new EmbeddedDartParser(
         templateSource, errorListener, typeProvider, errorReporter);
-    ElementInfo root = new HtmlTreeConverter(parser).convert(template.element);
+    ElementInfo root =
+        new HtmlTreeConverter(parser, templateSource, errorListener)
+            .convert(template.element);
 
     var allDirectives = <AbstractDirective>[]
       ..addAll(standardHtmlComponents)
@@ -963,7 +965,9 @@ class SingleScopeResolver extends AngularScopeVisitor {
           outputMatched = true;
           var eventType = output.eventType;
 
-          if (!eventType.isAssignableTo(attribute.expression.bestType)) {
+          // half-complete-code case: ensure the expression is actually there
+          if (attribute.expression != null &&
+              !eventType.isAssignableTo(attribute.expression.bestType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.valueOffset,
@@ -997,16 +1001,19 @@ class SingleScopeResolver extends AngularScopeVisitor {
     for (AbstractDirective directive in directives) {
       for (InputElement input in directive.inputs) {
         if (input.name == attribute.name) {
-          var attrType = attribute.expression.bestType;
-          var inputType = input.setterType;
+          // half-complete-code case: ensure the expression is actually there
+          if (attribute.expression != null) {
+            var attrType = attribute.expression.bestType;
+            var inputType = input.setterType;
 
-          if (!attrType.isAssignableTo(inputType)) {
-            errorListener.onError(new AnalysisError(
-                templateSource,
-                attribute.valueOffset,
-                attribute.value.length,
-                AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
-                [attrType, inputType]));
+            if (!attrType.isAssignableTo(inputType)) {
+              errorListener.onError(new AnalysisError(
+                  templateSource,
+                  attribute.valueOffset,
+                  attribute.value.length,
+                  AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+                  [attrType, inputType]));
+            }
           }
 
           SourceRange range =
@@ -1056,7 +1063,9 @@ class SingleScopeResolver extends AngularScopeVisitor {
           [attribute.name]));
     }
 
-    if (!attribute.expression.bestType.isAssignableTo(typeProvider.boolType)) {
+    // half-complete-code case: ensure the expression is actually there
+    if (attribute.expression != null &&
+        !attribute.expression.bestType.isAssignableTo(typeProvider.boolType)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         attribute.valueOffset,
@@ -1085,7 +1094,9 @@ class SingleScopeResolver extends AngularScopeVisitor {
             AngularWarningCode.INVALID_CSS_UNIT_NAME,
             [cssUnitName]));
       }
-      if (!attribute.expression.bestType.isAssignableTo(typeProvider.numType)) {
+      // half-complete-code case: ensure the expression is actually there
+      if (attribute.expression != null &&
+          !attribute.expression.bestType.isAssignableTo(typeProvider.numType)) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.valueOffset,

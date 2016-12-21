@@ -17,9 +17,11 @@ import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
 
 class HtmlTreeConverter {
-  EmbeddedDartParser dartParser;
+  final EmbeddedDartParser dartParser;
+  final Source templateSource;
+  final AnalysisErrorListener errorListener;
 
-  HtmlTreeConverter(this.dartParser);
+  HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
   NodeInfo convert(html.Node node) {
     if (node is html.Element) {
@@ -139,8 +141,12 @@ class HtmlTreeConverter {
   StatementsBoundAttribute _convertStatementsBoundAttribute(
       html.Element element, String origName, String prefix, String suffix) {
     int origNameOffset = _nameOffset(element, origName);
-    String value = element.attributes[origName];
     int valueOffset = _valueOffset(element, origName);
+    String value = valueOffset == null ? null : element.attributes[origName];
+    if (value == null) {
+      errorListener.onError(new AnalysisError(templateSource, origNameOffset,
+          origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+    }
     int propNameOffset = origNameOffset + prefix.length;
     String propName = _removePrefixSuffix(origName, prefix, suffix);
     return new StatementsBoundAttribute(
@@ -160,8 +166,15 @@ class HtmlTreeConverter {
       String suffix,
       ExpressionBoundType bound) {
     int origNameOffset = _nameOffset(element, origName);
-    String value = element.attributes[origName];
     int valueOffset = _valueOffset(element, origName);
+    String value = valueOffset == null ? null : element.attributes[origName];
+    if (value == null || value == "") {
+      errorListener.onError(new AnalysisError(templateSource, origNameOffset,
+          origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+      value = value == ""
+          ? "null"
+          : value; // we've created a warning. Suppress parse error now.
+    }
     int propNameOffset = origNameOffset + prefix.length;
     String propName = _removePrefixSuffix(origName, prefix, suffix);
     return new ExpressionBoundAttribute(
@@ -248,6 +261,10 @@ class EmbeddedDartParser {
    * Parse the given Dart [code] that starts at [offset].
    */
   Expression parseDartExpression(int offset, String code, bool detectTrailing) {
+    if (code == null) {
+      return null;
+    }
+
     Token token = _scanDartCode(offset, code);
     Expression expression = _parseDartExpressionAtToken(token);
 
@@ -268,8 +285,11 @@ class EmbeddedDartParser {
    * Also removes and reports dangling closing brackets.
    */
   List<Statement> parseDartStatements(int offset, String code) {
-    code = code + ';';
     List<Statement> allStatements = new List<Statement>();
+    if (code == null) {
+      return allStatements;
+    }
+    code = code + ';';
     Token token = _scanDartCode(offset, code);
 
     while (token.type != TokenType.EOF) {
