@@ -44,6 +44,8 @@ abstract class AngularAstVisitor {
  * Information about an attribute.
  */
 abstract class AttributeInfo extends AngularAstNode {
+  HasDirectives parent;
+
   final String name;
   final int nameOffset;
 
@@ -84,7 +86,7 @@ abstract class BoundAttributeInfo extends AttributeInfo {
   }
 }
 
-class TemplateAttribute extends BoundAttributeInfo {
+class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   final List<AttributeInfo> virtualAttributes;
   List<AbstractDirective> directives = <AbstractDirective>[];
 
@@ -182,6 +184,14 @@ class Mustache extends AngularAstNode {
 abstract class NodeInfo extends AngularAstNode {}
 
 /**
+ * An AngularAstNode which has directives, such as [ElementInfo] and
+ * [TemplateAttribute]
+ */
+abstract class HasDirectives {
+  List<AbstractDirective> get directives;
+}
+
+/**
  * A text node in an HTML tree.
  */
 class TextInfo extends NodeInfo {
@@ -201,7 +211,7 @@ class TextInfo extends NodeInfo {
 /**
  * An element in an HTML tree.
  */
-class ElementInfo extends NodeInfo {
+class ElementInfo extends NodeInfo implements HasDirectives {
   final List<NodeInfo> childNodes = <NodeInfo>[];
 
   final String localName;

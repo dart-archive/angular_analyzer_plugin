@@ -45,6 +45,11 @@ class HtmlTreeConverter {
           isTemplate,
           attributes,
           findTemplateAttribute(attributes));
+
+      for (AttributeInfo attribute in attributes) {
+        attribute.parent = element;
+      }
+
       List<NodeInfo> children = _convertChildren(node);
       element.childNodes.addAll(children);
       return element;
@@ -134,8 +139,20 @@ class HtmlTreeConverter {
           dartParser.parseTemplateVirtualAttributes(valueOffset, value);
     }
 
-    return new TemplateAttribute(name, nameOffset, value, valueOffset, origName,
-        origNameOffset, virtualAttributes);
+    TemplateAttribute templateAttribute = new TemplateAttribute(
+        name,
+        nameOffset,
+        value,
+        valueOffset,
+        origName,
+        origNameOffset,
+        virtualAttributes);
+
+    for (AttributeInfo virtualAttribute in virtualAttributes) {
+      virtualAttribute.parent = templateAttribute;
+    }
+
+    return templateAttribute;
   }
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(

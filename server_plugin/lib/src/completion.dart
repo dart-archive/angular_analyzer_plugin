@@ -53,8 +53,9 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
-    if (offsetContained(
-        offset, attr.expression.offset, attr.expression.length)) {
+    if (attr.expression != null &&
+        offsetContained(
+            offset, attr.expression.offset, attr.expression.length)) {
       dartSnippet = attr.expression;
     }
   }
@@ -177,13 +178,8 @@ class TemplateCompleter {
               target.openingNameSpan.length)) {
         // TODO suggest these things if the target is ExpressionBoundInput with
         // boundType of input
+        suggestInputs(target.directives, suggestions);
         for (AbstractDirective directive in target.directives) {
-          for (InputElement input in directive.inputs) {
-            suggestions.add(_createInputSuggestion(
-                input,
-                DART_RELEVANCE_DEFAULT,
-                _createInputElement(input, protocol.ElementKind.SETTER)));
-          }
           // TODO suggest default html events
           for (OutputElement output in directive.outputs) {
             suggestions.add(_createOutputSuggestion(
@@ -192,10 +188,25 @@ class TemplateCompleter {
                 _createOutputElement(output, protocol.ElementKind.GETTER)));
           }
         }
+      } else if (target is ExpressionBoundAttribute &&
+          target.bound == ExpressionBoundType.input &&
+          offsetContained(request.offset, target.originalNameOffset,
+              target.originalName.length)) {
+        suggestInputs(target.parent.directives, suggestions);
       }
     }
 
     return suggestions;
+  }
+
+  suggestInputs(List<AbstractDirective> directives,
+      List<CompletionSuggestion> suggestions) {
+    for (AbstractDirective directive in directives) {
+      for (InputElement input in directive.inputs) {
+        suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
+            _createInputElement(input, protocol.ElementKind.SETTER)));
+      }
+    }
   }
 
   addLocalVariables(List<CompletionSuggestion> suggestions,
