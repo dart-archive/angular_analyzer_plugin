@@ -994,6 +994,46 @@ class MyComponent extends Generic<String> {
     }
   }
 
+  void test_finalPropertyInputError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<p></p>')
+class MyComponent {
+  @Input() final int immutable = 1;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    fillErrorListener(DIRECTIVES_ERRORS);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "@Input()");
+  }
+
+  void test_finalPropertyInputStringError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<p></p>', inputs: ['immutable'])
+class MyComponent {
+  final int immutable = 1;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    fillErrorListener(DIRECTIVES_ERRORS);
+    // validate. Can't easily assert position though because its all 'immutable'
+    errorListener
+        .assertErrorsWithCodes([StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
   void test_noDirectives() {
     Source source = newSource(
         '/test.dart',
@@ -1026,7 +1066,7 @@ class MyComponent {
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
         code,
-        "someGetter");
+        "@Input()");
   }
 
   void test_outputOnSetterIsError() {
@@ -1046,7 +1086,7 @@ class MyComponent {
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
         code,
-        "someSetter(");
+        "@Output()");
   }
 }
 
