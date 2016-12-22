@@ -1107,7 +1107,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
       buildInputs,
       <ResultDescriptor>[DART_TEMPLATES, DART_TEMPLATES_ERRORS]);
 
-  RecordingErrorListener errorListener = new RecordingErrorListener();
+  RecordingErrorListener errorListener;
 
   ResolveDartTemplatesTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
@@ -1128,21 +1128,25 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     // Resolve inline view templates.
     //
     List<Template> templates = <Template>[];
+    List<AnalysisError> errors = <AnalysisError>[];
     for (View view in views) {
       if (view.templateText != null) {
+        errorListener = new RecordingErrorListener();
         Template template = new DartTemplateResolver(
                 typeProvider, htmlComponents, htmlEvents, errorListener, view)
             .resolve();
         if (template != null) {
           templates.add(template);
         }
+        errors.addAll(errorListener.errors
+            .where((e) => !template.ignoredErrors.contains(e.errorCode.name)));
       }
     }
     //
     // Record outputs.
     //
     outputs[DART_TEMPLATES] = templates;
-    outputs[DART_TEMPLATES_ERRORS] = errorListener.errors;
+    outputs[DART_TEMPLATES_ERRORS] = errors;
   }
 
   /**
@@ -1278,7 +1282,9 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     // Record outputs.
     //
     outputs[HTML_TEMPLATE] = template;
-    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors;
+    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors
+        .where((e) => !template.ignoredErrors.contains(e.errorCode.name))
+        .toList();
   }
 
   /**

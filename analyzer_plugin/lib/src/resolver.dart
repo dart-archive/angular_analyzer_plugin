@@ -112,6 +112,7 @@ class DartTemplateResolver {
     new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, errorListener)
         .resolve(template);
+    _setIgnoredErrors(template, document);
     return template;
   }
 
@@ -228,6 +229,24 @@ class ElementViewImpl implements ElementView {
   }
 }
 
+_setIgnoredErrors(Template template, html.Document document) {
+  html.Node firstNode = document.nodes[0];
+  if (firstNode is html.Comment) {
+    String text = firstNode.text.trim();
+    if (text.startsWith("@ngIgnoreErrors")) {
+      text = text.substring("@ngIgnoreErrors".length);
+      // Per spec: optional color
+      if (text.startsWith(":")) {
+        text = text.substring(1);
+      }
+      // Per spec: optional commas
+      String delim = text.indexOf(',') == -1 ? ' ' : ',';
+      template.ignoredErrors
+          .addAll(new HashSet.from(text.split(delim).map((c) => c.trim())));
+    }
+  }
+}
+
 /**
  * [HtmlTemplateResolver]s resolve templates in separate Html files.
  */
@@ -245,15 +264,19 @@ class HtmlTemplateResolver {
   HtmlTemplate resolve() {
     HtmlTemplate template =
         new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
+
     view.template = template;
     new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, errorListener)
         .resolve(template);
+    _setIgnoredErrors(template, document);
     return template;
   }
 }
 
 class HtmlTreeConverter {
+  Set<String> ignoredErrors = new HashSet<String>();
+
   NodeInfo convert(html.Node node) {
     if (node is html.Element) {
       String localName = node.localName;
