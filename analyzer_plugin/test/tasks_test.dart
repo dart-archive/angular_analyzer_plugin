@@ -61,6 +61,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setterType.toString(), equals("int"));
       }
       expect(outputElements, hasLength(0));
+      expect(inputs.where((i) => i.name == '_privateField'), hasLength(0));
     }
     // button
     {
