@@ -114,12 +114,13 @@ import '/angular2/src/core/metadata.dart';
 @View(template: r"<div>some text</div>")
 class TextPanel {
   String text; // 1
+  @Input() longform; // 4
 }
 
 @Component(selector: 'UserPanel')
 @View(template: r"""
 <div>
-  <text-panel [my-text]='user.name'></text-panel> // close
+  <text-panel [my-text]='user.name' [longform]='""'></text-panel> // close
 </div>
 """, directives: [TextPanel])
 class UserPanel {
@@ -166,17 +167,24 @@ class User {
     }
     // template references field
     {
-      _findRegionString('user', ".name'><");
+      _findRegionString('user', ".name' ");
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
       expect(targetLocation.offset, code.indexOf("user; // 2"));
     }
     // template references field
     {
-      _findRegionString('name', "'><");
+      _findRegionString('name', "' [");
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
       expect(targetLocation.offset, code.indexOf("name; // 3"));
+    }
+    // template references input
+    {
+      _findRegionString('longform', ']=');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf("longform; // 4"));
     }
   }
 

@@ -627,12 +627,24 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
 
     if (isInput) {
-      inputElements.add(new InputElement(name, nameOffset, nameLength,
-          target.source, property, null, _getSetterType(property)));
+      inputElements.add(new InputElement(
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          new SourceRange(nameOffset, nameLength),
+          _getSetterType(property)));
     } else {
       var eventType = getEventType(property, name);
-      outputElements.add(new OutputElement(name, nameOffset, nameLength,
-          target.source, property, null, eventType));
+      outputElements.add(new OutputElement(
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          new SourceRange(nameOffset, nameLength),
+          eventType));
     }
   }
 
@@ -1452,7 +1464,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.nameLength,
               accessor.source,
               accessor,
-              null,
+              new SourceRange(accessor.nameOffset, accessor.nameLength),
               accessor.variable.type);
         }
       }
