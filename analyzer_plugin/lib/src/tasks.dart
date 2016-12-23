@@ -433,6 +433,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var nameRange = nameValueAndRanges.item4;
 
       PropertyAccessorElement setter = _resolveSetter(expression, name);
+      if (setter == null) {
+        return null;
+      }
 
       return new InputElement(boundName, boundRange.offset, boundRange.length,
           target.source, setter, nameRange, _getSetterType(setter));
@@ -452,6 +455,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var nameRange = nameValueAndRanges.item4;
 
       PropertyAccessorElement getter = _resolveGetter(expression, name);
+      if (getter == null) {
+        return null;
+      }
 
       var eventType = getEventType(getter, name);
 
