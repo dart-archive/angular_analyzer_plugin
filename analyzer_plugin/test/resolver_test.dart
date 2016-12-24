@@ -877,6 +877,75 @@ class GenericComponent<T extends String> {
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "anInt");
   }
 
+  void test_expression_pipe_in_moustache() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String name = "TestPanel";
+}
+''');
+    var code = r"""
+<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (2 | pipe3:4:2))}}</p>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_pipe_in_moustache_with_error() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String name = "TestPanel";
+}
+''');
+    var code = r"""
+<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (error1 | pipe3:4:2))}}</p>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, "error1");
+  }
+
+  void test_expression_pipe_in_input_binding() {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  @Input() int value;
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {
+  int value;
+}
+''');
+    _addHtmlSource(r"""
+<name-panel [value]='value | pipe1'></name-panel>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_pipe_in_ngFor() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List<String> operators = [];
+}
+''');
+    _addHtmlSource(r"""
+<li *ngFor='let operator of (operators | pipe1)'>
+  {{operator.length}}
+</li>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_statement_eventBinding_single_statement_without_semicolon() {
     _addDartSource(r'''
 import 'dart:html';
