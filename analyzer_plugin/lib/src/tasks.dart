@@ -585,22 +585,16 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         property = node.element;
       } else if (isOutput && node.isGetter) {
         property = node.element;
-      } else {
-        errorReporter.reportErrorForOffset(
-            isInput
-                ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
-                : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-            node.element.nameOffset,
-            node.element.name.length);
-        return null;
       }
-    } else {
+    }
+
+    if (property == null) {
       errorReporter.reportErrorForOffset(
           isInput
               ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
               : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-          node.element.nameOffset,
-          node.element.name.length);
+          annotation.offset,
+          annotation.length);
       return null;
     }
 
