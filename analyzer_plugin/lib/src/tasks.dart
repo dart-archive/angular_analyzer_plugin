@@ -605,6 +605,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     String name;
     int nameOffset;
     int nameLength;
+    int setterOffset = property.nameOffset;
+    int setterLength = property.nameLength;
     List<ast.Expression> arguments = annotation.arguments.arguments;
     if (arguments.isEmpty) {
       String propertyName = property.displayName;
@@ -633,7 +635,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
           nameLength,
           target.source,
           property,
-          new SourceRange(nameOffset, nameLength),
+          new SourceRange(setterOffset, setterLength),
           _getSetterType(property)));
     } else {
       var eventType = getEventType(property, name);
@@ -643,7 +645,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
           nameLength,
           target.source,
           property,
-          new SourceRange(nameOffset, nameLength),
+          new SourceRange(setterOffset, setterLength),
           eventType));
     }
   }
