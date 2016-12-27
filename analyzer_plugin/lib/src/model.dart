@@ -1,5 +1,6 @@
 library angular2.src.analysis.analyzer_plugin.src.model;
 
+import 'dart:collection';
 import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/dart/element/type.dart' as dart;
 import 'package:analyzer/dart/ast/ast.dart' as dart;
@@ -271,6 +272,11 @@ class Template {
    * The [ElementInfo] that begins the AST of the resolved template
    */
   ElementInfo _ast;
+
+  /**
+   * The errors that are ignored in this template
+   */
+  final Set<String> ignoredErrors = new HashSet<String>();
 
   Template(this.view, this.element);
 

@@ -333,6 +333,27 @@ class ComponentA {
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
   }
 
+  void test_exportAs_constantStringExpressionOk() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', exportAs: 'a' + 'b')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // has a directive
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(1));
+    // has no errors
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   void test_hasError_ArgumentSelectorMissing() {
     Source source = newSource(
         '/test.dart',
@@ -377,7 +398,7 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'comp' + '-a')
+@Component(selector: 55)
 class ComponentA {
 }
 ''');
@@ -388,6 +409,24 @@ class ComponentA {
     fillErrorListener(DIRECTIVES_ERRORS);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+  }
+
+  void test_selector_constantExpressionOk() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'a' + '[b]')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   void test_hasError_UndefinedSetter_fullSyntax() {
@@ -403,6 +442,11 @@ class ComponentA {
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> inputs = component.inputs;
+    // the bad input should NOT show up, it is not usable see github #183
+    expect(inputs, hasLength(0));
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
     errorListener.assertErrorsWithCodes(
@@ -422,6 +466,30 @@ class ComponentA {
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    fillErrorListener(DIRECTIVES_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
+  void test_hasError_UndefinedSetter_shortSyntax_noInputMade() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', inputs: const ['noSetter'])
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    Component component = directives.single;
+    List<InputElement> inputs = component.inputs;
+    // the bad input should NOT show up, it is not usable see github #183
+    expect(inputs, hasLength(0));
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
     errorListener.assertErrorsWithCodes(
@@ -995,6 +1063,46 @@ class MyComponent extends Generic<String> {
     }
   }
 
+  void test_finalPropertyInputError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<p></p>')
+class MyComponent {
+  @Input() final int immutable = 1;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    fillErrorListener(DIRECTIVES_ERRORS);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "@Input()");
+  }
+
+  void test_finalPropertyInputStringError() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<p></p>', inputs: ['immutable'])
+class MyComponent {
+  final int immutable = 1;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    fillErrorListener(DIRECTIVES_ERRORS);
+    // validate. Can't easily assert position though because its all 'immutable'
+    errorListener
+        .assertErrorsWithCodes([StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
   void test_noDirectives() {
     Source source = newSource(
         '/test.dart',
@@ -1027,7 +1135,7 @@ class MyComponent {
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
         code,
-        "someGetter");
+        "@Input()");
   }
 
   void test_outputOnSetterIsError() {
@@ -1047,7 +1155,7 @@ class MyComponent {
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
         code,
-        "someSetter(");
+        "@Output()");
   }
 }
 
@@ -1158,7 +1266,46 @@ class ComponentA {
         r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'aaa', template: 'bad' + 'template')
+@Component(selector: 'aaa', template: 55)
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+  }
+
+  void test_constantExpressionTemplateOk() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'abc' + 'bcd')
+class ComponentA {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate
+    fillErrorListener(VIEWS_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_constantExpressionTemplateComplexIsOnlyError() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+const String tooComplex = 'bcd';
+
+@Component(selector: 'aaa', template: 'abc' + tooComplex + "{{invalid {{stuff")
 class ComponentA {
 }
 ''');
@@ -1347,7 +1494,8 @@ class MyComponent {}
       View view = getViewByClassName(views, 'MyComponent');
       expect(
           view.component, getComponentByClassName(directives, 'MyComponent'));
-      expect(view.templateText, 'My template');
+      expect(view.templateText, ' My template '); // spaces preserve offsets
+      expect(view.templateOffset, code.indexOf('My template') - 1);
       expect(view.templateUriSource, isNull);
       expect(view.templateSource, source);
       {
@@ -1392,7 +1540,8 @@ class MyComponent {}
       View view = getViewByClassName(views, 'MyComponent');
       expect(
           view.component, getComponentByClassName(directives, 'MyComponent'));
-      expect(view.templateText, 'My template');
+      expect(view.templateText, ' My template '); // spaces preserve offsets
+      expect(view.templateOffset, code.indexOf('My template') - 1);
       expect(view.templateUriSource, isNull);
       expect(view.templateSource, source);
       {
@@ -1635,6 +1784,97 @@ class ComponentA {
     fillErrorListener(DART_TEMPLATES_ERRORS);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNRESOLVED_TAG, code, 'unresolved-tag');
+  }
+
+  void test_suppressError_UnresolvedTag() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_suppressError_NotCaseSensitive() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UnReSoLvEd_tAg -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_suppressError_UnresolvedTagHtmlTemplate() {
+    Source dartSource = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa', templateUrl: 'test.html')
+class ComponentA {
+}
+''');
+    Source htmlSource = newSource(
+        '/test.html',
+        '''
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+''');
+    // compute views, so that we have the TEMPLATE_VIEWS result
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    // compute Angular templates
+    computeResult(htmlSource, HTML_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveHtmlTemplatesTask>());
+    // validate
+    fillErrorListener(HTML_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_suppressError_UnresolvedTagAndInput() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG, NONEXIST_INPUT_BOUND -->
+<unresolved-tag [attr]='value'></unresolved-tag>""")
+class ComponentA {
+  Object value;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
   }
 
   void test_htmlParsing_hasError() {
