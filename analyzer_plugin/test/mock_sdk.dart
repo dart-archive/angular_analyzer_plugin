@@ -206,6 +206,7 @@ class AnchorElement extends HtmlElement {
     return e;
   }
   String href;
+  String _privateField;
 }
 
 @DomName('HTMLBodyElement')

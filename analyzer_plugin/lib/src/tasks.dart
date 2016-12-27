@@ -1659,8 +1659,9 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         // special elements with outputs such as BodyElement, everything else
         // relies on standardHtmlEvents checked after the outputs.
         if (!skipHtmlElement || type.name != 'HtmlElement') {
-          type.accessors.forEach(
-              (PropertyAccessorElement elem) => addAspect(aspectMap, elem));
+          type.accessors
+              .where((elem) => !elem.isPrivate)
+              .forEach((elem) => addAspect(aspectMap, elem));
           type.mixins.forEach(addAspects);
           addAspects(type.superclass);
         }
