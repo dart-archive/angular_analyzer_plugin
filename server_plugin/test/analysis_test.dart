@@ -86,7 +86,7 @@ class AnalysisDomainMock extends TypedMock implements AnalysisDomain {}
 class AnalysisTargetMock extends TypedMock implements AnalysisTarget {}
 
 @reflectiveTest
-class AngularNavigationContributorTest extends _AbstractAngularTaskTest {
+class AngularNavigationContributorTest extends AbstractAngularTaskTest {
   String code;
 
   List<_RecordedNavigationRegion> regions = <_RecordedNavigationRegion>[];
@@ -106,7 +106,7 @@ class AngularNavigationContributorTest extends _AbstractAngularTaskTest {
   }
 
   void test_dart_templates() {
-    _addAngularSources();
+    addAngularSources();
     code = r'''
 import '/angular2/src/core/metadata.dart';
 
@@ -132,7 +132,7 @@ class User {
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    _computeResult(target, DART_TEMPLATES);
+    computeResult(target, DART_TEMPLATES);
     // compute navigation regions
     new AngularNavigationContributor()
         .computeNavigation(collector, context, source, null, null);
@@ -181,7 +181,7 @@ class User {
   }
 
   void test_dart_view_templateUrl() {
-    _addAngularSources();
+    addAngularSources();
     code = r'''
 import '/angular2/src/core/metadata.dart';
 
@@ -195,10 +195,10 @@ class TextPanel {}
     {
       LibrarySpecificUnit target =
           new LibrarySpecificUnit(dartSource, dartSource);
-      _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
     }
     // compute Angular templates
-    _computeResult(htmlSource, HTML_TEMPLATES);
+    computeResult(htmlSource, HTML_TEMPLATES);
     // compute navigation regions
     new AngularNavigationContributor()
         .computeNavigation(collector, context, dartSource, null, null);
@@ -212,7 +212,7 @@ class TextPanel {}
   }
 
   void test_html_templates() {
-    _addAngularSources();
+    addAngularSources();
     String dartCode = r'''
 import '/angular2/src/core/metadata.dart';
 
@@ -233,10 +233,10 @@ class TextPanel {
     {
       LibrarySpecificUnit target =
           new LibrarySpecificUnit(dartSource, dartSource);
-      _computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
     }
     // compute Angular templates
-    _computeResult(htmlSource, HTML_TEMPLATES);
+    computeResult(htmlSource, HTML_TEMPLATES);
     // compute navigation regions
     new AngularNavigationContributor()
         .computeNavigation(collector, context, htmlSource, null, null);
@@ -271,7 +271,7 @@ class TextPanel {
 }
 
 @reflectiveTest
-class AngularOccurrencesContributorTest extends _AbstractAngularTaskTest {
+class AngularOccurrencesContributorTest extends AbstractAngularTaskTest {
   String code;
 
   OccurrencesCollector collector = new OccurrencesCollectorMock();
@@ -285,7 +285,7 @@ class AngularOccurrencesContributorTest extends _AbstractAngularTaskTest {
   }
 
   void test_dart_templates() {
-    _addAngularSources();
+    addAngularSources();
     code = r'''
 import '/angular2/src/core/metadata.dart';
 
@@ -311,7 +311,7 @@ class ObjectContainer<T> {
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    _computeResult(target, DART_TEMPLATES);
+    computeResult(target, DART_TEMPLATES);
     // compute navigation regions
     new AngularOccurrencesContributor()
         .computeOccurrences(collector, context, source);
@@ -389,7 +389,7 @@ class SourceMock extends TypedMock implements Source {
   String toString() => fullPath;
 }
 
-class _AbstractAngularTaskTest {
+class AbstractAngularTaskTest {
   MemoryResourceProvider resourceProvider = new MemoryResourceProvider();
   Source emptySource;
 
@@ -423,7 +423,7 @@ class _AbstractAngularTaskTest {
     analysisDriver = context.driver;
   }
 
-  void _addAngularSources() {
+  void addAngularSources() {
     newSource(
         '/angular2/angular2.dart',
         r'''
@@ -576,7 +576,7 @@ class NgFor {
 ''');
   }
 
-  void _computeResult(AnalysisTarget target, ResultDescriptor result) {
+  void computeResult(AnalysisTarget target, ResultDescriptor result) {
     task = analysisDriver.computeResult(target, result);
     expect(task.caughtException, isNull);
     outputs = task.outputs;

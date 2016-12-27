@@ -12,6 +12,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -1933,7 +1934,7 @@ class TodoList {
         ResolvedRange resolvedRange =
             getResolvedRangeAtString(code, ranges, r"$event)'>");
         expect(resolvedRange.range.length, r'$event'.length);
-        Element element = (resolvedRange.element as DartElement).element;
+        Element element = (resolvedRange.element as LocalVariable).dartVariable;
         expect(element, new isInstanceOf<LocalVariableElement>());
         expect(element.name, r'$event');
         expect(element.nameOffset, -1);
@@ -2032,7 +2033,7 @@ class ComponentA {
 
 @Component(selector: 'comp-b', template: r"""
 <div>
-  <comp-a firstValue='1' second='2'></comp-a>
+  <comp-a [firstValue]='1' [second]='2'></comp-a>
 </div>
 """, directives: const [ComponentA])
 class ComponentB {
@@ -2055,13 +2056,13 @@ class ComponentB {
       expect(ranges, hasLength(4));
       {
         ResolvedRange resolvedRange =
-            getResolvedRangeAtString(code, ranges, 'firstValue=');
+            getResolvedRangeAtString(code, ranges, 'firstValue]=');
         expect(resolvedRange.range.length, 'firstValue'.length);
         assertPropertyReference(resolvedRange, componentA, 'firstValue');
       }
       {
         ResolvedRange resolvedRange =
-            getResolvedRangeAtString(code, ranges, 'second=');
+            getResolvedRangeAtString(code, ranges, 'second]=');
         expect(resolvedRange.range.length, 'second'.length);
         assertPropertyReference(resolvedRange, componentA, 'second');
       }
@@ -2119,7 +2120,7 @@ import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', template: r"<div> {{text </div>")
 class TextPanel {
-  Strint text = "text";
+  String text = "text";
 }
 ''';
     Source source = newSource('/test.dart', code);
