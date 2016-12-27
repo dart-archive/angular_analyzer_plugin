@@ -645,7 +645,9 @@ class TemplateResolver {
    */
   Expression _parseDartExpression(int offset, String code) {
     Token token = _scanDartCode(offset, code);
-    return _parseDartExpressionAtToken(token);
+    Expression expression = _parseDartExpressionAtToken(token);
+    template.addExpression(new SourceRange(offset, code.length), expression);
+    return expression;
   }
 
   /**

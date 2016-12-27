@@ -1,3 +1,5 @@
 #!/bin/bash
 
 dart --snapshot=server.snapshot server.dart
+
+sudo cp server.snapshot /usr/lib/dart/bin/snapshots/analysis_server.dart.snapshot
