@@ -241,8 +241,8 @@ _setIgnoredErrors(Template template, html.Document document) {
       }
       // Per spec: optional commas
       String delim = text.indexOf(',') == -1 ? ' ' : ',';
-      template.ignoredErrors
-          .addAll(new HashSet.from(text.split(delim).map((c) => c.trim())));
+      template.ignoredErrors.addAll(new HashSet.from(
+          text.split(delim).map((c) => c.trim().toUpperCase())));
     }
   }
 }

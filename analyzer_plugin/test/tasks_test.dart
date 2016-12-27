@@ -1656,6 +1656,26 @@ class ComponentA {
     errorListener.assertNoErrors();
   }
 
+  void test_suppressError_NotCaseSensitive() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UnReSoLvEd_tAg -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   void test_suppressError_UnresolvedTagHtmlTemplate() {
     Source dartSource = newSource(
         '/test.dart',
