@@ -1785,6 +1785,97 @@ class ComponentA {
         AngularWarningCode.UNRESOLVED_TAG, code, 'unresolved-tag');
   }
 
+  void test_suppressError_UnresolvedTag() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_suppressError_NotCaseSensitive() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UnReSoLvEd_tAg -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_suppressError_UnresolvedTagHtmlTemplate() {
+    Source dartSource = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa', templateUrl: 'test.html')
+class ComponentA {
+}
+''');
+    Source htmlSource = newSource(
+        '/test.html',
+        '''
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+''');
+    // compute views, so that we have the TEMPLATE_VIEWS result
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    // compute Angular templates
+    computeResult(htmlSource, HTML_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveHtmlTemplatesTask>());
+    // validate
+    fillErrorListener(HTML_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
+  void test_suppressError_UnresolvedTagAndInput() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG, NONEXIST_INPUT_BOUND -->
+<unresolved-tag [attr]='value'></unresolved-tag>""")
+class ComponentA {
+  Object value;
+}
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+  }
+
   void test_htmlParsing_hasError() {
     String code = r'''
 import '/angular2/angular2.dart';
