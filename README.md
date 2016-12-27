@@ -28,6 +28,8 @@ cd server_plugin/bin
 
 Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
 
+**Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
+
 ## Chart of Current Features
 
 All regular dart errros (that is to say, errors defined purely by the dart language spec) are not shown in this list.
@@ -52,12 +54,12 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 `<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: Type of new variable tracked and checked in other expressions | :x: | :x: | :x:
 `<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: | :x: | :x: | :x:
 `<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :x: | :x: | :x:
-`<p>Card No.: {{cardNumber | myCardNumberFormatter}}</p>` | :poop: false errors will be reported | :x: | :x: | :x:
+`<p>Card No.: {{cardNumber | myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:
 
 Built-in directives | Validation | Auto-Complete | Navigation | Refactoring
 --------------------|------------|---------------|------------|-------------
 `<section *ngIf="showSection">` | :white_check_mark: type checking, check for the star | :x: | :x: | :x:
-`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star | :x: | :x: | :x:
+`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star, catch accidental usage of `#item` | :x: | :x: | :x:
 `<div [ngClass]="{active: isActive, disabled: isDisabled}">` | :warning: Requires quotes around key value strings to work | :x: | :x: | :x:
 
 Forms | Validation | Auto-Complete | Navigation | Refactoring
