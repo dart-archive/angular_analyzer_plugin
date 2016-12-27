@@ -281,6 +281,16 @@ class AngularWarningCode extends ErrorCode {
           "Syntax Error: unexpected {0}");
 
   /**
+   * An error code indicating that an output-bound statement
+   * must be an [ExpressionStatement].
+   */
+  static const AngularWarningCode OFFSETS_CANNOT_BE_CREATED =
+      const AngularWarningCode(
+          'OFFSETS_CANNOT_BE_CREATED',
+          "Errors cannot be tracked for the constant expression because it is" +
+              " too complex for errors to be mapped to locations in the file");
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be
