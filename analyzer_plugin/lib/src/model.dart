@@ -3,6 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.model;
 import 'dart:collection';
 import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/dart/element/type.dart' as dart;
+import 'package:analyzer/dart/ast/ast.dart' as dart;
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;

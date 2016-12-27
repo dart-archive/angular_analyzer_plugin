@@ -2120,7 +2120,7 @@ import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', template: r"<div> {{text </div>")
 class TextPanel {
-  Strint text = "text";
+  String text = "text";
 }
 ''';
     Source source = newSource('/test.dart', code);

@@ -44,6 +44,8 @@ abstract class AngularAstVisitor {
  * Information about an attribute.
  */
 abstract class AttributeInfo extends AngularAstNode {
+  HasDirectives parent;
+
   final String name;
   final int nameOffset;
 
@@ -51,7 +53,9 @@ abstract class AttributeInfo extends AngularAstNode {
   final int valueOffset;
 
   int get offset => nameOffset;
-  int get length => valueOffset + value.length - nameOffset;
+  int get length => valueOffset == null
+      ? name.length
+      : valueOffset + value.length - nameOffset;
 
   AttributeInfo(this.name, this.nameOffset, this.value, this.valueOffset);
 
@@ -82,7 +86,7 @@ abstract class BoundAttributeInfo extends AttributeInfo {
   }
 }
 
-class TemplateAttribute extends BoundAttributeInfo {
+class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   final List<AttributeInfo> virtualAttributes;
   List<AbstractDirective> directives = <AbstractDirective>[];
 
@@ -180,6 +184,17 @@ class Mustache extends AngularAstNode {
 abstract class NodeInfo extends AngularAstNode {}
 
 /**
+<<<<<<< HEAD
+=======
+ * An AngularAstNode which has directives, such as [ElementInfo] and
+ * [TemplateAttribute]
+ */
+abstract class HasDirectives {
+  List<AbstractDirective> get directives;
+}
+
+/**
+>>>>>>> origin/master
  * A text node in an HTML tree.
  */
 class TextInfo extends NodeInfo {
@@ -191,7 +206,7 @@ class TextInfo extends NodeInfo {
 
   TextInfo(this.offset, this.text, this.mustaches);
 
-  int get length => offset + text.length;
+  int get length => text.length;
 
   void accept(AngularAstVisitor visitor) => visitor.visitTextInfo(this);
 }
@@ -199,7 +214,7 @@ class TextInfo extends NodeInfo {
 /**
  * An element in an HTML tree.
  */
-class ElementInfo extends NodeInfo {
+class ElementInfo extends NodeInfo implements HasDirectives {
   final List<NodeInfo> childNodes = <NodeInfo>[];
 
   final String localName;
@@ -223,8 +238,9 @@ class ElementInfo extends NodeInfo {
       this.templateAttribute);
 
   int get offset => openingSpan.offset;
-  int get length =>
-      closingSpan.offset + closingSpan.length - openingSpan.offset;
+  int get length => closingSpan == null
+      ? openingSpan.length
+      : closingSpan.offset + closingSpan.length - openingSpan.offset;
 
   List<AngularAstNode> get children {
     var list = new List<AngularAstNode>.from(attributes);

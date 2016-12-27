@@ -66,7 +66,7 @@ class DartTemplateResolver {
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
     view.template = template;
-    new TemplateResolver(typeProvider, standardHtmlComponents,
+    template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
@@ -186,7 +186,7 @@ class HtmlTemplateResolver {
         new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
 
     view.template = template;
-    new TemplateResolver(typeProvider, standardHtmlComponents,
+    template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
