@@ -552,7 +552,8 @@ class MyComponent {
       expect(input.name, 'firstField');
       expect(input.nameOffset, code.indexOf('firstField'));
       expect(input.nameLength, 'firstField'.length);
-      expect(input.setterRange, isNull);
+      expect(input.setterRange.offset, input.nameOffset);
+      expect(input.setterRange.length, input.name.length);
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'firstField');
@@ -562,7 +563,8 @@ class MyComponent {
       InputElement input = inputs[3];
       expect(input.name, 'secondInput');
       expect(input.nameOffset, code.indexOf('secondInput'));
-      expect(input.setterRange, isNull);
+      expect(input.setterRange.offset, code.indexOf('secondField'));
+      expect(input.setterRange.length, 'secondField'.length);
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'secondField');
@@ -572,7 +574,8 @@ class MyComponent {
       InputElement input = inputs[4];
       expect(input.name, 'someSetter');
       expect(input.nameOffset, code.indexOf('someSetter'));
-      expect(input.setterRange, isNull);
+      expect(input.setterRange.offset, input.nameOffset);
+      expect(input.setterRange.length, input.name.length);
       expect(input.setter, isNotNull);
       expect(input.setter.isSetter, isTrue);
       expect(input.setter.displayName, 'someSetter');
@@ -686,7 +689,8 @@ class MyComponent {
       expect(output.name, 'outputThree');
       expect(output.nameOffset, code.indexOf('outputThree'));
       expect(output.nameLength, 'outputThree'.length);
-      expect(output.getterRange, isNull);
+      expect(output.getterRange.offset, output.nameOffset);
+      expect(output.getterRange.length, output.nameLength);
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'outputThree');
@@ -697,7 +701,8 @@ class MyComponent {
       OutputElement output = compOutputs[3];
       expect(output.name, 'outputFour');
       expect(output.nameOffset, code.indexOf('outputFour'));
-      expect(output.getterRange, isNull);
+      expect(output.getterRange.offset, code.indexOf('fourthOutput'));
+      expect(output.getterRange.length, 'fourthOutput'.length);
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'fourthOutput');
@@ -708,7 +713,8 @@ class MyComponent {
       OutputElement output = compOutputs[4];
       expect(output.name, 'someGetter');
       expect(output.nameOffset, code.indexOf('someGetter'));
-      expect(output.getterRange, isNull);
+      expect(output.getterRange.offset, output.nameOffset);
+      expect(output.getterRange.length, output.name.length);
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'someGetter');

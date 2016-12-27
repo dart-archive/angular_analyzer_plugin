@@ -608,6 +608,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     String name;
     int nameOffset;
     int nameLength;
+    int setterOffset = property.nameOffset;
+    int setterLength = property.nameLength;
     List<ast.Expression> arguments = annotation.arguments.arguments;
     if (arguments.isEmpty) {
       String propertyName = property.displayName;
@@ -630,12 +632,24 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
 
     if (isInput) {
-      inputElements.add(new InputElement(name, nameOffset, nameLength,
-          target.source, property, null, _getSetterType(property)));
+      inputElements.add(new InputElement(
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          new SourceRange(setterOffset, setterLength),
+          _getSetterType(property)));
     } else {
       var eventType = getEventType(property, name);
-      outputElements.add(new OutputElement(name, nameOffset, nameLength,
-          target.source, property, null, eventType));
+      outputElements.add(new OutputElement(
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          new SourceRange(setterOffset, setterLength),
+          eventType));
     }
   }
 
@@ -1595,7 +1609,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.nameLength,
               accessor.source,
               accessor,
-              null,
+              new SourceRange(accessor.nameOffset, accessor.nameLength),
               accessor.variable.type);
         }
       }
