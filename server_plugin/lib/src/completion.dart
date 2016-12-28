@@ -8,6 +8,7 @@ import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
 import 'package:analyzer/task/dart.dart';
+import 'package:analyzer/task/model.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
@@ -113,8 +114,13 @@ class AngularDartCompletionContributor extends DartCompletionContributor {
     List<Template> templates = request.context.computeResult(
         new LibrarySpecificUnit(request.librarySource, request.source),
         DART_TEMPLATES);
+    List<OutputElement> standardHtmlEvents = request.context
+        .computeResult(
+            AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
+        .values;
 
-    return new TemplateCompleter().computeSuggestions(request, templates);
+    return new TemplateCompleter()
+        .computeSuggestions(request, templates, standardHtmlEvents);
   }
 }
 
@@ -129,8 +135,13 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
     if (request.source.shortName.endsWith('.html')) {
       List<Template> templates =
           request.context.computeResult(request.source, HTML_TEMPLATES);
+      List<OutputElement> standardHtmlEvents = request.context
+          .computeResult(
+              AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
+          .values;
 
-      return new TemplateCompleter().computeSuggestions(request, templates);
+      return new TemplateCompleter()
+          .computeSuggestions(request, templates, standardHtmlEvents);
     }
 
     return [];
@@ -139,7 +150,9 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
 
 class TemplateCompleter {
   Future<List<CompletionSuggestion>> computeSuggestions(
-      CompletionRequest request, List<Template> templates) async {
+      CompletionRequest request,
+      List<Template> templates,
+      List<OutputElement> standardHtmlEvents) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
       AngularAstNode target = findTarget(request.offset, template.ast);
@@ -179,20 +192,15 @@ class TemplateCompleter {
         // TODO suggest these things if the target is ExpressionBoundInput with
         // boundType of input
         suggestInputs(target.directives, suggestions);
-        for (AbstractDirective directive in target.directives) {
-          // TODO suggest default html events
-          for (OutputElement output in directive.outputs) {
-            suggestions.add(_createOutputSuggestion(
-                output,
-                DART_RELEVANCE_DEFAULT,
-                _createOutputElement(output, protocol.ElementKind.GETTER)));
-          }
-        }
+        suggestOutputs(target.directives, suggestions, standardHtmlEvents);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.directives, suggestions);
+      } else if (target is StatementsBoundAttribute) {
+        suggestOutputs(
+            target.parent.directives, suggestions, standardHtmlEvents);
       }
     }
 
@@ -206,6 +214,25 @@ class TemplateCompleter {
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
+    }
+  }
+
+  suggestOutputs(
+      List<AbstractDirective> directives,
+      List<CompletionSuggestion> suggestions,
+      List<OutputElement> standardHtmlEvents) {
+    for (AbstractDirective directive in directives) {
+      for (OutputElement output in directive.outputs) {
+        suggestions.add(_createOutputSuggestion(output, DART_RELEVANCE_DEFAULT,
+            _createOutputElement(output, protocol.ElementKind.GETTER)));
+      }
+    }
+
+    for (OutputElement output in standardHtmlEvents) {
+      suggestions.add(_createOutputSuggestion(
+          output,
+          DART_RELEVANCE_DEFAULT - 1, // just below regular relevance
+          _createOutputElement(output, protocol.ElementKind.GETTER)));
     }
   }
 

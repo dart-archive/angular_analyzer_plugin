@@ -447,6 +447,8 @@ class OtherComp {
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
     assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
   test_completeInputStarted() async {
@@ -475,6 +477,37 @@ class OtherComp {
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
     assertNotSuggested("(nameEvent)");
+    assertNotSuggested("(click)");
+  }
+
+  test_completeOutputStarted() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag (^></my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertNotSuggested("[name]");
   }
 
   test_completeInputReplacing() async {
@@ -503,9 +536,10 @@ class OtherComp {
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
     assertNotSuggested("(nameEvent)");
+    assertNotSuggested("(click)");
   }
 
-  test_noCompleteInputInCloseTag() async {
+  test_completeOutputReplacing() async {
     Source dartSource = newSource(
         '/completionTest.dart',
         '''
@@ -517,6 +551,37 @@ class MyComp {
 @Component(template: '', selector: 'my-tag')
 class OtherComp {
   @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag (^output)="4"></my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertNotSuggested("[name]");
+  }
+
+  test_noCompleteInOutputInCloseTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter event;
 }
     ''');
 
@@ -529,6 +594,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
+    assertNotSuggested("(event)");
   }
 
   test_noCompleteEmptyTagContents() async {
@@ -543,6 +609,7 @@ class MyComp {
 @Component(template: '', selector: 'my-tag')
 class OtherComp {
   @Input() String name;
+  @Output() EventEmitter event;
 }
     ''');
 
@@ -555,9 +622,10 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
+    assertNotSuggested("(event)");
   }
 
-  test_noCompleteInputsOnTagNameCompletion() async {
+  test_noCompleteInOutputsOnTagNameCompletion() async {
     Source dartSource = newSource(
         '/completionTest.dart',
         '''
@@ -569,6 +637,7 @@ class MyComp {
 @Component(template: '', selector: 'my-tag')
 class OtherComp {
   @Input() String name;
+  @Output() EventEmitter event;
 }
     ''');
 
@@ -581,5 +650,6 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
+    assertNotSuggested("(event)");
   }
 }
