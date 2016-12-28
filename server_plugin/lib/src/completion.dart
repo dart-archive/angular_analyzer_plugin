@@ -11,6 +11,7 @@ import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 
@@ -173,30 +174,48 @@ class TemplateCompleter {
           target.openingSpan != null &&
           target.openingNameSpan != null &&
           offsetContained(request.offset, target.openingSpan.offset,
-              target.openingSpan.length - '>'.length) &&
-          !offsetContained(request.offset, target.openingNameSpan.offset,
-              target.openingNameSpan.length)) {
-        // TODO suggest these things if the target is ExpressionBoundInput with
-        // boundType of input
-        suggestInputs(target.directives, suggestions);
-        for (AbstractDirective directive in target.directives) {
-          // TODO suggest default html events
-          for (OutputElement output in directive.outputs) {
-            suggestions.add(_createOutputSuggestion(
-                output,
-                DART_RELEVANCE_DEFAULT,
-                _createOutputElement(output, protocol.ElementKind.GETTER)));
+              target.openingSpan.length - '>'.length)) {
+        if (!offsetContained(request.offset, target.openingNameSpan.offset,
+            target.openingNameSpan.length)) {
+          // TODO suggest these things if the target is ExpressionBoundInput with
+          // boundType of input
+          suggestInputs(target.directives, suggestions);
+          for (AbstractDirective directive in target.directives) {
+            // TODO suggest default html events
+            for (OutputElement output in directive.outputs) {
+              suggestions.add(_createOutputSuggestion(
+                  output,
+                  DART_RELEVANCE_DEFAULT,
+                  _createOutputElement(output, protocol.ElementKind.GETTER)));
+            }
           }
+        } else {
+          suggestHtmlTags(template, suggestions);
         }
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.directives, suggestions);
+      } else if (target is TextInfo &&
+          identical(target.text[request.offset - target.offset - 1], "<")) {
+        suggestHtmlTags(template, suggestions);
       }
     }
 
     return suggestions;
+  }
+
+  suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions) {
+    for (AbstractDirective abstractDirective in template.view.directives) {
+      if (abstractDirective is Component) {
+        suggestions.add(_createHtmlTagSuggestion(
+            abstractDirective,
+            DART_RELEVANCE_DEFAULT,
+            _createHtmlTagElement(
+                abstractDirective, protocol.ElementKind.LABEL)));
+      }
+    }
   }
 
   suggestInputs(List<AbstractDirective> directives,
@@ -247,6 +266,34 @@ class TemplateCompleter {
     int flags = protocol.Element.makeFlags();
     return new protocol.Element(kind, name, flags,
         location: location, returnType: type.toString());
+  }
+
+  CompletionSuggestion _createHtmlTagSuggestion(
+      Component component, int defaultRelevance, protocol.Element element) {
+    String completion = ((component.exportAs != null)
+        ? component.exportAs.name
+        : component.selector.toString());
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  protocol.Element _createHtmlTagElement(
+      Component component, protocol.ElementKind kind) {
+    String name = ((component.exportAs != null)
+        ? component.exportAs.name
+        : component.selector.toString());
+    int offset = (component.exportAs != null)
+        ? component.exportAs.nameOffset
+        : (component.selector as ElementNameSelector).nameElement.nameOffset;
+    int length = (component.exportAs != null)
+        ? component.exportAs.nameLength
+        : (component.selector as ElementNameSelector).nameElement.nameLength;
+    Location location =
+        new Location(component.source.fullName, offset, length, 0, 0);
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, name, flags, location: location);
   }
 
   CompletionSuggestion _createInputSuggestion(InputElement inputElement,
