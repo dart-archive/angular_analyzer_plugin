@@ -2,6 +2,7 @@ library angular2.src.analysis.analyzer_plugin.src.tasks;
 
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/dart/ast/ast.dart' as ast;
+import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/src/generated/constant.dart';
@@ -367,16 +368,18 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     if (expression == null) {
       return null;
     }
+
     // Extract its content.
-    String name;
+    String name = _getExpressionString(expression);
+    if (name == null) {
+      return null;
+    }
+
     int offset;
     if (expression is ast.SimpleStringLiteral) {
-      name = expression.value;
       offset = expression.contentsOffset;
     } else {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.STRING_VALUE_EXPECTED, expression);
-      return null;
+      offset = expression.offset;
     }
     // Create a new element.
     return new AngularElementImpl(name, offset, name.length, target.source);
@@ -433,6 +436,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var nameRange = nameValueAndRanges.item4;
 
       PropertyAccessorElement setter = _resolveSetter(expression, name);
+      if (setter == null) {
+        return null;
+      }
 
       return new InputElement(boundName, boundRange.offset, boundRange.length,
           target.source, setter, nameRange, _getSetterType(setter));
@@ -452,6 +458,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       var nameRange = nameValueAndRanges.item4;
 
       PropertyAccessorElement getter = _resolveGetter(expression, name);
+      if (getter == null) {
+        return null;
+      }
 
       var eventType = getEventType(getter, name);
 
@@ -582,22 +591,16 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
         property = node.element;
       } else if (isOutput && node.isGetter) {
         property = node.element;
-      } else {
-        errorReporter.reportErrorForOffset(
-            isInput
-                ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
-                : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-            node.element.nameOffset,
-            node.element.name.length);
-        return null;
       }
-    } else {
+    }
+
+    if (property == null) {
       errorReporter.reportErrorForOffset(
           isInput
               ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
               : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-          node.element.nameOffset,
-          node.element.name.length);
+          annotation.offset,
+          annotation.length);
       return null;
     }
 
@@ -605,6 +608,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     String name;
     int nameOffset;
     int nameLength;
+    int setterOffset = property.nameOffset;
+    int setterLength = property.nameLength;
     List<ast.Expression> arguments = annotation.arguments.arguments;
     if (arguments.isEmpty) {
       String propertyName = property.displayName;
@@ -627,12 +632,24 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     }
 
     if (isInput) {
-      inputElements.add(new InputElement(name, nameOffset, nameLength,
-          target.source, property, null, _getSetterType(property)));
+      inputElements.add(new InputElement(
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          new SourceRange(setterOffset, setterLength),
+          _getSetterType(property)));
     } else {
       var eventType = getEventType(property, name);
-      outputElements.add(new OutputElement(name, nameOffset, nameLength,
-          target.source, property, null, eventType));
+      outputElements.add(new OutputElement(
+          name,
+          nameOffset,
+          nameLength,
+          target.source,
+          property,
+          new SourceRange(setterOffset, setterLength),
+          eventType));
     }
   }
 
@@ -658,17 +675,16 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
           AngularWarningCode.ARGUMENT_SELECTOR_MISSING, node);
       return null;
     }
-    // Compute the selector text.
-    String selectorStr;
-    int selectorOffset;
-    if (expression is ast.SimpleStringLiteral) {
-      selectorStr = expression.value;
-      selectorOffset = expression.contentsOffset;
-    } else {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.STRING_VALUE_EXPECTED, expression);
+    // Compute the selector text. Careful! Offsets may not be valid after this,
+    // however, at the moment we don't use them anyway.
+    OffsettingConstantEvaluator constantEvaluation =
+        _calculateStringWithOffsets(expression);
+    if (constantEvaluation == null) {
       return null;
     }
+
+    String selectorStr = constantEvaluation.value;
+    int selectorOffset = expression.offset;
     // Parse the selector text.
     Selector selector =
         Selector.parse(target.source, selectorOffset, selectorStr);
@@ -891,13 +907,16 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     {
       ast.Expression expression = _getNamedArgument(annotation, 'template');
       if (expression != null) {
+        templateOffset = expression.offset;
         definesTemplate = true;
-        if (expression is ast.SimpleStringLiteral) {
-          templateText = expression.value;
-          templateOffset = expression.contentsOffset;
+        OffsettingConstantEvaluator constantEvaluation =
+            _calculateStringWithOffsets(expression);
+
+        // highly dynamically generated constant expressions can't be validated
+        if (constantEvaluation == null || !constantEvaluation.offsetsAreValid) {
+          templateText = '';
         } else {
-          errorReporter.reportErrorForNode(
-              AngularWarningCode.STRING_VALUE_EXPECTED, expression);
+          templateText = constantEvaluation.value;
         }
       }
     }
@@ -1107,7 +1126,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
       buildInputs,
       <ResultDescriptor>[DART_TEMPLATES, DART_TEMPLATES_ERRORS]);
 
-  RecordingErrorListener errorListener = new RecordingErrorListener();
+  RecordingErrorListener errorListener;
 
   ResolveDartTemplatesTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
@@ -1128,21 +1147,25 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     // Resolve inline view templates.
     //
     List<Template> templates = <Template>[];
+    List<AnalysisError> errors = <AnalysisError>[];
     for (View view in views) {
       if (view.templateText != null) {
+        errorListener = new RecordingErrorListener();
         Template template = new DartTemplateResolver(
                 typeProvider, htmlComponents, htmlEvents, errorListener, view)
             .resolve();
         if (template != null) {
           templates.add(template);
         }
+        errors.addAll(errorListener.errors
+            .where((e) => !template.ignoredErrors.contains(e.errorCode.name)));
       }
     }
     //
     // Record outputs.
     //
     outputs[DART_TEMPLATES] = templates;
-    outputs[DART_TEMPLATES_ERRORS] = errorListener.errors;
+    outputs[DART_TEMPLATES_ERRORS] = errors;
   }
 
   /**
@@ -1278,7 +1301,9 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     // Record outputs.
     //
     outputs[HTML_TEMPLATE] = template;
-    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors;
+    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors
+        .where((e) => !template.ignoredErrors.contains(e.errorCode.name))
+        .toList();
   }
 
   /**
@@ -1303,6 +1328,113 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static ResolveHtmlTemplateTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new ResolveHtmlTemplateTask(context, target);
+  }
+}
+
+class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
+  bool offsetsAreValid = true;
+  Object value;
+  ast.AstNode lastUnoffsettableNode;
+
+  @override
+  Object visitAdjacentStrings(ast.AdjacentStrings node) {
+    StringBuffer buffer = new StringBuffer();
+    int lastEndingOffset = null;
+    for (ast.StringLiteral string in node.strings) {
+      Object value = string.accept(this);
+      if (identical(value, utils.ConstantEvaluator.NOT_A_CONSTANT)) {
+        return value;
+      }
+      // preserve offsets across the split by padding
+      if (lastEndingOffset != null) {
+        buffer.write(' ' * (string.offset - lastEndingOffset));
+      }
+      lastEndingOffset = string.offset + string.length;
+      buffer.write(value);
+    }
+    return buffer.toString();
+  }
+
+  @override
+  Object visitBinaryExpression(ast.BinaryExpression node) {
+    if (node.operator.type == TokenType.PLUS) {
+      Object leftOperand = node.leftOperand.accept(this);
+      if (identical(leftOperand, utils.ConstantEvaluator.NOT_A_CONSTANT)) {
+        return leftOperand;
+      }
+      Object rightOperand = node.rightOperand.accept(this);
+      if (identical(rightOperand, utils.ConstantEvaluator.NOT_A_CONSTANT)) {
+        return rightOperand;
+      }
+      // numeric or {@code null}
+      if (leftOperand is String && rightOperand is String) {
+        int gap = node.rightOperand.offset -
+            node.leftOperand.offset -
+            node.leftOperand.length;
+        return leftOperand + (' ' * gap) + rightOperand;
+      }
+    }
+
+    return super.visitBinaryExpression(node);
+  }
+
+  @override
+  Object visitStringInterpolation(ast.StringInterpolation node) {
+    offsetsAreValid = false;
+    lastUnoffsettableNode = node;
+    return super.visitStringInterpolation(node);
+  }
+
+  @override
+  Object visitMethodInvocation(ast.MethodInvocation node) {
+    offsetsAreValid = false;
+    lastUnoffsettableNode = node;
+    return super.visitMethodInvocation(node);
+  }
+
+  @override
+  Object visitParenthesizedExpression(ast.ParenthesizedExpression node) {
+    offsetsAreValid = false;
+    lastUnoffsettableNode = node;
+    int preGap = node.expression.offset - node.offset;
+    int postGap = node.offset +
+        node.length -
+        node.expression.offset -
+        node.expression.length;
+    Object value = super.visitParenthesizedExpression(node);
+    if (value is String) {
+      return ' ' * preGap + value + ' ' * postGap;
+    }
+
+    return value;
+  }
+
+  @override
+  Object visitSimpleStringLiteral(ast.SimpleStringLiteral node) {
+    int gap = node.contentsOffset - node.offset;
+    lastUnoffsettableNode = node;
+    return ' ' * gap + node.value + ' ';
+  }
+
+  @override
+  Object visitPrefixedIdentifier(ast.PrefixedIdentifier node) {
+    offsetsAreValid = false;
+    lastUnoffsettableNode = node;
+    return super.visitPrefixedIdentifier(node);
+  }
+
+  @override
+  Object visitPropertyAccess(ast.PropertyAccess node) {
+    offsetsAreValid = false;
+    lastUnoffsettableNode = node;
+    return super.visitPropertyAccess(node);
+  }
+
+  @override
+  Object visitSimpleIdentifier(ast.SimpleIdentifier node) {
+    offsetsAreValid = false;
+    lastUnoffsettableNode = node;
+    return super.visitSimpleIdentifier(node);
   }
 }
 
@@ -1337,6 +1469,31 @@ class _AnnotationProcessorMixin {
       Object value = expression.accept(_constantEvaluator);
       if (value is String) {
         return value;
+      }
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.STRING_VALUE_EXPECTED, expression);
+    }
+    return null;
+  }
+
+  /**
+   * Returns the [String] value of the given [expression].
+   * If [expression] does not have a [String] value, reports an error
+   * and returns `null`.
+   */
+  OffsettingConstantEvaluator _calculateStringWithOffsets(
+      ast.Expression expression) {
+    if (expression != null) {
+      OffsettingConstantEvaluator evaluator = new OffsettingConstantEvaluator();
+      evaluator.value = expression.accept(evaluator);
+
+      if (evaluator.value is String) {
+        if (!evaluator.offsetsAreValid) {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
+              evaluator.lastUnoffsettableNode);
+        }
+        return evaluator;
       }
       errorReporter.reportErrorForNode(
           AngularWarningCode.STRING_VALUE_EXPECTED, expression);
@@ -1452,7 +1609,7 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
               accessor.nameLength,
               accessor.source,
               accessor,
-              null,
+              new SourceRange(accessor.nameOffset, accessor.nameLength),
               accessor.variable.type);
         }
       }
@@ -1516,8 +1673,9 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         // special elements with outputs such as BodyElement, everything else
         // relies on standardHtmlEvents checked after the outputs.
         if (!skipHtmlElement || type.name != 'HtmlElement') {
-          type.accessors.forEach(
-              (PropertyAccessorElement elem) => addAspect(aspectMap, elem));
+          type.accessors
+              .where((elem) => !elem.isPrivate)
+              .forEach((elem) => addAspect(aspectMap, elem));
           type.mixins.forEach(addAspects);
           addAspects(type.superclass);
         }

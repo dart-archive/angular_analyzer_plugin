@@ -11,18 +11,14 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/error_verifier.dart';
-import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/token.dart';
-import 'package:analyzer/src/dart/ast/token.dart' hide SimpleToken;
-import 'package:analyzer/src/dart/scanner/reader.dart';
-import 'package:analyzer/src/dart/scanner/scanner.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
-import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
@@ -34,45 +30,6 @@ html.Element _firstElement(html.Node node) {
     }
   }
   return null;
-}
-
-enum AttributeBoundType { input, output, twoWay, attr, clazz, style }
-
-/**
- * Information about an attribute.
- */
-class AttributeInfo {
-  final String name;
-  final int nameOffset;
-
-  final String propertyName;
-  final int propertyNameOffset;
-  final int propertyNameLength;
-  final AttributeBoundType bound;
-
-  final String value;
-  final int valueOffset;
-
-  Expression expression;
-
-  AttributeInfo(
-      this.name,
-      this.nameOffset,
-      this.propertyName,
-      this.propertyNameOffset,
-      this.propertyNameLength,
-      this.bound,
-      this.value,
-      this.valueOffset);
-
-  int get valueLength => value != null ? value.length : 0;
-
-  @override
-  String toString() {
-    return '([$name, $nameOffset],'
-        '[$propertyName, $propertyNameOffset, $propertyNameLength, $bound],'
-        '[$value, $valueOffset, $valueLength], [$expression])';
-  }
 }
 
 /**
@@ -109,9 +66,10 @@ class DartTemplateResolver {
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
     view.template = template;
-    new TemplateResolver(typeProvider, standardHtmlComponents,
+    template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, errorListener)
         .resolve(template);
+    _setIgnoredErrors(template, document);
     return template;
   }
 
@@ -135,48 +93,11 @@ class DartTemplateResolver {
     }
   }
 
-  void _defineBuiltInVariable(Scope nameScope, DartType type, String name) {
-    MethodElementImpl methodElement = new MethodElementImpl('angularVars', -1);
-    (view.classElement as ElementImpl).encloseElement(methodElement);
-    LocalVariableElementImpl localVariable =
-        new LocalVariableElementImpl(name, -1);
-    localVariable.type = type;
-    methodElement.encloseElement(localVariable);
-    nameScope.define(localVariable);
-  }
-
   void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
       [List<Object> arguments]) {
     errorListener.onError(new AnalysisError(
         view.source, span.start.offset, span.length, errorCode, arguments));
   }
-}
-
-/**
- * An element in an HTML tree.
- */
-class ElementInfo extends NodeInfo {
-  final String localName;
-  final SourceRange openingSpan;
-  final SourceRange closingSpan;
-  final SourceRange openingNameSpan;
-  final SourceRange closingNameSpan;
-  final bool isTemplate;
-  final bool hasTemplateAttribute;
-  final List<AttributeInfo> attributes;
-  List<AbstractDirective> directives = <AbstractDirective>[];
-
-  ElementInfo(
-      this.localName,
-      this.openingSpan,
-      this.closingSpan,
-      this.openingNameSpan,
-      this.closingNameSpan,
-      this.isTemplate,
-      this.hasTemplateAttribute,
-      this.attributes);
-
-  bool get isOrHasTemplateAttribute => isTemplate || hasTemplateAttribute;
 }
 
 /**
@@ -209,9 +130,9 @@ class ElementViewImpl implements ElementView {
 
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (AttributeInfo attribute in attributeInfoList) {
-      String name = attribute.propertyName;
-      attributeNameSpans[name] = new SourceRange(
-          attribute.propertyNameOffset, attribute.propertyNameLength);
+      String name = attribute.name;
+      attributeNameSpans[name] =
+          new SourceRange(attribute.nameOffset, attribute.name.length);
       if (attribute.value != null) {
         attributeValueSpans[name] =
             new SourceRange(attribute.valueOffset, attribute.valueLength);
@@ -224,6 +145,24 @@ class ElementViewImpl implements ElementView {
       closingSpan = element.closingSpan;
       openingNameSpan = element.openingNameSpan;
       closingNameSpan = element.closingNameSpan;
+    }
+  }
+}
+
+_setIgnoredErrors(Template template, html.Document document) {
+  html.Node firstNode = document.nodes[0];
+  if (firstNode is html.Comment) {
+    String text = firstNode.text.trim();
+    if (text.startsWith("@ngIgnoreErrors")) {
+      text = text.substring("@ngIgnoreErrors".length);
+      // Per spec: optional color
+      if (text.startsWith(":")) {
+        text = text.substring(1);
+      }
+      // Per spec: optional commas
+      String delim = text.indexOf(',') == -1 ? ' ' : ',';
+      template.ignoredErrors.addAll(new HashSet.from(
+          text.split(delim).map((c) => c.trim().toUpperCase())));
     }
   }
 }
@@ -245,148 +184,13 @@ class HtmlTemplateResolver {
   HtmlTemplate resolve() {
     HtmlTemplate template =
         new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
+
     view.template = template;
-    new TemplateResolver(typeProvider, standardHtmlComponents,
+    template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, errorListener)
         .resolve(template);
+    _setIgnoredErrors(template, document);
     return template;
-  }
-}
-
-class HtmlTreeConverter {
-  NodeInfo convert(html.Node node) {
-    if (node is html.Element) {
-      String localName = node.localName;
-      List<AttributeInfo> attributes = _convertAttributes(node);
-      bool isTemplate = localName == 'template';
-      bool hasTemplateAttribute = _hasTemplateAttribute(attributes);
-      SourceRange openingSpan = _toSourceRange(node.sourceSpan);
-      SourceRange closingSpan = _toSourceRange(node.endSourceSpan);
-      SourceRange openingNameSpan = openingSpan != null
-          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
-          : null;
-      SourceRange closingNameSpan = closingSpan != null
-          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
-          : null;
-      ElementInfo element = new ElementInfo(
-          localName,
-          openingSpan,
-          closingSpan,
-          openingNameSpan,
-          closingNameSpan,
-          isTemplate,
-          hasTemplateAttribute,
-          attributes);
-      List<NodeInfo> children = _convertChildren(node);
-      element.children.addAll(children);
-      return element;
-    }
-    if (node is html.Text) {
-      int offset = node.sourceSpan.start.offset;
-      String text = node.text;
-      return new TextInfo(offset, text);
-    }
-    return null;
-  }
-
-  List<AttributeInfo> _convertAttributes(html.Element element) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-    element.attributes.forEach((name, String value) {
-      if (name is String) {
-        String lowerName = name.toLowerCase();
-        int nameOffset;
-        try {
-          nameOffset = element.attributeSpans[lowerName].start.offset;
-        } catch (e) {
-          // See https://github.com/dart-lang/html/issues/44, this creates
-          // an error. Catch it so that analysis else where continues.
-          return;
-        }
-        // name
-        AttributeBoundType bound = null;
-        String propName = name;
-        int propNameOffset = nameOffset;
-        if (propName.startsWith('[(') && propName.endsWith(')]')) {
-          propNameOffset += 2;
-          bound = AttributeBoundType.twoWay;
-          propName = propName.substring(2, propName.length - 2);
-        } else if (propName.startsWith('[') && propName.endsWith(']')) {
-          propNameOffset += 1;
-          propName = propName.substring(1, propName.length - 1);
-          if (propName.startsWith('class.')) {
-            bound = AttributeBoundType.clazz;
-            propName = propName.substring('class.'.length);
-            propNameOffset += 'class.'.length;
-          } else if (propName.startsWith('attr.')) {
-            bound = AttributeBoundType.attr;
-            propName = propName.substring('attr.'.length);
-            propNameOffset += 'attr.'.length;
-          } else if (propName.startsWith('style.')) {
-            propName = propName.substring('style.'.length);
-            propNameOffset += 'style.'.length;
-            bound = AttributeBoundType.style;
-          } else {
-            bound = AttributeBoundType.input;
-          }
-        } else if (propName.startsWith('bind-')) {
-          int bindLength = 'bind-'.length;
-          propNameOffset += bindLength;
-          propName = propName.substring(bindLength);
-          bound = AttributeBoundType.input;
-        } else if (propName.startsWith('on-')) {
-          int bindLength = 'on-'.length;
-          propNameOffset += bindLength;
-          propName = propName.substring(bindLength);
-          bound = AttributeBoundType.output;
-        } else if (propName.startsWith('(') && propName.endsWith(')')) {
-          propNameOffset += 1;
-          propName = propName.substring(1, propName.length - 1);
-          bound = AttributeBoundType.output;
-        }
-        int propNameLength = propName != null ? propName.length : null;
-        // value
-        int valueOffset;
-        {
-          SourceSpan span = element.attributeValueSpans[lowerName];
-          if (span != null) {
-            valueOffset = span.start.offset;
-          } else {
-            value = null;
-          }
-        }
-        // add
-        attributes.add(new AttributeInfo(name, nameOffset, propName,
-            propNameOffset, propNameLength, bound, value, valueOffset));
-      }
-    });
-    return attributes;
-  }
-
-  List<NodeInfo> _convertChildren(html.Element node) {
-    List<NodeInfo> children = <NodeInfo>[];
-    for (html.Node child in node.nodes) {
-      NodeInfo node = convert(child);
-      if (node != null) {
-        children.add(node);
-      }
-    }
-    return children;
-  }
-
-  bool _hasTemplateAttribute(List<AttributeInfo> attributes) {
-    for (AttributeInfo attribute in attributes) {
-      if (attribute.name == 'template' || attribute.name.startsWith('*')) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  SourceRange _toSourceRange(SourceSpan span) {
-    if (span != null) {
-      return new SourceRange(span.start.offset, span.length);
-    }
-    return null;
   }
 }
 
@@ -402,24 +206,6 @@ class InternalVariable {
 }
 
 /**
- * A variable defined by a [AbstractDirective].
- */
-class LocalVariable extends AngularElementImpl {
-  final LocalVariableElementImpl dartVariable;
-
-  LocalVariable(String name, int nameOffset, int nameLength, Source source,
-      this.dartVariable)
-      : super(name, nameOffset, nameLength, source);
-}
-
-/**
- * A node in an HTML tree.
- */
-class NodeInfo {
-  final List<NodeInfo> children = <NodeInfo>[];
-}
-
-/**
  * [TemplateResolver]s resolve [Template]s.
  */
 class TemplateResolver {
@@ -432,19 +218,6 @@ class TemplateResolver {
   View view;
   Source templateSource;
   ErrorReporter errorReporter;
-  List<AbstractDirective> allDirectives;
-
-  CompilationUnitElementImpl htmlCompilationUnitElement;
-  ClassElementImpl htmlClassElement;
-  MethodElementImpl htmlMethodElement;
-
-  Map<String, OutputElement> nativeDomOutputs;
-
-  /**
-   * The map from names of bound attributes to resolve expressions.
-   */
-  Map<String, Expression> currentNodeAttributeExpressions =
-      new HashMap<String, Expression>();
 
   /**
    * The full map of names to internal variables in the current template.
@@ -458,33 +231,334 @@ class TemplateResolver {
   Map<String, LocalVariable> localVariables =
       new HashMap<String, LocalVariable>();
 
-  /**
-   * The full map of names to local variables in the current template.
-   */
-  Map<LocalVariableElement, LocalVariable> dartVariables =
-      new HashMap<LocalVariableElement, LocalVariable>();
-
   TemplateResolver(this.typeProvider, this.standardHtmlComponents,
       this.standardHtmlEvents, this.errorListener);
 
-  void resolve(Template template) {
+  ElementInfo resolve(Template template) {
     this.template = template;
     this.view = template.view;
     this.templateSource = view.templateSource;
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
-    this.allDirectives = <AbstractDirective>[]
+    EmbeddedDartParser parser = new EmbeddedDartParser(
+        templateSource, errorListener, typeProvider, errorReporter);
+    ElementInfo root =
+        new HtmlTreeConverter(parser, templateSource, errorListener)
+            .convert(template.element);
+
+    var allDirectives = <AbstractDirective>[]
       ..addAll(standardHtmlComponents)
       ..addAll(view.directives);
-    ElementInfo root = new HtmlTreeConverter().convert(template.element);
-    _resolveElement(root);
+    DirectiveResolver directiveResolver = new DirectiveResolver(
+        allDirectives, templateSource, template, errorListener);
+    root.accept(directiveResolver);
+
+    _resolveScope(root);
+    return root;
   }
 
-  void _defineBuiltInVariable(
-      Scope nameScope, DartType type, String name, int offset) {
-    // TODO(scheglov) remove this
-    LocalVariableElement localVariable =
-        _newLocalVariableElement(offset, name, type);
-    nameScope.define(localVariable);
+  /**
+   * Resolve the given [element]. This will either be a template or the root of
+   * the template, meaning it has its own scope. We have to resolve the
+   * outermost scopes first so that ngFor variables have types.
+   *
+   * See the comment block for [PrepareScopeVisitor] for the most detailed
+   * breakdown of what we do and why.
+   *
+   * Requires that we've already resolved the directives down the tree. 
+   */
+  void _resolveScope(ElementInfo element) {
+    if (element == null) {
+      return;
+    }
+    // apply template attributes
+    Map<String, LocalVariable> oldLocalVariables = localVariables;
+    Map<String, InternalVariable> oldInternalVariables = internalVariables;
+    internalVariables = new HashMap.from(internalVariables);
+    localVariables = new HashMap.from(localVariables);
+    try {
+      DartVariableManager dartVarManager =
+          new DartVariableManager(template, templateSource, errorListener);
+      // Prepare the scopes
+      element.accept(new PrepareScopeVisitor(
+          internalVariables,
+          localVariables,
+          template,
+          templateSource,
+          typeProvider,
+          dartVarManager,
+          errorListener));
+      // Load $event into the scopes
+      element.accept(new PrepareEventScopeVisitor(
+          standardHtmlEvents,
+          template,
+          templateSource,
+          localVariables,
+          typeProvider,
+          dartVarManager,
+          errorListener));
+      // Resolve the scopes
+      element.accept(new SingleScopeResolver(view, template, templateSource,
+          typeProvider, errorListener, errorReporter));
+
+      // Now the next scope is ready to be resolved
+      var tplSearch = new NextTemplateElementsSearch();
+      element.accept(tplSearch);
+      for (ElementInfo templateElement in tplSearch.results) {
+        _resolveScope(templateElement);
+      }
+    } finally {
+      internalVariables = oldInternalVariables;
+      localVariables = oldLocalVariables;
+    }
+  }
+}
+
+/**
+ * An [AstVisitor] that records references to Dart [Element]s into
+ * the given [template].
+ */
+class _DartReferencesRecorder extends RecursiveAstVisitor {
+  final Map<Element, AngularElement> dartToAngularMap;
+  final Template template;
+
+  _DartReferencesRecorder(this.template, this.dartToAngularMap);
+
+  @override
+  visitSimpleIdentifier(SimpleIdentifier node) {
+    Element dartElement = node.bestElement;
+    if (dartElement != null) {
+      AngularElement angularElement = dartToAngularMap[dartElement];
+      if (angularElement == null) {
+        angularElement = new DartElement(dartElement);
+      }
+      SourceRange range = new SourceRange(node.offset, node.length);
+      template.addRange(range, angularElement);
+    }
+  }
+}
+
+/**
+ * Probably the most important visitor to understand in how we process angular
+ * templates.
+ *
+ * First its important to note how angular scopes are determined by templates;
+ * that's how ngFor adds a variable below. Its also important to note that
+ * unlike in most languages, angular template semantics lets you use a variable
+ * before its declared, ie `<a>{{b}}</a><p #b></p>` so long as they share a
+ * scope. Also note that a template both ends a scope and begins it: all
+ * the bindings in the template are from the old scope, and yet let-vars add to
+ * the new new scope.
+ *
+ * This means we need to have a multiple-pass process, and that means we spend
+ * a good chunk of time merely following the rules of scoping. This visitor
+ * will enforce that for you.
+ *
+ * Just don't @override visitElementInfo (or do so carefully), and this visitor
+ * naturally walk over all the attributes in scope by what you give it. You can
+ * also hook into what happens when it hits the elements by overriding:
+ *
+ * * visitBorderScopeTemplateAttribute(templateAttribute)
+ * * visitScopeRootElementWithTemplateAttribute(element)
+ * * visitBorderScopeTemplateElement(element)
+ * * visitScopeRootTemplateElement(element)
+ * * visitElementInScope(element)
+ *
+ * Which should allow you to do specialty things, such as what the
+ * [PrepareScopeVisitor] does by using out-of-scope properties to affect the
+ * in-scope ones.
+ */
+class AngularScopeVisitor extends AngularAstVisitor {
+  bool visitingRoot = true;
+
+  void visitElementInfo(ElementInfo element) {
+    var isRoot = visitingRoot;
+    visitingRoot = false;
+    if (element.templateAttribute != null) {
+      if (!isRoot) {
+        visitBorderScopeTemplateAttribute(element.templateAttribute);
+        return;
+      } else {
+        visitScopeRootElementWithTemplateAttribute(element);
+      }
+    } else if (element.isTemplate) {
+      if (isRoot) {
+        visitScopeRootTemplateElement(element);
+      } else {
+        visitBorderScopeTemplateElement(element);
+      }
+    } else {
+      visitElementInScope(element);
+    }
+  }
+
+  void visitScopeRootTemplateElement(ElementInfo element) {
+    // the children are in this scope, the template itself is borderlands
+    for (NodeInfo child in element.childNodes) {
+      child.accept(this);
+    }
+  }
+
+  void visitBorderScopeTemplateElement(ElementInfo element) {
+    // the attributes are in this scope, the children aren't
+    for (AttributeInfo attr in element.attributes) {
+      attr.accept(this);
+    }
+  }
+
+  void visitScopeRootElementWithTemplateAttribute(ElementInfo element) {
+    var children =
+        element.children.where((child) => child is! TemplateAttribute);
+    for (AngularAstNode child in children) {
+      child.accept(this);
+    }
+  }
+
+  void visitBorderScopeTemplateAttribute(TemplateAttribute attr) {
+    // Border to the next scope. The virtual properties belong here, the real
+    // element does not
+    visitTemplateAttr(attr);
+  }
+
+  void visitElementInScope(ElementInfo element) {
+    for (NodeInfo child in element.children) {
+      child.accept(this);
+    }
+  }
+}
+
+/**
+ * We have to collect all vars and their types before we can resolve the
+ * bindings, since variables can be used before they are declared. This does
+ * that. 
+ *
+ * It loads each node's [localVariables] property so that the resolver has
+ * everything it needs, keeping those local variables around for autocomplete.
+ * As the scope is built up it is attached to the nodes -- and thanks to
+ * mutability + a shared reference, that works just fine.
+ *
+ * However, `$event` vars require a copy of the scope, not a shared reference,
+ * so that the `$event` can be added. Therefore this visitor does not handle
+ * output bindings. That is [PrepareEventScopeVisitor]'s job, only to be
+ * performed after this step has completed.
+ */
+class PrepareScopeVisitor extends AngularScopeVisitor {
+  /**
+   * The full map of names to internal variables in the current scope
+   */
+  final Map<String, InternalVariable> internalVariables;
+
+  /**
+   * The full map of names to local variables in the current scope
+   */
+  final Map<String, LocalVariable> localVariables;
+
+  final Template template;
+  final Source templateSource;
+  final TypeProvider typeProvider;
+  final DartVariableManager dartVariableManager;
+  final AnalysisErrorListener errorListener;
+
+  List<AbstractDirective> directives;
+
+  PrepareScopeVisitor(
+      this.internalVariables,
+      this.localVariables,
+      this.template,
+      this.templateSource,
+      this.typeProvider,
+      this.dartVariableManager,
+      this.errorListener);
+
+  @override
+  void visitScopeRootTemplateElement(ElementInfo element) {
+    for (AbstractDirective directive in element.directives) {
+      _defineDirectiveVariables(element.attributes, directive);
+      // This must be here for <template> tags.
+      _defineNgForVariables(element.attributes, directive);
+    }
+
+    _defineLocalVariablesForAttributes(element.attributes);
+
+    directives = element.directives;
+    super.visitScopeRootTemplateElement(element);
+  }
+
+  @override
+  void visitScopeRootElementWithTemplateAttribute(ElementInfo element) {
+    TemplateAttribute templateAttr = element.templateAttribute;
+
+    // If this is how our scope begins, like we're within an ngFor, then
+    // let the ngFor alter the current scope.
+    for (AbstractDirective directive in templateAttr.directives) {
+      _defineDirectiveVariables(templateAttr.virtualAttributes, directive);
+      _defineNgForVariables(templateAttr.virtualAttributes, directive);
+    }
+
+    _defineLocalVariablesForAttributes(templateAttr.virtualAttributes);
+
+    // Make sure the regular element also alters the current scope
+    for (AbstractDirective directive in element.directives) {
+      _defineDirectiveVariables(element.attributes, directive);
+      // This must be here for <template> tags.
+      _defineNgForVariables(element.attributes, directive);
+    }
+
+    _defineLocalVariablesForAttributes(element.attributes);
+
+    directives = element.directives;
+    super.visitScopeRootElementWithTemplateAttribute(element);
+  }
+
+  @override
+  void visitBorderScopeTemplateAttribute(TemplateAttribute attr) {
+    // Border to the next scope. Make sure the virtual properties are bound
+    // to the scope we're building now. But nothing else.
+    directives = attr.directives;
+    visitTemplateAttr(attr);
+  }
+
+  @override
+  void visitElementInScope(ElementInfo element) {
+    // Regular element or component. Look for `#var`s.
+    for (AbstractDirective directive in element.directives) {
+      _defineDirectiveVariables(element.attributes, directive);
+      // This must be here for <template> tags.
+      _defineNgForVariables(element.attributes, directive);
+    }
+
+    _defineLocalVariablesForAttributes(element.attributes);
+
+    directives = element.directives;
+    super.visitElementInScope(element);
+  }
+
+  @override
+  visitMustache(Mustache mustache) {
+    mustache.localVariables = localVariables;
+  }
+
+  @override
+  visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    attr.localVariables = localVariables;
+  }
+
+  void _defineNgForVariables(
+      List<AttributeInfo> attributes, AbstractDirective directive) {
+    // TODO(scheglov) Once Angular has a way to describe variables, reimplement
+    // https://github.com/angular/angular/issues/4850
+    if (directive.classElement.displayName == 'NgFor') {
+      internalVariables['index'] = new InternalVariable('index',
+          new DartElement(directive.classElement), typeProvider.intType);
+      for (AttributeInfo attribute in attributes) {
+        if (attribute is ExpressionBoundAttribute &&
+            attribute.name == 'ngForOf' &&
+            attribute.expression != null) {
+          DartType itemType = _getIterableItemType(attribute.expression);
+          internalVariables[r'$implicit'] = new InternalVariable(
+              r'$implicit', new DartElement(directive.classElement), itemType);
+        }
+      }
+    }
   }
 
   /**
@@ -506,24 +580,6 @@ class TemplateResolver {
       ClassElement classElement = directive.classElement;
       internalVariables[r'$implicit'] = new InternalVariable(
           r'$implicit', new DartElement(classElement), classElement.type);
-    }
-  }
-
-  void _defineNgForVariables(
-      List<AttributeInfo> attributes, AbstractDirective directive) {
-    // TODO(scheglov) Once Angular has a way to describe variables, reimplement
-    // https://github.com/angular/angular/issues/4850
-    if (directive.classElement.displayName == 'NgFor') {
-      internalVariables['index'] = new InternalVariable('index',
-          new DartElement(directive.classElement), typeProvider.intType);
-      for (AttributeInfo attribute in attributes) {
-        if (attribute.propertyName == 'ngForOf' &&
-            attribute.expression != null) {
-          DartType itemType = _getIterableItemType(attribute.expression);
-          internalVariables[r'$implicit'] = new InternalVariable(
-              r'$implicit', new DartElement(directive.classElement), itemType);
-        }
-      }
     }
   }
 
@@ -579,14 +635,14 @@ class TemplateResolver {
 
         // add a new local variable with type
         LocalVariableElement dartVariable =
-            _newLocalVariableElement(-1, name, type);
+            dartVariableManager.newLocalVariableElement(-1, name, type);
         LocalVariable localVariable = new LocalVariable(
             name, offset, name.length, templateSource, dartVariable);
         localVariables[name] = localVariable;
-        dartVariables[dartVariable] = localVariable;
         // add local declaration
         template.addRange(
-            new SourceRange(localVariable.nameOffset, localVariable.nameLength),
+            new SourceRange(
+                localVariable.nameOffset, localVariable.name.length),
             localVariable);
       }
     }
@@ -613,8 +669,20 @@ class TemplateResolver {
   DartType _lookupGetterReturnType(InterfaceType type, String name) {
     return type.lookUpInheritedGetter(name)?.returnType;
   }
+}
 
-  LocalVariableElement _newLocalVariableElement(
+class DartVariableManager {
+  Template template;
+  Source templateSource;
+  AnalysisErrorListener errorListener;
+
+  DartVariableManager(this.template, this.templateSource, this.errorListener);
+
+  CompilationUnitElementImpl htmlCompilationUnitElement;
+  ClassElementImpl htmlClassElement;
+  MethodElementImpl htmlMethodElement;
+
+  LocalVariableElement newLocalVariableElement(
       int offset, String name, DartType type) {
     // ensure artificial Dart elements in the template source
     if (htmlMethodElement == null) {
@@ -629,7 +697,7 @@ class TemplateResolver {
     // add a new local variable
     LocalVariableElementImpl localVariable =
         new LocalVariableElementImpl(name, offset);
-    localVariable.nameLength;
+    localVariable.name.length;
     localVariable.type = type;
 
     // add the local variable to the enclosing element
@@ -639,77 +707,170 @@ class TemplateResolver {
     htmlMethodElement.localVariables = localVariables;
     return localVariable;
   }
+}
 
-  /**
-   * Parse the given Dart [code] that starts at [offset].
-   */
-  Expression _parseDartExpression(int offset, String code) {
-    Token token = _scanDartCode(offset, code);
-    return _parseDartExpressionAtToken(token);
+class PrepareEventScopeVisitor extends AngularScopeVisitor {
+  List<AbstractDirective> directives;
+  final Template template;
+  final Source templateSource;
+  final Map<String, LocalVariable> localVariables;
+  final Map<String, OutputElement> standardHtmlEvents;
+  final TypeProvider typeProvider;
+  final DartVariableManager dartVariableManager;
+  final AnalysisErrorListener errorListener;
+
+  PrepareEventScopeVisitor(
+      this.standardHtmlEvents,
+      this.template,
+      this.templateSource,
+      this.localVariables,
+      this.typeProvider,
+      this.dartVariableManager,
+      this.errorListener);
+
+  @override
+  visitElementInfo(ElementInfo elem) {
+    directives = elem.directives;
+    super.visitElementInfo(elem);
   }
 
-  /**
-   * Parse the given Dart [code] that starts ot [offset].
-   * Also removes and reports dangling closing brackets.
-   */
-  List<Statement> _parseDartStatements(int offset, String code) {
-    List<Statement> allStatements = new List<Statement>();
-    Token token = _scanDartCode(offset, code);
+  @override
+  visitTemplateAttr(TemplateAttribute templateAttr) {
+    directives = templateAttr.directives;
+    super.visitTemplateAttr(templateAttr);
+  }
 
-    while (token.type != TokenType.EOF) {
-      List<Statement> currentStatements = _parseDartStatementsAtToken(token);
+  @override
+  visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    DartType eventType = typeProvider.dynamicType;
+    var matched = false;
 
-      if (currentStatements.isNotEmpty) {
-        allStatements.addAll(currentStatements);
-        token = currentStatements.last.endToken.next;
-      }
-      if (token.type == TokenType.EOF) {
-        break;
-      }
-      if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
-        int startCloseBracket = token.offset;
-        while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
-          token = token.next;
+    for (AbstractDirective directive in directives) {
+      for (OutputElement output in directive.outputs) {
+        //TODO what if this matches two directives?
+        if (output.name == attr.name) {
+          eventType = output.eventType;
+          matched = true;
+          SourceRange range =
+              new SourceRange(attr.nameOffset, attr.name.length);
+          template.addRange(range, output);
         }
-        int length = token.offset - startCloseBracket;
-        errorListener.onError(new AnalysisError(
-            templateSource,
-            startCloseBracket,
-            length,
-            ParserErrorCode.UNEXPECTED_TOKEN,
-            ["}"]));
-        continue;
-      } else {
-        //Nothing should trigger here, but just in case to prevent infinite loop
-        token = token.next;
       }
     }
-    return allStatements;
+
+    //standard HTML events bubble up, so everything supports them
+    if (!matched) {
+      var standardHtmlEvent = standardHtmlEvents[attr.name];
+      if (standardHtmlEvent != null) {
+        matched = true;
+        eventType = standardHtmlEvent.eventType;
+        SourceRange range = new SourceRange(attr.nameOffset, attr.name.length);
+        template.addRange(range, standardHtmlEvent);
+      }
+    }
+
+    if (!matched) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attr.nameOffset,
+          attr.name.length,
+          AngularWarningCode.NONEXIST_OUTPUT_BOUND,
+          [attr.name]));
+    }
+
+    attr.localVariables = new HashMap.from(localVariables);
+    LocalVariableElement dartVariable =
+        dartVariableManager.newLocalVariableElement(-1, r'$event', eventType);
+    LocalVariable localVariable =
+        new LocalVariable(r'$event', -1, 6, templateSource, dartVariable);
+    attr.localVariables[r'$event'] = localVariable;
+  }
+}
+
+/**
+ * Use this visitor to find the nested scopes within the [ElementInfo]
+ * you visit.
+ */
+class NextTemplateElementsSearch extends AngularAstVisitor {
+  bool visitingRoot = true;
+
+  List<ElementInfo> results = [];
+
+  @override
+  void visitElementInfo(ElementInfo element) {
+    if (element.isOrHasTemplateAttribute && !visitingRoot) {
+      results.add(element);
+      return;
+    }
+
+    visitingRoot = false;
+    for (NodeInfo child in element.childNodes) {
+      child.accept(this);
+    }
+  }
+}
+
+class DirectiveResolver extends AngularAstVisitor {
+  final List<AbstractDirective> allDirectives;
+  final Source templateSource;
+  final Template template;
+  final AnalysisErrorListener errorListener;
+
+  DirectiveResolver(this.allDirectives, this.templateSource, this.template,
+      this.errorListener);
+
+  @override
+  void visitElementInfo(ElementInfo element) {
+    if (element.templateAttribute != null) {
+      visitTemplateAttr(element.templateAttribute);
+    }
+
+    ElementView elementView = new ElementViewImpl(element.attributes, element);
+    bool tagIsResolved = false;
+    bool tagIsStandard = _isStandardTagName(element.localName);
+
+    for (AbstractDirective directive in allDirectives) {
+      Selector selector = directive.selector;
+      if (selector.match(elementView, template)) {
+        element.directives.add(directive);
+        if (selector is ElementNameSelector) {
+          tagIsResolved = true;
+        }
+      }
+    }
+    if (!tagIsStandard && !tagIsResolved) {
+      _reportErrorForRange(element.openingNameSpan,
+          AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
+    }
+
+    if (!element.isOrHasTemplateAttribute) {
+      _checkNoStructuralDirectives(element.attributes);
+    }
+
+    for (NodeInfo child in element.childNodes) {
+      child.accept(this);
+    }
   }
 
-  /**
-   * Parse the Dart expression starting at the given [token].
-   */
-  Expression _parseDartExpressionAtToken(Token token) {
-    Parser parser =
-        new NgExprParser(templateSource, errorListener, typeProvider);
-    return parser.parseExpression(token);
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {
+    // TODO: report error if no directives matched here?
+    ElementView elementView = new ElementViewImpl(attr.virtualAttributes, null);
+    for (AbstractDirective directive in allDirectives) {
+      if (directive.selector.match(elementView, template)) {
+        attr.directives.add(directive);
+      }
+    }
   }
 
-  /**
-   * Parse the Dart statement starting at the given [token].
-   */
-  List<Statement> _parseDartStatementsAtToken(Token token) {
-    Parser parser = new Parser(templateSource, errorListener);
-    return parser.parseStatements(token);
-  }
-
-  /**
-   * Record [ResolvedRange]s for the given [AstNode].
-   */
-  void _recordAstNodeResolvedRanges(AstNode astNode) {
-    if (astNode != null) {
-      astNode.accept(new _DartReferencesRecorder(template, dartVariables));
+  _checkNoStructuralDirectives(List<AttributeInfo> attributes) {
+    for (AttributeInfo attribute in attributes) {
+      if (attribute.name == 'ngFor' || attribute.name == 'ngIf') {
+        _reportErrorForRange(
+            new SourceRange(attribute.nameOffset, attribute.name.length),
+            AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+            [attribute.name]);
+      }
     }
   }
 
@@ -720,127 +881,98 @@ class TemplateResolver {
   }
 
   /**
-   * Resolve [attributes] names to inputs of [directive].
+   * Check whether the given [name] is a standard HTML5 tag name.
    */
-  void _resolveAttributeNames(
-      List<AttributeInfo> attributes, AbstractDirective directive) {
-    for (AttributeInfo attribute in attributes) {
-      for (InputElement input in directive.inputs) {
-        if (attribute.propertyName == input.name) {
-          SourceRange range = new SourceRange(
-              attribute.propertyNameOffset, attribute.propertyNameLength);
-          template.addRange(range, input);
-        }
-      }
-
-      for (OutputElement output in directive.outputs) {
-        if (attribute.propertyName == output.name) {
-          SourceRange range = new SourceRange(
-              attribute.propertyNameOffset, attribute.propertyNameLength);
-          template.addRange(range, output);
-        }
-      }
-    }
+  static bool _isStandardTagName(String name) {
+    name = name.toLowerCase();
+    return !name.contains('-') || name == 'ng-content';
   }
+}
+
+/**
+ * Once all the scopes for all the expressions & statements are prepared, we're
+ * ready to resolve all the expressions inside and typecheck everything.
+ *
+ * This will typecheck the contents of mustaches and attribute bindings against
+ * their scopes, and ensure that all attribute bindings exist on a directive and
+ * match the type of the binding where there is one. Then records references.
+ */
+class SingleScopeResolver extends AngularScopeVisitor {
+  List<AbstractDirective> directives;
+  View view;
+  Template template;
+  Source templateSource;
+  TypeProvider typeProvider;
+  AnalysisErrorListener errorListener;
+  ErrorReporter errorReporter;
 
   /**
-   * Resolve values of [attributes].
+   * The full map of names to local variables in the current context
    */
-  void _resolveAttributeValues(
-      List<AttributeInfo> attributes, List<AbstractDirective> directives) {
-    for (AttributeInfo attribute in attributes) {
-      // already handled
-      if (attribute.name == 'template' || attribute.name.startsWith('*')) {
-        continue;
-      }
+  Map<String, LocalVariable> localVariables;
 
-      // bound
-      if (attribute.bound == AttributeBoundType.output) {
-        _resolveOutputBoundAttributeValues(attribute, directives);
-      } else if (attribute.bound != null) {
-        Expression expression = attribute.expression;
-        if (expression == null) {
-          expression = _resolveDartExpressionAt(
-              attribute.valueOffset, attribute.value, true);
-          attribute.expression = expression;
-        }
-        if (expression != null) {
-          _recordAstNodeResolvedRanges(expression);
-        }
+  SingleScopeResolver(this.view, this.template, this.templateSource,
+      this.typeProvider, this.errorListener, this.errorReporter);
 
-        if (attribute.bound == AttributeBoundType.twoWay) {
-          _resolveTwoWayBoundAttributeValues(attribute, directives, expression);
-        } else if (attribute.bound == AttributeBoundType.input) {
-          _resolveInputBoundAttributeValues(attribute, directives, expression);
-        } else if (attribute.bound == AttributeBoundType.clazz) {
-          _resolveClassAttribute(attribute, expression);
-        } else if (attribute.bound == AttributeBoundType.style) {
-          _resolveStyleAttribute(attribute, expression);
-        } else if (attribute.bound == AttributeBoundType.attr) {
-          _resolveAttributeBoundAttribute(attribute, expression);
-        }
-      } // text interpolations
-      else if (attribute.value != null) {
-        _resolveTextExpressions(attribute.valueOffset, attribute.value);
-      }
+  @override
+  void visitElementInfo(ElementInfo element) {
+    directives = element.directives;
+    super.visitElementInfo(element);
+  }
+
+  @override
+  void visitTemplateAttr(TemplateAttribute templateAttr) {
+    directives = templateAttr.directives;
+    super.visitTemplateAttr(templateAttr);
+  }
+
+  @override
+  void visitMustache(Mustache mustache) {
+    localVariables = mustache.localVariables;
+    _resolveDartExpression(mustache.expression);
+    _recordAstNodeResolvedRanges(mustache.expression);
+  }
+
+  @override
+  void visitExpressionBoundAttr(ExpressionBoundAttribute attribute) {
+    localVariables = attribute.localVariables;
+    _resolveDartExpression(attribute.expression);
+    if (attribute.expression != null) {
+      _recordAstNodeResolvedRanges(attribute.expression);
+    }
+
+    if (attribute.bound == ExpressionBoundType.twoWay) {
+      _resolveTwoWayBoundAttributeValues(attribute);
+    } else if (attribute.bound == ExpressionBoundType.input) {
+      _resolveInputBoundAttributeValues(attribute);
+    } else if (attribute.bound == ExpressionBoundType.clazz) {
+      _resolveClassAttribute(attribute);
+    } else if (attribute.bound == ExpressionBoundType.style) {
+      _resolveStyleAttribute(attribute);
+    } else if (attribute.bound == ExpressionBoundType.attr) {
+      _resolveAttributeBoundAttribute(attribute);
     }
   }
 
   /**
    * Resolve output-bound values of [attributes] as statements.
    */
-  void _resolveOutputBoundAttributeValues(
-      AttributeInfo attribute, List<AbstractDirective> directives) {
-    DartType eventType = typeProvider.dynamicType;
-    var matched = false;
-
-    for (AbstractDirective directive in directives) {
-      for (OutputElement output in directive.outputs) {
-        //TODO what if this matches two directives?
-        if (output.name == attribute.propertyName) {
-          eventType = output.eventType;
-          //Parameterized directives, use the lower bound
-          matched = true;
-        }
-      }
-    }
-
-    //standard HTML events bubble up, so everything supports them
-    if (!matched) {
-      var standardHtmlEvent = standardHtmlEvents[attribute.propertyName];
-      if (standardHtmlEvent != null) {
-        matched = true;
-        eventType = standardHtmlEvent.eventType;
-        SourceRange range = new SourceRange(
-            attribute.propertyNameOffset, attribute.propertyNameLength);
-        template.addRange(range, standardHtmlEvent);
-      }
-    }
-
-    List<Statement> statements = _resolveDartExpressionStatementsAt(
-        attribute.valueOffset, attribute.value, eventType);
-    for (Statement statement in statements) {
+  @override
+  void visitStatementsBoundAttr(StatementsBoundAttribute attribute) {
+    localVariables = attribute.localVariables;
+    _resolveDartExpressionStatements(attribute.statements);
+    for (Statement statement in attribute.statements) {
       _recordAstNodeResolvedRanges(statement);
-    }
-
-    if (!matched) {
-      errorListener.onError(new AnalysisError(
-          templateSource,
-          attribute.nameOffset,
-          attribute.name.length,
-          AngularWarningCode.NONEXIST_OUTPUT_BOUND,
-          [attribute.propertyName]));
     }
   }
 
   /**
    * Resolve TwoWay-bound values of [attributes] as expressions.
    */
-  void _resolveTwoWayBoundAttributeValues(AttributeInfo attribute,
-      List<AbstractDirective> directives, Expression expression) {
+  void _resolveTwoWayBoundAttributeValues(ExpressionBoundAttribute attribute) {
     bool outputMatched = false;
 
-    if (!expression.isAssignable) {
+    if (!attribute.expression.isAssignable) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.valueOffset,
@@ -850,17 +982,19 @@ class TemplateResolver {
 
     for (AbstractDirective directive in directives) {
       for (OutputElement output in directive.outputs) {
-        if (output.name == attribute.propertyName + "Change") {
+        if (output.name == attribute.name + "Change") {
           outputMatched = true;
           var eventType = output.eventType;
 
-          if (!eventType.isAssignableTo(expression.bestType)) {
+          // half-complete-code case: ensure the expression is actually there
+          if (attribute.expression != null &&
+              !eventType.isAssignableTo(attribute.expression.bestType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.valueOffset,
                 attribute.value.length,
                 AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
-                [output.eventType, expression.bestType]));
+                [output.eventType, attribute.expression.bestType]));
           }
         }
       }
@@ -872,34 +1006,40 @@ class TemplateResolver {
           attribute.nameOffset,
           attribute.name.length,
           AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
-          [attribute.propertyName, attribute.propertyName + "Change"]));
+          [attribute.name, attribute.name + "Change"]));
     }
 
-    _resolveInputBoundAttributeValues(attribute, directives, expression);
+    _resolveInputBoundAttributeValues(attribute);
   }
 
   /**
    * Resolve input-bound values of [attributes] as expressions.
    * Also used by _resolveTwoWwayBoundAttributeValues.
    */
-  void _resolveInputBoundAttributeValues(AttributeInfo attribute,
-      List<AbstractDirective> directives, Expression expression) {
+  void _resolveInputBoundAttributeValues(ExpressionBoundAttribute attribute) {
     bool inputMatched = false;
 
     for (AbstractDirective directive in directives) {
       for (InputElement input in directive.inputs) {
-        if (input.name == attribute.propertyName) {
-          var attrType = expression.bestType;
-          var inputType = input.setterType;
+        if (input.name == attribute.name) {
+          // half-complete-code case: ensure the expression is actually there
+          if (attribute.expression != null) {
+            var attrType = attribute.expression.bestType;
+            var inputType = input.setterType;
 
-          if (!attrType.isAssignableTo(inputType)) {
-            errorListener.onError(new AnalysisError(
-                templateSource,
-                attribute.valueOffset,
-                attribute.value.length,
-                AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
-                [attrType, inputType]));
+            if (!attrType.isAssignableTo(inputType)) {
+              errorListener.onError(new AnalysisError(
+                  templateSource,
+                  attribute.valueOffset,
+                  attribute.value.length,
+                  AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+                  [attrType, inputType]));
+            }
           }
+
+          SourceRange range =
+              new SourceRange(attribute.nameOffset, attribute.name.length);
+          template.addRange(range, input);
 
           inputMatched = true;
         }
@@ -912,7 +1052,7 @@ class TemplateResolver {
           attribute.nameOffset,
           attribute.name.length,
           AngularWarningCode.NONEXIST_INPUT_BOUND,
-          [attribute.propertyName]));
+          [attribute.name]));
     }
   }
 
@@ -934,17 +1074,19 @@ class TemplateResolver {
    * the class is a valid css identifier and that the expression is of boolean
    * type
    */
-  _resolveClassAttribute(AttributeInfo attribute, Expression expression) {
-    if (!_isCssIdentifier(attribute.propertyName)) {
+  _resolveClassAttribute(ExpressionBoundAttribute attribute) {
+    if (!_isCssIdentifier(attribute.name)) {
       errorListener.onError(new AnalysisError(
           templateSource,
-          attribute.propertyNameOffset,
-          attribute.propertyName.length,
+          attribute.nameOffset,
+          attribute.name.length,
           AngularWarningCode.INVALID_HTML_CLASSNAME,
-          [attribute.propertyName]));
+          [attribute.name]));
     }
 
-    if (!expression.bestType.isAssignableTo(typeProvider.boolType)) {
+    // half-complete-code case: ensure the expression is actually there
+    if (attribute.expression != null &&
+        !attribute.expression.bestType.isAssignableTo(typeProvider.boolType)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         attribute.valueOffset,
@@ -959,21 +1101,23 @@ class TemplateResolver {
    * [style.background-width.px]="someNumExpr" which bind a css style property
    * with optional units.
    */
-  _resolveStyleAttribute(AttributeInfo attribute, Expression expression) {
-    var cssPropertyName = attribute.propertyName;
-    var dotpos = attribute.propertyName.indexOf('.');
+  _resolveStyleAttribute(ExpressionBoundAttribute attribute) {
+    var cssPropertyName = attribute.name;
+    var dotpos = attribute.name.indexOf('.');
     if (dotpos != -1) {
-      cssPropertyName = attribute.propertyName.substring(0, dotpos);
-      var cssUnitName = attribute.propertyName.substring(dotpos + '.'.length);
+      cssPropertyName = attribute.name.substring(0, dotpos);
+      var cssUnitName = attribute.name.substring(dotpos + '.'.length);
       if (!_isCssIdentifier(cssUnitName)) {
         errorListener.onError(new AnalysisError(
             templateSource,
-            attribute.propertyNameOffset + dotpos + 1,
+            attribute.nameOffset + dotpos + 1,
             cssUnitName.length,
             AngularWarningCode.INVALID_CSS_UNIT_NAME,
             [cssUnitName]));
       }
-      if (!expression.bestType.isAssignableTo(typeProvider.numType)) {
+      // half-complete-code case: ensure the expression is actually there
+      if (attribute.expression != null &&
+          !attribute.expression.bestType.isAssignableTo(typeProvider.numType)) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.valueOffset,
@@ -985,7 +1129,7 @@ class TemplateResolver {
     if (!_isCssIdentifier(cssPropertyName)) {
       errorListener.onError(new AnalysisError(
           templateSource,
-          attribute.propertyNameOffset,
+          attribute.nameOffset,
           cssPropertyName.length,
           AngularWarningCode.INVALID_CSS_PROPERTY_NAME,
           [cssPropertyName]));
@@ -995,8 +1139,7 @@ class TemplateResolver {
   /**
    * Resolve attributes of type [attribute.some-attribute]="someExpr"
    */
-  _resolveAttributeBoundAttribute(
-      AttributeInfo attribute, Expression expression) {
+  _resolveAttributeBoundAttribute(ExpressionBoundAttribute attribute) {
     // TODO validate the type? Or against a dictionary?
     // note that the attribute name is valid by definition as it was discovered
     // within an attribute! (took me a while to realize why I couldn't make any
@@ -1004,36 +1147,9 @@ class TemplateResolver {
   }
 
   /**
-   * Resolve the given [expression] and report errors.
-   */
-  void _resolveDartExpression(Expression expression, DartType eventType) {
-    ClassElement classElement = view.classElement;
-    LibraryElement library = classElement.library;
-    ResolverVisitor resolver = new ResolverVisitor(
-        library, templateSource, typeProvider, errorListener);
-    // fill the name scope
-    ClassScope classScope = new ClassScope(resolver.nameScope, classElement);
-    EnclosedScope localScope = new EnclosedScope(classScope);
-    resolver.nameScope = localScope;
-    resolver.enclosingClass = classElement;
-    localVariables.values.forEach((LocalVariable local) {
-      localScope.define(local.dartVariable);
-    });
-    if (eventType != null) {
-      _defineBuiltInVariable(localScope, eventType, r'$event', -1);
-    }
-    // do resolve
-    expression.accept(resolver);
-    // verify
-    ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), false);
-    expression.accept(verifier);
-  }
-
-  /**
    * Resolve the given [AstNode] ([expression] or [statement]) and report errors.
    */
-  void _resolveDartAstNode(AstNode astNode, DartType eventType) {
+  void _resolveDartAstNode(AstNode astNode) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     ResolverVisitor resolver = new ResolverVisitor(
@@ -1046,9 +1162,6 @@ class TemplateResolver {
     localVariables.values.forEach((LocalVariable local) {
       localScope.define(local.dartVariable);
     });
-    if (eventType != null) {
-      _defineBuiltInVariable(localScope, eventType, r'$event', -1);
-    }
     // do resolve
     astNode.accept(resolver);
     // verify
@@ -1060,31 +1173,16 @@ class TemplateResolver {
   /**
    * Resolve the Dart expression with the given [code] at [offset].
    */
-  Expression _resolveDartExpressionAt(
-      int offset, String code, bool detectTrailing) {
-    Expression expression = _parseDartExpression(offset, code);
-    if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
-      int trailingExpressionBegin = expression.endToken.next.offset;
-      errorListener.onError(new AnalysisError(
-          templateSource,
-          trailingExpressionBegin,
-          offset + code.length - trailingExpressionBegin,
-          AngularWarningCode.TRAILING_EXPRESSION));
-    }
+  _resolveDartExpression(Expression expression) {
     if (expression != null) {
-      _resolveDartAstNode(expression, null);
+      _resolveDartAstNode(expression);
     }
-    return expression;
   }
 
   /**
    * Resolve the Dart ExpressionStatement with the given [code] at [offset].
    */
-  List<Statement> _resolveDartExpressionStatementsAt(
-      int offset, String code, DartType eventType) {
-    code = code + ";";
-    List<Statement> statements = _parseDartStatements(offset, code);
-
+  void _resolveDartExpressionStatements(List<Statement> statements) {
     for (Statement statement in statements) {
       if (statement is! ExpressionStatement && statement is! EmptyStatement) {
         errorListener.onError(new AnalysisError(
@@ -1096,10 +1194,9 @@ class TemplateResolver {
             AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
             [_getOutputStatementErrorDescription(statement)]));
       } else {
-        _resolveDartAstNode(statement, eventType);
+        _resolveDartAstNode(statement);
       }
     }
-    return statements;
   }
 
   /**
@@ -1116,386 +1213,18 @@ class TemplateResolver {
   }
 
   /**
-   * Resolve the given [element].
+   * Record [ResolvedRange]s for the given [AstNode].
    */
-  void _resolveElement(ElementInfo element) {
-    List<ElementInfo> templateElements = <ElementInfo>[];
-    if (element == null) {
-      return;
-    }
-    // apply template attributes
-    Map<String, InternalVariable> oldInternalVariables = internalVariables;
-    Map<String, LocalVariable> oldLocalVariables = localVariables;
-    Map<LocalVariableElement, LocalVariable> oldDartVariables = dartVariables;
-    internalVariables = new HashMap.from(internalVariables);
-    localVariables = new HashMap.from(localVariables);
-    dartVariables = new HashMap.from(dartVariables);
-    try {
-      // process template attributes
-      for (AttributeInfo attribute in element.attributes) {
-        if (attribute.name == 'template') {
-          _resolveTemplateAttribute(attribute.valueOffset, attribute.value);
-        }
-        if (attribute.name.startsWith('*')) {
-          int nameOffset = attribute.nameOffset + '*'.length;
-          int nameEnd = attribute.nameOffset + attribute.name.length;
-          int valueOffset = attribute.valueOffset;
-          String key = attribute.name.substring(1);
-          String code = valueOffset != null
-              ? key + ' ' * (valueOffset - nameEnd) + attribute.value
-              : key;
-          _resolveTemplateAttribute(nameOffset, code);
-        }
-      }
-      // process all non-template nodes
-      _resolveNodeDirectives(element, true, templateElements);
-      _resolveNodeExpressions(element, true);
-      // process templates with their sub-trees
-      for (ElementInfo templateElement in templateElements) {
-        _resolveElement(templateElement);
-      }
-    } finally {
-      internalVariables = oldInternalVariables;
-      localVariables = oldLocalVariables;
-      dartVariables = oldDartVariables;
-    }
-  }
+  void _recordAstNodeResolvedRanges(AstNode astNode) {
+    Map<LocalVariableElement, LocalVariable> dartVariables =
+        new HashMap<LocalVariableElement, LocalVariable>();
 
-  /**
-   * Resolve the given Angular [code] at the given [offset].
-   * Record [ResolvedRange]s.
-   */
-  Expression _resolveExpression(int offset, String code, bool detectTrailing) {
-    Expression expression =
-        _resolveDartExpressionAt(offset, code, detectTrailing);
-    _recordAstNodeResolvedRanges(expression);
-    return expression;
-  }
-
-  _resolveNodeExpressions(NodeInfo node, bool enterTemplate) {
-    if (node is ElementInfo) {
-      // Can't resolve attributes until the directives have been found.
-      // Templates are sometimes skipped in resolving directives, so
-      // we have to match that behavior here.
-      if (!enterTemplate && node.isOrHasTemplateAttribute) {
-        return;
-      }
-
-      _resolveAttributeValues(node.attributes, node.directives);
-
-      // For the case of <template ngFor....> we have to check the
-      // attributes to get a type. Now that that's done, load let-var
-      if (node.isTemplate) {
-        for (AbstractDirective directive in node.directives) {
-          _defineNgForVariables(node.attributes, directive);
-        }
-
-        _defineLocalVariablesForAttributes(node.attributes);
-      }
-    }
-    if (node is TextInfo) {
-      _resolveTextExpressions(node.offset, node.text);
-    }
-    for (NodeInfo child in node.children) {
-      _resolveNodeExpressions(child, false);
-    }
-  }
-
-  _resolveNodeDirectives(
-      NodeInfo node, bool enterTemplate, List<ElementInfo> templateElements) {
-    if (node is ElementInfo) {
-      // skip template
-      if (!enterTemplate && node.isOrHasTemplateAttribute) {
-        templateElements.add(node);
-        return;
-      }
-
-      ElementView elementView = new ElementViewImpl(node.attributes, node);
-      bool tagIsResolved = false;
-      bool tagIsStandard = _isStandardTagName(node.localName);
-
-      for (AbstractDirective directive in allDirectives) {
-        Selector selector = directive.selector;
-        if (selector.match(elementView, template)) {
-          node.directives.add(directive);
-          if (selector is ElementNameSelector) {
-            tagIsResolved = true;
-          }
-          _resolveAttributeNames(node.attributes, directive);
-          _defineDirectiveVariables(node.attributes, directive);
-        }
-      }
-      if (!tagIsStandard && !tagIsResolved) {
-        _reportErrorForRange(node.openingNameSpan,
-            AngularWarningCode.UNRESOLVED_TAG, [node.localName]);
-      }
-
-      if (!node.isOrHasTemplateAttribute) {
-        _checkNoStructuralDirectives(node.attributes);
-      }
-
-      // In the case of <template ngFor...> we don't want to define variables
-      // until we have resolved our attribute expressions types...and we can't
-      // do that until all directives are resolved.
-      if (!node.isTemplate) {
-        // define local variables
-        _defineLocalVariablesForAttributes(node.attributes);
-      }
+    for (LocalVariable localVariable in localVariables.values) {
+      dartVariables[localVariable.dartVariable] = localVariable;
     }
 
-    // process children
-    for (NodeInfo child in node.children) {
-      _resolveNodeDirectives(child, false, templateElements);
-    }
-  }
-
-  _checkNoStructuralDirectives(List<AttributeInfo> attributes) {
-    for (AttributeInfo attribute in attributes) {
-      if (attribute.name == 'ngFor' || attribute.name == 'ngIf') {
-        _reportErrorForRange(
-            new SourceRange(attribute.nameOffset, attribute.name.length),
-            AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
-            [attribute.name]);
-      }
-    }
-  }
-
-  /**
-   * Resolve the given `template` attribute [code] at [offset].
-   */
-  void _resolveTemplateAttribute(int offset, String code) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-    Token token = _scanDartCode(offset, code);
-    String prefix = null;
-    while (token.type != TokenType.EOF) {
-      // skip optional comma or semicolons
-      if (token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON) {
-        token = token.next;
-        continue;
-      }
-      // maybe a local variable
-      if (_isTemplateVarBeginToken(token)) {
-        if (token.type == TokenType.HASH) {
-          errorReporter.reportErrorForToken(
-              AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
-        }
-        token = token.next;
-        // get the local variable name
-        if (!_tokenMatchesIdentifier(token)) {
-          errorReporter.reportErrorForToken(
-              AngularWarningCode.EXPECTED_IDENTIFIER, token);
-          return;
-        }
-        int localVarOffset = token.offset;
-        String localVarName = token.lexeme;
-        token = token.next;
-        // get an optional internal variable
-        int internalVarOffset = -1;
-        String internalVarName = null;
-        if (token.type == TokenType.EQ) {
-          token = token.next;
-          // get the internal variable
-          if (!_tokenMatchesIdentifier(token)) {
-            errorReporter.reportErrorForToken(
-                AngularWarningCode.EXPECTED_IDENTIFIER, token);
-            return;
-          }
-          internalVarOffset = token.offset;
-          internalVarName = token.lexeme;
-          token = token.next;
-        }
-        // declare the local variable
-        // Note the care that the varname's offset is preserved in place.
-        attributes.add(new AttributeInfo(
-            'let-$localVarName',
-            localVarOffset - 'let-'.length,
-            null,
-            -1,
-            -1,
-            null,
-            internalVarName,
-            internalVarOffset));
-        continue;
-      }
-      // key
-      int keyOffset = token.offset;
-      int keyLength;
-      String key = null;
-      if (_tokenMatchesIdentifier(token)) {
-        // scan for a full attribute name
-        key = '';
-        int lastEnd = token.offset;
-        while (token.offset == lastEnd &&
-            (_tokenMatchesIdentifier(token) || token.type == TokenType.MINUS)) {
-          key += token.lexeme;
-          lastEnd = token.end;
-          token = token.next;
-        }
-        // add the prefix
-        keyLength = key.length;
-        if (prefix == null) {
-          prefix = key;
-        } else {
-          key = prefix + capitalize(key);
-        }
-      } else {
-        errorReporter.reportErrorForToken(
-            AngularWarningCode.EXPECTED_IDENTIFIER, token);
-        return;
-      }
-      // skip optional ':' or '='
-      if (token.type == TokenType.COLON || token.type == TokenType.EQ) {
-        token = token.next;
-      }
-      // expression
-      Expression expression;
-      if (token.type != TokenType.EOF && !_isTemplateVarBeginToken(token)) {
-        expression = _parseDartExpressionAtToken(token);
-        _resolveDartExpression(expression, null);
-        token = expression.endToken.next;
-      }
-      // add the attribute to resolve to an input
-      AttributeInfo attributeInfo = new AttributeInfo(
-          key,
-          keyOffset,
-          key,
-          keyOffset,
-          keyLength,
-          expression != null ? AttributeBoundType.input : null,
-          'some-value',
-          -1);
-      attributeInfo.expression = expression;
-      attributes.add(attributeInfo);
-    }
-    // match directives, requiring a match
-    ElementView elementView = new ElementViewImpl(attributes, null);
-    var directives = <AbstractDirective>[];
-    for (AbstractDirective directive in allDirectives) {
-      if (directive.selector.match(elementView, template)) {
-        directives.add(directive);
-        _defineDirectiveVariables(attributes, directive);
-        _defineNgForVariables(attributes, directive);
-        _defineLocalVariablesForAttributes(attributes);
-        _resolveAttributeNames(attributes, directive);
-      }
-    }
-
-    // TODO: report error if no directives matched here?
-    _resolveAttributeValues(attributes, directives);
-  }
-
-  /**
-   * Scan the given [text] staring at the given [offset] and resolve all of
-   * its embedded expressions.
-   */
-  void _resolveTextExpressions(int fileOffset, String text) {
-    int textOffset = 0;
-    while (true) {
-      // begin
-      int begin = text.indexOf('{{', textOffset);
-      int nextBegin = text.indexOf('{{', begin + 2);
-      int end = text.indexOf('}}', textOffset);
-      int exprBegin, exprEnd;
-      bool detectTrailing = false;
-      if (begin == -1 && end == -1) {
-        break;
-      }
-
-      if (end == -1) {
-        errorListener.onError(new AnalysisError(templateSource,
-            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
-        // Move the cursor ahead and keep looking for more unmatched mustaches.
-        textOffset = begin + 2;
-        exprBegin = textOffset;
-        exprEnd = text.length;
-      } else if (begin == -1) {
-        errorListener.onError(new AnalysisError(templateSource,
-            fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
-        // Move the cursor ahead and keep looking for more unmatched mustaches.
-        textOffset = end + 2;
-        continue;
-      } else if (nextBegin != -1 && nextBegin < end) {
-        errorListener.onError(new AnalysisError(templateSource,
-            fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
-        // Skip this open mustache, check the next open we found
-        textOffset = begin + 2;
-        exprBegin = textOffset;
-        exprEnd = nextBegin;
-      } else {
-        begin += 2;
-        exprBegin = begin;
-        exprEnd = end;
-        textOffset = end + 2;
-        detectTrailing = true;
-      }
-      // resolve
-      String code = text.substring(exprBegin, exprEnd);
-      _resolveExpression(fileOffset + exprBegin, code, detectTrailing);
-    }
-  }
-
-  /**
-   * Scan the given Dart [code] that starts at [offset].
-   */
-  Token _scanDartCode(int offset, String code) {
-    String text = ' ' * offset + code;
-    CharSequenceReader reader = new CharSequenceReader(text);
-    Scanner scanner = new Scanner(templateSource, reader, errorListener);
-    return scanner.tokenize();
-  }
-
-  /**
-   * Check whether the given [name] is a standard HTML5 tag name.
-   */
-  static bool _isStandardTagName(String name) {
-    name = name.toLowerCase();
-    return !name.contains('-') || name == 'ng-content';
-  }
-
-  static bool _isTemplateVarBeginToken(Token token) {
-    return token is KeywordToken && token.keyword == Keyword.VAR ||
-        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
-        token.type == TokenType.HASH;
-  }
-
-  static bool _tokenMatchesBuiltInIdentifier(Token token) =>
-      token is KeywordToken && token.keyword.isPseudoKeyword;
-
-  static bool _tokenMatchesIdentifier(Token token) =>
-      token.type == TokenType.IDENTIFIER ||
-      _tokenMatchesBuiltInIdentifier(token);
-}
-
-/**
- * A text node in an HTML tree.
- */
-class TextInfo extends NodeInfo {
-  final int offset;
-  final String text;
-
-  TextInfo(this.offset, this.text);
-}
-
-/**
- * An [AstVisitor] that records references to Dart [Element]s into
- * the given [template].
- */
-class _DartReferencesRecorder extends RecursiveAstVisitor {
-  final Map<Element, AngularElement> dartToAngularMap;
-  final Template template;
-
-  _DartReferencesRecorder(this.template, this.dartToAngularMap);
-
-  @override
-  visitSimpleIdentifier(SimpleIdentifier node) {
-    Element dartElement = node.bestElement;
-    if (dartElement != null) {
-      AngularElement angularElement = dartToAngularMap[dartElement];
-      if (angularElement == null) {
-        angularElement = new DartElement(dartElement);
-      }
-      SourceRange range = new SourceRange(node.offset, node.length);
-      template.addRange(range, angularElement);
+    if (astNode != null) {
+      astNode.accept(new _DartReferencesRecorder(template, dartVariables));
     }
   }
 }

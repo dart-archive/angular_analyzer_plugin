@@ -171,7 +171,26 @@ class Random {
       '/lib/html/dartium/html_dartium.dart',
       '''
 library dart.html;
-class HtmlElement {}
+import 'dart:async';
+class DomName {
+  final String name;
+  const DomName(this.name);
+}
+
+class Event {}
+class MouseEvent extends Event {}
+abstract class ElementStream<T extends Event> implements Stream<T> {}
+
+class HtmlElement {
+  @DomName('Element.onclick')
+  ElementStream<MouseEvent> get onClick => null;
+}
+
+class ButtonElement extends HtmlElement {
+  factory ButtonElement._() { throw new UnsupportedError("Not supported"); }
+  factory ButtonElement() => document.createElement("button");
+  bool autofocus;
+}
 ''');
 
   static const List<SdkLibrary> LIBRARIES = const [
@@ -325,9 +344,6 @@ class _MockSdkLibrary implements SdkLibrary {
 
   @override
   bool get isVmLibrary => throw unimplemented;
-
-  @override
-  List<String> getPatches(int platform) => throw unimplemented;
 
   UnimplementedError get unimplemented => new UnimplementedError();
 }

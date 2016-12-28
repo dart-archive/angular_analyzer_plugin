@@ -174,6 +174,48 @@ class TitleComponent {
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
   }
 
+  void test_expression_inputBinding_noValue() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+}
+''');
+    var code = r"""
+<title-comp [title]></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[title]");
+  }
+
+  void test_expression_inputBinding_empty() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() int title;
+}
+''');
+    var code = r"""
+<title-comp [title]=""></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[title]");
+  }
+
   void test_expression_inputBinding_boundToNothing() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -187,7 +229,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[title]");
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "title");
   }
 
   void test_expression_twoWayBinding_valid() {
@@ -254,6 +296,27 @@ class TitleComponent {
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "text");
   }
 
+  void test_expression_outputBinding_noValue() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Component(selector: 'title-comp', template: '', inputs: 'title')
+class TitleComponent {
+  @Output() EventEmitter<int> title;
+}
+''');
+    var code = r"""
+<title-comp (title)></title-comp>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "(title)");
+  }
+
   void test_expression_twoWayBinding_notAssignableError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
@@ -287,16 +350,16 @@ class TestPanel {
 }
 @Component(selector: 'title-comp', template: '', inputs: 'title')
 class TitleComponent {
-  @Output() EventEmitter<String> titleChange;
+  @Output() EventEmitter<String> noInputChange;
 }
 ''');
     var code = r"""
-<title-comp [(title)]="text"></title-comp>
+<title-comp [(noInput)]="text"></title-comp>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "[(title)]");
+        AngularWarningCode.NONEXIST_INPUT_BOUND, code, "noInput");
   }
 
   void test_expression_twoWayBinding_noOutputToBind() {
@@ -308,16 +371,16 @@ class TestPanel {
 }
 @Component(selector: 'title-comp', template: '', inputs: 'title')
 class TitleComponent {
-  @Input() String title;
+  @Input() String inputOnly;
 }
 ''');
     var code = r"""
-<title-comp [(title)]="text"></title-comp>
+<title-comp [(inputOnly)]="text"></title-comp>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "[(title)]");
+        AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "inputOnly");
   }
 
   void test_expression_inputBinding_bind() {
@@ -349,7 +412,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "(title)");
+        AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "title");
   }
 
   void test_expression_outputBinding_typeError() {
@@ -1272,7 +1335,6 @@ class TestPanel {}
 <name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("aaa=").input.at("aaa', ");
     _assertElement("bbb]=").input.at("bbb', ");
     _assertElement("ccc=").input.at("ccc']");
   }
@@ -1294,7 +1356,6 @@ class TestPanel {}
 <name-panel aaa='1' (bbb)='2' on-ccc='3'></name-panel>
 """);
     _resolveSingleTemplate(dartSource);
-    _assertElement("aaa=").output.at("aaa;");
     _assertElement("bbb)=").output.at("bbb;");
     _assertElement("ccc=").output.at("ccc;");
   }

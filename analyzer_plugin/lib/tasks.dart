@@ -127,6 +127,12 @@ class AngularWarningCode extends ErrorCode {
               'on the element');
 
   /**
+   * An error code indicating that a nonexist output was bound
+   */
+  static const AngularWarningCode EMPTY_BINDING = const AngularWarningCode(
+      'EMPTY_BINDING', 'The binding {0} does not have a value specified');
+
+  /**
    * An error code indicating that a nonexist output was bound, perhaps
    * because an input was two way bound. The nonexist bound output is
    * an implementation detail, so give its own error.
@@ -273,6 +279,16 @@ class AngularWarningCode extends ErrorCode {
       OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT = const AngularWarningCode(
           'OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT',
           "Syntax Error: unexpected {0}");
+
+  /**
+   * An error code indicating that an output-bound statement
+   * must be an [ExpressionStatement].
+   */
+  static const AngularWarningCode OFFSETS_CANNOT_BE_CREATED =
+      const AngularWarningCode(
+          'OFFSETS_CANNOT_BE_CREATED',
+          "Errors cannot be tracked for the constant expression because it is" +
+              " too complex for errors to be mapped to locations in the file");
 
   /**
    * Initialize a newly created error code to have the given [name].
