@@ -181,7 +181,9 @@ class Mustache extends AngularAstNode {
 /**
  * The HTML elements in the tree
  */
-abstract class NodeInfo extends AngularAstNode {}
+abstract class NodeInfo extends AngularAstNode {
+  int get nodeEnd;
+}
 
 /**
  * An AngularAstNode which has directives, such as [ElementInfo] and
@@ -200,6 +202,7 @@ class TextInfo extends NodeInfo {
 
   final String text;
   final int offset;
+  int get nodeEnd => offset + text.length;
 
   TextInfo(this.offset, this.text, this.mustaches);
 
@@ -223,6 +226,8 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   final List<AttributeInfo> attributes;
   final TemplateAttribute templateAttribute;
   List<AbstractDirective> directives = <AbstractDirective>[];
+  //Provides the maximum endpoint of all child nodes combined
+  int childNodesMaxEnd;
 
   ElementInfo(
       this.localName,
@@ -238,6 +243,10 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   int get length => closingSpan == null
       ? openingSpan.length
       : closingSpan.offset + closingSpan.length - openingSpan.offset;
+  int get nodeEnd => childNodesMaxEnd ??
+      (closingSpan == null ? null : closingSpan.offset + closingSpan.length) ??
+      (openingSpan == null ? null : openingSpan.offset + openingSpan.length) ??
+      0;
 
   List<AngularAstNode> get children {
     var list = new List<AngularAstNode>.from(attributes);

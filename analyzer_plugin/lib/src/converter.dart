@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
@@ -50,7 +52,7 @@ class HtmlTreeConverter {
         attribute.parent = element;
       }
 
-      List<NodeInfo> children = _convertChildren(node);
+      List<NodeInfo> children = _convertChildren(node,element);
       element.childNodes.addAll(children);
       return element;
     }
@@ -205,12 +207,13 @@ class HtmlTreeConverter {
         bound);
   }
 
-  List<NodeInfo> _convertChildren(html.Element node) {
+  List<NodeInfo> _convertChildren(html.Element node, ElementInfo root) {
     List<NodeInfo> children = <NodeInfo>[];
     for (html.Node child in node.nodes) {
       NodeInfo node = convert(child);
       if (node != null) {
         children.add(node);
+        root.childNodesMaxEnd = (root.childNodesMaxEnd == null) ? node.nodeEnd : max(root.nodeEnd, node.nodeEnd);
       }
     }
     return children;

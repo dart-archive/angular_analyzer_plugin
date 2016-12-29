@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
     show Element, ElementKind;
@@ -28,13 +29,19 @@ bool offsetContained(int offset, int start, int length) {
 }
 
 AngularAstNode findTarget(int offset, AngularAstNode root) {
-  for (AngularAstNode child in root.children) {
+  for (int i = 0; i < root.children.length; i++){
+    AngularAstNode child = root.children[i];
     if (child is ElementInfo && child.openingSpan == null) {
       var target = findTarget(offset, child);
       if (!(target is ElementInfo && target.openingSpan == null)) {
         return target;
       }
-    } else if (offsetContained(offset, child.offset, child.length)) {
+      //Detect unterminated opening html bracket
+    } else if (child is ElementInfo && child.openingSpan != null &&
+        (i == root.children.length-1) &&
+        !offsetContained(offset, child.offset, child.length)) {
+      return findTarget(offset, child);
+    }else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
     }
   }
@@ -192,13 +199,23 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
+      } else if (target is ElementInfo && identical(target.localName,'html') && target.openingSpan==null
+          && target.childNodesMaxEnd < request.offset){
+        String remaining = template.view.templateText?.substring(target.childNodesMaxEnd-template.view.templateOffset);
+        if (remaining == null){
+          suggestHtmlTags(template, suggestions);
+        }
+        else if (identical(remaining.trim()[0],"<")){
+          suggestHtmlTags(template, suggestions);
+        }
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.directives, suggestions);
       } else if (target is TextInfo &&
-          identical(target.text[request.offset - target.offset - 1], "<")) {
+          identical(target.text[max(0,request.offset - target.offset - 1)], "<")) {
+        int end = request.offset-target.offset;
         suggestHtmlTags(template, suggestions);
       }
     }
@@ -213,7 +230,7 @@ class TemplateCompleter {
             abstractDirective,
             DART_RELEVANCE_DEFAULT,
             _createHtmlTagElement(
-                abstractDirective, protocol.ElementKind.LABEL)));
+                abstractDirective, protocol.ElementKind.CLASS_TYPE_ALIAS)));
       }
     }
   }
@@ -280,15 +297,19 @@ class TemplateCompleter {
 
   protocol.Element _createHtmlTagElement(
       Component component, protocol.ElementKind kind) {
-    String name = ((component.exportAs != null)
-        ? component.exportAs.name
-        : component.selector.toString());
-    int offset = (component.exportAs != null)
-        ? component.exportAs.nameOffset
-        : (component.selector as ElementNameSelector).nameElement.nameOffset;
-    int length = (component.exportAs != null)
-        ? component.exportAs.nameLength
-        : (component.selector as ElementNameSelector).nameElement.nameLength;
+    String name;
+    int offset, length;
+    if (component.exportAs != null){
+      name = component.exportAs.name;
+      offset = component.exportAs.nameOffset;
+      length = component.exportAs.nameLength;
+    }
+    else{
+      AngularElement nameElement = (component.selector as ElementNameSelector).nameElement;
+      name = nameElement.name;
+      offset = nameElement.nameOffset;
+      length = nameElement.nameLength;
+    }
     Location location =
         new Location(component.source.fullName, offset, length, 0, 0);
     int flags = protocol.Element

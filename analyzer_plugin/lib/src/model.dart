@@ -323,6 +323,8 @@ class View implements AnalysisTarget {
   final Source templateUriSource;
   final SourceRange templateUrlRange;
 
+  int get end => templateOffset + templateText.length;
+
   /**
    * The [Template] of this view, `null` until built.
    */
