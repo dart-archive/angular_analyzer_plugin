@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
     show Element, ElementKind;
@@ -191,26 +192,37 @@ class TemplateCompleter {
               target.openingNameSpan.length)) {
         // TODO suggest these things if the target is ExpressionBoundInput with
         // boundType of input
-        suggestInputs(target.directives, suggestions);
-        suggestOutputs(target.directives, suggestions, standardHtmlEvents);
+        suggestInputs(target.boundDirectives, suggestions);
+        suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
+            target.boundStandardOutputs);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
-        suggestInputs(target.parent.directives, suggestions);
+        suggestInputs(target.parent.boundDirectives, suggestions,
+            currentAttr: target);
       } else if (target is StatementsBoundAttribute) {
-        suggestOutputs(
-            target.parent.directives, suggestions, standardHtmlEvents);
+        suggestOutputs(target.parent.boundDirectives, suggestions,
+            standardHtmlEvents, target.parent.boundStandardOutputs,
+            currentAttr: target);
       }
     }
 
     return suggestions;
   }
 
-  suggestInputs(List<AbstractDirective> directives,
-      List<CompletionSuggestion> suggestions) {
-    for (AbstractDirective directive in directives) {
-      for (InputElement input in directive.inputs) {
+  suggestInputs(
+      List<DirectiveBinding> directives, List<CompletionSuggestion> suggestions,
+      {ExpressionBoundAttribute currentAttr}) {
+    for (DirectiveBinding directive in directives) {
+      Set<InputElement> usedInputs = new HashSet.from(directive.inputBindings
+          .where((b) => b.attribute != currentAttr)
+          .map((b) => b.boundInput));
+      for (InputElement input in directive.boundDirective.inputs) {
+        // don't recommend [name] [name] [name]
+        if (usedInputs.contains(input)) {
+          continue;
+        }
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
@@ -218,17 +230,34 @@ class TemplateCompleter {
   }
 
   suggestOutputs(
-      List<AbstractDirective> directives,
+      List<DirectiveBinding> directives,
       List<CompletionSuggestion> suggestions,
-      List<OutputElement> standardHtmlEvents) {
-    for (AbstractDirective directive in directives) {
-      for (OutputElement output in directive.outputs) {
+      List<OutputElement> standardHtmlEvents,
+      List<OutputBinding> boundStandardOutputs,
+      {BoundAttributeInfo currentAttr}) {
+    for (DirectiveBinding directive in directives) {
+      Set<OutputElement> usedOutputs = new HashSet.from(directive.outputBindings
+          .where((b) => b.attribute != currentAttr)
+          .map((b) => b.boundOutput));
+      for (OutputElement output in directive.boundDirective.outputs) {
+        // don't recommend (close) (close) (close)
+        if (usedOutputs.contains(output)) {
+          continue;
+        }
         suggestions.add(_createOutputSuggestion(output, DART_RELEVANCE_DEFAULT,
             _createOutputElement(output, protocol.ElementKind.GETTER)));
       }
     }
 
+    Set<OutputElement> usedStdOutputs = new HashSet.from(boundStandardOutputs
+        .where((b) => b.attribute != currentAttr)
+        .map((b) => b.boundOutput));
+
     for (OutputElement output in standardHtmlEvents) {
+      // don't recommend (click) (click) (click)
+      if (usedStdOutputs.contains(output)) {
+        continue;
+      }
       suggestions.add(_createOutputSuggestion(
           output,
           DART_RELEVANCE_DEFAULT - 1, // just below regular relevance
