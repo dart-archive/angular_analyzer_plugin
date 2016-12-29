@@ -1638,10 +1638,16 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
             // so might not be necessary.
             if (returnType.element.name == 'ElementStream') {
               eventType = returnType.typeArguments[0]; // may be null
+              outputMap[name] = new OutputElement(
+                  name,
+                  accessor.nameOffset,
+                  accessor.nameLength,
+                  accessor.source,
+                  accessor,
+                  null,
+                  eventType);
             }
           }
-          outputMap[name] = new OutputElement(name, accessor.nameOffset,
-              accessor.nameLength, accessor.source, accessor, null, eventType);
         }
       }
     }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
