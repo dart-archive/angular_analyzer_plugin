@@ -136,7 +136,7 @@ class MyComp {
     assertSuggestGetter('description', 'String');
   }
 
-  test_completeInlineHtmlSelectorTag_at_beginning() async{
+  test_completeInlineHtmlSelectorTag_at_beginning() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
@@ -151,7 +151,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async{
+  test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<my^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
@@ -166,7 +166,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlExportAsTag_at_beginning() async{
+  test_completeInlineHtmlExportAsTag_at_beginning() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
@@ -181,7 +181,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("myChild");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle() async{
+  test_completeInlineHtmlSelectorTag_at_middle() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
@@ -196,7 +196,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle_with_partial() async{
+  test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div><my^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
@@ -211,7 +211,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlExportAsTag_at_middle() async{
+  test_completeInlineHtmlExportAsTag_at_middle() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
@@ -226,7 +226,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("myChildAlias");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end() async{
+  test_completeInlineHtmlSelectorTag_at_end() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent])
@@ -241,7 +241,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end_with_partial() async{
+  test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div></div></div><m^', selector: 'my-parent', directives: const[MyChildComponent])
@@ -256,7 +256,7 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlExportAsTag_at_end() async{
+  test_completeInlineHtmlExportAsTag_at_end() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent])
@@ -718,17 +718,17 @@ class OtherComp {
     assertNotSuggested("[name]");
   }
 
-  test_completeHtmlSelectorTag_at_beginning() async{
-    Source dartSource = newSource('/completionTest.dart',
-      '''
+  test_completeHtmlSelectorTag_at_beginning() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent])
         class MyComp{}
       @Component(template: '', selector: 'my-child-component')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('<^<div></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
@@ -740,8 +740,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlSelectorTag_at_beginning_with_partial() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlSelectorTag_at_beginning_with_partial() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -749,11 +750,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('<my^<div></div>');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -762,8 +762,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlExportAsTag_at_beginning() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlExportAsTag_at_beginning() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -771,11 +772,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component', exportAs: 'myChildComponentAlias')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('<^<div></div>');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -784,8 +784,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("myChildComponentAlias");
   }
 
-  test_completeHtmlSelectorTag_at_middle() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlSelectorTag_at_middle() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -793,11 +794,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('''<div><div><^</div></div>''');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -806,8 +806,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlSelectorTag_at_middle_with_partial() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlSelectorTag_at_middle_with_partial() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -815,11 +816,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('''<div><div><my^</div></div>''');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -828,8 +828,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlExportAsTag_at_middle() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlExportAsTag_at_middle() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -837,11 +838,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component', exportAs:'myChildComponentAlias')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('''<div><div><^</div></div>''');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -850,8 +850,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("myChildComponentAlias");
   }
 
-  test_completeHtmlSelectorTag_at_end() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlSelectorTag_at_end() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -859,11 +860,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('''<div><div></div></div><^''');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -872,8 +872,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlSelectorTag_at_end_with_partial() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlSelectorTag_at_end_with_partial() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -881,12 +882,11 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('''<div><div></div></div>
     <my^''');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
@@ -895,8 +895,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlExportAsTag_at_end() async{
-    Source dartSource = newSource('/completionTest.dart',
+  test_completeHtmlExportAsTag_at_end() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
@@ -904,11 +905,10 @@ class OtherComp {
         class MyComp{}
       @Component(template: '', selector: 'my-child-component', exportAs:'myChildComponentAlias')
       class MyChildComponent{}
-      '''
-    );
+      ''');
     addTestSource('''<div><div></div></div><^''');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();

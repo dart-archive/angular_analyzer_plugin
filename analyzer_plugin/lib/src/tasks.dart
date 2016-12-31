@@ -1413,7 +1413,7 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
   Object visitSimpleStringLiteral(ast.SimpleStringLiteral node) {
     int gap = node.contentsOffset - node.offset;
     lastUnoffsettableNode = node;
-    return ' ' * gap + node.value;
+    return ' ' * gap + node.value + ' ';
   }
 
   @override

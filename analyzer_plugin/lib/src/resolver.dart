@@ -53,7 +53,8 @@ class DartTemplateResolver {
     // Parse HTML.
     html.Document document;
     {
-      String fragmentText = ' ' * view.templateOffset + templateText;
+      String fragmentText =
+          ' ' * view.templateOffset + templateText.trimRight();
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';

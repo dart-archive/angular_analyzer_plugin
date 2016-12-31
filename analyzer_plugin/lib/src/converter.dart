@@ -52,7 +52,7 @@ class HtmlTreeConverter {
         attribute.parent = element;
       }
 
-      List<NodeInfo> children = _convertChildren(node,element);
+      List<NodeInfo> children = _convertChildren(node, element);
       element.childNodes.addAll(children);
       return element;
     }
@@ -213,7 +213,9 @@ class HtmlTreeConverter {
       NodeInfo node = convert(child);
       if (node != null) {
         children.add(node);
-        root.childNodesMaxEnd = (root.childNodesMaxEnd == null) ? node.nodeEnd : max(root.nodeEnd, node.nodeEnd);
+        root.childNodesMaxEnd = (root.childNodesMaxEnd == null)
+            ? node.nodeEnd
+            : max(root.nodeEnd, node.nodeEnd);
       }
     }
     return children;

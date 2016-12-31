@@ -243,7 +243,8 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   int get length => closingSpan == null
       ? openingSpan.length
       : closingSpan.offset + closingSpan.length - openingSpan.offset;
-  int get nodeEnd => childNodesMaxEnd ??
+  int get nodeEnd =>
+      childNodesMaxEnd ??
       (closingSpan == null ? null : closingSpan.offset + closingSpan.length) ??
       (openingSpan == null ? null : openingSpan.offset + openingSpan.length) ??
       0;

@@ -28,7 +28,7 @@ bool offsetContained(int offset, int start, int length) {
 }
 
 AngularAstNode findTarget(int offset, AngularAstNode root) {
-  for (int i = 0; i < root.children.length; i++){
+  for (int i = 0; i < root.children.length; i++) {
     AngularAstNode child = root.children[i];
     if (child is ElementInfo && child.openingSpan == null) {
       var target = findTarget(offset, child);
@@ -36,13 +36,14 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
         return target;
       }
       //Detect unterminated opening html bracket
-    } else if (child is ElementInfo && child.openingSpan != null &&
+    } else if (child is ElementInfo &&
+        child.openingSpan != null &&
         !offsetContained(offset, child.offset, child.length) &&
         child.childNodesMaxEnd != null &&
         offset <= child.childNodesMaxEnd &&
         child.children.isNotEmpty) {
       return findTarget(offset, child);
-    }else if (offsetContained(offset, child.offset, child.length)) {
+    } else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
     }
   }
@@ -200,9 +201,10 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
-      } else if (target is ElementInfo && target.openingSpan == null &&
+      } else if (target is ElementInfo &&
+          target.openingSpan == null &&
           template.view.templateText != null &&
-          request.offset > target.childNodesMaxEnd){
+          request.offset > target.childNodesMaxEnd) {
         //For edge case of inline template, autocomplete html at end
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
@@ -294,13 +296,13 @@ class TemplateCompleter {
       Component component, protocol.ElementKind kind) {
     String name;
     int offset, length;
-    if (component.exportAs != null){
+    if (component.exportAs != null) {
       name = component.exportAs.name;
       offset = component.exportAs.nameOffset;
       length = component.exportAs.nameLength;
-    }
-    else{
-      AngularElement nameElement = (component.selector as ElementNameSelector).nameElement;
+    } else {
+      AngularElement nameElement =
+          (component.selector as ElementNameSelector).nameElement;
       name = nameElement.name;
       offset = nameElement.nameOffset;
       length = nameElement.nameLength;
