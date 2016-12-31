@@ -135,6 +135,141 @@ class MyComp {
     assertSuggestGetter('text', 'String');
     assertSuggestGetter('description', 'String');
   }
+
+  test_completeInlineHtmlSelectorTag_at_beginning() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("my-child");
+  }
+
+  test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<my^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("my-child");
+  }
+
+  test_completeInlineHtmlExportAsTag_at_beginning() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child', exportAs: 'myChild')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("myChild");
+  }
+
+  test_completeInlineHtmlSelectorTag_at_middle() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("my-child");
+  }
+
+  test_completeInlineHtmlSelectorTag_at_middle_with_partial() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<div><div><my^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("my-child");
+  }
+
+  test_completeInlineHtmlExportAsTag_at_middle() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child', exportAs: 'myChildAlias')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("myChildAlias");
+  }
+
+  test_completeInlineHtmlSelectorTag_at_end() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("my-child");
+  }
+
+  test_completeInlineHtmlSelectorTag_at_end_with_partial() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<div><div></div></div><m^', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("my-child");
+  }
+
+  test_completeInlineHtmlExportAsTag_at_end() async{
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent])
+class MyParentComponent{}
+@Component(template: '', selector: 'my-child', exportAs: 'myChildAlias')
+class MyChildComponent{}
+    ''');
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClassTypeAlias("myChildAlias");
+  }
 }
 
 @reflectiveTest
