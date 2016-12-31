@@ -199,23 +199,13 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
-      } else if (target is ElementInfo && identical(target.localName,'html') && target.openingSpan==null
-          && target.childNodesMaxEnd < request.offset){
-        String remaining = template.view.templateText?.substring(target.childNodesMaxEnd-template.view.templateOffset);
-        if (remaining == null){
-          suggestHtmlTags(template, suggestions);
-        }
-        else if (identical(remaining.trim()[0],"<")){
-          suggestHtmlTags(template, suggestions);
-        }
-      } else if (target is ExpressionBoundAttribute &&
+      }  else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.directives, suggestions);
       } else if (target is TextInfo &&
-          identical(target.text[max(0,request.offset - target.offset - 1)], "<")) {
-        int end = request.offset-target.offset;
+          identical(target.text.trimLeft()[0], "<")) {
         suggestHtmlTags(template, suggestions);
       }
     }
