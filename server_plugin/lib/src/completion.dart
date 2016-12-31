@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
     show Element, ElementKind;
@@ -38,8 +37,10 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
       }
       //Detect unterminated opening html bracket
     } else if (child is ElementInfo && child.openingSpan != null &&
-        (i == root.children.length-1) &&
-        !offsetContained(offset, child.offset, child.length)) {
+        !offsetContained(offset, child.offset, child.length) &&
+        child.childNodesMaxEnd != null &&
+        offset <= child.childNodesMaxEnd &&
+        child.children.isNotEmpty) {
       return findTarget(offset, child);
     }else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
@@ -199,7 +200,11 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
-      }  else if (target is ExpressionBoundAttribute &&
+      } else if (target is ElementInfo && target.openingSpan == null &&
+          template.view.templateText != null &&
+          request.offset > target.childNodesMaxEnd){
+        //For edge case of inline template, autocomplete html at end
+      } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
