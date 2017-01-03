@@ -37,11 +37,9 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
       }
       //Detect unterminated opening html bracket
     } else if (child is ElementInfo &&
-        child.openingSpan != null &&
         !offsetContained(offset, child.offset, child.length) &&
         child.childNodesMaxEnd != null &&
-        offset <= child.childNodesMaxEnd &&
-        child.children.isNotEmpty) {
+        offset <= child.childNodesMaxEnd) {
       return findTarget(offset, child);
     } else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
@@ -218,11 +216,12 @@ class TemplateCompleter {
   suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions) {
     for (AbstractDirective abstractDirective in template.view.directives) {
       if (abstractDirective is Component) {
-        suggestions.add(_createHtmlTagSuggestion(
+        CompletionSuggestion currentSuggestion = _createHtmlTagSuggestion(
             abstractDirective,
             DART_RELEVANCE_DEFAULT,
             _createHtmlTagElement(
-                abstractDirective, protocol.ElementKind.CLASS_TYPE_ALIAS)));
+                abstractDirective, protocol.ElementKind.CLASS_TYPE_ALIAS));
+        suggestions.add(currentSuggestion);
       }
     }
   }
