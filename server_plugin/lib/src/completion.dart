@@ -201,11 +201,6 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
-      } else if (target is ElementInfo &&
-          target.openingSpan == null &&
-          template.view.templateText != null &&
-          request.offset > target.childNodesMaxEnd) {
-        //For edge case of inline template, autocomplete html at end
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
