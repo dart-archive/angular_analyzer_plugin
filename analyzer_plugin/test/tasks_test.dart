@@ -149,6 +149,16 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(outputElement.getter, isNotNull);
       expect(outputElement.eventType, isNotNull);
     }
+    {
+      // used to happen from "id" which got truncated by 'on'.length
+      OutputElement outputElement = outputElements[''];
+      expect(outputElement, isNull);
+    }
+    {
+      // used to happen from "hidden" which got truncated by 'on'.length
+      OutputElement outputElement = outputElements['dden'];
+      expect(outputElement, isNull);
+    }
   }
 }
 
