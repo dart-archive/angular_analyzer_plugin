@@ -891,7 +891,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
         templateUriSource =
             sourceFactory.resolveUri(target.source, templateUrl);
 
-        if (!templateUriSource.exists()) {
+        if (templateUriSource == null || !templateUriSource.exists()) {
           errorReporter.reportErrorForNode(
               AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
               templateUrlExpression);
