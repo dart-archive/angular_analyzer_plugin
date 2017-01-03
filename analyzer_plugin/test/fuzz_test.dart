@@ -429,7 +429,7 @@ class CounterComponent {
       fuzz_addHtmlChunk,
     ];
 
-    const iters = 100000;
+    const iters = 50000;
     for (var i = 0; i < iters; ++i) {
       var transforms = random.nextInt(20) + 1;
       print("Fuzz $i: $transforms transforms");
@@ -497,7 +497,7 @@ class CounterComponent {
     if (charpos == 0) {
       return '';
     }
-    return input.substring(charpos);
+    return input.substring(0, charpos);
   }
 
   String fuzz_shuffleLines(String input) {
@@ -559,7 +559,7 @@ class CounterComponent {
   String fuzz_addDartChunk(String input) {
     String chunk = fuzz_truncate(dartSnippets);
     if (chunk.length > 80) {
-      chunk = chunk.substring(random.nextInt(80));
+      chunk = chunk.substring(0, random.nextInt(80));
     } else if (chunk.length == 0) {
       return input;
     } else {
@@ -572,7 +572,7 @@ class CounterComponent {
   String fuzz_addHtmlChunk(String input) {
     String chunk = fuzz_truncate(htmlSnippets);
     if (chunk.length > 80) {
-      chunk = chunk.substring(random.nextInt(80));
+      chunk = chunk.substring(0, random.nextInt(80));
     } else if (chunk.length == 0) {
       return input;
     } else {
