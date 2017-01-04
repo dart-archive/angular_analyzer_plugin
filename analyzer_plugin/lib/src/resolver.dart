@@ -975,7 +975,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
   void _resolveTwoWayBoundAttributeValues(ExpressionBoundAttribute attribute) {
     bool outputMatched = false;
 
-    if (!attribute.expression.isAssignable) {
+    // empty attribute error registered in converter. Just don't crash.
+    if (attribute.expression != null && !attribute.expression.isAssignable) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.valueOffset,

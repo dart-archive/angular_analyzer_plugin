@@ -280,6 +280,28 @@ class TitleComponent {
     expect(boundDirective.outputBindings.first.boundOutput.name, 'titleChange');
   }
 
+  void test_expression_twoWayBinding_noAttr_emptyBinding() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
+}
+''');
+    String code = r"""
+<span titled [(twoWay)]></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[(twoWay)]");
+  }
+
   void test_expression_twoWayBinding_inputTypeError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
