@@ -90,17 +90,17 @@ View getViewByClassName(List<View> views, String className) {
 typedef ResolvedRangeCondition(ResolvedRange range);
 
 class AbstractAngularTest {
-  MemoryResourceProvider resourceProvider = new MemoryResourceProvider();
+  MemoryResourceProvider resourceProvider;
 
-  DartSdk sdk = new MockSdk();
+  DartSdk sdk;
   AnalysisContextImpl context;
 
-  TaskManager taskManager = new TaskManager();
+  TaskManager taskManager;
   AnalysisDriver analysisDriver;
 
   AnalysisTask task;
   Map<ResultDescriptor<dynamic>, dynamic> outputs;
-  GatheringErrorListener errorListener = new GatheringErrorListener();
+  GatheringErrorListener errorListener;
 
   List<AbstractDirective> computeLibraryDirectives(Source dartSource) {
     LibrarySpecificUnit target =
@@ -140,6 +140,11 @@ class AbstractAngularTest {
   }
 
   void setUp() {
+    AnalysisEngine.instance.partitionManager.clearCache();
+    resourceProvider = new MemoryResourceProvider();
+    sdk = new MockSdk();
+    taskManager = new TaskManager();
+    errorListener = new GatheringErrorListener();
     new ExtensionManager().processPlugins(<Plugin>[]
       ..addAll(AnalysisEngine.instance.requiredPlugins)
       ..add(new AngularAnalyzerPlugin()));
