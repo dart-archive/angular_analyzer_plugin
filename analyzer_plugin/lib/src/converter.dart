@@ -398,7 +398,7 @@ class EmbeddedDartParser {
         exprEnd = _startsWithWhitespace(text.substring(exprBegin))
             ? exprBegin
             : text.length;
-      } else if (begin == -1) {
+      } else if (begin == -1 || end < begin) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.

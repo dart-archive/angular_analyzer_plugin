@@ -517,6 +517,21 @@ class TestPanel {
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
   }
 
+  void test_expression_mustache_closeOpen_githubBug198() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+    }}{{''}}
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
+  }
+
   void test_expression_attrBinding_valid() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
