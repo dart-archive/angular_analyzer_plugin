@@ -337,7 +337,8 @@ class NgFor {
       expect(
           expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
       expect(currErr.length,
-          expectedErrors[currErr.errorCode][currErr.offset].length, verbose: true);
+          expectedErrors[currErr.errorCode][currErr.offset].length,
+          verbose: true);
     });
   }
 }

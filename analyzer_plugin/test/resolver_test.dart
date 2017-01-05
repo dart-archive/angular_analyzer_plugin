@@ -1887,7 +1887,10 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE, code, "ngIf");
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+        code,
+        "ngIf");
   }
 
   void test_ngIf_templateAttribute() {

@@ -184,7 +184,6 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
     new ListResultDescriptor<View>(
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
-
 /**
  * A task that scans contents of a file, producing a set of Dart tokens.
  * Modification of [ParseHtmlTask]
@@ -197,7 +196,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
       'AngularParseHtmlTask',
       createTask,
       buildInputs,
-      <ResultDescriptor>[ANGULAR_HTML_DOCUMENT,ANGULAR_HTML_DOCUMENT_ERRORS],
+      <ResultDescriptor>[ANGULAR_HTML_DOCUMENT, ANGULAR_HTML_DOCUMENT_ERRORS],
       suitabilityFor: suitabilityFor);
 
   AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
@@ -214,7 +213,8 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
     if (modificationTime < 0) {
       String message = 'Content could not be read';
       if (context is InternalAnalysisContext) {
-        CacheEntry entry = (context as InternalAnalysisContext).getCacheEntry(target);
+        CacheEntry entry =
+            (context as InternalAnalysisContext).getCacheEntry(target);
         CaughtException exception = entry.exception;
         if (exception != null) {
           message = exception.toString();
@@ -224,26 +224,30 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
       outputs[ANGULAR_HTML_DOCUMENT] = new html.Document();
       outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
         new AnalysisError(
-           target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
+            target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
       ];
-    }
-    else{
-      html.HtmlParser parser = new html.HtmlParser(content, generateSpans: true, lowercaseAttrName: false);
+    } else {
+      html.HtmlParser parser = new html.HtmlParser(content,
+          generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
       html.Document document = parser.parse();
 
       List<AnalysisError> documentErrors = <AnalysisError>[];
       List<html.ParseError> parseErrors = parser.errors;
 
-      for (html.ParseError parseError in parseErrors){
+      for (html.ParseError parseError in parseErrors) {
         if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
             parseError.errorCode == 'expected-doctype-but-got-chars' ||
             parseError.errorCode == 'expected-doctype-but-got-eof') {
           continue;
         }
         SourceSpan span = parseError.span;
-        documentErrors.add(new AnalysisError(target.source, span.start.offset,
-            span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode, content.substring(span.start.offset)]));
+        documentErrors.add(new AnalysisError(
+            target.source,
+            span.start.offset,
+            span.length,
+            HtmlErrorCode.PARSE_ERROR,
+            [parseError.errorCode, content.substring(span.start.offset)]));
       }
 
       outputs[ANGULAR_HTML_DOCUMENT] = document;
@@ -259,11 +263,11 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
   }
 
   static AngularParseHtmlTask createTask(
-     AnalysisContext context, AnalysisTarget target) {
+      AnalysisContext context, AnalysisTarget target) {
     return new AngularParseHtmlTask(context, target);
   }
 
-  static TaskSuitability suitabilityFor(AnalysisTarget target){
+  static TaskSuitability suitabilityFor(AnalysisTarget target) {
     if (target is Source) {
       String name = target.shortName;
       if (name.endsWith(AnalysisEngine.SUFFIX_HTML) ||
@@ -1400,7 +1404,8 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
     Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
-    List<AnalysisError> documentErrors = getRequiredInput(HTML_DOCUMENT_ERROR_INPUT);
+    List<AnalysisError> documentErrors =
+        getRequiredInput(HTML_DOCUMENT_ERROR_INPUT);
     //
     // Resolve.
     //
@@ -1430,8 +1435,10 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
       HTML_EVENTS_INPUT:
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_INPUT: ANGULAR_HTML_DOCUMENT.of((target as View).templateUriSource),
-      HTML_DOCUMENT_ERROR_INPUT: ANGULAR_HTML_DOCUMENT_ERRORS.of((target as View).templateUriSource),
+      HTML_DOCUMENT_INPUT:
+          ANGULAR_HTML_DOCUMENT.of((target as View).templateUriSource),
+      HTML_DOCUMENT_ERROR_INPUT:
+          ANGULAR_HTML_DOCUMENT_ERRORS.of((target as View).templateUriSource),
     };
   }
 
@@ -1451,7 +1458,7 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     List<AnalysisError> validErrors = <AnalysisError>[];
 
     for (AnalysisError error in allErrors) {
-      if (error.message[0] == 'eof-in-tag-name'){
+      if (error.message[0] == 'eof-in-tag-name') {
         validErrors.add(error);
         continue;
       }
@@ -1823,16 +1830,21 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   }
 }
 
-List<AnalysisError> filterParserErrors(html.HtmlParser parser, String content, Source source) {
+List<AnalysisError> filterParserErrors(
+    html.HtmlParser parser, String content, Source source) {
   List<AnalysisError> errors = <AnalysisError>[];
   List<html.ParseError> parseErrors = parser.errors;
 
-  for (html.ParseError parseError in parseErrors){
+  for (html.ParseError parseError in parseErrors) {
     //Append error codes that are useful to this analyzer
     if (parseError.errorCode == 'eof-in-tag-name') {
       SourceSpan span = parseError.span;
-      errors.add(new AnalysisError(source, span.start.offset,
-          span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode, content.substring(span.start.offset)]));
+      errors.add(new AnalysisError(
+          source,
+          span.start.offset,
+          span.length,
+          HtmlErrorCode.PARSE_ERROR,
+          [parseError.errorCode, content.substring(span.start.offset)]));
     }
   }
   return errors;

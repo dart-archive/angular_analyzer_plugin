@@ -72,7 +72,7 @@ class DartTemplateResolver {
             standardHtmlEvents, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
-    _setDanglingNodes(template,validErrors);
+    _setDanglingNodes(template, validErrors);
     return template;
   }
 
@@ -80,7 +80,8 @@ class DartTemplateResolver {
    * Report HTML errors as [AnalysisError]s except for 'eof-in-tag-name' error,
    * which should be returned as a list of TextNodes
    */
-  List<AnalysisError> _filterParseErrors(html.HtmlParser parser, String fragmentText) {
+  List<AnalysisError> _filterParseErrors(
+      html.HtmlParser parser, String fragmentText) {
     List<html.ParseError> parseErrors = parser.errors;
     List<AnalysisError> validErrors = <AnalysisError>[];
 
@@ -92,11 +93,14 @@ class DartTemplateResolver {
           parseError.errorCode == 'expected-doctype-but-got-chars' ||
           parseError.errorCode == 'expected-doctype-but-got-eof') {
         continue;
-      }
-      else if (parseError.errorCode == 'eof-in-tag-name'){
+      } else if (parseError.errorCode == 'eof-in-tag-name') {
         SourceSpan span = parseError.span;
-        validErrors.add(new AnalysisError(view.source, span.start.offset,
-            span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode, fragmentText.substring(span.start.offset)]));
+        validErrors.add(new AnalysisError(
+            view.source,
+            span.start.offset,
+            span.length,
+            HtmlErrorCode.PARSE_ERROR,
+            [parseError.errorCode, fragmentText.substring(span.start.offset)]));
         continue;
       }
       SourceSpan span = parseError.span;
@@ -180,9 +184,10 @@ _setIgnoredErrors(Template template, html.Document document) {
   }
 }
 
-_setDanglingNodes(Template template, List<AnalysisError> validErrors){
-  for (AnalysisError error in validErrors){
-    TextInfo textInfo = new TextInfo(error.offset, error.message[1],<Mustache>[]);
+_setDanglingNodes(Template template, List<AnalysisError> validErrors) {
+  for (AnalysisError error in validErrors) {
+    TextInfo textInfo =
+        new TextInfo(error.offset, error.message[1], <Mustache>[]);
     template.addDanglingNode(textInfo);
   }
 }
@@ -199,8 +204,14 @@ class HtmlTemplateResolver {
   final html.Document document;
   final List<AnalysisError> validErrors;
 
-  HtmlTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener, this.view, this.document, this.validErrors);
+  HtmlTemplateResolver(
+      this.typeProvider,
+      this.standardHtmlComponents,
+      this.standardHtmlEvents,
+      this.errorListener,
+      this.view,
+      this.document,
+      this.validErrors);
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
@@ -211,7 +222,7 @@ class HtmlTemplateResolver {
             standardHtmlEvents, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
-    _setDanglingNodes(template,validErrors);
+    _setDanglingNodes(template, validErrors);
 
     return template;
   }

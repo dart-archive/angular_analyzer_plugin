@@ -310,7 +310,7 @@ class Template {
   }
 
   List<ElementInfo> get danglingNodes => _danglingNodes;
-  void addDanglingNode(NodeInfo node){
+  void addDanglingNode(NodeInfo node) {
     _danglingNodes.add(node);
   }
 }

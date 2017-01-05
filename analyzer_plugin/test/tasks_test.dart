@@ -8,11 +8,13 @@ import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:analyzer/task/general.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:html/dom.dart' as html;
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -20,6 +22,7 @@ import 'abstract_angular.dart';
 
 main() {
   groupSep = ' | ';
+  defineReflectiveTests(AngularParseHtmlTaskTest);
   defineReflectiveTests(BuildStandardHtmlComponentsTaskTest);
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
@@ -27,6 +30,133 @@ main() {
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplateTaskTest);
+}
+
+@reflectiveTest
+class AngularParseHtmlTaskTest extends AbstractAngularTest {
+  test_buildInputs() {
+    Source source = newSource('/test.html');
+    Map<String, TaskInput> inputs = AngularParseHtmlTask.buildInputs(source);
+    expect(inputs, isNotNull);
+    expect(
+        inputs.keys,
+        unorderedEquals([
+          AngularParseHtmlTask.CONTENT_INPUT_NAME,
+          AngularParseHtmlTask.MODIFICATION_TIME_INPUT
+        ]));
+  }
+
+  test_constructor() {
+    Source source = newSource('/test.html');
+    AngularParseHtmlTask task = new AngularParseHtmlTask(context, source);
+    expect(task, isNotNull);
+    expect(task.context, context);
+    expect(task.target, source);
+  }
+
+  test_createTask() {
+    Source source = newSource('/test.html');
+    AngularParseHtmlTask task =
+        AngularParseHtmlTask.createTask(context, source);
+    expect(task, isNotNull);
+    expect(task.context, context);
+    expect(task.target, source);
+  }
+
+  test_description() {
+    Source source = newSource('/test.html');
+    AngularParseHtmlTask task = new AngularParseHtmlTask(null, source);
+    expect(task.description, isNotNull);
+  }
+
+  test_descriptor() {
+    TaskDescriptor descriptor = AngularParseHtmlTask.DESCRIPTOR;
+    expect(descriptor, isNotNull);
+  }
+
+  test_perform() {
+    String code = r'''
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> test page </title>
+  </head>
+  <body>
+    <h1 myAttr='my value'>Test</h1>
+  </body>
+</html>
+    ''';
+    AnalysisTarget target = newSource('/test.html', code);
+    computeResult(target, ANGULAR_HTML_DOCUMENT);
+    expect(task, new isInstanceOf<AngularParseHtmlTask>());
+    expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+    // HTML_DOCUMENT
+    {
+      html.Document document = outputs[ANGULAR_HTML_DOCUMENT];
+      expect(document, isNotNull);
+      // verify that attributes are not lower-cased
+      html.Element element = document.body.getElementsByTagName('h1').single;
+      expect(element.attributes['myAttr'], 'my value');
+    }
+  }
+
+  test_perform_noDocType() {
+    String code = r'''
+<div>AAA</div>
+<span>BBB</span>
+''';
+    AnalysisTarget target = newSource('/test.html', code);
+    computeResult(target, ANGULAR_HTML_DOCUMENT);
+    expect(task, new isInstanceOf<AngularParseHtmlTask>());
+    // validate Document
+    {
+      html.Document document = outputs[ANGULAR_HTML_DOCUMENT];
+      expect(document, isNotNull);
+      // artificial <html>
+      expect(document.nodes, hasLength(1));
+      html.Element htmlElement = document.nodes[0];
+      expect(htmlElement.localName, 'html');
+      // artificial <body>
+      expect(htmlElement.nodes, hasLength(2));
+      html.Element bodyElement = htmlElement.nodes[1];
+      expect(bodyElement.localName, 'body');
+      // actual nodes
+      expect(bodyElement.nodes, hasLength(4));
+      expect((bodyElement.nodes[0] as html.Element).localName, 'div');
+      expect((bodyElement.nodes[2] as html.Element).localName, 'span');
+    }
+    // it's OK to don't have DOCTYPE
+    expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+  }
+
+  test_perform_noDocType_with_dangling_unclosed_tag() {
+    String code = r'''
+<div>AAA</div>
+<span>BBB</span>
+<di''';
+    AnalysisTarget target = newSource('/test.html', code);
+    computeResult(target, ANGULAR_HTML_DOCUMENT);
+    expect(task, new isInstanceOf<AngularParseHtmlTask>());
+    // quick validate Document
+    {
+      html.Document document = outputs[ANGULAR_HTML_DOCUMENT];
+      expect(document, isNotNull);
+      html.Element htmlElement = document.nodes[0];
+      html.Element bodyElement = htmlElement.nodes[1];
+      expect(bodyElement.nodes, hasLength(4));
+      expect((bodyElement.nodes[0] as html.Element).localName, 'div');
+      expect((bodyElement.nodes[2] as html.Element).localName, 'span');
+    }
+    //Test for 'eof-in-tag-name'
+    {
+      List<AnalysisError> errors = outputs[ANGULAR_HTML_DOCUMENT_ERRORS];
+      expect(errors, hasLength(1));
+      AnalysisError danglingError = errors.first;
+      expect(danglingError.errorCode, HtmlErrorCode.PARSE_ERROR);
+      expect(danglingError.offset, 32);
+      expect(danglingError.message, 'eof-in-tag-name');
+    }
+  }
 }
 
 @reflectiveTest
