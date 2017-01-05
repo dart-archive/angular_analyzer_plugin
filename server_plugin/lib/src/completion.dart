@@ -119,9 +119,13 @@ class AngularDartCompletionContributor extends DartCompletionContributor {
         .computeResult(
             AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
         .values;
+    List<InputElement> standardHtmlAttributes = request.context
+        .computeResult(
+            AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES)
+        .values;
 
-    return new TemplateCompleter()
-        .computeSuggestions(request, templates, standardHtmlEvents);
+    return new TemplateCompleter().computeSuggestions(
+        request, templates, standardHtmlEvents, standardHtmlAttributes);
   }
 }
 
@@ -140,9 +144,13 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
           .computeResult(
               AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
           .values;
+      List<InputElement> standardHtmlAttributes = request.context
+          .computeResult(
+              AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES)
+          .values;
 
-      return new TemplateCompleter()
-          .computeSuggestions(request, templates, standardHtmlEvents);
+      return new TemplateCompleter().computeSuggestions(
+          request, templates, standardHtmlEvents, standardHtmlAttributes);
     }
 
     return [];
@@ -153,7 +161,8 @@ class TemplateCompleter {
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request,
       List<Template> templates,
-      List<OutputElement> standardHtmlEvents) async {
+      List<OutputElement> standardHtmlEvents,
+      List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
       AngularAstNode target = findTarget(request.offset, template.ast);
@@ -192,7 +201,8 @@ class TemplateCompleter {
               target.openingNameSpan.length)) {
         // TODO suggest these things if the target is ExpressionBoundInput with
         // boundType of input
-        suggestInputs(target.boundDirectives, suggestions);
+        suggestInputs(target.boundDirectives, suggestions,
+            standardHtmlAttributes, target.boundStandardInputs);
         suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
             target.boundStandardOutputs);
       } else if (target is ExpressionBoundAttribute &&
@@ -200,6 +210,7 @@ class TemplateCompleter {
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs,
             currentAttr: target);
       } else if (target is StatementsBoundAttribute) {
         suggestOutputs(target.parent.boundDirectives, suggestions,
@@ -212,12 +223,16 @@ class TemplateCompleter {
   }
 
   suggestInputs(
-      List<DirectiveBinding> directives, List<CompletionSuggestion> suggestions,
+      List<DirectiveBinding> directives,
+      List<CompletionSuggestion> suggestions,
+      List<InputElement> standardHtmlAttributes,
+      List<InputBinding> boundStandardAttributes,
       {ExpressionBoundAttribute currentAttr}) {
     for (DirectiveBinding directive in directives) {
       Set<InputElement> usedInputs = new HashSet.from(directive.inputBindings
           .where((b) => b.attribute != currentAttr)
           .map((b) => b.boundInput));
+
       for (InputElement input in directive.boundDirective.inputs) {
         // don't recommend [name] [name] [name]
         if (usedInputs.contains(input)) {
@@ -226,6 +241,19 @@ class TemplateCompleter {
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
+    }
+
+    Set<InputElement> usedStdInputs = new HashSet.from(boundStandardAttributes
+        .where((b) => b.attribute != currentAttr)
+        .map((b) => b.boundInput));
+
+    for (InputElement input in standardHtmlAttributes) {
+      // TODO don't recommend [hidden] [hidden] [hidden]
+      if (usedStdInputs.contains(input)) {
+        continue;
+      }
+      suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 1,
+          _createInputElement(input, protocol.ElementKind.SETTER)));
     }
   }
 
