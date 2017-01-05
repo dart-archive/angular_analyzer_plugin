@@ -233,7 +233,9 @@ class TemplateCompleter {
             DART_RELEVANCE_DEFAULT,
             _createHtmlTagElement(
                 abstractDirective, protocol.ElementKind.CLASS_TYPE_ALIAS));
-        suggestions.add(currentSuggestion);
+        if (currentSuggestion != null) {
+          suggestions.add(currentSuggestion);
+        }
       }
     }
   }

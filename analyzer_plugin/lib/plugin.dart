@@ -41,6 +41,7 @@ class AngularAnalyzerPlugin implements Plugin {
     // tasks
     {
       AnalysisEngine.instance.taskManager
+        ..addTaskDescriptor(AngularParseHtmlTask.DESCRIPTOR)
         ..addTaskDescriptor(BuildStandardHtmlComponentsTask.DESCRIPTOR)
         ..addTaskDescriptor(BuildUnitDirectivesTask.DESCRIPTOR)
         ..addTaskDescriptor(BuildUnitViewsTask.DESCRIPTOR)

@@ -9,7 +9,9 @@ import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/exception/exception.dart';
 import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/generated/java_engine.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
@@ -19,14 +21,30 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
-import 'package:analyzer/task/html.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:analyzer/task/general.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:front_end/src/scanner/errors.dart';
 import 'package:html/dom.dart' as html;
+import 'package:html/parser.dart' as html;
 import 'package:tuple/tuple.dart';
+import 'package:source_span/source_span.dart';
+
+/**
+ * The [html.Document] of an HTML file.
+ */
+final ResultDescriptor<html.Document> ANGULAR_HTML_DOCUMENT =
+    new ResultDescriptor<html.Document>('ANGULAR_HTML_DOCUMENT', null);
+
+/**
+ * The analysis errors associated with a [Source] representing an HTML file.
+ */
+final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
+    new ListResultDescriptor<AnalysisError>(
+        'ANGULAR_HTML_DOCUMENT_ERRORS', AnalysisError.NO_ERRORS);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -165,6 +183,97 @@ final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
 final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
     new ListResultDescriptor<View>(
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
+
+
+/**
+ * A task that scans contents of a file, producing a set of Dart tokens.
+ * Modification of [ParseHtmlTask]
+ */
+class AngularParseHtmlTask extends SourceBasedAnalysisTask {
+  static const String CONTENT_INPUT_NAME = 'CONTENT_INPUT_NAME';
+  static const String MODIFICATION_TIME_INPUT = 'MODIFICATION_TIME_INPUT';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'AngularParseHtmlTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[ANGULAR_HTML_DOCUMENT,ANGULAR_HTML_DOCUMENT_ERRORS],
+      suitabilityFor: suitabilityFor);
+
+  AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  void internalPerform() {
+    String content = getRequiredInput(CONTENT_INPUT_NAME);
+    int modificationTime = getRequiredInput(MODIFICATION_TIME_INPUT);
+
+    if (modificationTime < 0) {
+      String message = 'Content could not be read';
+      if (context is InternalAnalysisContext) {
+        CacheEntry entry = (context as InternalAnalysisContext).getCacheEntry(target);
+        CaughtException exception = entry.exception;
+        if (exception != null) {
+          message = exception.toString();
+        }
+      }
+
+      outputs[ANGULAR_HTML_DOCUMENT] = new html.Document();
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
+        new AnalysisError(
+           target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
+      ];
+    }
+    else{
+      html.HtmlParser parser = new html.HtmlParser(content, generateSpans: true, lowercaseAttrName: false);
+      parser.compatMode = 'quirks';
+      html.Document document = parser.parse();
+
+      List<AnalysisError> documentErrors = <AnalysisError>[];
+      List<html.ParseError> parseErrors = parser.errors;
+
+      for (html.ParseError parseError in parseErrors){
+        if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
+            parseError.errorCode == 'expected-doctype-but-got-chars' ||
+            parseError.errorCode == 'expected-doctype-but-got-eof') {
+          continue;
+        }
+        SourceSpan span = parseError.span;
+        documentErrors.add(new AnalysisError(target.source, span.start.offset,
+            span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode, content.substring(span.start.offset)]));
+      }
+
+      outputs[ANGULAR_HTML_DOCUMENT] = document;
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = documentErrors;
+    }
+  }
+
+  static Map<String, TaskInput> buildInputs(AnalysisTarget source) {
+    return <String, TaskInput>{
+      CONTENT_INPUT_NAME: CONTENT.of(source),
+      MODIFICATION_TIME_INPUT: MODIFICATION_TIME.of(source)
+    };
+  }
+
+  static AngularParseHtmlTask createTask(
+     AnalysisContext context, AnalysisTarget target) {
+    return new AngularParseHtmlTask(context, target);
+  }
+
+  static TaskSuitability suitabilityFor(AnalysisTarget target){
+    if (target is Source) {
+      String name = target.shortName;
+      if (name.endsWith(AnalysisEngine.SUFFIX_HTML) ||
+          name.endsWith(AnalysisEngine.SUFFIX_HTM)) {
+        return TaskSuitability.HIGHEST;
+      }
+    }
+    return TaskSuitability.NONE;
+  }
+}
 
 /**
  * A task that builds [STANDARD_HTML_COMPONENTS] and
@@ -1257,6 +1366,7 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String HTML_COMPONENTS_INPUT = 'HTML_COMPONENTS_INPUT';
   static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
+  static const String HTML_DOCUMENT_ERROR_INPUT = 'HTML_DOCUMENT_ERROR_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'ResolveHtmlTemplateTask',
@@ -1290,12 +1400,14 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     List<Component> htmlComponents = getRequiredInput(HTML_COMPONENTS_INPUT);
     Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
+    List<AnalysisError> documentErrors = getRequiredInput(HTML_DOCUMENT_ERROR_INPUT);
     //
     // Resolve.
     //
     View view = target;
+    List<AnalysisError> validErrors = _filterParseErrors(documentErrors);
     Template template = new HtmlTemplateResolver(typeProvider, htmlComponents,
-            htmlEvents, errorListener, view, document)
+            htmlEvents, errorListener, view, document, validErrors)
         .resolve();
     //
     // Record outputs.
@@ -1318,7 +1430,8 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
           STANDARD_HTML_COMPONENTS.of(AnalysisContextTarget.request),
       HTML_EVENTS_INPUT:
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of((target as View).templateUriSource),
+      HTML_DOCUMENT_INPUT: ANGULAR_HTML_DOCUMENT.of((target as View).templateUriSource),
+      HTML_DOCUMENT_ERROR_INPUT: ANGULAR_HTML_DOCUMENT_ERRORS.of((target as View).templateUriSource),
     };
   }
 
@@ -1328,6 +1441,23 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static ResolveHtmlTemplateTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new ResolveHtmlTemplateTask(context, target);
+  }
+
+  /**
+   * Report HTML errors as [AnalysisError]s except for 'eof-in-tag-name' error,
+   * which should be returned as a list of TextNodes
+   */
+  List<AnalysisError> _filterParseErrors(List<AnalysisError> allErrors) {
+    List<AnalysisError> validErrors = <AnalysisError>[];
+
+    for (AnalysisError error in allErrors) {
+      if (error.message[0] == 'eof-in-tag-name'){
+        validErrors.add(error);
+        continue;
+      }
+      errorListener.onError(error);
+    }
+    return validErrors;
   }
 }
 
@@ -1691,6 +1821,21 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     addAspects(classElement.type);
     return aspectMap.values.toList();
   }
+}
+
+List<AnalysisError> filterParserErrors(html.HtmlParser parser, String content, Source source) {
+  List<AnalysisError> errors = <AnalysisError>[];
+  List<html.ParseError> parseErrors = parser.errors;
+
+  for (html.ParseError parseError in parseErrors){
+    //Append error codes that are useful to this analyzer
+    if (parseError.errorCode == 'eof-in-tag-name') {
+      SourceSpan span = parseError.span;
+      errors.add(new AnalysisError(source, span.start.offset,
+          span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode, content.substring(span.start.offset)]));
+    }
+  }
+  return errors;
 }
 
 typedef void CaptureAspectFn<T>(

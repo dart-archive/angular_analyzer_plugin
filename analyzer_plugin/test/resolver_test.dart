@@ -1864,7 +1864,7 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<span *ngIf='text.length != 0'>
+<span *ngIf='text.length != 0'></span>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
@@ -1883,14 +1883,11 @@ class TestPanel {
 }
 ''');
     var code = r"""
-<span ngIf='text.length != 0'>
+<span ngIf='text.length != 0'></span>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
-        code,
-        "ngIf");
+    assertErrorInCodeAtPosition(AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE, code, "ngIf");
   }
 
   void test_ngIf_templateAttribute() {
@@ -1902,7 +1899,7 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<span template='ngIf text.length != 0'>
+<span template='ngIf text.length != 0'></span>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
