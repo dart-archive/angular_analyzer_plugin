@@ -2071,6 +2071,29 @@ class TestPanel {
     // no assertion...this throws in the github bug
   }
 
+  void test_angleBracketInMustacheNoCrash_githubBug204() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+{{<}}
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
+      ParserErrorCode.EXPECTED_TOKEN,
+      ParserErrorCode.EXPECTED_TYPE_NAME,
+      StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT
+    ]);
+  }
+
   void _addDartSource(String code) {
     dartCode = '''
 import '/angular2/angular2.dart';

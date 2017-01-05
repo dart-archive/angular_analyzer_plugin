@@ -1162,6 +1162,11 @@ class SingleScopeResolver extends AngularScopeVisitor {
   void _resolveDartAstNode(AstNode astNode) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
+    {
+      TypeResolverVisitor visitor = new TypeResolverVisitor(
+          library, view.source, typeProvider, errorListener);
+      astNode.accept(visitor);
+    }
     ResolverVisitor resolver = new ResolverVisitor(
         library, templateSource, typeProvider, errorListener);
     // fill the name scope
