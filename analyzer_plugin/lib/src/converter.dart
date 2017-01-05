@@ -122,8 +122,8 @@ class HtmlTreeConverter {
   TemplateAttribute _convertTemplateAttribute(
       html.Element element, String origName, bool starSugar) {
     int origNameOffset = _nameOffset(element, origName);
-    String value = element.attributes[origName];
     int valueOffset = _valueOffset(element, origName);
+    String value = valueOffset == null ? null : element.attributes[origName];
     String name;
     int nameOffset;
     List<AttributeInfo> virtualAttributes;
@@ -131,7 +131,7 @@ class HtmlTreeConverter {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
       virtualAttributes = dartParser.parseTemplateVirtualAttributes(
-          nameOffset, name + (' ' * '="'.length) + value);
+          nameOffset, name + (' ' * '="'.length) + (value ?? ''));
     } else {
       name = origName;
       nameOffset = origNameOffset;

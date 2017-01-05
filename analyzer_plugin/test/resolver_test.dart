@@ -1501,6 +1501,25 @@ class TestPanel {}
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
   }
 
+  void test_erroroneousTemplate_starHash_noCrash() {
+    _addDartSource(r'''
+import 'dart:html';
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(Element e) {}
+}
+''');
+    _addHtmlSource(r"""
+<h1 (click)='handleClick(myTargetElement)'>
+  <div *#myTargetElement></div>
+</h1>
+""");
+    _resolveSingleTemplate(dartSource);
+    // no assertion. Just don't crash.
+  }
+
   void test_localVariable_exportAs_notFound() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
