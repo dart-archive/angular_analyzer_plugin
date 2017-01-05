@@ -186,6 +186,12 @@ abstract class Element {
   /// Stream of `cut` events handled by this [Element].
   @DomName('Element.oncut')
   ElementStream<Event> get onCut => null;
+  
+  @DomName('Element.id')
+  String get id => null;
+  
+  @DomName('Element.id')
+  set id(String value) => null;
 }
 
 class HtmlElement extends Element {
@@ -196,7 +202,11 @@ class HtmlElement extends Element {
   ElementStream<MouseEvent> get onClick => null;
   @DomName('Element.onkeyup')
   ElementStream<Event> get onKeyUp => null;
-  bool hidden;
+  
+  @DomName('HTMLElement.hidden')
+  bool get hidden => null;
+  @DomName('HTMLElement.hidden')
+  set hidden(bool value) => null;
 }
 
 class AnchorElement extends HtmlElement {

@@ -3,6 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/dart/error/syntactic_errors.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -85,12 +86,20 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<div (click)='handleClick()'></div>
+<div (click)='handleClick($event)'></div>
 """);
     _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(2));
+    expect(ranges, hasLength(3));
     _assertElement('click)').output.inCoreHtml;
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
+
+    errorListener.assertNoErrors();
+    ElementSearch search = new ElementSearch((e) => e.localName == "div");
+    template.ast.accept(search);
+
+    expect(search.element, isNotNull);
+    expect(search.element.boundStandardOutputs, hasLength(1));
+    expect(search.element.boundStandardOutputs.first.boundOutput.name, 'click');
   }
 
   void test_expression_nativeEventBindingOnComponent() {
@@ -150,7 +159,16 @@ class TitleComponent {
 <span titled [title]='text'></span>
 """);
     _resolveSingleTemplate(dartSource);
+
     errorListener.assertNoErrors();
+    ElementSearch search = new ElementSearch((e) => e.localName == "span");
+    template.ast.accept(search);
+
+    expect(search.element, isNotNull);
+    expect(search.element.boundDirectives, hasLength(1));
+    DirectiveBinding boundDirective = search.element.boundDirectives.first;
+    expect(boundDirective.inputBindings, hasLength(1));
+    expect(boundDirective.inputBindings.first.boundInput.name, 'title');
   }
 
   void test_expression_inputBinding_typeError() {
@@ -250,6 +268,38 @@ class TitleComponent {
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
+    ElementSearch search = new ElementSearch((e) => e.localName == "span");
+    template.ast.accept(search);
+
+    expect(search.element, isNotNull);
+    expect(search.element.boundDirectives, hasLength(1));
+    DirectiveBinding boundDirective = search.element.boundDirectives.first;
+    expect(boundDirective.inputBindings, hasLength(1));
+    expect(boundDirective.inputBindings.first.boundInput.name, 'title');
+    expect(boundDirective.outputBindings, hasLength(1));
+    expect(boundDirective.outputBindings.first.boundOutput.name, 'titleChange');
+  }
+
+  void test_expression_twoWayBinding_noAttr_emptyBinding() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
+}
+''');
+    String code = r"""
+<span titled [(twoWay)]></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[(twoWay)]");
   }
 
   void test_expression_twoWayBinding_inputTypeError() {
@@ -465,6 +515,21 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
+  }
+
+  void test_expression_mustache_closeOpen_githubBug198() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+    }}{{''}}
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
   }
 
   void test_expression_attrBinding_valid() {
@@ -1358,6 +1423,16 @@ class TestPanel {}
     _resolveSingleTemplate(dartSource);
     _assertElement("bbb)=").output.at("bbb;");
     _assertElement("ccc=").output.at("ccc;");
+    ElementSearch search =
+        new ElementSearch((e) => e.localName == "name-panel");
+    template.ast.accept(search);
+
+    expect(search.element, isNotNull);
+    expect(search.element.boundDirectives, hasLength(1));
+    DirectiveBinding boundDirective = search.element.boundDirectives.first;
+    expect(boundDirective.outputBindings, hasLength(2));
+    expect(boundDirective.outputBindings[0].boundOutput.name, 'bbb');
+    expect(boundDirective.outputBindings[1].boundOutput.name, 'ccc');
   }
 
   void test_twoWayReference() {
@@ -1533,6 +1608,16 @@ class TestPanel {
     _assertElement("operator of").local.declaration.type('String');
     _assertElement("length}}").dart.getter;
     errorListener.assertNoErrors();
+    ElementSearch search = new ElementSearch((e) => e.localName == "li");
+    template.ast.accept(search);
+
+    expect(search.element, isNotNull);
+    expect(search.element.templateAttribute, isNotNull);
+    expect(search.element.templateAttribute.boundDirectives, hasLength(1));
+    DirectiveBinding boundDirective =
+        search.element.templateAttribute.boundDirectives.first;
+    expect(boundDirective.inputBindings, hasLength(1));
+    expect(boundDirective.inputBindings.first.boundInput.name, 'ngForOf');
   }
 
   void test_ngFor_operatorLocalVariableVarKeyword() {
@@ -1986,6 +2071,29 @@ class TestPanel {
     // no assertion...this throws in the github bug
   }
 
+  void test_angleBracketInMustacheNoCrash_githubBug204() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+{{<}}
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
+      ParserErrorCode.EXPECTED_TOKEN,
+      ParserErrorCode.EXPECTED_TYPE_NAME,
+      StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT
+    ]);
+  }
+
   void _addDartSource(String code) {
     dartCode = '''
 import '/angular2/angular2.dart';
@@ -2046,3 +2154,21 @@ $code
     return region.element is SelectorName;
   }
 }
+
+class ElementSearch extends AngularAstVisitor {
+  ElementInfo element;
+  ElementSearchFn searchFn;
+
+  ElementSearch(this.searchFn);
+
+  @override
+  void visitElementInfo(ElementInfo info) {
+    if (searchFn(info)) {
+      element = info;
+    } else {
+      super.visitElementInfo(info);
+    }
+  }
+}
+
+typedef bool ElementSearchFn(ElementInfo info);

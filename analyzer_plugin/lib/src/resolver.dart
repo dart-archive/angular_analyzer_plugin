@@ -745,8 +745,8 @@ class PrepareEventScopeVisitor extends AngularScopeVisitor {
     DartType eventType = typeProvider.dynamicType;
     var matched = false;
 
-    for (AbstractDirective directive in directives) {
-      for (OutputElement output in directive.outputs) {
+    for (DirectiveBinding directiveBinding in attr.parent.boundDirectives) {
+      for (OutputElement output in directiveBinding.boundDirective.outputs) {
         //TODO what if this matches two directives?
         if (output.name == attr.name) {
           eventType = output.eventType;
@@ -754,6 +754,7 @@ class PrepareEventScopeVisitor extends AngularScopeVisitor {
           SourceRange range =
               new SourceRange(attr.nameOffset, attr.name.length);
           template.addRange(range, output);
+          directiveBinding.outputBindings.add(new OutputBinding(output, attr));
         }
       }
     }
@@ -766,6 +767,8 @@ class PrepareEventScopeVisitor extends AngularScopeVisitor {
         eventType = standardHtmlEvent.eventType;
         SourceRange range = new SourceRange(attr.nameOffset, attr.name.length);
         template.addRange(range, standardHtmlEvent);
+        attr.parent.boundStandardOutputs
+            .add(new OutputBinding(standardHtmlEvent, attr));
       }
     }
 
@@ -832,7 +835,7 @@ class DirectiveResolver extends AngularAstVisitor {
     for (AbstractDirective directive in allDirectives) {
       Selector selector = directive.selector;
       if (selector.match(elementView, template)) {
-        element.directives.add(directive);
+        element.boundDirectives.add(new DirectiveBinding(directive));
         if (selector is ElementNameSelector) {
           tagIsResolved = true;
         }
@@ -858,7 +861,7 @@ class DirectiveResolver extends AngularAstVisitor {
     ElementView elementView = new ElementViewImpl(attr.virtualAttributes, null);
     for (AbstractDirective directive in allDirectives) {
       if (directive.selector.match(elementView, template)) {
-        attr.directives.add(directive);
+        attr.boundDirectives.add(new DirectiveBinding(directive));
       }
     }
   }
@@ -972,7 +975,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
   void _resolveTwoWayBoundAttributeValues(ExpressionBoundAttribute attribute) {
     bool outputMatched = false;
 
-    if (!attribute.expression.isAssignable) {
+    // empty attribute error registered in converter. Just don't crash.
+    if (attribute.expression != null && !attribute.expression.isAssignable) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.valueOffset,
@@ -980,11 +984,14 @@ class SingleScopeResolver extends AngularScopeVisitor {
           AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE));
     }
 
-    for (AbstractDirective directive in directives) {
-      for (OutputElement output in directive.outputs) {
+    for (DirectiveBinding directiveBinding
+        in attribute.parent.boundDirectives) {
+      for (OutputElement output in directiveBinding.boundDirective.outputs) {
         if (output.name == attribute.name + "Change") {
           outputMatched = true;
           var eventType = output.eventType;
+          directiveBinding.outputBindings
+              .add(new OutputBinding(output, attribute));
 
           // half-complete-code case: ensure the expression is actually there
           if (attribute.expression != null &&
@@ -1019,8 +1026,9 @@ class SingleScopeResolver extends AngularScopeVisitor {
   void _resolveInputBoundAttributeValues(ExpressionBoundAttribute attribute) {
     bool inputMatched = false;
 
-    for (AbstractDirective directive in directives) {
-      for (InputElement input in directive.inputs) {
+    for (DirectiveBinding directiveBinding
+        in attribute.parent.boundDirectives) {
+      for (InputElement input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
           // half-complete-code case: ensure the expression is actually there
           if (attribute.expression != null) {
@@ -1040,6 +1048,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
           SourceRange range =
               new SourceRange(attribute.nameOffset, attribute.name.length);
           template.addRange(range, input);
+          directiveBinding.inputBindings
+              .add(new InputBinding(input, attribute));
 
           inputMatched = true;
         }
@@ -1152,6 +1162,11 @@ class SingleScopeResolver extends AngularScopeVisitor {
   void _resolveDartAstNode(AstNode astNode) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
+    {
+      TypeResolverVisitor visitor = new TypeResolverVisitor(
+          library, view.source, typeProvider, errorListener);
+      astNode.accept(visitor);
+    }
     ResolverVisitor resolver = new ResolverVisitor(
         library, templateSource, typeProvider, errorListener);
     // fill the name scope
