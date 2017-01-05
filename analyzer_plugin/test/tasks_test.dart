@@ -38,6 +38,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     List<Component> components = outputs[STANDARD_HTML_COMPONENTS];
     Map<String, Component> map = {};
     components.forEach((c) {
+      expect(c.classElement.name, isNot(equals("TableSectionElement")));
       map[c.selector.toString()] = c;
     });
     expect(map, isNotNull);
@@ -114,6 +115,8 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     expect(map['h1'], isNotNull);
     expect(map['h2'], isNotNull);
     expect(map['h3'], isNotNull);
+    // has no mention of 'option' in the source, is hardcoded
+    expect(map['option'], isNotNull);
   }
 
   test_buildStandardHtmlEvents() {
