@@ -281,6 +281,14 @@ class AngularWarningCode extends ErrorCode {
           "Syntax Error: unexpected {0}");
 
   /**
+   * An error code indicating that a mustache or other expression binding was an
+   * unsupported type such as an 'as' expression or a constructor
+   */
+  static const AngularWarningCode DISALLOWED_EXPRESSION =
+      const AngularWarningCode(
+          'DISALLOWED_EXPRESSION', "{0} not allowed in angular templates");
+
+  /**
    * An error code indicating that an output-bound statement
    * must be an [ExpressionStatement].
    */
