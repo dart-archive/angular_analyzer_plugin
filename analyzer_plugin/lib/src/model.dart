@@ -276,7 +276,7 @@ class Template {
   /**
    * List of [NodeInfo] that were generated from recoverable parse errors.
    */
-  List<NodeInfo> _danglingNodes = new List<NodeInfo>();
+  List<NodeInfo> _extraNodes = new List<NodeInfo>();
 
   /**
    * The errors that are ignored in this template
@@ -309,10 +309,7 @@ class Template {
     _ast = ast;
   }
 
-  List<ElementInfo> get danglingNodes => _danglingNodes;
-  void addDanglingNode(NodeInfo node) {
-    _danglingNodes.add(node);
-  }
+  List<NodeInfo> get extraNodes => _extraNodes;
 }
 
 /**

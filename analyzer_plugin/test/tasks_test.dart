@@ -8,7 +8,6 @@ import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
-import 'package:analyzer/task/general.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -98,6 +97,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       html.Element element = document.body.getElementsByTagName('h1').single;
       expect(element.attributes['myAttr'], 'my value');
     }
+    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
   }
 
   test_perform_noDocType() {
@@ -127,6 +127,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
     }
     // it's OK to don't have DOCTYPE
     expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
   }
 
   test_perform_noDocType_with_dangling_unclosed_tag() {
@@ -147,7 +148,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       expect((bodyElement.nodes[0] as html.Element).localName, 'div');
       expect((bodyElement.nodes[2] as html.Element).localName, 'span');
     }
-    //Test for 'eof-in-tag-name'
+    //Test for 'eof-in-tag-name' error
     {
       List<AnalysisError> errors = outputs[ANGULAR_HTML_DOCUMENT_ERRORS];
       expect(errors, hasLength(1));
@@ -155,6 +156,15 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       expect(danglingError.errorCode, HtmlErrorCode.PARSE_ERROR);
       expect(danglingError.offset, 32);
       expect(danglingError.message, 'eof-in-tag-name');
+    }
+    //Test for 'extraNodes'
+    {
+      List<TextInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
+      expect(extraNodes, isNotNull);
+      expect(extraNodes, hasLength(1));
+      expect(extraNodes.first.text, '<di');
+      expect(extraNodes.first.length, 3);
+      expect(extraNodes.first.offset, 32);
     }
   }
 }
