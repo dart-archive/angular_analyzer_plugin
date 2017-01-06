@@ -707,6 +707,22 @@ class TestPanel {
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "(){}");
   }
 
+  void test_expression_func2_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="()=>x"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>x");
+  }
+
   void test_expression_symbol_not_allowed() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')

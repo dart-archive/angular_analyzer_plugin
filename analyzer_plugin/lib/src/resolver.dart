@@ -1352,6 +1352,13 @@ class AngularErrorVerifier extends ErrorVerifier
         super(errorReporter, library, typeProvider, inheritanceManager, false);
 
   @override
+  Object visitFunctionExpression(FunctionExpression exp) {
+    // error reported in [AngularResolverVisitor] but [ErrorVerifier] crashes
+    // because it isn't resolved
+    return null;
+  }
+
+  @override
   Object visitRethrowExpression(RethrowExpression exp) =>
       _reportUnacceptableNode(exp, "Rethrow");
 
