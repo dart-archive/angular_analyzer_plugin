@@ -1313,8 +1313,11 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
   }
 
   @override
-  Object visitCascadeExpression(CascadeExpression exp) =>
-      _reportUnacceptableNode(exp, "Cascades");
+  Object visitCascadeExpression(CascadeExpression exp) {
+    _reportUnacceptableNode(exp, "Cascades", false);
+    // Only resolve the target, not the cascade sections.
+    return exp.target.accept(this);
+  }
 
   @override
   Object visitAwaitExpression(AwaitExpression exp) =>
@@ -1322,7 +1325,7 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
 
   @override
   Object visitFunctionExpression(FunctionExpression exp) =>
-      _reportUnacceptableNode(exp, "Anonymous functions");
+      _reportUnacceptableNode(exp, "Anonymous functions", false);
 
   @override
   Object visitSymbolLiteral(SymbolLiteral exp) =>
@@ -1342,6 +1345,7 @@ class AngularErrorVerifier extends ErrorVerifier
     with ReportUnacceptableNodesMixin {
   final bool acceptAssignment;
   ErrorReporter errorReporter;
+  TypeProvider typeProvider;
   AngularErrorVerifier(
       ErrorReporter errorReporter,
       LibraryElement library,
@@ -1349,6 +1353,7 @@ class AngularErrorVerifier extends ErrorVerifier
       InheritanceManager inheritanceManager,
       this.acceptAssignment)
       : errorReporter = errorReporter,
+        typeProvider = typeProvider,
         super(errorReporter, library, typeProvider, inheritanceManager, false);
 
   @override
@@ -1399,7 +1404,7 @@ class AngularErrorVerifier extends ErrorVerifier
         acceptAssignment) {
       return super.visitAssignmentExpression(exp);
     } else {
-      // error already reported..but bail out.
+      exp.visitChildren(this);
       return null;
     }
   }
@@ -1441,10 +1446,19 @@ class AngularErrorVerifier extends ErrorVerifier
   }
 }
 
-abstract class ReportUnacceptableNodesMixin {
+abstract class ReportUnacceptableNodesMixin
+    implements RecursiveAstVisitor<Object> {
   ErrorReporter get errorReporter;
-  void _reportUnacceptableNode(AstNode node, String description) {
+  TypeProvider get typeProvider;
+  void _reportUnacceptableNode(Expression node, String description,
+      [bool visitChildren = true]) {
     errorReporter.reportErrorForNode(
         AngularWarningCode.DISALLOWED_EXPRESSION, node, [description]);
+
+    // "resolve" the node, a null type causes later errors.
+    node.propagatedType = node.staticType = typeProvider.dynamicType;
+    if (visitChildren) {
+      node.visitChildren(this);
+    }
   }
 }

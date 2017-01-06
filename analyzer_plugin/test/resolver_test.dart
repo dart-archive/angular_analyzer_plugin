@@ -633,15 +633,16 @@ class TestPanel {
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String str;
+  Function f;
 }
 ''');
     var code = r"""
-{{str = 4()}}
+{{str = (f)()}}
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = 4()");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = (f)()");
   }
 
   void test_statements_setter_allowed() {
@@ -732,6 +733,22 @@ class TestPanel {
 ''');
     var code = r"""
 <h1 [hidden]="#symbol"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
+  }
+
+  void test_expression_symbol_invoked_noCrash() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="#symbol()"></h1>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
