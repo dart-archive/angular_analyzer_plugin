@@ -171,6 +171,28 @@ class TitleComponent {
     expect(boundDirective.inputBindings.first.boundInput.name, 'title');
   }
 
+  void test_expression_nativeGlobalAttrBindingOnComponent() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [SomeComponent])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+
+@Component(selector: 'some-comp', template: '')
+class SomeComponent {
+}
+''');
+    _addHtmlSource(r"""
+<some-comp [hidden]='false'></some-comp>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('hidden').input.inCoreHtml;
+  }
+
   void test_expression_inputBinding_typeError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',

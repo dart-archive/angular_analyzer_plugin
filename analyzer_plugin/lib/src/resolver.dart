@@ -39,11 +39,17 @@ class DartTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
+  final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
   final View view;
 
-  DartTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener, this.view);
+  DartTemplateResolver(
+      this.typeProvider,
+      this.standardHtmlComponents,
+      this.standardHtmlEvents,
+      this.standardHtmlAttributes,
+      this.errorListener,
+      this.view);
 
   Template resolve() {
     String templateText = view.templateText;
@@ -67,7 +73,7 @@ class DartTemplateResolver {
     Template template = new Template(view, _firstElement(document));
     view.template = template;
     template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
-            standardHtmlEvents, errorListener)
+            standardHtmlEvents, standardHtmlAttributes, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
     return template;
@@ -174,12 +180,19 @@ class HtmlTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
+  final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
 
-  HtmlTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener, this.view, this.document);
+  HtmlTemplateResolver(
+      this.typeProvider,
+      this.standardHtmlComponents,
+      this.standardHtmlEvents,
+      this.standardHtmlAttributes,
+      this.errorListener,
+      this.view,
+      this.document);
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
@@ -187,7 +200,7 @@ class HtmlTemplateResolver {
 
     view.template = template;
     template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
-            standardHtmlEvents, errorListener)
+            standardHtmlEvents, standardHtmlAttributes, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
     return template;
@@ -212,6 +225,7 @@ class TemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
+  final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
 
   Template template;
@@ -232,7 +246,7 @@ class TemplateResolver {
       new HashMap<String, LocalVariable>();
 
   TemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener);
+      this.standardHtmlEvents, this.standardHtmlAttributes, this.errorListener);
 
   ElementInfo resolve(Template template) {
     this.template = template;
@@ -297,8 +311,14 @@ class TemplateResolver {
           dartVarManager,
           errorListener));
       // Resolve the scopes
-      element.accept(new SingleScopeResolver(view, template, templateSource,
-          typeProvider, errorListener, errorReporter));
+      element.accept(new SingleScopeResolver(
+          standardHtmlAttributes,
+          view,
+          template,
+          templateSource,
+          typeProvider,
+          errorListener,
+          errorReporter));
 
       // Now the next scope is ready to be resolved
       var tplSearch = new NextTemplateElementsSearch();
@@ -901,6 +921,7 @@ class DirectiveResolver extends AngularAstVisitor {
  * match the type of the binding where there is one. Then records references.
  */
 class SingleScopeResolver extends AngularScopeVisitor {
+  final Map<String, InputElement> standardHtmlAttributes;
   List<AbstractDirective> directives;
   View view;
   Template template;
@@ -914,8 +935,14 @@ class SingleScopeResolver extends AngularScopeVisitor {
    */
   Map<String, LocalVariable> localVariables;
 
-  SingleScopeResolver(this.view, this.template, this.templateSource,
-      this.typeProvider, this.errorListener, this.errorReporter);
+  SingleScopeResolver(
+      this.standardHtmlAttributes,
+      this.view,
+      this.template,
+      this.templateSource,
+      this.typeProvider,
+      this.errorListener,
+      this.errorReporter);
 
   @override
   void visitElementInfo(ElementInfo element) {
@@ -1030,20 +1057,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
         in attribute.parent.boundDirectives) {
       for (InputElement input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
-          // half-complete-code case: ensure the expression is actually there
-          if (attribute.expression != null) {
-            var attrType = attribute.expression.bestType;
-            var inputType = input.setterType;
-
-            if (!attrType.isAssignableTo(inputType)) {
-              errorListener.onError(new AnalysisError(
-                  templateSource,
-                  attribute.valueOffset,
-                  attribute.value.length,
-                  AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
-                  [attrType, inputType]));
-            }
-          }
+          _typecheckMatchingInput(attribute, input);
 
           SourceRange range =
               new SourceRange(attribute.nameOffset, attribute.name.length);
@@ -1057,12 +1071,46 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
 
     if (!inputMatched) {
+      InputElement standardHtmlAttribute =
+          standardHtmlAttributes[attribute.name];
+      if (standardHtmlAttribute != null) {
+        _typecheckMatchingInput(attribute, standardHtmlAttribute);
+
+        SourceRange range =
+            new SourceRange(attribute.nameOffset, attribute.name.length);
+        template.addRange(range, standardHtmlAttribute);
+        attribute.parent.boundStandardInputs
+            .add(new InputBinding(standardHtmlAttribute, attribute));
+
+        inputMatched = true;
+      }
+    }
+
+    if (!inputMatched) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.nameOffset,
           attribute.name.length,
           AngularWarningCode.NONEXIST_INPUT_BOUND,
           [attribute.name]));
+    }
+  }
+
+  void _typecheckMatchingInput(
+      ExpressionBoundAttribute attr, InputElement input) {
+    // half-complete-code case: ensure the expression is actually there
+    if (attr.expression != null) {
+      var attrType = attr.expression.bestType;
+      var inputType = input.setterType;
+
+      if (!attrType.isAssignableTo(inputType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attr.valueOffset,
+            attr.value.length,
+            AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+            [attrType, inputType]));
+      }
     }
   }
 
