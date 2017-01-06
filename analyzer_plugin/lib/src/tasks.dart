@@ -1565,6 +1565,16 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, InputElement> attributes;
   final Source source;
 
+  static const Map<String, String> specialElementClasses =
+      const <String, String>{
+    "OptionElement": 'option',
+    "DialogElement": "dialog",
+    "MediaElement": "media",
+    "MenuItemElement": "menuitem",
+    "ModElement": "mod",
+    "PictureElement": "picture"
+  };
+
   ClassElement classElement;
 
   _BuildStandardHtmlComponentsVisitor(
@@ -1582,6 +1592,15 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       List<InputElement> inputElements = _buildInputs(false);
       for (InputElement inputElement in inputElements) {
         attributes[inputElement.name] = inputElement;
+      }
+    } else {
+      String specialTagName = specialElementClasses[classElement.name];
+      if (specialTagName != null) {
+        String tag = specialTagName;
+        // TODO any better offset we can do here?
+        int tagOffset = classElement.nameOffset + 'HTML'.length;
+        Component component = _buildComponent(tag, tagOffset);
+        components[tag] = component;
       }
     }
     classElement = null;
