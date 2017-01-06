@@ -628,6 +628,22 @@ class TestPanel {
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
   }
 
+  void test_expression_invocation_of_erroneous_assignment_no_crash() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+{{str = 4()}}
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = 4()");
+  }
+
   void test_statements_setter_allowed() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')

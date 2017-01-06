@@ -1180,8 +1180,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    ErrorVerifier verifier = new AngularErrorVerifier(
-        errorReporter, library, typeProvider, new InheritanceManager(library));
+    ErrorVerifier verifier = new AngularErrorVerifier(errorReporter, library,
+        typeProvider, new InheritanceManager(library), acceptAssignment);
     astNode.accept(verifier);
   }
 
@@ -1340,9 +1340,14 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
  */
 class AngularErrorVerifier extends ErrorVerifier
     with ReportUnacceptableNodesMixin {
+  final bool acceptAssignment;
   ErrorReporter errorReporter;
-  AngularErrorVerifier(ErrorReporter errorReporter, LibraryElement library,
-      TypeProvider typeProvider, InheritanceManager inheritanceManager)
+  AngularErrorVerifier(
+      ErrorReporter errorReporter,
+      LibraryElement library,
+      TypeProvider typeProvider,
+      InheritanceManager inheritanceManager,
+      this.acceptAssignment)
       : errorReporter = errorReporter,
         super(errorReporter, library, typeProvider, inheritanceManager, false);
 
@@ -1377,6 +1382,56 @@ class AngularErrorVerifier extends ErrorVerifier
   @override
   Object visitInstanceCreationExpression(InstanceCreationExpression exp) =>
       _reportUnacceptableNode(exp, "Usage of new");
+
+  @override
+  Object visitAssignmentExpression(AssignmentExpression exp) {
+    // match ResolverVisitor to prevent fallout errors
+    VariableElement element = getOverridableStaticElement(exp.leftHandSide) ??
+        getOverridablePropagatedElement(exp.leftHandSide);
+    if ((element == null || element is PropertyInducingElement) &&
+        acceptAssignment) {
+      return super.visitAssignmentExpression(exp);
+    } else {
+      // error already reported..but bail out.
+      return null;
+    }
+  }
+
+  /**
+   * Copied from ResolverVisitor
+   */
+  VariableElement getOverridablePropagatedElement(Expression expression) {
+    Element element = null;
+    if (expression is SimpleIdentifier) {
+      element = expression.propagatedElement;
+    } else if (expression is PrefixedIdentifier) {
+      element = expression.propagatedElement;
+    } else if (expression is PropertyAccess) {
+      element = expression.propertyName.propagatedElement;
+    }
+    if (element is VariableElement) {
+      return element;
+    }
+    return null;
+  }
+
+  /**
+   * Copied from ResolverVisitor
+   */
+  VariableElement getOverridableStaticElement(Expression expression) {
+    Element element = null;
+    if (expression is SimpleIdentifier) {
+      element = expression.staticElement;
+    } else if (expression is PrefixedIdentifier) {
+      element = expression.staticElement;
+    } else if (expression is PropertyAccess) {
+      element = expression.propertyName.staticElement;
+    }
+    if (element is VariableElement) {
+      return element;
+    }
+    return null;
+  }
 }
 
 abstract class ReportUnacceptableNodesMixin {
