@@ -33,11 +33,10 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
   for (AngularAstNode child in root.children) {
     if (child is ElementInfo && child.openingSpan == null) {
       var target = findTarget(offset, child);
-      if (!(target is ElementInfo && target.openingSpan == null)){
+      if (!(target is ElementInfo && target.openingSpan == null)) {
         return target;
       }
-    }
-    else if (offsetContained(offset, child.offset, child.length)){
+    } else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
     }
   }

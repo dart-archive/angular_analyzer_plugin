@@ -52,7 +52,7 @@ class HtmlTreeConverter {
         attribute.parent = element;
       }
 
-      if (element.openingSpan != null ){
+      if (element.openingSpan != null) {
         element.childNodesMaxEnd = element.offset + element.length;
       }
 
@@ -218,20 +218,19 @@ class HtmlTreeConverter {
       if (node != null) {
         children.add(node);
 
-        if (node is ElementInfo){
+        if (node is ElementInfo) {
           if (root.childNodesMaxEnd == null) {
             root.childNodesMaxEnd = node.childNodesMaxEnd;
+          } else if (node.childNodesMaxEnd != null) {
+            root.childNodesMaxEnd =
+                max(root.childNodesMaxEnd, node.childNodesMaxEnd);
           }
-          else if (node.childNodesMaxEnd != null){
-            root.childNodesMaxEnd = max(root.childNodesMaxEnd, node.childNodesMaxEnd);
-          }
-        }
-        else{
+        } else {
           if (root.childNodesMaxEnd == null) {
             root.childNodesMaxEnd = node.offset + node.length;
-          }
-          else{
-            root.childNodesMaxEnd = max(root.childNodesMaxEnd, node.offset + node.length);
+          } else {
+            root.childNodesMaxEnd =
+                max(root.childNodesMaxEnd, node.offset + node.length);
           }
         }
       }
