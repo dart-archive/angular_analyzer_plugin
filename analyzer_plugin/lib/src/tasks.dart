@@ -700,14 +700,26 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     String selectorStr = constantEvaluation.value;
     int selectorOffset = expression.offset;
     // Parse the selector text.
-    Selector selector =
-        Selector.parse(target.source, selectorOffset, selectorStr);
-    if (selector == null) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.CANNOT_PARSE_SELECTOR, expression);
-      return null;
+    try {
+      Selector selector =
+          new SelectorParser(target.source, selectorOffset, selectorStr)
+              .parse();
+      if (selector == null) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.CANNOT_PARSE_SELECTOR,
+            expression,
+            [selectorStr]);
+      }
+      return selector;
+    } on SelectorParseError catch (e) {
+      errorReporter.reportErrorForOffset(
+          AngularWarningCode.CANNOT_PARSE_SELECTOR,
+          e.offset,
+          e.length,
+          [e.message]);
     }
-    return selector;
+
+    return null;
   }
 
   /**
