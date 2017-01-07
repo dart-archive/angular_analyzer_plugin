@@ -26,9 +26,14 @@ abstract class AbstractDirective {
   final List<InputElement> inputs;
   final List<OutputElement> outputs;
   final Selector selector;
+  final List<ElementNameSelector> elementTags;
 
   AbstractDirective(this.classElement,
-      {this.exportAs, this.inputs, this.outputs, this.selector});
+      {this.exportAs,
+      this.inputs,
+      this.outputs,
+      this.selector,
+      this.elementTags});
 
   /**
    * The source that contains this directive.
@@ -116,12 +121,14 @@ class Component extends AbstractDirective {
       {AngularElement exportAs,
       List<InputElement> inputs,
       List<OutputElement> outputs,
-      Selector selector})
+      Selector selector,
+      List<ElementNameSelector> elementTags})
       : super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
 }
 
 /**
@@ -144,12 +151,14 @@ class Directive extends AbstractDirective {
       {AngularElement exportAs,
       List<InputElement> inputs,
       List<OutputElement> outputs,
-      Selector selector})
+      Selector selector,
+      List<ElementNameSelector> elementTags})
       : super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
 }
 
 /**
@@ -325,6 +334,7 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
+  final Map<String, List<AbstractDirective>> elementTagsInfo;
   final String templateText;
   final int templateOffset;
   final Source templateUriSource;
@@ -338,7 +348,8 @@ class View implements AnalysisTarget {
   Template template;
 
   View(this.classElement, this.component, this.directives,
-      {this.templateText,
+      {this.elementTagsInfo,
+      this.templateText,
       this.templateOffset: 0,
       this.templateUriSource,
       this.templateUrlRange});

@@ -166,20 +166,6 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlExportAsTag_at_beginning() async {
-    addTestSource('''
-import '/angular2/angular2.dart';
-@Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
-class MyParentComponent{}
-@Component(template: '', selector: 'my-child', exportAs: 'myChild')
-class MyChildComponent{}
-    ''');
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("myChild");
-  }
 
   test_completeInlineHtmlSelectorTag_at_middle() async {
     addTestSource('''
@@ -209,21 +195,6 @@ class MyChildComponent{}
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestClassTypeAlias("my-child");
-  }
-
-  test_completeInlineHtmlExportAsTag_at_middle() async {
-    addTestSource('''
-import '/angular2/angular2.dart';
-@Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
-class MyParentComponent{}
-@Component(template: '', selector: 'my-child', exportAs: 'myChildAlias')
-class MyChildComponent{}
-    ''');
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("myChildAlias");
   }
 
   test_completeInlineHtmlSelectorTag_at_end() async {
@@ -256,20 +227,6 @@ class MyChildComponent{}
     assertSuggestClassTypeAlias("my-child");
   }
 
-  test_completeInlineHtmlExportAsTag_at_end() async {
-    addTestSource('''
-import '/angular2/angular2.dart';
-@Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent])
-class MyParentComponent{}
-@Component(template: '', selector: 'my-child', exportAs: 'myChildAlias')
-class MyChildComponent{}
-    ''');
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("myChildAlias");
-  }
 }
 
 @reflectiveTest
@@ -1032,28 +989,6 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child-component");
   }
 
-  test_completeHtmlExportAsTag_at_beginning() async {
-    Source dartSource = newSource(
-        '/completionTest.dart',
-        '''
-      import '/angular2/angular2.dart';
-      @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
-        class MyComp{}
-      @Component(template: '', selector: 'my-child-component', exportAs: 'myChildComponentAlias')
-      class MyChildComponent{}
-      ''');
-    addTestSource('<^<div></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("myChildComponentAlias");
-  }
-
   test_completeHtmlSelectorTag_at_middle() async {
     Source dartSource = newSource(
         '/completionTest.dart',
@@ -1096,28 +1031,6 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestClassTypeAlias("my-child-component");
-  }
-
-  test_completeHtmlExportAsTag_at_middle() async {
-    Source dartSource = newSource(
-        '/completionTest.dart',
-        '''
-      import '/angular2/angular2.dart';
-      @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
-        class MyComp{}
-      @Component(template: '', selector: 'my-child-component', exportAs:'myChildComponentAlias')
-      class MyChildComponent{}
-      ''');
-    addTestSource('''<div><div><^</div></div>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("myChildComponentAlias");
   }
 
   test_completeHtmlSelectorTag_at_end() async {
@@ -1163,27 +1076,5 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestClassTypeAlias("my-child-component");
-  }
-
-  test_completeHtmlExportAsTag_at_end() async {
-    Source dartSource = newSource(
-        '/completionTest.dart',
-        '''
-      import '/angular2/angular2.dart';
-      @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
-        class MyComp{}
-      @Component(template: '', selector: 'my-child-component', exportAs:'myChildComponentAlias')
-      class MyChildComponent{}
-      ''');
-    addTestSource('''<div><div></div></div><^''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("myChildComponentAlias");
   }
 }

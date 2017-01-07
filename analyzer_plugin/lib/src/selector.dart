@@ -116,6 +116,7 @@ class ClassSelector implements Selector {
  * The element name based selector.
  */
 class ElementNameSelector implements Selector {
+  static List<ElementNameSelector> EMPTY_LIST = const <ElementNameSelector>[];
   final AngularElement nameElement;
 
   ElementNameSelector(this.nameElement);

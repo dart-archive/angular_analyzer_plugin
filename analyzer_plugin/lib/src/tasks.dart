@@ -356,7 +356,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     SourceFactory sourceFactory = contextTarget.context.sourceFactory;
     Source htmlSource = sourceFactory.forUri(DartSdk.DART_HTML);
     return <String, TaskInput>{
-      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT5),
+      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT),
     };
   }
 
@@ -378,10 +378,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
-      'BuildUnitDirectivesTask',
-      createTask,
-      buildInputs,
-      <ResultDescriptor>[DIRECTIVES_IN_UNIT, DIRECTIVES_ERRORS]);
+      'BuildUnitDirectivesTask', createTask, buildInputs, <ResultDescriptor>[
+    DIRECTIVES_IN_UNIT,
+    DIRECTIVES_ERRORS,
+  ]);
 
   BuildUnitDirectivesTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
@@ -416,6 +416,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Process all classes.
     //
     List<AbstractDirective> directives = <AbstractDirective>[];
+    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
     for (ast.CompilationUnitMember unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
         for (ast.Annotation annotationNode in unitMember.metadata) {
@@ -423,6 +424,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
               _createDirective(unitMember, annotationNode);
           if (directive != null) {
             directives.add(directive);
+            if (directive is Component) {
+              elementTags.add(directive.selector);
+            }
           }
         }
       }
@@ -450,6 +454,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       if (selector == null) {
         return null;
       }
+      List<ElementNameSelector> elementTags =
+          _getElementTagsFromSelector(selector);
       AngularElement exportAs = _parseExportAs(node);
       List<InputElement> inputElements = <InputElement>[];
       List<OutputElement> outputElements = <OutputElement>[];
@@ -464,14 +470,16 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
       }
       if (isDirective) {
         return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
       }
     }
     return null;
@@ -660,6 +668,22 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
     var bounds = classElement.typeParameters.map(getBound).toList();
     return classElement.type.instantiate(bounds);
+  }
+
+  List<ElementNameSelector> _getElementTagsFromSelector(Selector selector) {
+    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
+    if (selector is ElementNameSelector) {
+      elementTags.add(selector);
+    } else if (selector is OrSelector) {
+      for (Selector innerSelector in selector.selectors) {
+        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
+      }
+    } else if (selector is AndSelector) {
+      for (Selector innerSelector in selector.selectors) {
+        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
+      }
+    }
+    return elementTags;
   }
 
   List<InputElement> _parseHeaderInputs(ast.Annotation node) {
@@ -907,6 +931,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     //
     ast.CompilationUnit unit = getRequiredInput(UNIT_INPUT);
     _allDirectives = getRequiredInput(DIRECTIVES_INPUT);
+
     //
     // Process all classes.
     //
@@ -952,13 +977,24 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
 
   /**
    * Attempt to find and add the [AbstractDirective] that corresponds to
-   * the [classElement]. Return `true` if success.
+   * the [classElement]. In addition, if Component, adds it to elementTags.
+   * Returns `true` if at least directive is successfully added.
    */
-  bool _addDirective(
-      List<AbstractDirective> directives, ClassElement classElement) {
+  bool _addDirectiveAndElementTag(
+      List<AbstractDirective> directives,
+      Map<String, List<AbstractDirective>> elementTagsInfo,
+      ClassElement classElement) {
     for (AbstractDirective directive in _allDirectives) {
       if (directive.classElement == classElement) {
         directives.add(directive);
+        for (ElementNameSelector elementTag in directive.elementTags) {
+          String elementTagName = elementTag.toString();
+          if (!elementTagsInfo.containsKey(elementTagName)) {
+            elementTagsInfo.putIfAbsent(
+                elementTagName, () => new List<AbstractDirective>());
+          }
+          elementTagsInfo[elementTagName].add(directive);
+        }
         return true;
       }
     }
@@ -966,12 +1002,17 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   }
 
   /**
-   * Attempt to find and add the [AbstractDirective] that corresponds to
+   * Attempt to find and add the [AbstractDirective] and elementTag(if Component)
+   * that corresponds to
    * the [classElement]. Return an error if the directive not found.
    */
-  void _addDirectiveOrReportError(List<AbstractDirective> directives,
-      ast.Expression expression, ClassElement classElement) {
-    bool success = _addDirective(directives, classElement);
+  void _addDirectiveAndElementTagOrReportError(
+      List<AbstractDirective> directives,
+      Map<String, List<AbstractDirective>> elementTagsInfo,
+      ast.Expression expression,
+      ClassElement classElement) {
+    bool success =
+        _addDirectiveAndElementTag(directives, elementTagsInfo, classElement);
     if (!success) {
       errorReporter.reportErrorForNode(
           AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED, expression);
@@ -983,14 +1024,17 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
    * Return `true` if success, or `false` the [value] has items that don't
    * correspond to a directive.
    */
-  bool _addDirectivesForDartObject(
-      List<AbstractDirective> directives, DartObject value) {
+  bool _addDirectivesAndElementTagsForDartObject(
+      List<AbstractDirective> directives,
+      Map<String, List<AbstractDirective>> elementTagsInfo,
+      DartObject value) {
     List<DartObject> listValue = value.toListValue();
     if (listValue != null) {
       for (DartObject listItem in listValue) {
         Object typeValue = listItem.toTypeValue();
         if (typeValue is InterfaceType) {
-          bool success = _addDirective(directives, typeValue.element);
+          bool success = _addDirectiveAndElementTag(
+              directives, elementTagsInfo, typeValue.element);
           if (!success) {
             return false;
           }
@@ -1070,8 +1114,10 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     if (component == null) {
       return null;
     }
-    // Prepare directives.
+    // Prepare directives and elementTags
     List<AbstractDirective> directives = <AbstractDirective>[];
+    Map<String, List<AbstractDirective>> elementTagsInfo =
+        new Map<String, List<AbstractDirective>>();
     {
       ast.Expression listExpression =
           _getNamedArgument(annotation, 'directives');
@@ -1081,14 +1127,16 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
             Element element = item.staticElement;
             // TypeLiteral
             if (element is ClassElement) {
-              _addDirectiveOrReportError(directives, item, element);
+              _addDirectiveAndElementTagOrReportError(
+                  directives, elementTagsInfo, item, element);
               continue;
             }
             // LIST_OF_DIRECTIVES
             if (element is PropertyAccessorElement &&
                 element.variable.constantValue != null) {
               DartObject value = element.variable.constantValue;
-              bool success = _addDirectivesForDartObject(directives, value);
+              bool success = _addDirectivesAndElementTagsForDartObject(
+                  directives, elementTagsInfo, value);
               if (!success) {
                 errorReporter.reportErrorForNode(
                     AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
@@ -1105,6 +1153,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     }
     // Create View.
     return new View(classElement, component, directives,
+        elementTagsInfo: elementTagsInfo,
         templateText: templateText,
         templateOffset: templateOffset,
         templateUriSource: templateUriSource,

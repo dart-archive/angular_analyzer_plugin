@@ -231,16 +231,18 @@ class TemplateCompleter {
   }
 
   suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions) {
-    for (AbstractDirective abstractDirective in template.view.directives) {
-      if (abstractDirective is Component) {
-        CompletionSuggestion currentSuggestion = _createHtmlTagSuggestion(
-            abstractDirective,
-            DART_RELEVANCE_DEFAULT,
-            _createHtmlTagElement(
-                abstractDirective, protocol.ElementKind.CLASS_TYPE_ALIAS));
-        if (currentSuggestion != null) {
-          suggestions.add(currentSuggestion);
-        }
+    Map<String, List<AbstractDirective>> elementTagMap =
+        template.view.elementTagsInfo;
+    for (String elementTagName in elementTagMap.keys) {
+      CompletionSuggestion currentSuggestion = _createHtmlTagSuggestion(
+          elementTagName,
+          DART_RELEVANCE_DEFAULT,
+          _createHtmlTagElement(
+              elementTagName,
+              elementTagMap[elementTagName].first,
+              protocol.ElementKind.CLASS_TYPE_ALIAS));
+      if (currentSuggestion != null) {
+        suggestions.add(currentSuggestion);
       }
     }
   }
@@ -340,35 +342,31 @@ class TemplateCompleter {
   }
 
   CompletionSuggestion _createHtmlTagSuggestion(
-      Component component, int defaultRelevance, protocol.Element element) {
-    String completion = ((component.exportAs != null)
-        ? component.exportAs.name
-        : component.selector.toString());
-    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
-        defaultRelevance, completion, completion.length, 0, false, false,
+      String elementTagName, int defaultRelevance, protocol.Element element) {
+    return new CompletionSuggestion(
+        CompletionSuggestionKind.INVOCATION,
+        defaultRelevance,
+        elementTagName,
+        elementTagName.length,
+        0,
+        false,
+        false,
         element: element);
   }
 
-  protocol.Element _createHtmlTagElement(
-      Component component, protocol.ElementKind kind) {
-    String name;
-    int offset, length;
-    if (component.exportAs != null) {
-      name = component.exportAs.name;
-      offset = component.exportAs.nameOffset;
-      length = component.exportAs.nameLength;
-    } else {
-      AngularElement nameElement =
-          (component.selector as ElementNameSelector).nameElement;
-      name = nameElement.name;
-      offset = nameElement.nameOffset;
-      length = nameElement.nameLength;
-    }
+  protocol.Element _createHtmlTagElement(String elementTagName,
+      AbstractDirective directive, protocol.ElementKind kind) {
+    ElementNameSelector selector = directive.elementTags.firstWhere(
+        (currSelector) => currSelector.toString() == elementTagName);
+    int offset = selector.nameElement.nameOffset;
+    int length = selector.nameElement.nameLength;
+
     Location location =
-        new Location(component.source.fullName, offset, length, 0, 0);
+        new Location(directive.source.fullName, offset, length, 0, 0);
     int flags = protocol.Element
         .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, name, flags, location: location);
+    return new protocol.Element(kind, elementTagName, flags,
+        location: location);
   }
 
   CompletionSuggestion _createInputSuggestion(InputElement inputElement,
