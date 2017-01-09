@@ -554,6 +554,361 @@ class TestPanel {
         AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
   }
 
+  void test_expression_as_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1>{{str as String}}</h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str as String");
+  }
+
+  void test_expression_nested_as_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1>{{(str.isEmpty as String).isEmpty}}</h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.DISALLOWED_EXPRESSION, code,
+        "str.isEmpty as String");
+  }
+
+  void test_expression_typed_list_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="<String>[].isEmpty"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "<String>[]");
+  }
+
+  void test_expression_setter_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="str = 'hey'"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = 'hey'");
+  }
+
+  void test_expression_assignment_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 #h1 [hidden]="h1 = 4"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
+  }
+
+  void test_statements_assignment_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 #h1 (click)="h1 = 4"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
+  }
+
+  void test_expression_invocation_of_erroneous_assignment_no_crash() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+  Function f;
+}
+''');
+    var code = r"""
+{{str = (f)()}}
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = (f)()");
+  }
+
+  void test_statements_setter_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 #h1 (click)="str = 'hey'"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_expression_is_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="str is int"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str is int");
+  }
+
+  void test_expression_typed_map_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="<String, String>{}.keys.isEmpty"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "<String, String>{}");
+  }
+
+  void test_expression_func_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="(){}"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "(){}");
+  }
+
+  void test_expression_func2_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="()=>x"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>x");
+  }
+
+  void test_expression_symbol_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="#symbol"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
+  }
+
+  void test_expression_symbol_invoked_noCrash() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="#symbol()"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
+  }
+
+  void test_expression_await_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="await str"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    //This actually gets parsed as an identifier, which is OK. Still fails!
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      AngularWarningCode.TRAILING_EXPRESSION
+    ]);
+  }
+
+  void test_expression_throw_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="throw str"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "throw str");
+  }
+
+  void test_expression_cascade_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="str..x"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str..x");
+  }
+
+  void test_expression_new_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="new String().isEmpty"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "new String()");
+  }
+
+  void test_expression_named_args_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  bool callMe({String arg}) => true;
+}
+''');
+    var code = r"""
+<h1 [hidden]="callMe(arg: 'bob')"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "arg: 'bob'");
+  }
+
+  void test_expression_rethrow_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="rethrow"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "rethrow");
+  }
+
+  void test_expression_super_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="super.x"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "super");
+  }
+
+  void test_expression_this_not_allowed() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    var code = r"""
+<h1 [hidden]="this"></h1>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "this");
+  }
+
   void test_expression_attrBinding_valid() {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2132,7 +2487,8 @@ class TestPanel {
       ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
       ParserErrorCode.EXPECTED_TOKEN,
       ParserErrorCode.EXPECTED_TYPE_NAME,
-      StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT
+      StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT,
+      AngularWarningCode.DISALLOWED_EXPRESSION
     ]);
   }
 

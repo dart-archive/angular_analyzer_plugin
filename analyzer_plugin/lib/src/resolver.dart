@@ -1229,7 +1229,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   /**
    * Resolve the given [AstNode] ([expression] or [statement]) and report errors.
    */
-  void _resolveDartAstNode(AstNode astNode) {
+  void _resolveDartAstNode(AstNode astNode, bool acceptAssignment) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     {
@@ -1237,8 +1237,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
           library, view.source, typeProvider, errorListener);
       astNode.accept(visitor);
     }
-    ResolverVisitor resolver = new ResolverVisitor(
-        library, templateSource, typeProvider, errorListener);
+    ResolverVisitor resolver = new AngularResolverVisitor(
+        library, templateSource, typeProvider, errorListener, acceptAssignment);
     // fill the name scope
     ClassScope classScope = new ClassScope(resolver.nameScope, classElement);
     EnclosedScope localScope = new EnclosedScope(classScope);
@@ -1250,8 +1250,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), false);
+    ErrorVerifier verifier = new AngularErrorVerifier(errorReporter, library,
+        typeProvider, new InheritanceManager(library), acceptAssignment);
     astNode.accept(verifier);
   }
 
@@ -1260,7 +1260,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
    */
   _resolveDartExpression(Expression expression) {
     if (expression != null) {
-      _resolveDartAstNode(expression);
+      _resolveDartAstNode(expression, false);
     }
   }
 
@@ -1279,7 +1279,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
             AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
             [_getOutputStatementErrorDescription(statement)]));
       } else {
-        _resolveDartAstNode(statement);
+        _resolveDartAstNode(statement, true);
       }
     }
   }
@@ -1310,6 +1310,225 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
     if (astNode != null) {
       astNode.accept(new _DartReferencesRecorder(template, dartVariables));
+    }
+  }
+}
+
+/**
+ * Workaround for "This mixin application is invalid because all of the
+ * constructors in the base class 'ResolverVisitor' have optional parameters."
+ * in the definition of [AngularResolverVisitor].
+ *
+ * See https://github.com/dart-lang/sdk/issues/15101 for details
+ */
+class _IntermediateResolverVisitor extends ResolverVisitor {
+  _IntermediateResolverVisitor(LibraryElement library, Source source,
+      TypeProvider typeProvider, AnalysisErrorListener errorListener)
+      : super(library, source, typeProvider, errorListener);
+}
+
+/**
+ * Override the standard [ResolverVisitor] class to report unacceptable nodes,
+ * while suppressing secondary errors that would have been raised by
+ * [ResolverVisitor] if we let it see the bogus definitions.
+ */
+class AngularResolverVisitor extends _IntermediateResolverVisitor
+    with ReportUnacceptableNodesMixin {
+  final bool acceptAssignment;
+
+  AngularResolverVisitor(
+      LibraryElement library,
+      Source source,
+      TypeProvider typeProvider,
+      AnalysisErrorListener errorListener,
+      this.acceptAssignment)
+      : super(library, source, typeProvider, errorListener);
+
+  @override
+  Object visitAsExpression(AsExpression exp) {
+    // This means we generated this in a pipe, and its OK.
+    if (exp.asOperator.offset == 0) {
+      return super.visitAsExpression(exp);
+    } else {
+      return _reportUnacceptableNode(exp, "As expression");
+    }
+  }
+
+  @override
+  Object visitIsExpression(IsExpression exp) =>
+      _reportUnacceptableNode(exp, "Is expression");
+
+  @override
+  Object visitThrowExpression(ThrowExpression exp) =>
+      _reportUnacceptableNode(exp, "Throw");
+
+  @override
+  Object visitSuperExpression(SuperExpression exp) =>
+      _reportUnacceptableNode(exp, "Super references");
+
+  @override
+  Object visitAssignmentExpression(AssignmentExpression exp) {
+    // Only block reassignment of locals, not poperties. Resolve elements to
+    // check that.
+    exp.leftHandSide.accept(elementResolver);
+    VariableElement element = getOverridableStaticElement(exp.leftHandSide) ??
+        getOverridablePropagatedElement(exp.leftHandSide);
+    if ((element == null || element is PropertyInducingElement) &&
+        acceptAssignment) {
+      return super.visitAssignmentExpression(exp);
+    } else {
+      _reportUnacceptableNode(exp, "Assignment of locals");
+      return null;
+    }
+  }
+
+  @override
+  Object visitCascadeExpression(CascadeExpression exp) {
+    _reportUnacceptableNode(exp, "Cascades", false);
+    // Only resolve the target, not the cascade sections.
+    return exp.target.accept(this);
+  }
+
+  @override
+  Object visitAwaitExpression(AwaitExpression exp) =>
+      _reportUnacceptableNode(exp, "Await");
+
+  @override
+  Object visitFunctionExpression(FunctionExpression exp) =>
+      _reportUnacceptableNode(exp, "Anonymous functions", false);
+
+  @override
+  Object visitSymbolLiteral(SymbolLiteral exp) =>
+      _reportUnacceptableNode(exp, "Symbol literal");
+
+  @override
+  Object visitNamedExpression(NamedExpression exp) =>
+      _reportUnacceptableNode(exp, "Named arguments");
+}
+
+/**
+ * Override the standard [ErrorVerifier] class to report unacceptable nodes,
+ * while suppressing secondary errors that would have been raised by
+ * [ErrorVerifier] if we let it see the bogus definitions.
+ */
+class AngularErrorVerifier extends ErrorVerifier
+    with ReportUnacceptableNodesMixin {
+  final bool acceptAssignment;
+  ErrorReporter errorReporter;
+  TypeProvider typeProvider;
+  AngularErrorVerifier(
+      ErrorReporter errorReporter,
+      LibraryElement library,
+      TypeProvider typeProvider,
+      InheritanceManager inheritanceManager,
+      this.acceptAssignment)
+      : errorReporter = errorReporter,
+        typeProvider = typeProvider,
+        super(errorReporter, library, typeProvider, inheritanceManager, false);
+
+  @override
+  Object visitFunctionExpression(FunctionExpression exp) {
+    // error reported in [AngularResolverVisitor] but [ErrorVerifier] crashes
+    // because it isn't resolved
+    return null;
+  }
+
+  @override
+  Object visitRethrowExpression(RethrowExpression exp) =>
+      _reportUnacceptableNode(exp, "Rethrow");
+
+  @override
+  Object visitThisExpression(ThisExpression exp) =>
+      _reportUnacceptableNode(exp, "This references");
+
+  @override
+  Object visitListLiteral(ListLiteral list) {
+    if (list.typeArguments != null) {
+      _reportUnacceptableNode(list, "Typed list literals");
+      return null;
+    } else {
+      return super.visitListLiteral(list);
+    }
+  }
+
+  @override
+  Object visitMapLiteral(MapLiteral map) {
+    if (map.typeArguments != null) {
+      _reportUnacceptableNode(map, "Typed map literals");
+      return null;
+    } else {
+      return super.visitMapLiteral(map);
+    }
+  }
+
+  @override
+  Object visitInstanceCreationExpression(InstanceCreationExpression exp) =>
+      _reportUnacceptableNode(exp, "Usage of new");
+
+  @override
+  Object visitAssignmentExpression(AssignmentExpression exp) {
+    // match ResolverVisitor to prevent fallout errors
+    VariableElement element = getOverridableStaticElement(exp.leftHandSide) ??
+        getOverridablePropagatedElement(exp.leftHandSide);
+    if ((element == null || element is PropertyInducingElement) &&
+        acceptAssignment) {
+      return super.visitAssignmentExpression(exp);
+    } else {
+      exp.visitChildren(this);
+      return null;
+    }
+  }
+
+  /**
+   * Copied from ResolverVisitor
+   */
+  VariableElement getOverridablePropagatedElement(Expression expression) {
+    Element element = null;
+    if (expression is SimpleIdentifier) {
+      element = expression.propagatedElement;
+    } else if (expression is PrefixedIdentifier) {
+      element = expression.propagatedElement;
+    } else if (expression is PropertyAccess) {
+      element = expression.propertyName.propagatedElement;
+    }
+    if (element is VariableElement) {
+      return element;
+    }
+    return null;
+  }
+
+  /**
+   * Copied from ResolverVisitor
+   */
+  VariableElement getOverridableStaticElement(Expression expression) {
+    Element element = null;
+    if (expression is SimpleIdentifier) {
+      element = expression.staticElement;
+    } else if (expression is PrefixedIdentifier) {
+      element = expression.staticElement;
+    } else if (expression is PropertyAccess) {
+      element = expression.propertyName.staticElement;
+    }
+    if (element is VariableElement) {
+      return element;
+    }
+    return null;
+  }
+}
+
+abstract class ReportUnacceptableNodesMixin
+    implements RecursiveAstVisitor<Object> {
+  ErrorReporter get errorReporter;
+  TypeProvider get typeProvider;
+  void _reportUnacceptableNode(Expression node, String description,
+      [bool visitChildren = true]) {
+    errorReporter.reportErrorForNode(
+        AngularWarningCode.DISALLOWED_EXPRESSION, node, [description]);
+
+    // "resolve" the node, a null type causes later errors.
+    node.propagatedType = node.staticType = typeProvider.dynamicType;
+    if (visitChildren) {
+      node.visitChildren(this);
     }
   }
 }
