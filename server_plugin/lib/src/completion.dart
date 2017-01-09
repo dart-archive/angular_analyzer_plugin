@@ -170,9 +170,9 @@ class TemplateCompleter {
       bool extraNodesUsed = false;
       AngularAstNode target;
       target = findTargetInExtraNodes(request.offset, template.extraNodes);
-      if (target != null){
+      if (target != null) {
         extraNodesUsed = true;
-      }else {
+      } else {
         target = findTarget(request.offset, template.ast);
       }
       DartSnippetExtractor extractor = new DartSnippetExtractor();
@@ -201,13 +201,16 @@ class TemplateCompleter {
                 suggestions, varExtractor.variables, dartRequest.opType);
           }
         }
-      } else if (target is ElementInfo && target.openingSpan == null &&
-          target.localName == 'html' && target.childNodes.isNotEmpty &&
-          target.childNodes.length == 2 && target.childNodes[1] is ElementInfo &&
+      } else if (target is ElementInfo &&
+          target.openingSpan == null &&
+          target.localName == 'html' &&
+          target.childNodes.isNotEmpty &&
+          target.childNodes.length == 2 &&
+          target.childNodes[1] is ElementInfo &&
           (target.childNodes[1] as ElementInfo).localName == 'body' &&
-          (target.childNodes[1] as ElementInfo).childNodes.isEmpty){
+          (target.childNodes[1] as ElementInfo).childNodes.isEmpty) {
         //On an empty document
-        suggestHtmlTags(template,suggestions, addOpenBracket: true);
+        suggestHtmlTags(template, suggestions, addOpenBracket: true);
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
@@ -223,12 +226,15 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
-      } else if (target is ElementInfo && target.openingSpan != null &&
-          target.openingNameSpan != null && target.closingSpan != null &&
+      } else if (target is ElementInfo &&
+          target.openingSpan != null &&
+          target.openingNameSpan != null &&
+          target.closingSpan != null &&
           target.closingNameSpan != null &&
-          request.offset == (target.closingSpan.offset + target.closingSpan.length)){
+          request.offset ==
+              (target.closingSpan.offset + target.closingSpan.length)) {
         suggestHtmlTags(template, suggestions, addOpenBracket: true);
-      }else if (target is ExpressionBoundAttribute &&
+      } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
@@ -239,8 +245,9 @@ class TemplateCompleter {
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
       } else if (target is TextInfo) {
-        bool addOpenBracket = extraNodesUsed ? false :
-            target.text[request.offset - target.offset - 1] != '<';
+        bool addOpenBracket = extraNodesUsed
+            ? false
+            : target.text[request.offset - target.offset - 1] != '<';
         suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
       }
     }
