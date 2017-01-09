@@ -332,6 +332,12 @@ class ComponentB {
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-a');
       }
+      {
+        expect(component.elementTags, hasLength(1));
+        Selector selector = component.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'comp-a');
+      }
     }
     {
       Component component = directives[1];
@@ -340,6 +346,183 @@ class ComponentB {
         Selector selector = component.selector;
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-b');
+      }
+      {
+        expect(component.elementTags, hasLength(1));
+        Selector selector = component.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'comp-b');
+      }
+    }
+  }
+
+  void test_Component_elementTags_OrSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'comp-a1, comp-a2, comp-a3')
+class ComponentA {
+}
+
+@Component(selector: 'comp-b1, comp-b2')
+class ComponentB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> components = outputs[DIRECTIVES_IN_UNIT];
+    expect(components, hasLength(2));
+    {
+      Component component = components[0];
+      expect(component, new isInstanceOf<Component>());
+      {
+        Selector selector = component.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(component.elementTags, hasLength(3));
+        expect(
+            component.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[0].toString(), 'comp-a1');
+        expect(
+            component.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[1].toString(), 'comp-a2');
+        expect(
+            component.elementTags[2], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[2].toString(), 'comp-a3');
+      }
+    }
+    {
+      Component component = components[1];
+      expect(component, new isInstanceOf<Component>());
+      {
+        Selector selector = component.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(component.elementTags, hasLength(2));
+        expect(
+            component.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[0].toString(), 'comp-b1');
+        expect(
+            component.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[1].toString(), 'comp-b2');
+      }
+    }
+  }
+
+  void test_Component_elementTags_AndSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'comp-a.someClass[myAttr]')
+class ComponentA {
+}
+
+@Component(selector: 'comp-b.otherClass')
+class ComponentB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> components = outputs[DIRECTIVES_IN_UNIT];
+    expect(components, hasLength(2));
+    {
+      Component component = components[0];
+      expect(component, new isInstanceOf<Component>());
+      {
+        Selector selector = component.selector;
+        expect(selector, new isInstanceOf<AndSelector>());
+        expect((selector as AndSelector).selectors, hasLength(3));
+      }
+      {
+        expect(component.elementTags, hasLength(1));
+        expect(
+            component.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[0].toString(), 'comp-a');
+      }
+    }
+    {
+      Component component = components[1];
+      expect(component, new isInstanceOf<Component>());
+      {
+        Selector selector = component.selector;
+        expect(selector, new isInstanceOf<AndSelector>());
+        expect((selector as AndSelector).selectors, hasLength(2));
+      }
+      {
+        expect(component.elementTags, hasLength(1));
+        expect(
+            component.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[0].toString(), 'comp-b');
+      }
+    }
+  }
+
+  void test_Component_elementTags_CompoundSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'comp-a1.someClass[myAttr], comp-a2.otherClass')
+class ComponentA {
+}
+
+@Component(selector: 'comp-b1, comp-b2')
+class ComponentB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> components = outputs[DIRECTIVES_IN_UNIT];
+    expect(components, hasLength(2));
+    {
+      Component component = components[0];
+      expect(component, new isInstanceOf<Component>());
+      {
+        Selector selector = component.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(component.elementTags, hasLength(2));
+        expect(
+            component.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[0].toString(), 'comp-a1');
+        expect(
+            component.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[1].toString(), 'comp-a2');
+      }
+    }
+    {
+      Component component = components[1];
+      expect(component, new isInstanceOf<Component>());
+      {
+        Selector selector = component.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(component.elementTags, hasLength(2));
+        expect(
+            component.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[0].toString(), 'comp-b1');
+        expect(
+            component.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(component.elementTags[1].toString(), 'comp-b2');
       }
     }
   }
@@ -372,6 +555,12 @@ class DirectiveB {
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-a');
       }
+      {
+        expect(directive.elementTags, hasLength(1));
+        Selector selector = directive.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'dir-a');
+      }
     }
     {
       AbstractDirective directive = directives[1];
@@ -380,6 +569,183 @@ class DirectiveB {
         Selector selector = directive.selector;
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-b');
+      }
+      {
+        expect(directive.elementTags, hasLength(1));
+        Selector selector = directive.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'dir-b');
+      }
+    }
+  }
+
+  void test_Directive_elementTags_OrSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'dir-a1, dir-a2, dir-a3')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b1, dir-b2')
+class DirectiveB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = directives[0];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(3));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-a2');
+        expect(
+            directive.elementTags[2], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[2].toString(), 'dir-a3');
+      }
+    }
+    {
+      Directive directive = directives[1];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-b2');
+      }
+    }
+  }
+
+  void test_Directive_elementTags_AndSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'dir-a.myClass[myAttr]')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b[myAttr]')
+class DirectiveB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = directives[0];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<AndSelector>());
+        expect((selector as AndSelector).selectors, hasLength(3));
+      }
+      {
+        expect(directive.elementTags, hasLength(1));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a');
+      }
+    }
+    {
+      Directive directive = directives[1];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<AndSelector>());
+        expect((selector as AndSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(1));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b');
+      }
+    }
+  }
+
+  void test_Directive_elementTags_CompoundSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'dir-a1.myClass[myAttr], dir-a2.otherClass')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b1[myAttr], dir-b2')
+class DirectiveB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = directives[0];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-a2');
+      }
+    }
+    {
+      Directive directive = directives[1];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
   }

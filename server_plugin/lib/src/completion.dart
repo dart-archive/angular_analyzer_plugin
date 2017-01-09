@@ -167,9 +167,14 @@ class TemplateCompleter {
       List<OutputElement> standardHtmlEvents) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      AngularAstNode target =
-          findTargetInExtraNodes(request.offset, template.extraNodes) ??
-              findTarget(request.offset, template.ast);
+      bool extraNodesUsed = false;
+      AngularAstNode target;
+      target = findTargetInExtraNodes(request.offset, template.extraNodes);
+      if (target != null){
+        extraNodesUsed = true;
+      }else {
+        target = findTarget(request.offset, template.ast);
+      }
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -196,6 +201,13 @@ class TemplateCompleter {
                 suggestions, varExtractor.variables, dartRequest.opType);
           }
         }
+      } else if (target is ElementInfo && target.openingSpan == null &&
+          target.localName == 'html' && target.childNodes.isNotEmpty &&
+          target.childNodes.length == 2 && target.childNodes[1] is ElementInfo &&
+          (target.childNodes[1] as ElementInfo).localName == 'body' &&
+          (target.childNodes[1] as ElementInfo).childNodes.isEmpty){
+        //On an empty document
+        suggestHtmlTags(template,suggestions, addOpenBracket: true);
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
@@ -211,7 +223,12 @@ class TemplateCompleter {
         } else {
           suggestHtmlTags(template, suggestions);
         }
-      } else if (target is ExpressionBoundAttribute &&
+      } else if (target is ElementInfo && target.openingSpan != null &&
+          target.openingNameSpan != null && target.closingSpan != null &&
+          target.closingNameSpan != null &&
+          request.offset == (target.closingSpan.offset + target.closingSpan.length)){
+        suggestHtmlTags(template, suggestions, addOpenBracket: true);
+      }else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
@@ -221,24 +238,28 @@ class TemplateCompleter {
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
-      } else if (target is TextInfo &&
-          identical(target.text.trimLeft()[0], "<")) {
-        suggestHtmlTags(template, suggestions);
+      } else if (target is TextInfo) {
+        bool addOpenBracket = extraNodesUsed ? false :
+            target.text[request.offset - target.offset - 1] != '<';
+        suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
       }
     }
 
     return suggestions;
   }
 
-  suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions) {
+  suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions,
+      {bool addOpenBracket: false}) {
     Map<String, List<AbstractDirective>> elementTagMap =
         template.view.elementTagsInfo;
+    String leftPad = addOpenBracket ? "<" : "";
     for (String elementTagName in elementTagMap.keys) {
       CompletionSuggestion currentSuggestion = _createHtmlTagSuggestion(
-          elementTagName,
+          leftPad + elementTagName,
           DART_RELEVANCE_DEFAULT,
           _createHtmlTagElement(
               elementTagName,
+              leftPad,
               elementTagMap[elementTagName].first,
               protocol.ElementKind.CLASS_TYPE_ALIAS));
       if (currentSuggestion != null) {
@@ -354,7 +375,7 @@ class TemplateCompleter {
         element: element);
   }
 
-  protocol.Element _createHtmlTagElement(String elementTagName,
+  protocol.Element _createHtmlTagElement(String elementTagName, String leftPad,
       AbstractDirective directive, protocol.ElementKind kind) {
     ElementNameSelector selector = directive.elementTags.firstWhere(
         (currSelector) => currSelector.toString() == elementTagName);
@@ -365,7 +386,7 @@ class TemplateCompleter {
         new Location(directive.source.fullName, offset, length, 0, 0);
     int flags = protocol.Element
         .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, elementTagName, flags,
+    return new protocol.Element(kind, leftPad + elementTagName, flags,
         location: location);
   }
 

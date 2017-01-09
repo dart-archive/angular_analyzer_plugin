@@ -139,94 +139,116 @@ class MyComp {
   test_completeInlineHtmlSelectorTag_at_beginning() async {
     addTestSource('''
 import '/angular2/angular2.dart';
-@Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+@Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
 class MyParentComponent{}
-@Component(template: '', selector: 'my-child')
-class MyChildComponent{}
+@Component(template: '', selector: 'my-child1, my-child2')
+class MyChildComponent1{}
+@Component(template: '', selector: 'my-child3.someClass[someAttr]')
+class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
-@Component(template: '<my^<div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+@Component(template: '<my^<div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
 class MyParentComponent{}
-@Component(template: '', selector: 'my-child')
-class MyChildComponent{}
+@Component(template: '', selector: 'my-child1, my-child2')
+class MyChildComponent1{}
+@Component(template: '', selector: 'my-child3.someClass[someAttr]')
+class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
-
 
   test_completeInlineHtmlSelectorTag_at_middle() async {
     addTestSource('''
 import '/angular2/angular2.dart';
-@Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+@Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
-@Component(template: '', selector: 'my-child')
-class MyChildComponent{}
+@Component(template: '', selector: 'my-child1, my-child2')
+class MyChildComponent1{}
+@Component(template: '', selector: 'my-child3.someClass[someAttr]')
+class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
-@Component(template: '<div><div><my^</div></div>', selector: 'my-parent', directives: const[MyChildComponent])
+@Component(template: '<div><div><my^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
 class MyParentComponent{}
-@Component(template: '', selector: 'my-child')
-class MyChildComponent{}
+@Component(template: '', selector: 'my-child1, my-child2')
+class MyChildComponent1{}
+@Component(template: '', selector: 'my-child3.someClass[someAttr]')
+class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_end() async {
     addTestSource('''
 import '/angular2/angular2.dart';
-@Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent])
+@Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
-@Component(template: '', selector: 'my-child')
-class MyChildComponent{}
+@Component(template: '', selector: 'my-child1, my-child2')
+class MyChildComponent1{}
+@Component(template: '', selector: 'my-child3.someClass[someAttr]')
+class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
-@Component(template: '<div><div></div></div><m^', selector: 'my-parent', directives: const[MyChildComponent])
+@Component(template: '<div><div></div></div><m^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
-@Component(template: '', selector: 'my-child')
-class MyChildComponent{}
+@Component(template: '', selector: 'my-child1, my-child2')
+class MyChildComponent1{}
+@Component(template: '', selector: 'my-child3.someClass[someAttr]')
+class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
-
 }
 
 @reflectiveTest
@@ -951,10 +973,12 @@ class OtherComp {
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
+        directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
-      @Component(template: '', selector: 'my-child-component')
-      class MyChildComponent{}
+      @Component(template: '', selector: 'my-child1, my-child2')
+      class MyChildComponent1{}
+      @Component(template: '', selector: 'my-child3.someClass[someAttr]')
+      class MyChildComponent2
       ''');
     addTestSource('<^<div></div>');
     LibrarySpecificUnit target =
@@ -964,7 +988,9 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child-component");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeHtmlSelectorTag_at_beginning_with_partial() async {
@@ -973,10 +999,12 @@ class OtherComp {
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
+        directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
-      @Component(template: '', selector: 'my-child-component')
-      class MyChildComponent{}
+      @Component(template: '', selector: 'my-child1, my-child2')
+      class MyChildComponent1{}
+      @Component(template: '', selector: 'my-child3.someClass[someAttr]')
+      class MyChildComponent2{}
       ''');
     addTestSource('<my^<div></div>');
     LibrarySpecificUnit target =
@@ -986,7 +1014,9 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child-component");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeHtmlSelectorTag_at_middle() async {
@@ -995,10 +1025,12 @@ class OtherComp {
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
+        directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
-      @Component(template: '', selector: 'my-child-component')
-      class MyChildComponent{}
+      @Component(template: '', selector: 'my-child1, my-child2')
+      class MyChildComponent1{}
+      @Component(template: '', selector: 'my-child3.someClass[someAttr]')
+      class MyChildComponent2{}
       ''');
     addTestSource('''<div><div><^</div></div>''');
     LibrarySpecificUnit target =
@@ -1008,7 +1040,9 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child-component");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeHtmlSelectorTag_at_middle_with_partial() async {
@@ -1017,10 +1051,12 @@ class OtherComp {
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
+        directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
-      @Component(template: '', selector: 'my-child-component')
-      class MyChildComponent{}
+      @Component(template: '', selector: 'my-child1, my-child2')
+      class MyChildComponent1{}
+      @Component(template: '', selector: 'my-child3.someClass[someAttr]')
+      class MyChildComponent2{}
       ''');
     addTestSource('''<div><div><my^</div></div>''');
     LibrarySpecificUnit target =
@@ -1030,7 +1066,9 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child-component");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeHtmlSelectorTag_at_end() async {
@@ -1039,10 +1077,12 @@ class OtherComp {
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
+        directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
-      @Component(template: '', selector: 'my-child-component')
-      class MyChildComponent{}
+      @Component(template: '', selector: 'my-child1, my-child2')
+      class MyChildComponent1{}
+      @Component(template: '', selector: 'my-child3.someClass[someAttr]')
+      class MyChildComponent2{}
       ''');
     addTestSource('''<div><div></div></div><^''');
     LibrarySpecificUnit target =
@@ -1052,7 +1092,9 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child-component");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 
   test_completeHtmlSelectorTag_at_end_with_partial() async {
@@ -1061,10 +1103,12 @@ class OtherComp {
         '''
       import '/angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent])
+        directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
-      @Component(template: '', selector: 'my-child-component')
-      class MyChildComponent{}
+      @Component(template: '', selector: 'my-child1, my-child2')
+      class MyChildComponent1{}
+      @Component(template: '', selector: 'my-child3.someClass[someAttr]')
+      class MyChildComponent2{}
       ''');
     addTestSource('''<div><div></div></div>
     <my^''');
@@ -1075,6 +1119,8 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child-component");
+    assertSuggestClassTypeAlias("my-child1");
+    assertSuggestClassTypeAlias("my-child2");
+    assertSuggestClassTypeAlias("my-child3");
   }
 }
