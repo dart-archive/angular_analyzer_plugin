@@ -39,11 +39,17 @@ class DartTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
+  final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
   final View view;
 
-  DartTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener, this.view);
+  DartTemplateResolver(
+      this.typeProvider,
+      this.standardHtmlComponents,
+      this.standardHtmlEvents,
+      this.standardHtmlAttributes,
+      this.errorListener,
+      this.view);
 
   Template resolve() {
     String templateText = view.templateText;
@@ -52,8 +58,10 @@ class DartTemplateResolver {
     }
     // Parse HTML.
     html.Document document;
+    List<TextInfo> extraNodes;
     {
-      String fragmentText = ' ' * view.templateOffset + templateText;
+      String fragmentText =
+          ' ' * view.templateOffset + templateText.trimRight();
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
@@ -61,23 +69,30 @@ class DartTemplateResolver {
       // Don't parse as a fragment, but parse as a document. That way there
       // will be a single first element with all contents.
       document = parser.parse();
-      _addParseErrors(parser);
+      extraNodes = _filterParserErrorsToExtraNodes(parser, fragmentText);
     }
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
     view.template = template;
     template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
-            standardHtmlEvents, errorListener)
+            standardHtmlEvents, standardHtmlAttributes, errorListener)
         .resolve(template);
+    if (extraNodes.isNotEmpty) {
+      template.extraNodes.addAll(extraNodes);
+    }
     _setIgnoredErrors(template, document);
     return template;
   }
 
   /**
-   * Report HTML errors as [AnalysisError]s.
+   * Report HTML errors as [AnalysisError]s except for 'eof-in-tag-name' error,
+   * which should be returned as a list of TextNodes
    */
-  void _addParseErrors(html.HtmlParser parser) {
+  List<NodeInfo> _filterParserErrorsToExtraNodes(
+      html.HtmlParser parser, String fragmentText) {
     List<html.ParseError> parseErrors = parser.errors;
+    List<NodeInfo> extraNodes = <NodeInfo>[];
+
     for (html.ParseError parseError in parseErrors) {
       // We parse this as a full document rather than as a template so
       // that everything is in the first document element. But then we
@@ -88,9 +103,14 @@ class DartTemplateResolver {
         continue;
       }
       SourceSpan span = parseError.span;
+      if (parseError.errorCode == 'eof-in-tag-name') {
+        extraNodes.add(new TextInfo(span.start.offset,
+            fragmentText.substring(span.start.offset), <Mustache>[]));
+      }
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
     }
+    return extraNodes;
   }
 
   void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
@@ -174,12 +194,21 @@ class HtmlTemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
+  final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
+  final List<TextInfo> extraNodes;
 
-  HtmlTemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener, this.view, this.document);
+  HtmlTemplateResolver(
+      this.typeProvider,
+      this.standardHtmlComponents,
+      this.standardHtmlEvents,
+      this.standardHtmlAttributes,
+      this.errorListener,
+      this.view,
+      this.document,
+      this.extraNodes);
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
@@ -187,9 +216,14 @@ class HtmlTemplateResolver {
 
     view.template = template;
     template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
-            standardHtmlEvents, errorListener)
+            standardHtmlEvents, standardHtmlAttributes, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
+
+    if (extraNodes != null && extraNodes.isNotEmpty) {
+      template.extraNodes.addAll(extraNodes);
+    }
+
     return template;
   }
 }
@@ -212,6 +246,7 @@ class TemplateResolver {
   final TypeProvider typeProvider;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
+  final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
 
   Template template;
@@ -232,7 +267,7 @@ class TemplateResolver {
       new HashMap<String, LocalVariable>();
 
   TemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.errorListener);
+      this.standardHtmlEvents, this.standardHtmlAttributes, this.errorListener);
 
   ElementInfo resolve(Template template) {
     this.template = template;
@@ -241,6 +276,7 @@ class TemplateResolver {
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
     EmbeddedDartParser parser = new EmbeddedDartParser(
         templateSource, errorListener, typeProvider, errorReporter);
+
     ElementInfo root =
         new HtmlTreeConverter(parser, templateSource, errorListener)
             .convert(template.element);
@@ -297,8 +333,14 @@ class TemplateResolver {
           dartVarManager,
           errorListener));
       // Resolve the scopes
-      element.accept(new SingleScopeResolver(view, template, templateSource,
-          typeProvider, errorListener, errorReporter));
+      element.accept(new SingleScopeResolver(
+          standardHtmlAttributes,
+          view,
+          template,
+          templateSource,
+          typeProvider,
+          errorListener,
+          errorReporter));
 
       // Now the next scope is ready to be resolved
       var tplSearch = new NextTemplateElementsSearch();
@@ -901,6 +943,7 @@ class DirectiveResolver extends AngularAstVisitor {
  * match the type of the binding where there is one. Then records references.
  */
 class SingleScopeResolver extends AngularScopeVisitor {
+  final Map<String, InputElement> standardHtmlAttributes;
   List<AbstractDirective> directives;
   View view;
   Template template;
@@ -914,8 +957,14 @@ class SingleScopeResolver extends AngularScopeVisitor {
    */
   Map<String, LocalVariable> localVariables;
 
-  SingleScopeResolver(this.view, this.template, this.templateSource,
-      this.typeProvider, this.errorListener, this.errorReporter);
+  SingleScopeResolver(
+      this.standardHtmlAttributes,
+      this.view,
+      this.template,
+      this.templateSource,
+      this.typeProvider,
+      this.errorListener,
+      this.errorReporter);
 
   @override
   void visitElementInfo(ElementInfo element) {
@@ -1030,20 +1079,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
         in attribute.parent.boundDirectives) {
       for (InputElement input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
-          // half-complete-code case: ensure the expression is actually there
-          if (attribute.expression != null) {
-            var attrType = attribute.expression.bestType;
-            var inputType = input.setterType;
-
-            if (!attrType.isAssignableTo(inputType)) {
-              errorListener.onError(new AnalysisError(
-                  templateSource,
-                  attribute.valueOffset,
-                  attribute.value.length,
-                  AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
-                  [attrType, inputType]));
-            }
-          }
+          _typecheckMatchingInput(attribute, input);
 
           SourceRange range =
               new SourceRange(attribute.nameOffset, attribute.name.length);
@@ -1057,12 +1093,46 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
 
     if (!inputMatched) {
+      InputElement standardHtmlAttribute =
+          standardHtmlAttributes[attribute.name];
+      if (standardHtmlAttribute != null) {
+        _typecheckMatchingInput(attribute, standardHtmlAttribute);
+
+        SourceRange range =
+            new SourceRange(attribute.nameOffset, attribute.name.length);
+        template.addRange(range, standardHtmlAttribute);
+        attribute.parent.boundStandardInputs
+            .add(new InputBinding(standardHtmlAttribute, attribute));
+
+        inputMatched = true;
+      }
+    }
+
+    if (!inputMatched) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.nameOffset,
           attribute.name.length,
           AngularWarningCode.NONEXIST_INPUT_BOUND,
           [attribute.name]));
+    }
+  }
+
+  void _typecheckMatchingInput(
+      ExpressionBoundAttribute attr, InputElement input) {
+    // half-complete-code case: ensure the expression is actually there
+    if (attr.expression != null) {
+      var attrType = attr.expression.bestType;
+      var inputType = input.setterType;
+
+      if (!attrType.isAssignableTo(inputType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attr.valueOffset,
+            attr.value.length,
+            AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+            [attrType, inputType]));
+      }
     }
   }
 
@@ -1159,7 +1229,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   /**
    * Resolve the given [AstNode] ([expression] or [statement]) and report errors.
    */
-  void _resolveDartAstNode(AstNode astNode) {
+  void _resolveDartAstNode(AstNode astNode, bool acceptAssignment) {
     ClassElement classElement = view.classElement;
     LibraryElement library = classElement.library;
     {
@@ -1167,8 +1237,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
           library, view.source, typeProvider, errorListener);
       astNode.accept(visitor);
     }
-    ResolverVisitor resolver = new ResolverVisitor(
-        library, templateSource, typeProvider, errorListener);
+    ResolverVisitor resolver = new AngularResolverVisitor(
+        library, templateSource, typeProvider, errorListener, acceptAssignment);
     // fill the name scope
     ClassScope classScope = new ClassScope(resolver.nameScope, classElement);
     EnclosedScope localScope = new EnclosedScope(classScope);
@@ -1180,8 +1250,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    ErrorVerifier verifier = new ErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), false);
+    ErrorVerifier verifier = new AngularErrorVerifier(errorReporter, library,
+        typeProvider, new InheritanceManager(library), acceptAssignment);
     astNode.accept(verifier);
   }
 
@@ -1190,7 +1260,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
    */
   _resolveDartExpression(Expression expression) {
     if (expression != null) {
-      _resolveDartAstNode(expression);
+      _resolveDartAstNode(expression, false);
     }
   }
 
@@ -1209,7 +1279,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
             AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
             [_getOutputStatementErrorDescription(statement)]));
       } else {
-        _resolveDartAstNode(statement);
+        _resolveDartAstNode(statement, true);
       }
     }
   }
@@ -1240,6 +1310,225 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
     if (astNode != null) {
       astNode.accept(new _DartReferencesRecorder(template, dartVariables));
+    }
+  }
+}
+
+/**
+ * Workaround for "This mixin application is invalid because all of the
+ * constructors in the base class 'ResolverVisitor' have optional parameters."
+ * in the definition of [AngularResolverVisitor].
+ *
+ * See https://github.com/dart-lang/sdk/issues/15101 for details
+ */
+class _IntermediateResolverVisitor extends ResolverVisitor {
+  _IntermediateResolverVisitor(LibraryElement library, Source source,
+      TypeProvider typeProvider, AnalysisErrorListener errorListener)
+      : super(library, source, typeProvider, errorListener);
+}
+
+/**
+ * Override the standard [ResolverVisitor] class to report unacceptable nodes,
+ * while suppressing secondary errors that would have been raised by
+ * [ResolverVisitor] if we let it see the bogus definitions.
+ */
+class AngularResolverVisitor extends _IntermediateResolverVisitor
+    with ReportUnacceptableNodesMixin {
+  final bool acceptAssignment;
+
+  AngularResolverVisitor(
+      LibraryElement library,
+      Source source,
+      TypeProvider typeProvider,
+      AnalysisErrorListener errorListener,
+      this.acceptAssignment)
+      : super(library, source, typeProvider, errorListener);
+
+  @override
+  Object visitAsExpression(AsExpression exp) {
+    // This means we generated this in a pipe, and its OK.
+    if (exp.asOperator.offset == 0) {
+      return super.visitAsExpression(exp);
+    } else {
+      return _reportUnacceptableNode(exp, "As expression");
+    }
+  }
+
+  @override
+  Object visitIsExpression(IsExpression exp) =>
+      _reportUnacceptableNode(exp, "Is expression");
+
+  @override
+  Object visitThrowExpression(ThrowExpression exp) =>
+      _reportUnacceptableNode(exp, "Throw");
+
+  @override
+  Object visitSuperExpression(SuperExpression exp) =>
+      _reportUnacceptableNode(exp, "Super references");
+
+  @override
+  Object visitAssignmentExpression(AssignmentExpression exp) {
+    // Only block reassignment of locals, not poperties. Resolve elements to
+    // check that.
+    exp.leftHandSide.accept(elementResolver);
+    VariableElement element = getOverridableStaticElement(exp.leftHandSide) ??
+        getOverridablePropagatedElement(exp.leftHandSide);
+    if ((element == null || element is PropertyInducingElement) &&
+        acceptAssignment) {
+      return super.visitAssignmentExpression(exp);
+    } else {
+      _reportUnacceptableNode(exp, "Assignment of locals");
+      return null;
+    }
+  }
+
+  @override
+  Object visitCascadeExpression(CascadeExpression exp) {
+    _reportUnacceptableNode(exp, "Cascades", false);
+    // Only resolve the target, not the cascade sections.
+    return exp.target.accept(this);
+  }
+
+  @override
+  Object visitAwaitExpression(AwaitExpression exp) =>
+      _reportUnacceptableNode(exp, "Await");
+
+  @override
+  Object visitFunctionExpression(FunctionExpression exp) =>
+      _reportUnacceptableNode(exp, "Anonymous functions", false);
+
+  @override
+  Object visitSymbolLiteral(SymbolLiteral exp) =>
+      _reportUnacceptableNode(exp, "Symbol literal");
+
+  @override
+  Object visitNamedExpression(NamedExpression exp) =>
+      _reportUnacceptableNode(exp, "Named arguments");
+}
+
+/**
+ * Override the standard [ErrorVerifier] class to report unacceptable nodes,
+ * while suppressing secondary errors that would have been raised by
+ * [ErrorVerifier] if we let it see the bogus definitions.
+ */
+class AngularErrorVerifier extends ErrorVerifier
+    with ReportUnacceptableNodesMixin {
+  final bool acceptAssignment;
+  ErrorReporter errorReporter;
+  TypeProvider typeProvider;
+  AngularErrorVerifier(
+      ErrorReporter errorReporter,
+      LibraryElement library,
+      TypeProvider typeProvider,
+      InheritanceManager inheritanceManager,
+      this.acceptAssignment)
+      : errorReporter = errorReporter,
+        typeProvider = typeProvider,
+        super(errorReporter, library, typeProvider, inheritanceManager, false);
+
+  @override
+  Object visitFunctionExpression(FunctionExpression exp) {
+    // error reported in [AngularResolverVisitor] but [ErrorVerifier] crashes
+    // because it isn't resolved
+    return null;
+  }
+
+  @override
+  Object visitRethrowExpression(RethrowExpression exp) =>
+      _reportUnacceptableNode(exp, "Rethrow");
+
+  @override
+  Object visitThisExpression(ThisExpression exp) =>
+      _reportUnacceptableNode(exp, "This references");
+
+  @override
+  Object visitListLiteral(ListLiteral list) {
+    if (list.typeArguments != null) {
+      _reportUnacceptableNode(list, "Typed list literals");
+      return null;
+    } else {
+      return super.visitListLiteral(list);
+    }
+  }
+
+  @override
+  Object visitMapLiteral(MapLiteral map) {
+    if (map.typeArguments != null) {
+      _reportUnacceptableNode(map, "Typed map literals");
+      return null;
+    } else {
+      return super.visitMapLiteral(map);
+    }
+  }
+
+  @override
+  Object visitInstanceCreationExpression(InstanceCreationExpression exp) =>
+      _reportUnacceptableNode(exp, "Usage of new");
+
+  @override
+  Object visitAssignmentExpression(AssignmentExpression exp) {
+    // match ResolverVisitor to prevent fallout errors
+    VariableElement element = getOverridableStaticElement(exp.leftHandSide) ??
+        getOverridablePropagatedElement(exp.leftHandSide);
+    if ((element == null || element is PropertyInducingElement) &&
+        acceptAssignment) {
+      return super.visitAssignmentExpression(exp);
+    } else {
+      exp.visitChildren(this);
+      return null;
+    }
+  }
+
+  /**
+   * Copied from ResolverVisitor
+   */
+  VariableElement getOverridablePropagatedElement(Expression expression) {
+    Element element = null;
+    if (expression is SimpleIdentifier) {
+      element = expression.propagatedElement;
+    } else if (expression is PrefixedIdentifier) {
+      element = expression.propagatedElement;
+    } else if (expression is PropertyAccess) {
+      element = expression.propertyName.propagatedElement;
+    }
+    if (element is VariableElement) {
+      return element;
+    }
+    return null;
+  }
+
+  /**
+   * Copied from ResolverVisitor
+   */
+  VariableElement getOverridableStaticElement(Expression expression) {
+    Element element = null;
+    if (expression is SimpleIdentifier) {
+      element = expression.staticElement;
+    } else if (expression is PrefixedIdentifier) {
+      element = expression.staticElement;
+    } else if (expression is PropertyAccess) {
+      element = expression.propertyName.staticElement;
+    }
+    if (element is VariableElement) {
+      return element;
+    }
+    return null;
+  }
+}
+
+abstract class ReportUnacceptableNodesMixin
+    implements RecursiveAstVisitor<Object> {
+  ErrorReporter get errorReporter;
+  TypeProvider get typeProvider;
+  void _reportUnacceptableNode(Expression node, String description,
+      [bool visitChildren = true]) {
+    errorReporter.reportErrorForNode(
+        AngularWarningCode.DISALLOWED_EXPRESSION, node, [description]);
+
+    // "resolve" the node, a null type causes later errors.
+    node.propagatedType = node.staticType = typeProvider.dynamicType;
+    if (visitChildren) {
+      node.visitChildren(this);
     }
   }
 }

@@ -246,6 +246,34 @@ class InputElement extends HtmlElement {
   String value;
   String validationMessage;
 }
+
+class OptionElement extends HtmlElement {                                        
+  factory OptionElement({String data: '', String value : '', bool selected: false}) {
+  }                                                                              
+                                                                                 
+  @DomName('HTMLOptionElement.HTMLOptionElement')                                
+  @DocsEditable()                                                                
+  factory OptionElement._([String data, String value, bool defaultSelected, bool selected]) {
+  }    
+}
+
+class TableSectionElement extends HtmlElement {
+
+  @DomName('HTMLTableSectionElement.rows')
+  List<TableRowElement> get rows => null;
+
+  TableRowElement addRow() {
+  }
+
+  TableRowElement insertRow(int index) => null;
+
+  factory TableSectionElement._() { throw new UnsupportedError("Not supported"); }
+
+  @Deprecated("Internal Use Only")
+  external static Type get instanceRuntimeType;
+
+  @Deprecated("Internal Use Only")
+  TableSectionElement.internal_() : super.internal_();
 ''');
 
   static const List<SdkLibrary> LIBRARIES = const [

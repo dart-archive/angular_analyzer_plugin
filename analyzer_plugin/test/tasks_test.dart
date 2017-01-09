@@ -13,6 +13,7 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:html/dom.dart' as html;
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -20,6 +21,7 @@ import 'abstract_angular.dart';
 
 main() {
   groupSep = ' | ';
+  defineReflectiveTests(AngularParseHtmlTaskTest);
   defineReflectiveTests(BuildStandardHtmlComponentsTaskTest);
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
@@ -27,6 +29,144 @@ main() {
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplateTaskTest);
+}
+
+@reflectiveTest
+class AngularParseHtmlTaskTest extends AbstractAngularTest {
+  test_buildInputs() {
+    Source source = newSource('/test.html');
+    Map<String, TaskInput> inputs = AngularParseHtmlTask.buildInputs(source);
+    expect(inputs, isNotNull);
+    expect(
+        inputs.keys,
+        unorderedEquals([
+          AngularParseHtmlTask.CONTENT_INPUT_NAME,
+          AngularParseHtmlTask.MODIFICATION_TIME_INPUT
+        ]));
+  }
+
+  test_constructor() {
+    Source source = newSource('/test.html');
+    AngularParseHtmlTask task = new AngularParseHtmlTask(context, source);
+    expect(task, isNotNull);
+    expect(task.context, context);
+    expect(task.target, source);
+  }
+
+  test_createTask() {
+    Source source = newSource('/test.html');
+    AngularParseHtmlTask task =
+        AngularParseHtmlTask.createTask(context, source);
+    expect(task, isNotNull);
+    expect(task.context, context);
+    expect(task.target, source);
+  }
+
+  test_description() {
+    Source source = newSource('/test.html');
+    AngularParseHtmlTask task = new AngularParseHtmlTask(null, source);
+    expect(task.description, isNotNull);
+  }
+
+  test_descriptor() {
+    TaskDescriptor descriptor = AngularParseHtmlTask.DESCRIPTOR;
+    expect(descriptor, isNotNull);
+  }
+
+  test_perform() {
+    String code = r'''
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> test page </title>
+  </head>
+  <body>
+    <h1 myAttr='my value'>Test</h1>
+  </body>
+</html>
+    ''';
+    AnalysisTarget target = newSource('/test.html', code);
+    computeResult(target, ANGULAR_HTML_DOCUMENT);
+    expect(task, new isInstanceOf<AngularParseHtmlTask>());
+    expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+    // HTML_DOCUMENT
+    {
+      html.Document document = outputs[ANGULAR_HTML_DOCUMENT];
+      expect(document, isNotNull);
+      // verify that attributes are not lower-cased
+      html.Element element = document.body.getElementsByTagName('h1').single;
+      expect(element.attributes['myAttr'], 'my value');
+    }
+    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
+  }
+
+  test_perform_noDocType() {
+    String code = r'''
+<div>AAA</div>
+<span>BBB</span>
+''';
+    AnalysisTarget target = newSource('/test.html', code);
+    computeResult(target, ANGULAR_HTML_DOCUMENT);
+    expect(task, new isInstanceOf<AngularParseHtmlTask>());
+    // validate Document
+    {
+      html.Document document = outputs[ANGULAR_HTML_DOCUMENT];
+      expect(document, isNotNull);
+      // artificial <html>
+      expect(document.nodes, hasLength(1));
+      html.Element htmlElement = document.nodes[0];
+      expect(htmlElement.localName, 'html');
+      // artificial <body>
+      expect(htmlElement.nodes, hasLength(2));
+      html.Element bodyElement = htmlElement.nodes[1];
+      expect(bodyElement.localName, 'body');
+      // actual nodes
+      expect(bodyElement.nodes, hasLength(4));
+      expect((bodyElement.nodes[0] as html.Element).localName, 'div');
+      expect((bodyElement.nodes[2] as html.Element).localName, 'span');
+    }
+    // it's OK to don't have DOCTYPE
+    expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
+  }
+
+  test_perform_noDocType_with_dangling_unclosed_tag() {
+    String code = r'''
+<div>AAA</div>
+<span>BBB</span>
+<di''';
+    AnalysisTarget target = newSource('/test.html', code);
+    computeResult(target, ANGULAR_HTML_DOCUMENT);
+    expect(task, new isInstanceOf<AngularParseHtmlTask>());
+    // quick validate Document
+    {
+      html.Document document = outputs[ANGULAR_HTML_DOCUMENT];
+      expect(document, isNotNull);
+      html.Element htmlElement = document.nodes[0];
+      html.Element bodyElement = htmlElement.nodes[1];
+      expect(bodyElement.nodes, hasLength(4));
+      expect((bodyElement.nodes[0] as html.Element).localName, 'div');
+      expect((bodyElement.nodes[2] as html.Element).localName, 'span');
+    }
+    //Test for 'eof-in-tag-name' error
+    {
+      List<AnalysisError> errors = outputs[ANGULAR_HTML_DOCUMENT_ERRORS];
+      expect(errors, hasLength(1));
+      AnalysisError danglingError = errors.first;
+      expect(danglingError.errorCode, HtmlErrorCode.PARSE_ERROR);
+      expect(danglingError.offset, 32);
+      expect(danglingError.message, 'eof-in-tag-name');
+    }
+    //Test for 'extraNodes'
+    {
+      List<TextInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
+      expect(extraNodes, isNotNull);
+      expect(extraNodes, hasLength(1));
+      expect(extraNodes.first.text, '<di');
+      expect(extraNodes.first.length, 3);
+      expect(extraNodes.first.offset, 32);
+    }
+  }
 }
 
 @reflectiveTest
@@ -38,6 +178,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     List<Component> components = outputs[STANDARD_HTML_COMPONENTS];
     Map<String, Component> map = {};
     components.forEach((c) {
+      expect(c.classElement.name, isNot(equals("TableSectionElement")));
       map[c.selector.toString()] = c;
     });
     expect(map, isNotNull);
@@ -55,12 +196,6 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("String"));
       }
-      {
-        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
-        expect(input, isNotNull);
-        expect(input.setter, isNotNull);
-        expect(input.setterType.toString(), equals("int"));
-      }
       expect(outputElements, hasLength(0));
       expect(inputs.where((i) => i.name == '_privateField'), hasLength(0));
     }
@@ -77,12 +212,6 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("bool"));
-      }
-      {
-        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
-        expect(input, isNotNull);
-        expect(input.setter, isNotNull);
-        expect(input.setterType.toString(), equals("int"));
       }
       expect(outputElements, hasLength(0));
     }
@@ -114,6 +243,8 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     expect(map['h1'], isNotNull);
     expect(map['h2'], isNotNull);
     expect(map['h3'], isNotNull);
+    // has no mention of 'option' in the source, is hardcoded
+    expect(map['option'], isNotNull);
   }
 
   test_buildStandardHtmlEvents() {
@@ -160,6 +291,27 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       expect(outputElement, isNull);
     }
   }
+
+  test_buildStandardHtmlAttributes() {
+    computeResult(
+        AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES);
+    expect(task, new isInstanceOf<BuildStandardHtmlComponentsTask>());
+    // validate
+    Map<String, InputElement> inputElements =
+        outputs[STANDARD_HTML_ELEMENT_ATTRIBUTES];
+    {
+      InputElement input = inputElements['tabIndex'];
+      expect(input, isNotNull);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals("int"));
+    }
+    {
+      InputElement input = inputElements['hidden'];
+      expect(input, isNotNull);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals("bool"));
+    }
+  }
 }
 
 @reflectiveTest
@@ -192,12 +344,24 @@ class ComponentB {
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-a');
       }
+      {
+        expect(component.elementTags, hasLength(1));
+        Selector selector = component.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'comp-a');
+      }
     }
     {
       Component component = directives[1];
       expect(component, new isInstanceOf<Component>());
       {
         Selector selector = component.selector;
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'comp-b');
+      }
+      {
+        expect(component.elementTags, hasLength(1));
+        Selector selector = component.elementTags[0];
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-b');
       }
@@ -232,6 +396,12 @@ class DirectiveB {
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-a');
       }
+      {
+        expect(directive.elementTags, hasLength(1));
+        Selector selector = directive.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'dir-a');
+      }
     }
     {
       AbstractDirective directive = directives[1];
@@ -240,6 +410,183 @@ class DirectiveB {
         Selector selector = directive.selector;
         expect(selector, new isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-b');
+      }
+      {
+        expect(directive.elementTags, hasLength(1));
+        Selector selector = directive.elementTags[0];
+        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector.toString(), 'dir-b');
+      }
+    }
+  }
+
+  void test_Directive_elementTags_OrSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'dir-a1, dir-a2, dir-a3')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b1, dir-b2')
+class DirectiveB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = directives[0];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(3));
+      }
+      {
+        expect(directive.elementTags, hasLength(3));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-a2');
+        expect(
+            directive.elementTags[2], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[2].toString(), 'dir-a3');
+      }
+    }
+    {
+      Directive directive = directives[1];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-b2');
+      }
+    }
+  }
+
+  void test_Directive_elementTags_AndSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'dir-a.myClass[myAttr]')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b[myAttr]')
+class DirectiveB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = directives[0];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<AndSelector>());
+        expect((selector as AndSelector).selectors, hasLength(3));
+      }
+      {
+        expect(directive.elementTags, hasLength(1));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a');
+      }
+    }
+    {
+      Directive directive = directives[1];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<AndSelector>());
+        expect((selector as AndSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(1));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b');
+      }
+    }
+  }
+
+  void test_Directive_elementTags_CompoundSelector() {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: 'dir-a1.myClass[myAttr], dir-a2.otherClass')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b1[myAttr], dir-b2')
+class DirectiveB {
+}
+''');
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DIRECTIVES_IN_UNIT);
+    expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
+    // validate
+    List<AbstractDirective> directives = outputs[DIRECTIVES_IN_UNIT];
+    expect(directives, hasLength(2));
+    {
+      Directive directive = directives[0];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-a2');
+      }
+    }
+    {
+      Directive directive = directives[1];
+      expect(directive, new isInstanceOf<Directive>());
+      {
+        Selector selector = directive.selector;
+        expect(selector, new isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(
+            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b1');
+        expect(
+            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
   }
@@ -385,22 +732,21 @@ class ComponentA {
   }
 
   void test_hasError_CannotParseSelector() {
-    Source source = newSource(
-        '/test.dart',
-        r'''
+    String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: '+bad')
+@Component(selector: 'a+bad selector')
 class ComponentA {
 }
-''');
+''';
+    Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.CANNOT_PARSE_SELECTOR]);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
   }
 
   void test_hasError_selector_notStringValue() {

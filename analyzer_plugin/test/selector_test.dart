@@ -14,6 +14,8 @@ main() {
   defineReflectiveTests(ClassSelectorTest);
   defineReflectiveTests(ElementNameSelectorTest);
   defineReflectiveTests(OrSelectorTest);
+  defineReflectiveTests(NotSelectorTest);
+  defineReflectiveTests(AttributeValueRegexSelectorTest);
   defineReflectiveTests(SelectorParserTest);
 }
 
@@ -67,19 +69,24 @@ class AttributeSelectorTest extends _SelectorTest {
       new AngularElementImpl('kind', 10, 5, null);
 
   void test_match_notName() {
-    AttributeSelector selector = new AttributeSelector(nameElement, null);
+    AttributeSelector selector =
+        new AttributeSelector(nameElement, null, false);
     when(element.attributes).thenReturn({'not-kind': 'no-matter'});
     expect(selector.match(element, template), isFalse);
   }
 
   void test_match_notValue() {
-    AttributeSelector selector = new AttributeSelector(nameElement, 'silly');
+    AttributeSelector selector =
+        new AttributeSelector(nameElement, 'silly', false);
     when(element.attributes).thenReturn({'kind': 'strange'});
+    when(element.attributeNameSpans)
+        .thenReturn({'kind': _newStringSpan(100, "kind")});
     expect(selector.match(element, template), isFalse);
   }
 
   void test_match_noValue() {
-    AttributeSelector selector = new AttributeSelector(nameElement, null);
+    AttributeSelector selector =
+        new AttributeSelector(nameElement, null, false);
     when(element.attributes).thenReturn({'kind': 'no-matter'});
     when(element.attributeNameSpans)
         .thenReturn({'kind': _newStringSpan(100, "kind")});
@@ -88,13 +95,34 @@ class AttributeSelectorTest extends _SelectorTest {
     _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
   }
 
+  void test_match_wildCard() {
+    AttributeSelector selector = new AttributeSelector(nameElement, null, true);
+    when(element.attributes).thenReturn({'kindatrue': 'no-matter'});
+    when(element.attributeNameSpans)
+        .thenReturn({'kindatrue': _newStringSpan(100, "kindatrue")});
+    // verify
+    expect(selector.match(element, template), isTrue);
+    _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
+  }
+
+  void test_noMatch_wildCard() {
+    AttributeSelector selector = new AttributeSelector(nameElement, null, true);
+    when(element.attributes).thenReturn({'indatrue': 'no-matter'});
+    when(element.attributeNameSpans)
+        .thenReturn({'indatrue': _newStringSpan(100, "indatrue")});
+    // verify
+    expect(selector.match(element, template), isFalse);
+  }
+
   void test_toString_hasValue() {
-    AttributeSelector selector = new AttributeSelector(nameElement, 'daffy');
+    AttributeSelector selector =
+        new AttributeSelector(nameElement, 'daffy', false);
     expect(selector.toString(), '[kind=daffy]');
   }
 
   void test_toString_noValue() {
-    AttributeSelector selector = new AttributeSelector(nameElement, null);
+    AttributeSelector selector =
+        new AttributeSelector(nameElement, null, false);
     expect(selector.toString(), '[kind]');
   }
 }
@@ -185,6 +213,55 @@ class ElementNameSelectorTest extends _SelectorTest {
 }
 
 @reflectiveTest
+class AttributeValueRegexSelectorTest extends _SelectorTest {
+  AttributeValueRegexSelector selector = new AttributeValueRegexSelector("abc");
+
+  void test_noMatch() {
+    when(element.attributes).thenReturn({'kind': 'bcd'});
+    expect(selector.match(element, template), isFalse);
+  }
+
+  void test_noMatch_any() {
+    when(element.attributes)
+        .thenReturn({'kind': 'bcd', 'plop': 'cde', 'klark': 'efg'});
+    expect(selector.match(element, template), isFalse);
+  }
+
+  void test_match() {
+    when(element.attributes).thenReturn({'kind': '0abcd'});
+    expect(selector.match(element, template), isTrue);
+  }
+
+  void test_match_justOne() {
+    when(element.attributes)
+        .thenReturn({'kind': 'bcd', 'plop': 'zabcz', 'klark': 'efg'});
+    expect(selector.match(element, template), isTrue);
+  }
+}
+
+@reflectiveTest
+class NotSelectorTest extends _SelectorTest {
+  Selector condition = new _SelectorMock('aaa');
+
+  NotSelector selector;
+
+  void setUp() {
+    super.setUp();
+    selector = new NotSelector(condition);
+  }
+
+  void test_notFalse() {
+    when(condition.match(anyObject, anyObject)).thenReturn(false);
+    expect(selector.match(element, template), isTrue);
+  }
+
+  void test_notTrue() {
+    when(condition.match(anyObject, anyObject)).thenReturn(true);
+    expect(selector.match(element, template), isFalse);
+  }
+}
+
+@reflectiveTest
 class OrSelectorTest extends _SelectorTest {
   Selector selector1 = new _SelectorMock('aaa');
   Selector selector2 = new _SelectorMock('bbb');
@@ -233,7 +310,8 @@ class SelectorParserTest {
   final Source source = new _SourceMock();
 
   void test_and() {
-    AndSelector selector = Selector.parse(source, 10, '[ng-for][ng-for-of]');
+    AndSelector selector =
+        new SelectorParser(source, 10, '[ng-for][ng-for-of]').parse();
     expect(selector, new isInstanceOf<AndSelector>());
     expect(selector.selectors, hasLength(2));
     {
@@ -255,7 +333,8 @@ class SelectorParserTest {
   }
 
   void test_attribute_hasValue() {
-    AttributeSelector selector = Selector.parse(source, 10, '[kind=pretty]');
+    AttributeSelector selector =
+        new SelectorParser(source, 10, '[kind=pretty]').parse();
     expect(selector, new isInstanceOf<AttributeSelector>());
     {
       AngularElement nameElement = selector.nameElement;
@@ -267,8 +346,31 @@ class SelectorParserTest {
     expect(selector.value, 'pretty');
   }
 
+  void test_attribute_hasWildcard() {
+    AttributeSelector selector =
+        new SelectorParser(source, 10, '[kind*=pretty]').parse();
+    expect(selector, new isInstanceOf<AttributeSelector>());
+    {
+      AngularElement nameElement = selector.nameElement;
+      expect(nameElement.source, source);
+      expect(nameElement.name, 'kind');
+      expect(nameElement.nameOffset, 11);
+      expect(nameElement.nameLength, 'kind'.length);
+    }
+    expect(selector.value, 'pretty');
+    expect(selector.isWildcard, true);
+  }
+
+  void test_attribute_textRegex() {
+    AttributeValueRegexSelector selector =
+        new SelectorParser(source, 10, '[*=/pretty/]').parse();
+    expect(selector, new isInstanceOf<AttributeValueRegexSelector>());
+    expect(selector.regexpStr, 'pretty');
+  }
+
   void test_attribute_noValue() {
-    AttributeSelector selector = Selector.parse(source, 10, '[ng-for]');
+    AttributeSelector selector =
+        new SelectorParser(source, 10, '[ng-for]').parse();
     expect(selector, new isInstanceOf<AttributeSelector>());
     {
       AngularElement nameElement = selector.nameElement;
@@ -281,12 +383,16 @@ class SelectorParserTest {
   }
 
   void test_bad() {
-    Selector selector = Selector.parse(source, 0, '+name');
-    expect(selector, isNull);
+    try {
+      new SelectorParser(source, 0, '+name').parse();
+    } catch (e) {
+      return;
+    }
+    fail("was supposed to throw");
   }
 
   void test_class() {
-    ClassSelector selector = Selector.parse(source, 10, '.nice');
+    ClassSelector selector = new SelectorParser(source, 10, '.nice').parse();
     expect(selector, new isInstanceOf<ClassSelector>());
     AngularElement nameElement = selector.nameElement;
     expect(nameElement.source, source);
@@ -296,7 +402,8 @@ class SelectorParserTest {
   }
 
   void test_elementName() {
-    ElementNameSelector selector = Selector.parse(source, 10, 'text-panel');
+    ElementNameSelector selector =
+        new SelectorParser(source, 10, 'text-panel').parse();
     expect(selector, new isInstanceOf<ElementNameSelector>());
     AngularElement nameElement = selector.nameElement;
     expect(nameElement.source, source);
@@ -306,7 +413,7 @@ class SelectorParserTest {
   }
 
   void test_or() {
-    OrSelector selector = Selector.parse(source, 10, 'aaa,bbb');
+    OrSelector selector = new SelectorParser(source, 10, 'aaa,bbb').parse();
     expect(selector, new isInstanceOf<OrSelector>());
     expect(selector.selectors, hasLength(2));
     {
@@ -324,6 +431,109 @@ class SelectorParserTest {
       expect(nameElement.name, 'bbb');
       expect(nameElement.nameOffset, 14);
       expect(nameElement.nameLength, 'bbb'.length);
+    }
+  }
+
+  void test_not() {
+    NotSelector selector = new SelectorParser(source, 10, ':not(aaa)').parse();
+    expect(selector, new isInstanceOf<NotSelector>());
+    {
+      ElementNameSelector condition = selector.condition;
+      AngularElement nameElement = condition.nameElement;
+      expect(nameElement.source, source);
+      expect(nameElement.name, 'aaa');
+      expect(nameElement.nameOffset, 15);
+      expect(nameElement.nameLength, 'aaa'.length);
+    }
+  }
+
+  void test_contains() {
+    ContainsSelector selector =
+        new SelectorParser(source, 10, ':contains(/aaa/)').parse();
+    expect(selector, new isInstanceOf<ContainsSelector>());
+    expect(selector.regex, 'aaa');
+  }
+
+  void test_complex_ast() {
+    OrSelector selector = new SelectorParser(
+            source, 10, 'aaa, bbb:not(ccc), :not(:not(ddd)[eee], fff[ggg])')
+        .parse();
+
+    expect(selector, new isInstanceOf<OrSelector>());
+    expect(
+        selector.toString(),
+        equals("aaa || bbb && :not(ccc) || " +
+            ":not(:not(ddd) && [eee] || fff && [ggg])"));
+    {
+      ElementNameSelector subSelector = selector.selectors[0];
+      expect(subSelector, new isInstanceOf<ElementNameSelector>());
+      expect(subSelector.toString(), "aaa");
+    }
+    {
+      AndSelector subSelector = selector.selectors[1];
+      expect(subSelector, new isInstanceOf<AndSelector>());
+      expect(subSelector.toString(), "bbb && :not(ccc)");
+      {
+        ElementNameSelector subSelector2 = subSelector.selectors[0];
+        expect(subSelector2, new isInstanceOf<ElementNameSelector>());
+        expect(subSelector2.toString(), "bbb");
+      }
+      {
+        NotSelector subSelector2 = subSelector.selectors[1];
+        expect(subSelector2, new isInstanceOf<NotSelector>());
+        expect(subSelector2.toString(), ":not(ccc)");
+        {
+          ElementNameSelector subSelector3 = subSelector2.condition;
+          expect(subSelector3, new isInstanceOf<ElementNameSelector>());
+          expect(subSelector3.toString(), "ccc");
+        }
+      }
+    }
+    {
+      NotSelector subSelector = selector.selectors[2];
+      expect(subSelector, new isInstanceOf<NotSelector>());
+      expect(
+          subSelector.toString(), ":not(:not(ddd) && [eee] || fff && [ggg])");
+      {
+        OrSelector subSelector2 = subSelector.condition;
+        expect(subSelector2, new isInstanceOf<OrSelector>());
+        expect(subSelector2.toString(), ":not(ddd) && [eee] || fff && [ggg]");
+        {
+          AndSelector subSelector3 = subSelector2.selectors[0];
+          expect(subSelector3, new isInstanceOf<AndSelector>());
+          expect(subSelector3.toString(), ":not(ddd) && [eee]");
+          {
+            NotSelector subSelector4 = subSelector3.selectors[0];
+            expect(subSelector4, new isInstanceOf<NotSelector>());
+            expect(subSelector4.toString(), ":not(ddd)");
+            {
+              ElementNameSelector subSelector5 = subSelector4.condition;
+              expect(subSelector5, new isInstanceOf<ElementNameSelector>());
+              expect(subSelector5.toString(), "ddd");
+            }
+          }
+          {
+            AttributeSelector subSelector4 = subSelector3.selectors[1];
+            expect(subSelector4, new isInstanceOf<AttributeSelector>());
+            expect(subSelector4.toString(), "[eee]");
+          }
+        }
+        {
+          AndSelector subSelector3 = subSelector2.selectors[1];
+          expect(subSelector3, new isInstanceOf<AndSelector>());
+          expect(subSelector3.toString(), "fff && [ggg]");
+          {
+            ElementNameSelector subSelector4 = subSelector3.selectors[0];
+            expect(subSelector4, new isInstanceOf<ElementNameSelector>());
+            expect(subSelector4.toString(), "fff");
+          }
+          {
+            AttributeSelector subSelector4 = subSelector3.selectors[1];
+            expect(subSelector4, new isInstanceOf<AttributeSelector>());
+            expect(subSelector4.toString(), "[ggg]");
+          }
+        }
+      }
     }
   }
 }

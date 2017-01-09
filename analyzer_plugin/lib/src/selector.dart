@@ -35,29 +35,50 @@ class AndSelector implements Selector {
  */
 class AttributeSelector implements Selector {
   final AngularElement nameElement;
+  final bool isWildcard;
   final String value;
 
-  AttributeSelector(this.nameElement, this.value);
+  AttributeSelector(this.nameElement, this.value, this.isWildcard);
 
   @override
   bool match(ElementView element, Template template) {
     String name = nameElement.name;
-    // match the actual value against the required
-    if (value == null) {
+    SourceRange attributeSpan = null;
+    String attributeValue = null;
+
+    // standard case: exact match, use hash for fast lookup
+    if (!isWildcard) {
       if (!element.attributes.containsKey(name)) {
         return false;
       }
+      attributeSpan = element.attributeNameSpans[name];
+      attributeValue = element.attributes[name];
     } else {
-      String val = element.attributes[name];
-      if (val != value) {
+      // nonstandard case: wildcard, check if any start with specified name
+      for (String attrName in element.attributes.keys) {
+        if (attrName.startsWith(name)) {
+          attributeSpan = element.attributeNameSpans[attrName];
+          attributeValue = element.attributes[attrName];
+          break;
+        }
+      }
+
+      // no matching prop to wildcard
+      if (attributeSpan == null) {
         return false;
       }
     }
+
+    // match the actual value against the required
+    if (value != null && attributeValue != value) {
+      return false;
+    }
+
     // OK
     if (template != null) {
-      SourceRange nameRange = element.attributeNameSpans[name];
       template.addRange(
-          new SourceRange(nameRange.offset, nameRange.length), nameElement);
+          new SourceRange(attributeSpan.offset, attributeSpan.length),
+          nameElement);
     }
     return true;
   }
@@ -69,6 +90,33 @@ class AttributeSelector implements Selector {
       return '[$name=$value]';
     }
     return '[$name]';
+  }
+}
+
+/**
+ * The [Selector] that matches elements that have an attribute with any name,
+ * and with contents that match the given regex.
+ */
+class AttributeValueRegexSelector implements Selector {
+  final String regexpStr;
+  final RegExp regexp;
+
+  AttributeValueRegexSelector(this.regexpStr) : regexp = new RegExp(regexpStr);
+
+  @override
+  bool match(ElementView element, Template template) {
+    for (String value in element.attributes.values) {
+      if (regexp.hasMatch(value)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  @override
+  String toString() {
+    return '[*=$regexpStr]';
   }
 }
 
@@ -116,6 +164,7 @@ class ClassSelector implements Selector {
  * The element name based selector.
  */
 class ElementNameSelector implements Selector {
+  static List<ElementNameSelector> EMPTY_LIST = const <ElementNameSelector>[];
   final AngularElement nameElement;
 
   ElementNameSelector(this.nameElement);
@@ -179,93 +228,234 @@ class OrSelector implements Selector {
 }
 
 /**
+ * The [Selector] that confirms the inner [Selector] condition does NOT match
+ */
+class NotSelector implements Selector {
+  final Selector condition;
+
+  NotSelector(this.condition);
+
+  @override
+  bool match(ElementView element, Template template) {
+    return !condition.match(element, template);
+  }
+
+  @override
+  String toString() => ":not($condition)";
+}
+
+/**
+ * The [Selector] that checks a TextNode for contents by a regex
+ */
+class ContainsSelector implements Selector {
+  final String regex;
+
+  ContainsSelector(this.regex);
+
+  @override
+  bool match(ElementView element, Template template) {
+    // TODO check against actual text contents so we know which :contains
+    // directives were used (for when we want to advise removal of unused
+    // directives).
+    //
+    // We could also highlight the matching region in the text node with a color
+    // so users know it was applied.
+    //
+    // Not sure what else we could do.
+    //
+    // Never matches elements. Only matches [TextNode]s. Return false for now.
+    return false;
+  }
+
+  @override
+  String toString() => ":contains($regex)";
+}
+
+/**
  * The base class for all Angular selectors.
  */
 abstract class Selector {
-  static final RegExp _regExp = new RegExp(r'(\:not\()|' +
-      r'([-\w]+)|' +
-      r'(?:\.([-\w]+))|' +
-      r'(?:\[([-\w*]+)(?:=([^\]]*))?\])|' +
-      r'(\))|' +
-      r'(\s*,\s*)');
-
   /**
    * Check whether the given [element] matches this selector.
    * If yes, then record resolved ranges into [template].
    */
   bool match(ElementView element, Template template);
+}
 
-  static Selector parse(Source source, int offset, String str) {
+enum _SelectorRegexMatch {
+  NotStart,
+  NotEnd,
+  Attribute,
+  Tag,
+  Comma,
+  Class,
+  Contains
+}
+
+class SelectorParseError extends FormatException {
+  int length;
+  SelectorParseError(String message, String source, int offset, this.length)
+      : super(message, source, offset);
+}
+
+class SelectorParser {
+  Match currentMatch;
+  Iterator<Match> matches;
+  int lastOffset = 0;
+  final int fileOffset;
+  final String str;
+  String currentMatchStr;
+  _SelectorRegexMatch currentMatchType;
+  final Source source;
+  SelectorParser(this.source, this.fileOffset, this.str);
+
+  final RegExp _regExp = new RegExp(r'(\:not\()|' +
+      r'([-\w]+)|' +
+      r'(?:\.([-\w]+))|' +
+      r'(?:\[([-\w*]+)(?:=([^\]]*))?\])|' +
+      r'(\))|' +
+      r'(\s*,\s*)|' +
+      r'(^\:contains\(\/(.+)\/\)$)'); // :contains doesn't mix with the rest
+
+  static const Map<int, _SelectorRegexMatch> matchIndexToType =
+      const <int, _SelectorRegexMatch>{
+    1: _SelectorRegexMatch.NotStart,
+    2: _SelectorRegexMatch.Tag,
+    3: _SelectorRegexMatch.Class,
+    4: _SelectorRegexMatch.Attribute,
+    // 5 is part of Attribute. Not a match type
+    6: _SelectorRegexMatch.NotEnd,
+    7: _SelectorRegexMatch.Comma,
+    8: _SelectorRegexMatch.Contains,
+  };
+
+  Match advance() {
+    if (!matches.moveNext()) {
+      currentMatch = null;
+      return null;
+    }
+
+    currentMatch = matches.current;
+    // no content should be skipped
+    {
+      String skipStr = str.substring(lastOffset, currentMatch.start);
+      if (!isBlank(skipStr)) {
+        _unexpected(skipStr, lastOffset + fileOffset);
+      }
+      lastOffset = currentMatch.end;
+    }
+
+    for (int index in matchIndexToType.keys) {
+      if (currentMatch[index] != null) {
+        currentMatchType = matchIndexToType[index];
+        currentMatchStr = currentMatch[index];
+        return currentMatch;
+      }
+    }
+
+    currentMatchType = null;
+    currentMatchStr = null;
+    return null;
+  }
+
+  Selector parse() {
     if (str == null) {
       return null;
     }
+    matches = _regExp.allMatches(str).iterator;
+    advance();
+    Selector selector = parseNested();
+    if (currentMatch != null) {
+      _unexpected(
+          currentMatchStr, fileOffset + (currentMatch?.start ?? lastOffset));
+    }
+    return selector;
+  }
+
+  Selector parseNested() {
     List<Selector> selectors = <Selector>[];
-    int lastOffset = 0;
-    Iterable<Match> matches = _regExp.allMatches(str);
-    int ignoring = 0;
-    for (Match match in matches) {
-      // no content should be skipped
-      {
-        String skipStr = str.substring(lastOffset, match.start);
-        if (!isBlank(skipStr)) {
-          return null;
-        }
-        lastOffset = match.end;
-      }
-      // :not start
-      if (match[1] != null) {
-        ignoring++;
-        // TODO(scheglov) implement this
-      }
-      // :not end
-      if (match[6] != null) {
-        ignoring--;
-        // TODO(scheglov) implement this
+    while (currentMatch != null) {
+      if (currentMatchType == _SelectorRegexMatch.NotEnd) {
+        // don't advance, just know we're at the end of this And
+        break;
       }
 
-      // Skip nots carefully until we support them! If we skip them
-      // carelessly, we break core selectors such as the one in ngModel
-      if (ignoring != 0) {
-        continue;
-      }
-
-      // element name
-      if (match[2] != null) {
-        int nameOffset = offset + match.start;
-        String name = match[2];
+      if (currentMatchType == _SelectorRegexMatch.NotStart) {
+        selectors.add(parseNotSelector());
+      } else if (currentMatchType == _SelectorRegexMatch.Tag) {
+        int nameOffset = fileOffset + currentMatch.start;
+        String name = currentMatchStr;
         selectors.add(new ElementNameSelector(
             new SelectorName(name, nameOffset, name.length, source)));
-        continue;
-      }
-      // class name
-      if (match[3] != null) {
-        int nameOffset = offset + match.start + 1;
-        String name = match[3];
+        advance();
+      } else if (currentMatchType == _SelectorRegexMatch.Class) {
+        int nameOffset = fileOffset + currentMatch.start + 1;
+        String name = currentMatchStr;
         selectors.add(new ClassSelector(
             new SelectorName(name, nameOffset, name.length, source)));
-      }
-      // attribute
-      if (match[4] != null) {
-        int nameIndex = match.start + '['.length;
-        String name = match[4];
-        int nameOffset = offset + nameIndex;
+        advance();
+      } else if (currentMatchType == _SelectorRegexMatch.Attribute) {
+        int nameIndex = currentMatch.start + '['.length;
+        String name = currentMatch[4];
+        int nameOffset = fileOffset + nameIndex;
+        bool isWildcard = false;
+        String value = currentMatch[5];
+        advance();
+
+        if (name == '*' &&
+            value != null &&
+            value.startsWith('/') &&
+            value.endsWith('/')) {
+          selectors.add(new AttributeValueRegexSelector(
+              value.substring(1, value.length - 1)));
+          continue;
+        } else if (name.endsWith('*')) {
+          isWildcard = true;
+          name = name.replaceAll('*', '');
+        }
+
         selectors.add(new AttributeSelector(
-            new SelectorName(name, nameOffset, name.length, source), match[5]));
-        continue;
-      }
-      // or
-      if (match[7] != null) {
-        Selector left = _andSelectors(selectors);
-        Selector right =
-            parse(source, offset + match.end, str.substring(match.end));
-        return new OrSelector(<Selector>[left, right]);
+            new SelectorName(name, nameOffset, name.length, source),
+            value,
+            isWildcard));
+      } else if (currentMatchType == _SelectorRegexMatch.Comma) {
+        advance();
+        Selector rhs = parseNested();
+        if (rhs is OrSelector) {
+          // flatten "a, b, c, d" from (a, (b, (c, d))) into (a, b, c, d)
+          return new OrSelector(
+              <Selector>[_andSelectors(selectors)]..addAll(rhs.selectors));
+        } else {
+          return new OrSelector(<Selector>[_andSelectors(selectors), rhs]);
+        }
+      } else if (currentMatchType == _SelectorRegexMatch.Contains) {
+        selectors.add(new ContainsSelector(currentMatch[9]));
+        advance();
+      } else {
+        break;
       }
     }
     // final result
     return _andSelectors(selectors);
   }
 
-  static Selector _andSelectors(List<Selector> selectors) {
+  NotSelector parseNotSelector() {
+    advance();
+    Selector condition = parseNested();
+    if (currentMatchType != _SelectorRegexMatch.NotEnd) {
+      _unexpected(
+          currentMatchStr, fileOffset + (currentMatch?.start ?? lastOffset));
+    }
+    advance();
+    return new NotSelector(condition);
+  }
+
+  void _unexpected(String eString, int eOffset) {
+    throw new SelectorParseError(
+        "Unexpected $eString", str, eOffset, eString.length);
+  }
+
+  Selector _andSelectors(List<Selector> selectors) {
     if (selectors.length == 1) {
       return selectors[0];
     }

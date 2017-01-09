@@ -39,7 +39,7 @@ class AngularNavigationContributor implements NavigationContributor {
   @override
   void computeNavigation(NavigationCollector collector, AnalysisContext context,
       Source source, int offset, int length) {
-    LineInfo lineInfo = context.getResult(source, LINE_INFO);
+    LineInfo lineInfo = context.computeResult(source, LINE_INFO);
     // in Dart
     {
       List<Source> librarySources = context.getLibrariesContaining(source);

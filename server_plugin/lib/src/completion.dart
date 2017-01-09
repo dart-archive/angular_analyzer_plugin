@@ -13,6 +13,7 @@ import 'package:analyzer/task/model.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 
@@ -39,8 +40,18 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
       return findTarget(offset, child);
     }
   }
-
   return root;
+}
+
+AngularAstNode findTargetInExtraNodes(int offset, List<NodeInfo> extraNodes) {
+  if (extraNodes != null && extraNodes.isNotEmpty) {
+    for (NodeInfo node in extraNodes) {
+      if (offsetContained(offset, node.offset, node.length)) {
+        return node;
+      }
+    }
+  }
+  return null;
 }
 
 class DartSnippetExtractor extends AngularAstVisitor {
@@ -119,9 +130,13 @@ class AngularDartCompletionContributor extends DartCompletionContributor {
         .computeResult(
             AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
         .values;
+    List<InputElement> standardHtmlAttributes = request.context
+        .computeResult(
+            AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES)
+        .values;
 
-    return new TemplateCompleter()
-        .computeSuggestions(request, templates, standardHtmlEvents);
+    return new TemplateCompleter().computeSuggestions(
+        request, templates, standardHtmlEvents, standardHtmlAttributes);
   }
 }
 
@@ -140,9 +155,13 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
           .computeResult(
               AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
           .values;
+      List<InputElement> standardHtmlAttributes = request.context
+          .computeResult(
+              AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES)
+          .values;
 
-      return new TemplateCompleter()
-          .computeSuggestions(request, templates, standardHtmlEvents);
+      return new TemplateCompleter().computeSuggestions(
+          request, templates, standardHtmlEvents, standardHtmlAttributes);
     }
 
     return [];
@@ -153,10 +172,18 @@ class TemplateCompleter {
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request,
       List<Template> templates,
-      List<OutputElement> standardHtmlEvents) async {
+      List<OutputElement> standardHtmlEvents,
+      List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      AngularAstNode target = findTarget(request.offset, template.ast);
+      bool extraNodesUsed = false;
+      AngularAstNode target;
+      target = findTargetInExtraNodes(request.offset, template.extraNodes);
+      if (target != null) {
+        extraNodesUsed = true;
+      } else {
+        target = findTarget(request.offset, template.ast);
+      }
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -184,40 +211,92 @@ class TemplateCompleter {
           }
         }
       } else if (target is ElementInfo &&
+          target.openingSpan == null &&
+          target.localName == 'html' &&
+          target.childNodes.isNotEmpty &&
+          target.childNodes.length == 2 &&
+          target.childNodes[1] is ElementInfo &&
+          (target.childNodes[1] as ElementInfo).localName == 'body' &&
+          (target.childNodes[1] as ElementInfo).childNodes.isEmpty) {
+        //On an empty document
+        suggestHtmlTags(template, suggestions, addOpenBracket: true);
+      } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
           offsetContained(request.offset, target.openingSpan.offset,
-              target.openingSpan.length - '>'.length) &&
-          !offsetContained(request.offset, target.openingNameSpan.offset,
-              target.openingNameSpan.length)) {
-        // TODO suggest these things if the target is ExpressionBoundInput with
-        // boundType of input
-        suggestInputs(target.boundDirectives, suggestions);
-        suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
-            target.boundStandardOutputs);
+              target.openingSpan.length - '>'.length)) {
+        if (!offsetContained(request.offset, target.openingNameSpan.offset,
+            target.openingNameSpan.length)) {
+          // TODO suggest these things if the target is ExpressionBoundInput with
+          // boundType of input
+          suggestInputs(target.boundDirectives, suggestions,
+              standardHtmlAttributes, target.boundStandardInputs);
+          suggestOutputs(target.boundDirectives, suggestions,
+              standardHtmlEvents, target.boundStandardOutputs);
+        } else {
+          suggestHtmlTags(template, suggestions);
+        }
+      } else if (target is ElementInfo &&
+          target.openingSpan != null &&
+          target.openingNameSpan != null &&
+          target.closingSpan != null &&
+          target.closingNameSpan != null &&
+          request.offset ==
+              (target.closingSpan.offset + target.closingSpan.length)) {
+        suggestHtmlTags(template, suggestions, addOpenBracket: true);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs,
             currentAttr: target);
       } else if (target is StatementsBoundAttribute) {
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
+      } else if (target is TextInfo) {
+        bool addOpenBracket = extraNodesUsed
+            ? false
+            : target.text[request.offset - target.offset - 1] != '<';
+        suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
       }
     }
 
     return suggestions;
   }
 
+  suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions,
+      {bool addOpenBracket: false}) {
+    Map<String, List<AbstractDirective>> elementTagMap =
+        template.view.elementTagsInfo;
+    String leftPad = addOpenBracket ? "<" : "";
+    for (String elementTagName in elementTagMap.keys) {
+      CompletionSuggestion currentSuggestion = _createHtmlTagSuggestion(
+          leftPad + elementTagName,
+          DART_RELEVANCE_DEFAULT,
+          _createHtmlTagElement(
+              elementTagName,
+              leftPad,
+              elementTagMap[elementTagName].first,
+              protocol.ElementKind.CLASS_TYPE_ALIAS));
+      if (currentSuggestion != null) {
+        suggestions.add(currentSuggestion);
+      }
+    }
+  }
+
   suggestInputs(
-      List<DirectiveBinding> directives, List<CompletionSuggestion> suggestions,
+      List<DirectiveBinding> directives,
+      List<CompletionSuggestion> suggestions,
+      List<InputElement> standardHtmlAttributes,
+      List<InputBinding> boundStandardAttributes,
       {ExpressionBoundAttribute currentAttr}) {
     for (DirectiveBinding directive in directives) {
       Set<InputElement> usedInputs = new HashSet.from(directive.inputBindings
           .where((b) => b.attribute != currentAttr)
           .map((b) => b.boundInput));
+
       for (InputElement input in directive.boundDirective.inputs) {
         // don't recommend [name] [name] [name]
         if (usedInputs.contains(input)) {
@@ -226,6 +305,19 @@ class TemplateCompleter {
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
+    }
+
+    Set<InputElement> usedStdInputs = new HashSet.from(boundStandardAttributes
+        .where((b) => b.attribute != currentAttr)
+        .map((b) => b.boundInput));
+
+    for (InputElement input in standardHtmlAttributes) {
+      // TODO don't recommend [hidden] [hidden] [hidden]
+      if (usedStdInputs.contains(input)) {
+        continue;
+      }
+      suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 1,
+          _createInputElement(input, protocol.ElementKind.SETTER)));
     }
   }
 
@@ -303,6 +395,34 @@ class TemplateCompleter {
     int flags = protocol.Element.makeFlags();
     return new protocol.Element(kind, name, flags,
         location: location, returnType: type.toString());
+  }
+
+  CompletionSuggestion _createHtmlTagSuggestion(
+      String elementTagName, int defaultRelevance, protocol.Element element) {
+    return new CompletionSuggestion(
+        CompletionSuggestionKind.INVOCATION,
+        defaultRelevance,
+        elementTagName,
+        elementTagName.length,
+        0,
+        false,
+        false,
+        element: element);
+  }
+
+  protocol.Element _createHtmlTagElement(String elementTagName, String leftPad,
+      AbstractDirective directive, protocol.ElementKind kind) {
+    ElementNameSelector selector = directive.elementTags.firstWhere(
+        (currSelector) => currSelector.toString() == elementTagName);
+    int offset = selector.nameElement.nameOffset;
+    int length = selector.nameElement.nameLength;
+
+    Location location =
+        new Location(directive.source.fullName, offset, length, 0, 0);
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, leftPad + elementTagName, flags,
+        location: location);
   }
 
   CompletionSuggestion _createInputSuggestion(InputElement inputElement,

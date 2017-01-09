@@ -22,7 +22,7 @@ class AngularWarningCode extends ErrorCode {
    */
   static const AngularWarningCode CANNOT_PARSE_SELECTOR =
       const AngularWarningCode(
-          'CANNOT_PARSE_SELECTOR', 'Cannot parse the given selector');
+          'CANNOT_PARSE_SELECTOR', 'Cannot parse the given selector ({0})');
 
   /**
    * An error code indicating that a template points to a missing html file
@@ -279,6 +279,14 @@ class AngularWarningCode extends ErrorCode {
       OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT = const AngularWarningCode(
           'OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT',
           "Syntax Error: unexpected {0}");
+
+  /**
+   * An error code indicating that a mustache or other expression binding was an
+   * unsupported type such as an 'as' expression or a constructor
+   */
+  static const AngularWarningCode DISALLOWED_EXPRESSION =
+      const AngularWarningCode(
+          'DISALLOWED_EXPRESSION', "{0} not allowed in angular templates");
 
   /**
    * An error code indicating that an output-bound statement

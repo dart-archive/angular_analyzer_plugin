@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
@@ -50,7 +52,11 @@ class HtmlTreeConverter {
         attribute.parent = element;
       }
 
-      List<NodeInfo> children = _convertChildren(node);
+      if (element.openingSpan != null) {
+        element.childNodesMaxEnd = element.offset + element.length;
+      }
+
+      List<NodeInfo> children = _convertChildren(node, element);
       element.childNodes.addAll(children);
       return element;
     }
@@ -122,8 +128,8 @@ class HtmlTreeConverter {
   TemplateAttribute _convertTemplateAttribute(
       html.Element element, String origName, bool starSugar) {
     int origNameOffset = _nameOffset(element, origName);
-    String value = element.attributes[origName];
     int valueOffset = _valueOffset(element, origName);
+    String value = valueOffset == null ? null : element.attributes[origName];
     String name;
     int nameOffset;
     List<AttributeInfo> virtualAttributes;
@@ -131,7 +137,7 @@ class HtmlTreeConverter {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
       virtualAttributes = dartParser.parseTemplateVirtualAttributes(
-          nameOffset, name + (' ' * '="'.length) + value);
+          nameOffset, name + (' ' * '="'.length) + (value ?? ''));
     } else {
       name = origName;
       nameOffset = origNameOffset;
@@ -205,12 +211,28 @@ class HtmlTreeConverter {
         bound);
   }
 
-  List<NodeInfo> _convertChildren(html.Element node) {
+  List<NodeInfo> _convertChildren(html.Element node, ElementInfo root) {
     List<NodeInfo> children = <NodeInfo>[];
     for (html.Node child in node.nodes) {
       NodeInfo node = convert(child);
       if (node != null) {
         children.add(node);
+
+        if (node is ElementInfo) {
+          if (root.childNodesMaxEnd == null) {
+            root.childNodesMaxEnd = node.childNodesMaxEnd;
+          } else if (node.childNodesMaxEnd != null) {
+            root.childNodesMaxEnd =
+                max(root.childNodesMaxEnd, node.childNodesMaxEnd);
+          }
+        } else {
+          if (root.childNodesMaxEnd == null) {
+            root.childNodesMaxEnd = node.offset + node.length;
+          } else {
+            root.childNodesMaxEnd =
+                max(root.childNodesMaxEnd, node.offset + node.length);
+          }
+        }
       }
     }
     return children;
