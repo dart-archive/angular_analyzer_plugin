@@ -204,7 +204,8 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /**
- * A task that scans contents of a HTML file, producing a set of Dart tokens.
+ * A task that scans contents of a HTML file,
+ * producing a set of html.Node as a html.Document.
  * Modification of [ParseHtmlTask] : produces TextInfo nodes for
  * 'eof-found-in-tag-name' parser errors.
  * Builds [ANGULAR_HTML_DOCUMENT],[ANGULAR_HTML_DOCUMENT_ERRORS], and
