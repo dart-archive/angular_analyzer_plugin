@@ -446,7 +446,7 @@ class DirectiveB {
       {
         Selector selector = directive.selector;
         expect(selector, new isInstanceOf<OrSelector>());
-        expect((selector as OrSelector).selectors, hasLength(2));
+        expect((selector as OrSelector).selectors, hasLength(3));
       }
       {
         expect(directive.elementTags, hasLength(3));
