@@ -22,7 +22,7 @@ class AngularWarningCode extends ErrorCode {
    */
   static const AngularWarningCode CANNOT_PARSE_SELECTOR =
       const AngularWarningCode(
-          'CANNOT_PARSE_SELECTOR', 'Cannot parse the given selector');
+          'CANNOT_PARSE_SELECTOR', 'Cannot parse the given selector ({0})');
 
   /**
    * An error code indicating that a template points to a missing html file
