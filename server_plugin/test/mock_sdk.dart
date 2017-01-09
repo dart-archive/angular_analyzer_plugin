@@ -184,6 +184,8 @@ abstract class ElementStream<T extends Event> implements Stream<T> {}
 class HtmlElement {
   @DomName('Element.onclick')
   ElementStream<MouseEvent> get onClick => null;
+  @DomName('Element.hidden')
+  bool hidden;
 }
 
 class ButtonElement extends HtmlElement {

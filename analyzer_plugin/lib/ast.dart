@@ -90,6 +90,7 @@ class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   final List<AttributeInfo> virtualAttributes;
   List<DirectiveBinding> boundDirectives = <DirectiveBinding>[];
   List<OutputBinding> boundStandardOutputs = <OutputBinding>[];
+  List<InputBinding> boundStandardInputs = <InputBinding>[];
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective);
 
@@ -194,6 +195,7 @@ abstract class NodeInfo extends AngularAstNode {}
 abstract class HasDirectives {
   List<DirectiveBinding> get boundDirectives;
   List<OutputBinding> get boundStandardOutputs;
+  List<InputBinding> get boundStandardInputs;
 }
 
 /**
@@ -278,6 +280,7 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   final TemplateAttribute templateAttribute;
   List<DirectiveBinding> boundDirectives = <DirectiveBinding>[];
   List<OutputBinding> boundStandardOutputs = <OutputBinding>[];
+  List<InputBinding> boundStandardInputs = <InputBinding>[];
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective);
   int childNodesMaxEnd;

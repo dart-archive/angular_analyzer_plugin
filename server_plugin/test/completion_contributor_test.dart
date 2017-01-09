@@ -636,6 +636,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -671,6 +672,37 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
+  test_completeStandardInputNotSuggestedTwice() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag [hidden]="true" ^></my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[hidden]");
+    assertSuggestSetter("[name]");
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
   test_completeInputSuggestsItself() async {
     Source dartSource = newSource(
         '/completionTest.dart',
@@ -698,6 +730,33 @@ class OtherComp {
     assertSuggestSetter("[name]");
   }
 
+  test_completeStandardInputSuggestsItself() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag [hidden^></my-tag>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
   test_completeOutputNotSuggestedTwice() async {
     Source dartSource = newSource(
         '/completionTest.dart',
@@ -723,6 +782,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertNotSuggested("(nameEvent)");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -780,6 +840,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertSuggestGetter("(nameEvent)", "String");
     assertNotSuggested("(click)");
   }
@@ -866,6 +927,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
@@ -925,6 +987,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
@@ -984,7 +1047,9 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
+    assertNotSuggested("[hidden]");
     assertNotSuggested("(event)");
+    assertNotSuggested("(click)");
   }
 
   test_noCompleteEmptyTagContents() async {
@@ -1012,7 +1077,9 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
+    assertNotSuggested("[hidden]");
     assertNotSuggested("(event)");
+    assertNotSuggested("(click)");
   }
 
   test_noCompleteInOutputsOnTagNameCompletion() async {
@@ -1040,7 +1107,9 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
+    assertNotSuggested("[hidden]");
     assertNotSuggested("(event)");
+    assertNotSuggested("(click)");
   }
 
   test_completeHtmlSelectorTag_at_beginning() async {

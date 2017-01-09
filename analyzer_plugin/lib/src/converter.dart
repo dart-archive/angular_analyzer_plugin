@@ -128,8 +128,8 @@ class HtmlTreeConverter {
   TemplateAttribute _convertTemplateAttribute(
       html.Element element, String origName, bool starSugar) {
     int origNameOffset = _nameOffset(element, origName);
-    String value = element.attributes[origName];
     int valueOffset = _valueOffset(element, origName);
+    String value = valueOffset == null ? null : element.attributes[origName];
     String name;
     int nameOffset;
     List<AttributeInfo> virtualAttributes;
@@ -137,7 +137,7 @@ class HtmlTreeConverter {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
       virtualAttributes = dartParser.parseTemplateVirtualAttributes(
-          nameOffset, name + (' ' * '="'.length) + value);
+          nameOffset, name + (' ' * '="'.length) + (value ?? ''));
     } else {
       name = origName;
       nameOffset = origNameOffset;
@@ -420,7 +420,7 @@ class EmbeddedDartParser {
         exprEnd = _startsWithWhitespace(text.substring(exprBegin))
             ? exprBegin
             : text.length;
-      } else if (begin == -1) {
+      } else if (begin == -1 || end < begin) {
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.

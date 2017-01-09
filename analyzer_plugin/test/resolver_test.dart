@@ -171,6 +171,28 @@ class TitleComponent {
     expect(boundDirective.inputBindings.first.boundInput.name, 'title');
   }
 
+  void test_expression_nativeGlobalAttrBindingOnComponent() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: [SomeComponent])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+
+@Component(selector: 'some-comp', template: '')
+class SomeComponent {
+}
+''');
+    _addHtmlSource(r"""
+<some-comp [hidden]='false'></some-comp>
+""");
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('hidden').input.inCoreHtml;
+  }
+
   void test_expression_inputBinding_typeError() {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
@@ -278,6 +300,28 @@ class TitleComponent {
     expect(boundDirective.inputBindings.first.boundInput.name, 'title');
     expect(boundDirective.outputBindings, hasLength(1));
     expect(boundDirective.outputBindings.first.boundOutput.name, 'titleChange');
+  }
+
+  void test_expression_twoWayBinding_noAttr_emptyBinding() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+@Directive(selector: '[titled]', template: '', inputs: 'title')
+class TitleComponent {
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
+}
+''');
+    String code = r"""
+<span titled [(twoWay)]></span>
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, "[(twoWay)]");
   }
 
   void test_expression_twoWayBinding_inputTypeError() {
@@ -493,6 +537,21 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
+  }
+
+  void test_expression_mustache_closeOpen_githubBug198() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+    }}{{''}}
+""";
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
   }
 
   void test_expression_attrBinding_valid() {
@@ -1464,6 +1523,25 @@ class TestPanel {}
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
   }
 
+  void test_erroroneousTemplate_starHash_noCrash() {
+    _addDartSource(r'''
+import 'dart:html';
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(Element e) {}
+}
+''');
+    _addHtmlSource(r"""
+<h1 (click)='handleClick(myTargetElement)'>
+  <div *#myTargetElement></div>
+</h1>
+""");
+    _resolveSingleTemplate(dartSource);
+    // no assertion. Just don't crash.
+  }
+
   void test_localVariable_exportAs_notFound() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -2032,6 +2110,30 @@ class TestPanel {
     _resolveSingleTemplate(dartSource);
 
     // no assertion...this throws in the github bug
+  }
+
+  void test_angleBracketInMustacheNoCrash_githubBug204() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+''');
+    String code = r"""
+{{<}}
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      HtmlErrorCode.PARSE_ERROR,
+      ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
+      ParserErrorCode.EXPECTED_TOKEN,
+      ParserErrorCode.EXPECTED_TYPE_NAME,
+      StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT
+    ]);
   }
 
   void _addDartSource(String code) {

@@ -178,6 +178,7 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     List<Component> components = outputs[STANDARD_HTML_COMPONENTS];
     Map<String, Component> map = {};
     components.forEach((c) {
+      expect(c.classElement.name, isNot(equals("TableSectionElement")));
       map[c.selector.toString()] = c;
     });
     expect(map, isNotNull);
@@ -195,12 +196,6 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("String"));
       }
-      {
-        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
-        expect(input, isNotNull);
-        expect(input.setter, isNotNull);
-        expect(input.setterType.toString(), equals("int"));
-      }
       expect(outputElements, hasLength(0));
       expect(inputs.where((i) => i.name == '_privateField'), hasLength(0));
     }
@@ -217,12 +212,6 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("bool"));
-      }
-      {
-        InputElement input = inputs.singleWhere((i) => i.name == 'tabIndex');
-        expect(input, isNotNull);
-        expect(input.setter, isNotNull);
-        expect(input.setterType.toString(), equals("int"));
       }
       expect(outputElements, hasLength(0));
     }
@@ -254,6 +243,8 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
     expect(map['h1'], isNotNull);
     expect(map['h2'], isNotNull);
     expect(map['h3'], isNotNull);
+    // has no mention of 'option' in the source, is hardcoded
+    expect(map['option'], isNotNull);
   }
 
   test_buildStandardHtmlEvents() {
@@ -298,6 +289,27 @@ class BuildStandardHtmlComponentsTaskTest extends AbstractAngularTest {
       // used to happen from "hidden" which got truncated by 'on'.length
       OutputElement outputElement = outputElements['dden'];
       expect(outputElement, isNull);
+    }
+  }
+
+  test_buildStandardHtmlAttributes() {
+    computeResult(
+        AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES);
+    expect(task, new isInstanceOf<BuildStandardHtmlComponentsTask>());
+    // validate
+    Map<String, InputElement> inputElements =
+        outputs[STANDARD_HTML_ELEMENT_ATTRIBUTES];
+    {
+      InputElement input = inputElements['tabIndex'];
+      expect(input, isNotNull);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals("int"));
+    }
+    {
+      InputElement input = inputElements['hidden'];
+      expect(input, isNotNull);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals("bool"));
     }
   }
 }
