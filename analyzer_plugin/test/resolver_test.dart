@@ -2297,7 +2297,7 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<span *ngIf='text.length != 0'>
+<span *ngIf='text.length != 0'></span>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
@@ -2316,7 +2316,7 @@ class TestPanel {
 }
 ''');
     var code = r"""
-<span ngIf='text.length != 0'>
+<span ngIf='text.length != 0'></span>
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
@@ -2335,7 +2335,7 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<span template='ngIf text.length != 0'>
+<span template='ngIf text.length != 0'></span>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
@@ -2483,6 +2483,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     errorListener.assertErrorsWithCodes([
+      HtmlErrorCode.PARSE_ERROR,
       ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
       ParserErrorCode.EXPECTED_TOKEN,
       ParserErrorCode.EXPECTED_TYPE_NAME,

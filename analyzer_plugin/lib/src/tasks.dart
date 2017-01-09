@@ -9,7 +9,9 @@ import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/exception/exception.dart';
 import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/generated/java_engine.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
@@ -19,14 +21,38 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/dart.dart';
 import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
-import 'package:analyzer/task/html.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:analyzer/task/general.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:front_end/src/scanner/errors.dart';
 import 'package:html/dom.dart' as html;
+import 'package:html/parser.dart' as html;
 import 'package:tuple/tuple.dart';
+import 'package:source_span/source_span.dart';
+
+/**
+ * The [html.Document] of an HTML file.
+ */
+final ResultDescriptor<html.Document> ANGULAR_HTML_DOCUMENT =
+    new ResultDescriptor<html.Document>('ANGULAR_HTML_DOCUMENT', null);
+
+/**
+ * The analysis errors associated with a [Source] representing an HTML file.
+ */
+final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
+    new ListResultDescriptor<AnalysisError>(
+        'ANGULAR_HTML_DOCUMENT_ERRORS', AnalysisError.NO_ERRORS);
+
+/**
+ * Additional Nodes generated from errors that need to be processed.
+ */
+final ListResultDescriptor<TextInfo> ANGULAR_HTML_DOCUMENT_EXTRA_NODES =
+    new ListResultDescriptor<TextInfo>(
+        'ANGULAR_HTML_DOCUMENT_EXTRA_NODES', const <TextInfo>[]);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -178,6 +204,99 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /**
+ * A task that scans contents of a HTML file,
+ * producing a set of html.Node as a html.Document.
+ * Modification of [ParseHtmlTask] : produces TextInfo nodes for
+ * 'eof-found-in-tag-name' parser errors.
+ * Builds [ANGULAR_HTML_DOCUMENT],[ANGULAR_HTML_DOCUMENT_ERRORS], and
+ * [ANGULAR_HTML_DOCUMENT_EXTRA_NODES].
+ */
+class AngularParseHtmlTask extends SourceBasedAnalysisTask {
+  static const String CONTENT_INPUT_NAME = 'CONTENT_INPUT_NAME';
+  static const String MODIFICATION_TIME_INPUT = 'MODIFICATION_TIME_INPUT';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'AngularParseHtmlTask', createTask, buildInputs, <ResultDescriptor>[
+    ANGULAR_HTML_DOCUMENT,
+    ANGULAR_HTML_DOCUMENT_ERRORS,
+    ANGULAR_HTML_DOCUMENT_EXTRA_NODES
+  ]);
+
+  AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  @override
+  void internalPerform() {
+    String content = getRequiredInput(CONTENT_INPUT_NAME);
+    int modificationTime = getRequiredInput(MODIFICATION_TIME_INPUT);
+
+    if (modificationTime < 0) {
+      String message = 'Content could not be read';
+      if (context is InternalAnalysisContext) {
+        CacheEntry entry =
+            (context as InternalAnalysisContext).getCacheEntry(target);
+        CaughtException exception = entry.exception;
+        if (exception != null) {
+          message = exception.toString();
+        }
+      }
+
+      outputs[ANGULAR_HTML_DOCUMENT] = new html.Document();
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
+        new AnalysisError(
+            target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
+      ];
+      outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = null;
+    } else {
+      html.HtmlParser parser = new html.HtmlParser(content,
+          generateSpans: true, lowercaseAttrName: false);
+      parser.compatMode = 'quirks';
+      html.Document document = parser.parse();
+
+      List<AnalysisError> documentErrors = <AnalysisError>[];
+      List<TextInfo> extraNodes = <TextInfo>[];
+      List<html.ParseError> parseErrors = parser.errors;
+
+      for (html.ParseError parseError in parseErrors) {
+        if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
+            parseError.errorCode == 'expected-doctype-but-got-chars' ||
+            parseError.errorCode == 'expected-doctype-but-got-eof') {
+          continue;
+        }
+        SourceSpan span = parseError.span;
+
+        if (parseError.errorCode == 'eof-in-tag-name') {
+          TextInfo extraNode = new TextInfo(span.start.offset,
+              content.substring(span.start.offset), <Mustache>[]);
+          extraNodes.add(extraNode);
+        }
+        documentErrors.add(new AnalysisError(target.source, span.start.offset,
+            span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
+      }
+
+      outputs[ANGULAR_HTML_DOCUMENT] = document;
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = documentErrors;
+      outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = extraNodes;
+    }
+  }
+
+  static Map<String, TaskInput> buildInputs(AnalysisTarget source) {
+    return <String, TaskInput>{
+      CONTENT_INPUT_NAME: CONTENT.of(source),
+      MODIFICATION_TIME_INPUT: MODIFICATION_TIME.of(source)
+    };
+  }
+
+  static AngularParseHtmlTask createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new AngularParseHtmlTask(context, target);
+  }
+}
+
+/**
  * A task that builds [STANDARD_HTML_COMPONENTS] and
  * [STANDARD_HTML_ELEMENT_EVENTS].
  */
@@ -262,10 +381,10 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
-      'BuildUnitDirectivesTask',
-      createTask,
-      buildInputs,
-      <ResultDescriptor>[DIRECTIVES_IN_UNIT, DIRECTIVES_ERRORS]);
+      'BuildUnitDirectivesTask', createTask, buildInputs, <ResultDescriptor>[
+    DIRECTIVES_IN_UNIT,
+    DIRECTIVES_ERRORS,
+  ]);
 
   BuildUnitDirectivesTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
@@ -334,6 +453,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
       if (selector == null) {
         return null;
       }
+      List<ElementNameSelector> elementTags =
+          _getElementTagsFromSelector(selector);
       AngularElement exportAs = _parseExportAs(node);
       List<InputElement> inputElements = <InputElement>[];
       List<OutputElement> outputElements = <OutputElement>[];
@@ -348,14 +469,16 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
       }
       if (isDirective) {
         return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
       }
     }
     return null;
@@ -544,6 +667,22 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 
     var bounds = classElement.typeParameters.map(getBound).toList();
     return classElement.type.instantiate(bounds);
+  }
+
+  List<ElementNameSelector> _getElementTagsFromSelector(Selector selector) {
+    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
+    if (selector is ElementNameSelector) {
+      elementTags.add(selector);
+    } else if (selector is OrSelector) {
+      for (Selector innerSelector in selector.selectors) {
+        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
+      }
+    } else if (selector is AndSelector) {
+      for (Selector innerSelector in selector.selectors) {
+        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
+      }
+    }
+    return elementTags;
   }
 
   List<InputElement> _parseHeaderInputs(ast.Annotation node) {
@@ -803,6 +942,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     //
     ast.CompilationUnit unit = getRequiredInput(UNIT_INPUT);
     _allDirectives = getRequiredInput(DIRECTIVES_INPUT);
+
     //
     // Process all classes.
     //
@@ -848,13 +988,24 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
 
   /**
    * Attempt to find and add the [AbstractDirective] that corresponds to
-   * the [classElement]. Return `true` if success.
+   * the [classElement]. In addition, if Component, adds it to elementTags.
+   * Returns `true` if at least directive is successfully added.
    */
-  bool _addDirective(
-      List<AbstractDirective> directives, ClassElement classElement) {
+  bool _addDirectiveAndElementTag(
+      List<AbstractDirective> directives,
+      Map<String, List<AbstractDirective>> elementTagsInfo,
+      ClassElement classElement) {
     for (AbstractDirective directive in _allDirectives) {
       if (directive.classElement == classElement) {
         directives.add(directive);
+        for (ElementNameSelector elementTag in directive.elementTags) {
+          String elementTagName = elementTag.toString();
+          if (!elementTagsInfo.containsKey(elementTagName)) {
+            elementTagsInfo.putIfAbsent(
+                elementTagName, () => new List<AbstractDirective>());
+          }
+          elementTagsInfo[elementTagName].add(directive);
+        }
         return true;
       }
     }
@@ -862,12 +1013,17 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   }
 
   /**
-   * Attempt to find and add the [AbstractDirective] that corresponds to
+   * Attempt to find and add the [AbstractDirective] and elementTag(if Component)
+   * that corresponds to
    * the [classElement]. Return an error if the directive not found.
    */
-  void _addDirectiveOrReportError(List<AbstractDirective> directives,
-      ast.Expression expression, ClassElement classElement) {
-    bool success = _addDirective(directives, classElement);
+  void _addDirectiveAndElementTagOrReportError(
+      List<AbstractDirective> directives,
+      Map<String, List<AbstractDirective>> elementTagsInfo,
+      ast.Expression expression,
+      ClassElement classElement) {
+    bool success =
+        _addDirectiveAndElementTag(directives, elementTagsInfo, classElement);
     if (!success) {
       errorReporter.reportErrorForNode(
           AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED, expression);
@@ -879,14 +1035,17 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
    * Return `true` if success, or `false` the [value] has items that don't
    * correspond to a directive.
    */
-  bool _addDirectivesForDartObject(
-      List<AbstractDirective> directives, DartObject value) {
+  bool _addDirectivesAndElementTagsForDartObject(
+      List<AbstractDirective> directives,
+      Map<String, List<AbstractDirective>> elementTagsInfo,
+      DartObject value) {
     List<DartObject> listValue = value.toListValue();
     if (listValue != null) {
       for (DartObject listItem in listValue) {
         Object typeValue = listItem.toTypeValue();
         if (typeValue is InterfaceType) {
-          bool success = _addDirective(directives, typeValue.element);
+          bool success = _addDirectiveAndElementTag(
+              directives, elementTagsInfo, typeValue.element);
           if (!success) {
             return false;
           }
@@ -966,8 +1125,10 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     if (component == null) {
       return null;
     }
-    // Prepare directives.
+    // Prepare directives and elementTags
     List<AbstractDirective> directives = <AbstractDirective>[];
+    Map<String, List<AbstractDirective>> elementTagsInfo =
+        new Map<String, List<AbstractDirective>>();
     {
       ast.Expression listExpression =
           _getNamedArgument(annotation, 'directives');
@@ -977,14 +1138,16 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
             Element element = item.staticElement;
             // TypeLiteral
             if (element is ClassElement) {
-              _addDirectiveOrReportError(directives, item, element);
+              _addDirectiveAndElementTagOrReportError(
+                  directives, elementTagsInfo, item, element);
               continue;
             }
             // LIST_OF_DIRECTIVES
             if (element is PropertyAccessorElement &&
                 element.variable.constantValue != null) {
               DartObject value = element.variable.constantValue;
-              bool success = _addDirectivesForDartObject(directives, value);
+              bool success = _addDirectivesAndElementTagsForDartObject(
+                  directives, elementTagsInfo, value);
               if (!success) {
                 errorReporter.reportErrorForNode(
                     AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
@@ -1001,6 +1164,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     }
     // Create View.
     return new View(classElement, component, directives,
+        elementTagsInfo: elementTagsInfo,
         templateText: templateText,
         templateOffset: templateOffset,
         templateUriSource: templateUriSource,
@@ -1289,6 +1453,9 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String HTML_ATTRIBUTES_INPUT = 'HTML_ATTRIBUTES_INPUT';
   static const String HTML_DOCUMENT_INPUT = 'HTML_DOCUMENT_INPUT';
+  static const String HTML_DOCUMENT_ERROR_INPUT = 'HTML_DOCUMENT_ERROR_INPUT';
+  static const String HTML_DOCUMENT_EXTRA_NODES_INPUT =
+      'HTML_DOCUMENT_EXTRA_NODES_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'ResolveHtmlTemplateTask',
@@ -1324,12 +1491,24 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     Map<String, InputElement> htmlAttributes =
         getRequiredInput(HTML_ATTRIBUTES_INPUT);
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
+    List<AnalysisError> documentErrors =
+        getRequiredInput(HTML_DOCUMENT_ERROR_INPUT);
+    List<TextInfo> extraNodes =
+        getRequiredInput(HTML_DOCUMENT_EXTRA_NODES_INPUT);
     //
     // Resolve.
     //
     View view = target;
-    Template template = new HtmlTemplateResolver(typeProvider, htmlComponents,
-            htmlEvents, htmlAttributes, errorListener, view, document)
+    _addParseErrors(documentErrors);
+    Template template = new HtmlTemplateResolver(
+            typeProvider,
+            htmlComponents,
+            htmlEvents,
+            htmlAttributes,
+            errorListener,
+            view,
+            document,
+            extraNodes)
         .resolve();
     //
     // Record outputs.
@@ -1354,7 +1533,12 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       HTML_ATTRIBUTES_INPUT:
           STANDARD_HTML_ELEMENT_ATTRIBUTES.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_INPUT: HTML_DOCUMENT.of((target as View).templateUriSource),
+      HTML_DOCUMENT_INPUT:
+          ANGULAR_HTML_DOCUMENT.of((target as View).templateUriSource),
+      HTML_DOCUMENT_ERROR_INPUT:
+          ANGULAR_HTML_DOCUMENT_ERRORS.of((target as View).templateUriSource),
+      HTML_DOCUMENT_EXTRA_NODES_INPUT: ANGULAR_HTML_DOCUMENT_EXTRA_NODES
+          .of((target as View).templateUriSource),
     };
   }
 
@@ -1364,6 +1548,15 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static ResolveHtmlTemplateTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new ResolveHtmlTemplateTask(context, target);
+  }
+
+  /**
+   * Report HTML errors as [AnalysisError]
+   */
+  void _addParseErrors(List<AnalysisError> allErrors) {
+    for (AnalysisError error in allErrors) {
+      errorListener.onError(error);
+    }
   }
 }
 
@@ -1751,6 +1944,26 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     addAspects(classElement.type);
     return aspectMap.values.toList();
   }
+}
+
+List<AnalysisError> filterParserErrors(
+    html.HtmlParser parser, String content, Source source) {
+  List<AnalysisError> errors = <AnalysisError>[];
+  List<html.ParseError> parseErrors = parser.errors;
+
+  for (html.ParseError parseError in parseErrors) {
+    //Append error codes that are useful to this analyzer
+    if (parseError.errorCode == 'eof-in-tag-name') {
+      SourceSpan span = parseError.span;
+      errors.add(new AnalysisError(
+          source,
+          span.start.offset,
+          span.length,
+          HtmlErrorCode.PARSE_ERROR,
+          [parseError.errorCode, content.substring(span.start.offset)]));
+    }
+  }
+  return errors;
 }
 
 typedef void CaptureAspectFn<T>(

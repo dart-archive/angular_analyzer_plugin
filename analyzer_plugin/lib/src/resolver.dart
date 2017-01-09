@@ -58,8 +58,10 @@ class DartTemplateResolver {
     }
     // Parse HTML.
     html.Document document;
+    List<TextInfo> extraNodes;
     {
-      String fragmentText = ' ' * view.templateOffset + templateText;
+      String fragmentText =
+          ' ' * view.templateOffset + templateText.trimRight();
       html.HtmlParser parser = new html.HtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
@@ -67,7 +69,7 @@ class DartTemplateResolver {
       // Don't parse as a fragment, but parse as a document. That way there
       // will be a single first element with all contents.
       document = parser.parse();
-      _addParseErrors(parser);
+      extraNodes = _filterParserErrorsToExtraNodes(parser, fragmentText);
     }
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
@@ -75,15 +77,22 @@ class DartTemplateResolver {
     template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
             standardHtmlEvents, standardHtmlAttributes, errorListener)
         .resolve(template);
+    if (extraNodes.isNotEmpty) {
+      template.extraNodes.addAll(extraNodes);
+    }
     _setIgnoredErrors(template, document);
     return template;
   }
 
   /**
-   * Report HTML errors as [AnalysisError]s.
+   * Report HTML errors as [AnalysisError]s except for 'eof-in-tag-name' error,
+   * which should be returned as a list of TextNodes
    */
-  void _addParseErrors(html.HtmlParser parser) {
+  List<NodeInfo> _filterParserErrorsToExtraNodes(
+      html.HtmlParser parser, String fragmentText) {
     List<html.ParseError> parseErrors = parser.errors;
+    List<NodeInfo> extraNodes = <NodeInfo>[];
+
     for (html.ParseError parseError in parseErrors) {
       // We parse this as a full document rather than as a template so
       // that everything is in the first document element. But then we
@@ -94,9 +103,14 @@ class DartTemplateResolver {
         continue;
       }
       SourceSpan span = parseError.span;
+      if (parseError.errorCode == 'eof-in-tag-name') {
+        extraNodes.add(new TextInfo(span.start.offset,
+            fragmentText.substring(span.start.offset), <Mustache>[]));
+      }
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
     }
+    return extraNodes;
   }
 
   void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
@@ -184,6 +198,7 @@ class HtmlTemplateResolver {
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
+  final List<TextInfo> extraNodes;
 
   HtmlTemplateResolver(
       this.typeProvider,
@@ -192,7 +207,8 @@ class HtmlTemplateResolver {
       this.standardHtmlAttributes,
       this.errorListener,
       this.view,
-      this.document);
+      this.document,
+      this.extraNodes);
 
   HtmlTemplate resolve() {
     HtmlTemplate template =
@@ -203,6 +219,11 @@ class HtmlTemplateResolver {
             standardHtmlEvents, standardHtmlAttributes, errorListener)
         .resolve(template);
     _setIgnoredErrors(template, document);
+
+    if (extraNodes != null && extraNodes.isNotEmpty) {
+      template.extraNodes.addAll(extraNodes);
+    }
+
     return template;
   }
 }
@@ -255,6 +276,7 @@ class TemplateResolver {
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
     EmbeddedDartParser parser = new EmbeddedDartParser(
         templateSource, errorListener, typeProvider, errorReporter);
+
     ElementInfo root =
         new HtmlTreeConverter(parser, templateSource, errorListener)
             .convert(template.element);
