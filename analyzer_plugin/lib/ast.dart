@@ -296,11 +296,16 @@ class ElementInfo extends NodeInfo implements HasDirectives {
       this.templateAttribute);
 
   int get offset => openingSpan.offset;
-  int get length => childNodesMaxEnd != null
-      ? childNodesMaxEnd - offset
-      : (closingSpan == null
-          ? openingSpan.length
-          : closingSpan.offset + closingSpan.length - openingSpan.offset);
+  //int get length => childNodesMaxEnd != null
+  //    ? childNodesMaxEnd - offset
+  //    : (closingSpan == null
+  //        ? openingSpan.length
+  //        : closingSpan.offset + closingSpan.length - openingSpan.offset);
+  int get length => (closingSpan != null)
+      ? closingSpan.offset + closingSpan.length - openingSpan.offset
+      : ((childNodesMaxEnd != null)
+          ? childNodesMaxEnd - offset
+          : openingSpan.length);
 
   List<AngularAstNode> get children {
     var list = new List<AngularAstNode>.from(attributes);

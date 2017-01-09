@@ -52,7 +52,7 @@ final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
  */
 final ListResultDescriptor<TextInfo> ANGULAR_HTML_DOCUMENT_EXTRA_NODES =
     new ListResultDescriptor<TextInfo>(
-        'ANGULAR_HTML_DOCUMENT_EXTRA_NODES', null);
+        'ANGULAR_HTML_DOCUMENT_EXTRA_NODES', const <TextInfo>[]);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -204,23 +204,22 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
         'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
 
 /**
- * A task that scans contents of a file, producing a set of Dart tokens.
- * Modification of [ParseHtmlTask]
+ * A task that scans contents of a HTML file, producing a set of Dart tokens.
+ * Modification of [ParseHtmlTask] : produces TextInfo nodes for
+ * 'eof-found-in-tag-name' parser errors.
+ * Builds [ANGULAR_HTML_DOCUMENT],[ANGULAR_HTML_DOCUMENT_ERRORS], and
+ * [ANGULAR_HTML_DOCUMENT_EXTRA_NODES].
  */
 class AngularParseHtmlTask extends SourceBasedAnalysisTask {
   static const String CONTENT_INPUT_NAME = 'CONTENT_INPUT_NAME';
   static const String MODIFICATION_TIME_INPUT = 'MODIFICATION_TIME_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
-      'AngularParseHtmlTask',
-      createTask,
-      buildInputs,
-      <ResultDescriptor>[
-        ANGULAR_HTML_DOCUMENT,
-        ANGULAR_HTML_DOCUMENT_ERRORS,
-        ANGULAR_HTML_DOCUMENT_EXTRA_NODES
-      ],
-      suitabilityFor: suitabilityFor);
+      'AngularParseHtmlTask', createTask, buildInputs, <ResultDescriptor>[
+    ANGULAR_HTML_DOCUMENT,
+    ANGULAR_HTML_DOCUMENT_ERRORS,
+    ANGULAR_HTML_DOCUMENT_EXTRA_NODES
+  ]);
 
   AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
       : super(context, target);
@@ -294,17 +293,6 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
       AnalysisContext context, AnalysisTarget target) {
     return new AngularParseHtmlTask(context, target);
   }
-
-  static TaskSuitability suitabilityFor(AnalysisTarget target) {
-    if (target is Source) {
-      String name = target.shortName;
-      if (name.endsWith(AnalysisEngine.SUFFIX_HTML) ||
-          name.endsWith(AnalysisEngine.SUFFIX_HTM)) {
-        return TaskSuitability.HIGHEST;
-      }
-    }
-    return TaskSuitability.NONE;
-  }
 }
 
 /**
@@ -370,7 +358,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     SourceFactory sourceFactory = contextTarget.context.sourceFactory;
     Source htmlSource = sourceFactory.forUri(DartSdk.DART_HTML);
     return <String, TaskInput>{
-      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT),
+      UNITS: LIBRARY_SPECIFIC_UNITS.of(htmlSource).toListOf(RESOLVED_UNIT5),
     };
   }
 
@@ -430,7 +418,6 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     // Process all classes.
     //
     List<AbstractDirective> directives = <AbstractDirective>[];
-    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
     for (ast.CompilationUnitMember unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
         for (ast.Annotation annotationNode in unitMember.metadata) {
@@ -438,9 +425,6 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
               _createDirective(unitMember, annotationNode);
           if (directive != null) {
             directives.add(directive);
-            if (directive is Component) {
-              elementTags.add(directive.selector);
-            }
           }
         }
       }

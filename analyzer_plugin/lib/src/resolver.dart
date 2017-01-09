@@ -69,7 +69,7 @@ class DartTemplateResolver {
       // Don't parse as a fragment, but parse as a document. That way there
       // will be a single first element with all contents.
       document = parser.parse();
-      extraNodes = _filterParseErrors(parser, fragmentText);
+      extraNodes = _filterParserErrorsToExtraNodes(parser, fragmentText);
     }
     // Create and resolve Template.
     Template template = new Template(view, _firstElement(document));
@@ -88,7 +88,7 @@ class DartTemplateResolver {
    * Report HTML errors as [AnalysisError]s except for 'eof-in-tag-name' error,
    * which should be returned as a list of TextNodes
    */
-  List<NodeInfo> _filterParseErrors(
+  List<NodeInfo> _filterParserErrorsToExtraNodes(
       html.HtmlParser parser, String fragmentText) {
     List<html.ParseError> parseErrors = parser.errors;
     List<NodeInfo> extraNodes = <NodeInfo>[];
