@@ -43,10 +43,11 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
   return root;
 }
 
-AngularAstNode findTargetInExtraNodes(int offset, List<NodeInfo> extraNodes) {
+AngularAstNode findTargetInExtraNodes(
+    int targetOffset, List<NodeInfo> extraNodes) {
   if (extraNodes != null && extraNodes.isNotEmpty) {
     for (NodeInfo node in extraNodes) {
-      if (offsetContained(offset, node.offset, node.length)) {
+      if (offsetContained(targetOffset, node.offset, node.length)) {
         return node;
       }
     }
@@ -176,14 +177,9 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      bool extraNodesUsed = false;
-      AngularAstNode target;
-      target = findTargetInExtraNodes(request.offset, template.extraNodes);
-      if (target != null) {
-        extraNodesUsed = true;
-      } else {
-        target = findTarget(request.offset, template.ast);
-      }
+      AngularAstNode target =
+          findTargetInExtraNodes(request.offset, template.extraNodes) ??
+              findTarget(request.offset, template.ast);
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -223,8 +219,8 @@ class TemplateCompleter {
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
-          offsetContained(request.offset, target.openingSpan.offset,
-              target.openingSpan.length - '>'.length)) {
+          (offsetContained(request.offset, target.openingSpan.offset,
+              target.openingSpan.length - '>'.length))) {
         if (!offsetContained(request.offset, target.openingNameSpan.offset,
             target.openingNameSpan.length)) {
           // TODO suggest these things if the target is ExpressionBoundInput with
@@ -244,6 +240,10 @@ class TemplateCompleter {
           request.offset ==
               (target.closingSpan.offset + target.closingSpan.length)) {
         suggestHtmlTags(template, suggestions, addOpenBracket: true);
+      } else if (target is ElementInfo &&
+          target.openingSpan != null &&
+          request.offset == target.childNodesMaxEnd) {
+        suggestHtmlTags(template, suggestions);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
@@ -256,9 +256,8 @@ class TemplateCompleter {
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
       } else if (target is TextInfo) {
-        bool addOpenBracket = extraNodesUsed
-            ? false
-            : target.text[request.offset - target.offset - 1] != '<';
+        bool addOpenBracket =
+            target.text[request.offset - target.offset - 1] != '<';
         suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
       }
     }

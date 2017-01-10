@@ -159,12 +159,14 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
     }
     //Test for 'extraNodes'
     {
-      List<TextInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
+      List<NodeInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
       expect(extraNodes, isNotNull);
       expect(extraNodes, hasLength(1));
-      expect(extraNodes.first.text, '<di');
-      expect(extraNodes.first.length, 3);
-      expect(extraNodes.first.offset, 32);
+      expect(extraNodes.first, new isInstanceOf<ElementInfo>());
+      ElementInfo extraNode = extraNodes.first;
+      expect(extraNode.localName, 'di');
+      expect(extraNode.length, 3);
+      expect(extraNode.offset, 32);
     }
   }
 }
@@ -734,7 +736,6 @@ class ComponentA {
   void test_hasError_CannotParseSelector() {
     String code = r'''
 import '/angular2/angular2.dart';
-
 @Component(selector: 'a+bad selector')
 class ComponentA {
 }

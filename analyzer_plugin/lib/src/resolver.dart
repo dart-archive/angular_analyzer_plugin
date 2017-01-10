@@ -58,7 +58,7 @@ class DartTemplateResolver {
     }
     // Parse HTML.
     html.Document document;
-    List<TextInfo> extraNodes;
+    List<NodeInfo> extraNodes;
     {
       String fragmentText =
           ' ' * view.templateOffset + templateText.trimRight();
@@ -103,9 +103,20 @@ class DartTemplateResolver {
         continue;
       }
       SourceSpan span = parseError.span;
-      if (parseError.errorCode == 'eof-in-tag-name') {
-        extraNodes.add(new TextInfo(span.start.offset,
-            fragmentText.substring(span.start.offset), <Mustache>[]));
+      if (parseError.errorCode == 'eof-in-tag-name' ||
+          parseError.errorCode == 'expected-attribute-name-but-got-eof') {
+        int localNameOffset = span.start.offset + "<".length;
+        String localName = fragmentText.substring(localNameOffset).trimRight();
+        ElementInfo extraNode = new ElementInfo(
+            localName,
+            new SourceRange(span.start.offset, span.length),
+            null,
+            new SourceRange(localNameOffset, localName.length),
+            null,
+            localName == 'template',
+            <AttributeInfo>[],
+            null);
+        extraNodes.add(extraNode);
       }
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
@@ -198,7 +209,7 @@ class HtmlTemplateResolver {
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
-  final List<TextInfo> extraNodes;
+  final List<NodeInfo> extraNodes;
 
   HtmlTemplateResolver(
       this.typeProvider,
