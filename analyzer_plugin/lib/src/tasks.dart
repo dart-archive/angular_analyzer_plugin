@@ -23,6 +23,7 @@ import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/task/general.dart';
+import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -1519,13 +1520,25 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
             document,
             extraNodes)
         .resolve();
+
+    List<AnalysisError> errorList = errorListener.errors
+        .where((e) => !template.ignoredErrors.contains(e.errorCode.name))
+        .toList();
+
+    String shorten(String filename) =>
+        filename.substring(0, filename.lastIndexOf('.'));
+
+    if (shorten(view.source.fullName) !=
+        shorten(view.templateSource.fullName)) {
+      errorList = errorList
+          .map((e) => new FromFilePrefixedError(view.source, e))
+          .toList();
+    }
     //
     // Record outputs.
     //
     outputs[HTML_TEMPLATE] = template;
-    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors
-        .where((e) => !template.ignoredErrors.contains(e.errorCode.name))
-        .toList();
+    outputs[HTML_TEMPLATE_ERRORS] = errorList;
   }
 
   /**
