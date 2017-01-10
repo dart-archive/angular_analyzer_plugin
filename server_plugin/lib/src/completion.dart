@@ -30,11 +30,18 @@ bool offsetContained(int offset, int start, int length) {
   return start <= offset && start + length >= offset;
 }
 
-AngularAstNode findTargetInAst(int targetOffset, AngularAstNode root) {
-  FindTargetOffsetResolver findTargetResolver =
-      new FindTargetOffsetResolver(targetOffset);
-  root.accept(findTargetResolver);
-  return findTargetResolver.target;
+AngularAstNode findTarget(int offset, AngularAstNode root) {
+  for (AngularAstNode child in root.children) {
+    if (child is ElementInfo && child.openingSpan == null) {
+      var target = findTarget(offset, child);
+      if (!(target is ElementInfo && target.openingSpan == null)) {
+        return target;
+      }
+    } else if (offsetContained(offset, child.offset, child.length)) {
+      return findTarget(offset, child);
+    }
+  }
+  return root;
 }
 
 AngularAstNode findTargetInExtraNodes(
@@ -173,7 +180,7 @@ class TemplateCompleter {
     for (Template template in templates) {
       AngularAstNode target =
           findTargetInExtraNodes(request.offset, template.extraNodes) ??
-              findTargetInAst(request.offset, template.ast);
+              findTarget(request.offset, template.ast);
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);

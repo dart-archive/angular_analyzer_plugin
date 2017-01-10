@@ -734,22 +734,20 @@ class ComponentA {
   }
 
   void test_hasError_CannotParseSelector() {
-    Source source = newSource(
-        '/test.dart',
-        r'''
+    String code = r'''
 import '/angular2/angular2.dart';
-
-@Component(selector: '+bad')
+@Component(selector: 'a+bad selector')
 class ComponentA {
 }
-''');
+''';
+    Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.CANNOT_PARSE_SELECTOR]);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
   }
 
   void test_hasError_selector_notStringValue() {
