@@ -41,7 +41,7 @@ AngularAstNode findTargetInExtraNodes(
     int targetOffset, List<NodeInfo> extraNodes) {
   if (extraNodes != null && extraNodes.isNotEmpty) {
     for (NodeInfo node in extraNodes) {
-      if (offsetContained(targetOffset, node.offset, node.length)){
+      if (offsetContained(targetOffset, node.offset, node.length)) {
         return node;
       }
     }
@@ -171,8 +171,9 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      AngularAstNode target = findTargetInExtraNodes(request.offset, template.extraNodes) ??
-          findTargetInAst(request.offset, template.ast);
+      AngularAstNode target =
+          findTargetInExtraNodes(request.offset, template.extraNodes) ??
+              findTargetInAst(request.offset, template.ast);
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -235,9 +236,9 @@ class TemplateCompleter {
         suggestHtmlTags(template, suggestions, addOpenBracket: true);
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
-          request.offset == target.childNodesMaxEnd){
+          request.offset == target.childNodesMaxEnd) {
         suggestHtmlTags(template, suggestions);
-      }else if (target is ExpressionBoundAttribute &&
+      } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
@@ -249,7 +250,8 @@ class TemplateCompleter {
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
       } else if (target is TextInfo) {
-        bool addOpenBracket = target.text[request.offset - target.offset - 1] != '<';
+        bool addOpenBracket =
+            target.text[request.offset - target.offset - 1] != '<';
         suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
       }
     }

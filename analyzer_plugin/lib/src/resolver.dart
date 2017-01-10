@@ -105,7 +105,8 @@ class DartTemplateResolver {
       SourceSpan span = parseError.span;
       if (parseError.errorCode == 'eof-in-tag-name' ||
           parseError.errorCode == 'expected-attribute-name-but-got-eof') {
-        String localName = fragmentText.substring(span.start.offset+"<".length);
+        String localName =
+            fragmentText.substring(span.start.offset + "<".length);
         ElementInfo extraNode = new ElementInfo(
             localName.trimRight(),
             new SourceRange(span.start.offset, span.length),

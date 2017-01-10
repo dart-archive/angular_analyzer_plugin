@@ -159,12 +159,14 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
     }
     //Test for 'extraNodes'
     {
-      List<TextInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
+      List<NodeInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
       expect(extraNodes, isNotNull);
       expect(extraNodes, hasLength(1));
-      expect(extraNodes.first.text, '<di');
-      expect(extraNodes.first.length, 3);
-      expect(extraNodes.first.offset, 32);
+      expect(extraNodes.first, new isInstanceOf<ElementInfo>());
+      ElementInfo extraNode = extraNodes.first;
+      expect(extraNode.localName, 'di');
+      expect(extraNode.length, 3);
+      expect(extraNode.offset, 32);
     }
   }
 }
@@ -446,7 +448,7 @@ class DirectiveB {
       {
         Selector selector = directive.selector;
         expect(selector, new isInstanceOf<OrSelector>());
-        expect((selector as OrSelector).selectors, hasLength(2));
+        expect((selector as OrSelector).selectors, hasLength(3));
       }
       {
         expect(directive.elementTags, hasLength(3));
