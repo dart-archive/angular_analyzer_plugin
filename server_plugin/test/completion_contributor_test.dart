@@ -16,8 +16,7 @@ main() {
 }
 
 @reflectiveTest
-class DartCompletionContributorTest
-    extends AbstractDartCompletionContributorTest {
+class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
   setUp() {
     testFile = '/completionTest.dart';
@@ -25,7 +24,7 @@ class DartCompletionContributorTest
   }
 
   @override
-  DartCompletionContributor createContributor() {
+  CompletionContributor createContributor() {
     return new AngularDartCompletionContributor();
   }
 
@@ -130,8 +129,8 @@ class MyComp {
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
     assertSuggestGetter('text', 'String');
     assertSuggestGetter('description', 'String');
   }
@@ -148,11 +147,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
@@ -167,11 +166,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - '<my'.length);
+    expect(replacementLength, '<my'.length);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_middle() async {
@@ -186,11 +185,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_middle_of_text() async {
@@ -205,11 +204,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
@@ -224,11 +223,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - '<my'.length);
+    expect(replacementLength, '<my'.length);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_end() async {
@@ -243,11 +242,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
@@ -262,11 +261,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - '<m'.length);
+    expect(replacementLength, '<m'.length);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeInlineHtmlSelectorTag_on_empty_document() async {
@@ -319,11 +318,11 @@ class MyChildComponent2{}
     ''');
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 }
 
@@ -383,6 +382,28 @@ class MyComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
+    assertSuggestGetter('length', 'int');
+  }
+
+  test_completeDotMemberAlreadyStartedInMustache() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('html file {{text.le^}} with mustache');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'le'.length);
+    expect(replacementLength, 'le'.length);
     assertSuggestGetter('length', 'int');
   }
 
@@ -725,8 +746,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - '[name'.length);
+    expect(replacementLength, '[name'.length);
     assertSuggestSetter("[name]");
   }
 
@@ -752,8 +773,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - '[hidden'.length);
+    expect(replacementLength, '[hidden'.length);
     assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
@@ -810,8 +831,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - '(nameEvent'.length);
+    expect(replacementLength, '(nameEvent'.length);
     assertSuggestGetter("(nameEvent)", "String");
   }
 
@@ -867,8 +888,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - '(click'.length);
+    expect(replacementLength, '(click'.length);
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
@@ -924,8 +945,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
     assertSuggestSetter("[name]");
     assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertNotSuggested("(nameEvent)");
@@ -954,8 +975,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -984,8 +1005,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, '[input]'.length);
     assertSuggestSetter("[name]");
     assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertNotSuggested("(nameEvent)");
@@ -1014,8 +1035,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, '(output)'.length);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -1104,8 +1125,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, 0);
+    expect(replacementLength, '<my-tag'.length);
     assertNotSuggested("[name]");
     assertNotSuggested("[hidden]");
     assertNotSuggested("(event)");
@@ -1131,11 +1152,11 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeHtmlSelectorTag_at_beginning_with_partial() async {
@@ -1157,11 +1178,11 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - '<my'.length);
+    expect(replacementLength, '<my'.length);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeHtmlSelectorTag_at_middle() async {
@@ -1183,11 +1204,11 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeHtmlSelectorTag_at_middle_of_text() async {
@@ -1209,11 +1230,11 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeHtmlSelectorTag_at_middle_with_partial() async {
@@ -1235,11 +1256,11 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - '<my'.length);
+    expect(replacementLength, '<my'.length);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeHtmlSelectorTag_at_end() async {
@@ -1261,11 +1282,11 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 
   test_completeHtmlSelectorTag_at_end_with_partial() async {
@@ -1288,8 +1309,8 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - '<my'.length);
+    expect(replacementLength, '<my'.length);
     assertSuggestClassTypeAlias("my-child1");
     assertSuggestClassTypeAlias("my-child2");
     assertSuggestClassTypeAlias("my-child3");
@@ -1366,10 +1387,10 @@ class OtherComp {
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
 
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestClassTypeAlias("my-child1");
-    assertSuggestClassTypeAlias("my-child2");
-    assertSuggestClassTypeAlias("my-child3");
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestClassTypeAlias("<my-child1");
+    assertSuggestClassTypeAlias("<my-child2");
+    assertSuggestClassTypeAlias("<my-child3");
   }
 }

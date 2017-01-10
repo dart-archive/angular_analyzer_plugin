@@ -12,6 +12,7 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
+import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
@@ -194,9 +195,9 @@ class HtmlTreeConverter {
     if (value == null || value == "") {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
-      value = value == ""
-          ? "null"
-          : value; // we've created a warning. Suppress parse error now.
+      //value = value == ""
+      //    ? "null"
+      //    : value; // we've created a warning. Suppress parse error now.
     }
     int propNameOffset = origNameOffset + prefix.length;
     String propName = _removePrefixSuffix(origName, prefix, suffix);
@@ -304,8 +305,16 @@ class EmbeddedDartParser {
       return null;
     }
 
-    Token token = _scanDartCode(offset, code);
-    Expression expression = _parseDartExpressionAtToken(token);
+    final Token token = _scanDartCode(offset, code);
+    Expression expression;
+
+    // suppress errors for this. But still parse it so we can analyze it and stuff
+    if (code == "") {
+      expression = _parseDartExpressionAtToken(token,
+          errorListener: new IgnoringAnalysisErrorListener());
+    } else {
+      expression = _parseDartExpressionAtToken(token);
+    }
 
     if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
@@ -365,7 +374,9 @@ class EmbeddedDartParser {
   /**
    * Parse the Dart expression starting at the given [token].
    */
-  Expression _parseDartExpressionAtToken(Token token) {
+  Expression _parseDartExpressionAtToken(Token token,
+      {AnalysisErrorListener errorListener}) {
+    errorListener ??= this.errorListener;
     Parser parser =
         new NgExprParser(templateSource, errorListener, typeProvider);
     return parser.parseExpression(token);

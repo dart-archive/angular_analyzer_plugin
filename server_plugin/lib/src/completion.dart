@@ -5,6 +5,8 @@ import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
     show Element, ElementKind;
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
+import 'package:analysis_server/src/services/completion/completion_core.dart';
+import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
@@ -116,15 +118,72 @@ class LocalVariablesExtractor extends AngularAstVisitor {
   }
 }
 
-class AngularDartCompletionContributor extends DartCompletionContributor {
+class ReplacementRangeCalculator extends AngularAstVisitor {
+  CompletionRequestImpl request;
+
+  ReplacementRangeCalculator(this.request);
+
+  // don't recurse, findTarget already did that
+  @override
+  visitElementInfo(ElementInfo element) {
+    if (element.openingSpan == null) {
+      return;
+    }
+    if (offsetContained(
+        request.offset,
+        element.openingNameSpan.offset - '<'.length,
+        element.openingNameSpan.length + '<'.length)) {
+      request.replacementOffset = element.openingSpan.offset;
+      request.replacementLength = element.localName.length + 1;
+    }
+  }
+
+  @override
+  visitTextAttr(TextAttribute attr) {}
+
+  @override
+  visitTextInfo(TextInfo textInfo) {
+    if (textInfo.text[request.offset - textInfo.offset - 1] == '<') {
+      request.replacementOffset--;
+      request.replacementLength = 1;
+    }
+  }
+
+  @override
+  visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    if (offsetContained(
+        request.offset, attr.originalNameOffset, attr.originalName.length)) {
+      request.replacementOffset = attr.originalNameOffset;
+      request.replacementLength = attr.originalName.length;
+    }
+  }
+
+  @override
+  visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    if (offsetContained(
+        request.offset, attr.originalNameOffset, attr.originalName.length)) {
+      request.replacementOffset = attr.originalNameOffset;
+      request.replacementLength = attr.originalName.length;
+    }
+  }
+
+  @override
+  visitMustache(Mustache mustache) {}
+}
+
+class AngularDartCompletionContributor extends CompletionContributor {
   /**
    * Return a [Future] that completes with a list of suggestions
    * for the given completion [request].
    */
   Future<List<CompletionSuggestion>> computeSuggestions(
-      DartCompletionRequest request) async {
+      CompletionRequest request) async {
+    if (!request.source.shortName.endsWith('.dart')) {
+      return [];
+    }
+
     List<Template> templates = request.context.computeResult(
-        new LibrarySpecificUnit(request.librarySource, request.source),
+        new LibrarySpecificUnit(request.source, request.source),
         DART_TEMPLATES);
     List<OutputElement> standardHtmlEvents = request.context
         .computeResult(
@@ -176,14 +235,12 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      bool extraNodesUsed = false;
       AngularAstNode target;
-      target = findTargetInExtraNodes(request.offset, template.extraNodes);
-      if (target != null) {
-        extraNodesUsed = true;
-      } else {
-        target = findTarget(request.offset, template.ast);
-      }
+      target = findTargetInExtraNodes(request.offset, template.extraNodes) ??
+          findTarget(request.offset, template.ast);
+
+      target.accept(new ReplacementRangeCalculator(request));
+
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -191,6 +248,12 @@ class TemplateCompleter {
         EmbeddedDartCompletionRequest dartRequest =
             new EmbeddedDartCompletionRequest.from(
                 request, extractor.dartSnippet);
+
+        ReplacementRange range = new ReplacementRange.compute(
+            dartRequest.offset, dartRequest.target);
+        (request as CompletionRequestImpl)
+          ..replacementOffset = range.offset
+          ..replacementLength = range.length;
 
         dartRequest.libraryElement = template.view.classElement.library;
         TypeMemberContributor memberContributor = new TypeMemberContributor();
@@ -219,7 +282,7 @@ class TemplateCompleter {
           (target.childNodes[1] as ElementInfo).localName == 'body' &&
           (target.childNodes[1] as ElementInfo).childNodes.isEmpty) {
         //On an empty document
-        suggestHtmlTags(template, suggestions, addOpenBracket: true);
+        suggestHtmlTags(template, suggestions);
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
@@ -243,7 +306,7 @@ class TemplateCompleter {
           target.closingNameSpan != null &&
           request.offset ==
               (target.closingSpan.offset + target.closingSpan.length)) {
-        suggestHtmlTags(template, suggestions, addOpenBracket: true);
+        suggestHtmlTags(template, suggestions);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
@@ -256,28 +319,22 @@ class TemplateCompleter {
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
       } else if (target is TextInfo) {
-        bool addOpenBracket = extraNodesUsed
-            ? false
-            : target.text[request.offset - target.offset - 1] != '<';
-        suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
+        suggestHtmlTags(template, suggestions);
       }
     }
 
     return suggestions;
   }
 
-  suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions,
-      {bool addOpenBracket: false}) {
+  suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions) {
     Map<String, List<AbstractDirective>> elementTagMap =
         template.view.elementTagsInfo;
-    String leftPad = addOpenBracket ? "<" : "";
     for (String elementTagName in elementTagMap.keys) {
       CompletionSuggestion currentSuggestion = _createHtmlTagSuggestion(
-          leftPad + elementTagName,
+          '<' + elementTagName,
           DART_RELEVANCE_DEFAULT,
           _createHtmlTagElement(
               elementTagName,
-              leftPad,
               elementTagMap[elementTagName].first,
               protocol.ElementKind.CLASS_TYPE_ALIAS));
       if (currentSuggestion != null) {
@@ -410,7 +467,7 @@ class TemplateCompleter {
         element: element);
   }
 
-  protocol.Element _createHtmlTagElement(String elementTagName, String leftPad,
+  protocol.Element _createHtmlTagElement(String elementTagName,
       AbstractDirective directive, protocol.ElementKind kind) {
     ElementNameSelector selector = directive.elementTags.firstWhere(
         (currSelector) => currSelector.toString() == elementTagName);
@@ -421,7 +478,7 @@ class TemplateCompleter {
         new Location(directive.source.fullName, offset, length, 0, 0);
     int flags = protocol.Element
         .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, leftPad + elementTagName, flags,
+    return new protocol.Element(kind, '<' + elementTagName, flags,
         location: location);
   }
 
