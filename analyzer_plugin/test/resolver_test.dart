@@ -2429,6 +2429,7 @@ class TestPanel {}
 """);
     _resolveSingleTemplate(dartSource);
     _assertElement('deferred-content>').selector.at("deferred-content]')");
+    errorListener.assertNoErrors();
   }
 
   void test_textInterpolation() {

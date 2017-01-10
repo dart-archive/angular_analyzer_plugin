@@ -8,10 +8,13 @@ import 'package:analysis_server/src/provisional/completion/dart/completion_dart.
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
@@ -50,6 +53,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
   // don't recurse, findTarget already did that
   @override
   visitElementInfo(ElementInfo element) {}
+
   @override
   visitTextAttr(TextAttribute attr) {}
 
@@ -78,6 +82,32 @@ class DartSnippetExtractor extends AngularAstVisitor {
       dartSnippet = mustache.expression;
     }
   }
+
+  @override
+  visitTemplateAttr(TemplateAttribute attr) {
+    // if we visit this, we're in a template but after one of its attributes.
+    TextAttribute textAttributeToTreatAsInput;
+    for (AttributeInfo subAttribute in attr.virtualAttributes) {
+      if (subAttribute is TextAttribute &&
+          subAttribute.valueOffset == null &&
+          subAttribute.offset < offset) {
+        textAttributeToTreatAsInput = subAttribute;
+      }
+    }
+
+    if (textAttributeToTreatAsInput != null) {
+      AnalysisErrorListener analysisErrorListener =
+          new IgnoringAnalysisErrorListener();
+      EmbeddedDartParser dartParser =
+          new EmbeddedDartParser(null, analysisErrorListener, null, null);
+      dartSnippet = dartParser.parseDartExpression(offset, '', false);
+    }
+  }
+}
+
+class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
+  @override
+  void onError(AnalysisError error) {}
 }
 
 class LocalVariablesExtractor extends AngularAstVisitor {

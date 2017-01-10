@@ -450,7 +450,7 @@ class EmbeddedDartParser {
     String prefix = null;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
-      if (token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON) {
+      if (_isDelimiter(token)) {
         token = token.next;
         continue;
       }
@@ -496,6 +496,8 @@ class EmbeddedDartParser {
       }
       // key
       int keyOffset = token.offset;
+      String originalName = null;
+      int originalNameOffset = keyOffset;
       String key = null;
       if (_tokenMatchesIdentifier(token)) {
         // scan for a full attribute name
@@ -507,6 +509,9 @@ class EmbeddedDartParser {
           lastEnd = token.end;
           token = token.next;
         }
+
+        originalName = key;
+
         // add the prefix
         if (prefix == null) {
           prefix = key;
@@ -523,21 +528,34 @@ class EmbeddedDartParser {
         token = token.next;
       }
       // expression
-      if (!_isTemplateVarBeginToken(token)) {
+      if (!_isTemplateVarBeginToken(token) &&
+          !_isDelimiter(token) &&
+          token.type != TokenType.EOF) {
         Expression expression = _parseDartExpressionAtToken(token);
         var start = token.offset - offset;
         token = expression.endToken.next;
         var end = token.offset - offset;
         var exprCode = code.substring(start, end);
-        attributes.add(new ExpressionBoundAttribute(key, keyOffset, key,
-            keyOffset, exprCode, start, expression, ExpressionBoundType.input));
+        attributes.add(new ExpressionBoundAttribute(
+            key,
+            keyOffset,
+            exprCode,
+            token.offset,
+            originalName,
+            originalNameOffset,
+            expression,
+            ExpressionBoundType.input));
       } else {
-        attributes.add(new TextAttribute(key, keyOffset, null, null, []));
+        attributes.add(new TextAttribute.synthetic(
+            key, keyOffset, null, null, originalName, originalNameOffset, []));
       }
     }
 
     return attributes;
   }
+
+  static bool _isDelimiter(Token token) =>
+      token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON;
 
   static bool _isTemplateVarBeginToken(Token token) {
     return token is KeywordToken && token.keyword == Keyword.VAR ||

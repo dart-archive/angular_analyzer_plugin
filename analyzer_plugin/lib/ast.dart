@@ -52,37 +52,40 @@ abstract class AttributeInfo extends AngularAstNode {
   final String value;
   final int valueOffset;
 
-  int get offset => nameOffset;
-  int get length => valueOffset == null
-      ? name.length
-      : valueOffset + value.length - nameOffset;
+  final String originalName;
+  final int originalNameOffset;
 
-  AttributeInfo(this.name, this.nameOffset, this.value, this.valueOffset);
+  int get offset => originalNameOffset;
+  int get length => valueOffset == null
+      ? originalName.length
+      : valueOffset + value.length - originalNameOffset;
+
+  AttributeInfo(this.name, this.nameOffset, this.value, this.valueOffset,
+      this.originalName, this.originalNameOffset);
 
   int get valueLength => value != null ? value.length : 0;
 
   @override
   String toString() {
-    return '([$name, $nameOffset], [$value, $valueOffset, $valueLength])';
+    return '([$name, $nameOffset], [$value, $valueOffset, $valueLength], ' +
+        '[$originalName, $originalNameOffset])';
   }
 }
 
 abstract class BoundAttributeInfo extends AttributeInfo {
-  final String originalName;
-  final int originalNameOffset;
-
   Map<String, LocalVariable> localVariables =
       new HashMap<String, LocalVariable>();
 
   BoundAttributeInfo(String name, int nameOffset, String value, int valueOffset,
-      this.originalName, this.originalNameOffset)
-      : super(name, nameOffset, value, valueOffset);
+      String originalName, int originalNameOffset)
+      : super(name, nameOffset, value, valueOffset, originalName,
+            originalNameOffset);
 
   List<AngularAstNode> get children => const <AngularAstNode>[];
 
   @override
   String toString() {
-    return '(' + super.toString() + ', [$originalName, $originalNameOffset])';
+    return '(' + super.toString() + ', [$children])';
   }
 }
 
@@ -162,7 +165,18 @@ class TextAttribute extends AttributeInfo {
 
   TextAttribute(String name, int nameOffset, String value, int valueOffset,
       this.mustaches)
-      : super(name, nameOffset, value, valueOffset);
+      : super(name, nameOffset, value, valueOffset, name, nameOffset);
+
+  TextAttribute.synthetic(
+      String name,
+      int nameOffset,
+      String value,
+      int valueOffset,
+      String originalName,
+      int originalNameOffset,
+      this.mustaches)
+      : super(name, nameOffset, value, valueOffset, originalName,
+            originalNameOffset);
 
   void accept(AngularAstVisitor visitor) => visitor.visitTextAttr(this);
 }
