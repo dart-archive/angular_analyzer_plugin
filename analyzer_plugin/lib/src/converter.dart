@@ -455,7 +455,7 @@ class EmbeddedDartParser {
     String prefix = null;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
-      if (token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON) {
+      if (_isDelimiter(token)) {
         token = token.next;
         continue;
       }
@@ -465,16 +465,22 @@ class EmbeddedDartParser {
           errorReporter.reportErrorForToken(
               AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
         }
+        int originalVarOffset = token.offset;
+        String originalName = token.lexeme;
         token = token.next;
         // get the local variable name
+        String localVarName = "";
+        int localVarOffset = token.offset;
         if (!_tokenMatchesIdentifier(token)) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.EXPECTED_IDENTIFIER, token);
-          break;
+        } else {
+          localVarOffset = token.offset;
+          localVarName = token.lexeme;
+          originalName +=
+              ' ' * (token.offset - originalVarOffset) + localVarName;
+          token = token.next;
         }
-        int localVarOffset = token.offset;
-        String localVarName = token.lexeme;
-        token = token.next;
         // get an optional internal variable
         int internalVarOffset = null;
         String internalVarName = null;
@@ -492,15 +498,19 @@ class EmbeddedDartParser {
         }
         // declare the local variable
         // Note the care that the varname's offset is preserved in place.
-        attributes.add(new TextAttribute(
+        attributes.add(new TextAttribute.synthetic(
             'let-$localVarName',
             localVarOffset - 'let-'.length,
             internalVarName,
-            internalVarOffset, []));
+            internalVarOffset,
+            originalName,
+            originalVarOffset, []));
         continue;
       }
       // key
       int keyOffset = token.offset;
+      String originalName = null;
+      int originalNameOffset = keyOffset;
       String key = null;
       if (_tokenMatchesIdentifier(token)) {
         // scan for a full attribute name
@@ -512,6 +522,9 @@ class EmbeddedDartParser {
           lastEnd = token.end;
           token = token.next;
         }
+
+        originalName = key;
+
         // add the prefix
         if (prefix == null) {
           prefix = key;
@@ -528,21 +541,34 @@ class EmbeddedDartParser {
         token = token.next;
       }
       // expression
-      if (!_isTemplateVarBeginToken(token)) {
+      if (!_isTemplateVarBeginToken(token) &&
+          !_isDelimiter(token) &&
+          token.type != TokenType.EOF) {
         Expression expression = _parseDartExpressionAtToken(token);
         var start = token.offset - offset;
         token = expression.endToken.next;
         var end = token.offset - offset;
         var exprCode = code.substring(start, end);
-        attributes.add(new ExpressionBoundAttribute(key, keyOffset, key,
-            keyOffset, exprCode, start, expression, ExpressionBoundType.input));
+        attributes.add(new ExpressionBoundAttribute(
+            key,
+            keyOffset,
+            exprCode,
+            token.offset,
+            originalName,
+            originalNameOffset,
+            expression,
+            ExpressionBoundType.input));
       } else {
-        attributes.add(new TextAttribute(key, keyOffset, null, null, []));
+        attributes.add(new TextAttribute.synthetic(
+            key, keyOffset, null, null, originalName, originalNameOffset, []));
       }
     }
 
     return attributes;
   }
+
+  static bool _isDelimiter(Token token) =>
+      token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON;
 
   static bool _isTemplateVarBeginToken(Token token) {
     return token is KeywordToken && token.keyword == Keyword.VAR ||
