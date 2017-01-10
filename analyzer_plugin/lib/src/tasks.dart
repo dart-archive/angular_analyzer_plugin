@@ -272,12 +272,12 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
           int localNameOffset = span.start.offset + "<".length;
           String localName = content.substring(localNameOffset).trimRight();
           ElementInfo extraNode = new ElementInfo(
-              localName.trimRight(),
+              localName,
               new SourceRange(span.start.offset, span.length),
               null,
               new SourceRange(localNameOffset, localName.length),
               null,
-              false,
+              localName == 'template',
               <AttributeInfo>[],
               null);
           extraNodes.add(extraNode);
