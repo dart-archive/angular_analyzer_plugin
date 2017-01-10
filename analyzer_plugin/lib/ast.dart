@@ -293,7 +293,13 @@ class ElementInfo extends NodeInfo implements HasDirectives {
       this.closingNameSpan,
       this.isTemplate,
       this.attributes,
-      this.templateAttribute);
+      this.templateAttribute) {
+    if (!isSynthetic) {
+      childNodesMaxEnd = offset + length;
+    }
+  }
+
+  bool get isSynthetic => openingSpan == null;
 
   int get offset => openingSpan.offset;
   int get length => (closingSpan != null)

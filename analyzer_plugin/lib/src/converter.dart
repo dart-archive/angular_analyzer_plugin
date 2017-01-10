@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
@@ -50,10 +48,6 @@ class HtmlTreeConverter {
 
       for (AttributeInfo attribute in attributes) {
         attribute.parent = element;
-      }
-
-      if (element.openingSpan != null) {
-        element.childNodesMaxEnd = element.offset + element.length;
       }
 
       List<NodeInfo> children = _convertChildren(node, element);
@@ -214,24 +208,13 @@ class HtmlTreeConverter {
   List<NodeInfo> _convertChildren(html.Element node, ElementInfo root) {
     List<NodeInfo> children = <NodeInfo>[];
     for (html.Node child in node.nodes) {
-      NodeInfo node = convert(child);
-      if (node != null) {
-        children.add(node);
-
-        if (node is ElementInfo) {
-          if (root.childNodesMaxEnd == null) {
-            root.childNodesMaxEnd = node.childNodesMaxEnd;
-          } else if (node.childNodesMaxEnd != null) {
-            root.childNodesMaxEnd =
-                max(root.childNodesMaxEnd, node.childNodesMaxEnd);
-          }
+      NodeInfo childNode = convert(child);
+      if (childNode != null) {
+        children.add(childNode);
+        if (childNode is ElementInfo) {
+          root.childNodesMaxEnd = childNode.childNodesMaxEnd;
         } else {
-          if (root.childNodesMaxEnd == null) {
-            root.childNodesMaxEnd = node.offset + node.length;
-          } else {
-            root.childNodesMaxEnd =
-                max(root.childNodesMaxEnd, node.offset + node.length);
-          }
+          root.childNodesMaxEnd = childNode.offset + childNode.length;
         }
       }
     }
