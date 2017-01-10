@@ -129,10 +129,10 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
     if (element.openingSpan == null) {
       return;
     }
-    if (offsetContained(
-        request.offset,
-        element.openingNameSpan.offset - '<'.length,
-        element.openingNameSpan.length + '<'.length)) {
+    int nameSpanEnd =
+        element.openingNameSpan.offset + element.openingNameSpan.length;
+    if (offsetContained(request.offset, element.openingSpan.offset,
+        nameSpanEnd - element.openingSpan.offset)) {
       request.replacementOffset = element.openingSpan.offset;
       request.replacementLength = element.localName.length + 1;
     }
