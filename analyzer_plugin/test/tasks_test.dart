@@ -446,7 +446,7 @@ class DirectiveB {
       {
         Selector selector = directive.selector;
         expect(selector, new isInstanceOf<OrSelector>());
-        expect((selector as OrSelector).selectors, hasLength(3));
+        expect((selector as OrSelector).selectors, hasLength(2));
       }
       {
         expect(directive.elementTags, hasLength(3));
@@ -732,21 +732,22 @@ class ComponentA {
   }
 
   void test_hasError_CannotParseSelector() {
-    String code = r'''
+    Source source = newSource(
+        '/test.dart',
+        r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'a+bad selector')
+@Component(selector: '+bad')
 class ComponentA {
 }
-''';
-    Source source = newSource('/test.dart', code);
+''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     computeResult(target, DIRECTIVES_IN_UNIT);
     expect(task, new isInstanceOf<BuildUnitDirectivesTask>());
     // validate
     fillErrorListener(DIRECTIVES_ERRORS);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.CANNOT_PARSE_SELECTOR]);
   }
 
   void test_hasError_selector_notStringValue() {

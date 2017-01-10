@@ -58,7 +58,7 @@ class DartTemplateResolver {
     }
     // Parse HTML.
     html.Document document;
-    List<TextInfo> extraNodes;
+    List<NodeInfo> extraNodes;
     {
       String fragmentText =
           ' ' * view.templateOffset + templateText.trimRight();
@@ -103,9 +103,19 @@ class DartTemplateResolver {
         continue;
       }
       SourceSpan span = parseError.span;
-      if (parseError.errorCode == 'eof-in-tag-name') {
-        extraNodes.add(new TextInfo(span.start.offset,
-            fragmentText.substring(span.start.offset), <Mustache>[]));
+      if (parseError.errorCode == 'eof-in-tag-name' ||
+          parseError.errorCode == 'expected-attribute-name-but-got-eof') {
+        String localName = fragmentText.substring(span.start.offset+"<".length);
+        ElementInfo extraNode = new ElementInfo(
+            localName.trimRight(),
+            new SourceRange(span.start.offset, span.length),
+            null,
+            new SourceRange(span.start.offset + "<".length, localName.length),
+            null,
+            false,
+            <AttributeInfo>[],
+            null);
+        extraNodes.add(extraNode);
       }
       _reportErrorForSpan(
           span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
@@ -198,7 +208,7 @@ class HtmlTemplateResolver {
   final AnalysisErrorListener errorListener;
   final View view;
   final html.Document document;
-  final List<TextInfo> extraNodes;
+  final List<NodeInfo> extraNodes;
 
   HtmlTemplateResolver(
       this.typeProvider,
@@ -931,6 +941,82 @@ class DirectiveResolver extends AngularAstVisitor {
   static bool _isStandardTagName(String name) {
     name = name.toLowerCase();
     return !name.contains('-') || name == 'ng-content';
+  }
+}
+
+class FindTargetOffsetResolver implements AngularAstVisitor {
+  final int targetOffset;
+  AngularAstNode target;
+
+  FindTargetOffsetResolver(this.targetOffset);
+
+  @override
+  void visitMustache(Mustache mustache) {
+    if (_offsetContained(mustache)) {
+      target = mustache;
+    }
+  }
+
+  @override
+  void visitTextAttr(TextAttribute textAttr) {
+    if (_offsetContained(textAttr)) {
+      target = textAttr;
+    }
+    _visitAllChildren(textAttr);
+  }
+
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {
+    if (_offsetContained(attr)) {
+      target = attr;
+    }
+    _visitAllChildren(attr);
+  }
+
+  @override
+  void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    if (_offsetContained(attr)) {
+      target = attr;
+    }
+    _visitAllChildren(attr);
+  }
+
+  @override
+  void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    if (_offsetContained(attr)) {
+      target = attr;
+    }
+    _visitAllChildren(attr);
+  }
+
+  @override
+  void visitTextInfo(TextInfo textInfo) {
+    if (_offsetContained(textInfo)) {
+      target = textInfo;
+    }
+    _visitAllChildren(textInfo);
+  }
+
+  @override
+  void visitElementInfo(ElementInfo elementInfo) {
+    //Assign starting synthetic 'html' as target
+    if (target == null && elementInfo.isSynthetic) {
+      target = elementInfo;
+    } else if (!elementInfo.isSynthetic && _offsetContained(elementInfo)) {
+      target = elementInfo;
+    }
+    _visitAllChildren(elementInfo);
+  }
+
+  void _visitAllChildren(AngularAstNode node) {
+    for (AngularAstNode child in node.children) {
+      child.accept(this);
+    }
+  }
+
+  bool _offsetContained(AngularAstNode node) {
+    return node.offset <= targetOffset &&
+        node.offset + node.length >= targetOffset;
   }
 }
 

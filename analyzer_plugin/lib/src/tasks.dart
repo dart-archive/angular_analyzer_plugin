@@ -50,9 +50,9 @@ final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
 /**
  * Additional Nodes generated from errors that need to be processed.
  */
-final ListResultDescriptor<TextInfo> ANGULAR_HTML_DOCUMENT_EXTRA_NODES =
-    new ListResultDescriptor<TextInfo>(
-        'ANGULAR_HTML_DOCUMENT_EXTRA_NODES', const <TextInfo>[]);
+final ListResultDescriptor<NodeInfo> ANGULAR_HTML_DOCUMENT_EXTRA_NODES =
+    new ListResultDescriptor<NodeInfo>(
+        'ANGULAR_HTML_DOCUMENT_EXTRA_NODES', const <NodeInfo>[]);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -257,7 +257,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
       html.Document document = parser.parse();
 
       List<AnalysisError> documentErrors = <AnalysisError>[];
-      List<TextInfo> extraNodes = <TextInfo>[];
+      List<NodeInfo> extraNodes = <NodeInfo>[];
       List<html.ParseError> parseErrors = parser.errors;
 
       for (html.ParseError parseError in parseErrors) {
@@ -267,10 +267,19 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
           continue;
         }
         SourceSpan span = parseError.span;
-
-        if (parseError.errorCode == 'eof-in-tag-name') {
-          TextInfo extraNode = new TextInfo(span.start.offset,
-              content.substring(span.start.offset), <Mustache>[]);
+        if (parseError.errorCode == 'eof-in-tag-name' ||
+            parseError.errorCode == 'expected-attribute-name-but-got-eof') {
+          int localNameOffset = span.start.offset + "<".length;
+          String localName = content.substring(localNameOffset).trimRight();
+          ElementInfo extraNode = new ElementInfo(
+              localName.trimRight(),
+              new SourceRange(span.start.offset, span.length),
+              null,
+              new SourceRange(localNameOffset, localName.length),
+              null,
+              false,
+              <AttributeInfo>[],
+              null);
           extraNodes.add(extraNode);
         }
         documentErrors.add(new AnalysisError(target.source, span.start.offset,
@@ -1493,7 +1502,7 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
     List<AnalysisError> documentErrors =
         getRequiredInput(HTML_DOCUMENT_ERROR_INPUT);
-    List<TextInfo> extraNodes =
+    List<NodeInfo> extraNodes =
         getRequiredInput(HTML_DOCUMENT_EXTRA_NODES_INPUT);
     //
     // Resolve.

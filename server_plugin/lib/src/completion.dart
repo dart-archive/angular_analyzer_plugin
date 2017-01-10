@@ -13,6 +13,7 @@ import 'package:analyzer/task/model.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
@@ -29,24 +30,18 @@ bool offsetContained(int offset, int start, int length) {
   return start <= offset && start + length >= offset;
 }
 
-AngularAstNode findTarget(int offset, AngularAstNode root) {
-  for (AngularAstNode child in root.children) {
-    if (child is ElementInfo && child.openingSpan == null) {
-      var target = findTarget(offset, child);
-      if (!(target is ElementInfo && target.openingSpan == null)) {
-        return target;
-      }
-    } else if (offsetContained(offset, child.offset, child.length)) {
-      return findTarget(offset, child);
-    }
-  }
-  return root;
+AngularAstNode findTargetInAst(int targetOffset, AngularAstNode root) {
+  FindTargetOffsetResolver findTargetResolver =
+      new FindTargetOffsetResolver(targetOffset);
+  root.accept(findTargetResolver);
+  return findTargetResolver.target;
 }
 
-AngularAstNode findTargetInExtraNodes(int offset, List<NodeInfo> extraNodes) {
+AngularAstNode findTargetInExtraNodes(
+    int targetOffset, List<NodeInfo> extraNodes) {
   if (extraNodes != null && extraNodes.isNotEmpty) {
     for (NodeInfo node in extraNodes) {
-      if (offsetContained(offset, node.offset, node.length)) {
+      if (offsetContained(targetOffset, node.offset, node.length)){
         return node;
       }
     }
@@ -176,14 +171,8 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      bool extraNodesUsed = false;
-      AngularAstNode target;
-      target = findTargetInExtraNodes(request.offset, template.extraNodes);
-      if (target != null) {
-        extraNodesUsed = true;
-      } else {
-        target = findTarget(request.offset, template.ast);
-      }
+      AngularAstNode target = findTargetInExtraNodes(request.offset, template.extraNodes) ??
+          findTargetInAst(request.offset, template.ast);
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -223,8 +212,8 @@ class TemplateCompleter {
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
-          offsetContained(request.offset, target.openingSpan.offset,
-              target.openingSpan.length - '>'.length)) {
+          (offsetContained(request.offset, target.openingSpan.offset,
+              target.openingSpan.length - '>'.length))) {
         if (!offsetContained(request.offset, target.openingNameSpan.offset,
             target.openingNameSpan.length)) {
           // TODO suggest these things if the target is ExpressionBoundInput with
@@ -244,7 +233,11 @@ class TemplateCompleter {
           request.offset ==
               (target.closingSpan.offset + target.closingSpan.length)) {
         suggestHtmlTags(template, suggestions, addOpenBracket: true);
-      } else if (target is ExpressionBoundAttribute &&
+      } else if (target is ElementInfo &&
+          target.openingSpan != null &&
+          request.offset == target.childNodesMaxEnd){
+        suggestHtmlTags(template, suggestions);
+      }else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
@@ -256,9 +249,7 @@ class TemplateCompleter {
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
       } else if (target is TextInfo) {
-        bool addOpenBracket = extraNodesUsed
-            ? false
-            : target.text[request.offset - target.offset - 1] != '<';
+        bool addOpenBracket = target.text[request.offset - target.offset - 1] != '<';
         suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
       }
     }
