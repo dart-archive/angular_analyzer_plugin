@@ -242,6 +242,116 @@ class MyComp {
     assertSuggestGetter('hashCode', 'int');
   }
 
+  test_noCompleteMemberInNgForRightAfterLet() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let^ item of [text]"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('text');
+  }
+
+  test_noCompleteMemberInNgForInLet() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="l^et item of [text]"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('text');
+  }
+
+  test_noCompleteMemberInNgForAfterLettedName() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let item^ of [text]"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('text');
+  }
+
+  test_noCompleteMemberInNgForInLettedName() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let i^tem of [text]"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('text');
+  }
+
+  test_noCompleteMemberInNgFor_forLettedName() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let ^"></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('text');
+  }
+
   test_completeNgForItem() async {
     Source dartSource = newSource(
         '/completionTest.dart',

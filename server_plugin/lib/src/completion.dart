@@ -86,16 +86,16 @@ class DartSnippetExtractor extends AngularAstVisitor {
   @override
   visitTemplateAttr(TemplateAttribute attr) {
     // if we visit this, we're in a template but after one of its attributes.
-    TextAttribute textAttributeToTreatAsInput;
+    AttributeInfo attributeToAppendTo;
     for (AttributeInfo subAttribute in attr.virtualAttributes) {
-      if (subAttribute is TextAttribute &&
-          subAttribute.valueOffset == null &&
-          subAttribute.offset < offset) {
-        textAttributeToTreatAsInput = subAttribute;
+      if (subAttribute.valueOffset == null && subAttribute.offset < offset) {
+        attributeToAppendTo = subAttribute;
       }
     }
 
-    if (textAttributeToTreatAsInput != null) {
+    if (attributeToAppendTo != null &&
+        attributeToAppendTo is TextAttribute &&
+        !attributeToAppendTo.name.startsWith("let")) {
       AnalysisErrorListener analysisErrorListener =
           new IgnoringAnalysisErrorListener();
       EmbeddedDartParser dartParser =

@@ -460,16 +460,22 @@ class EmbeddedDartParser {
           errorReporter.reportErrorForToken(
               AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
         }
+        int originalVarOffset = token.offset;
+        String originalName = token.lexeme;
         token = token.next;
         // get the local variable name
+        String localVarName = "";
+        int localVarOffset = token.offset;
         if (!_tokenMatchesIdentifier(token)) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.EXPECTED_IDENTIFIER, token);
-          break;
+        } else {
+          localVarOffset = token.offset;
+          localVarName = token.lexeme;
+          originalName +=
+              ' ' * (token.offset - originalVarOffset) + localVarName;
+          token = token.next;
         }
-        int localVarOffset = token.offset;
-        String localVarName = token.lexeme;
-        token = token.next;
         // get an optional internal variable
         int internalVarOffset = null;
         String internalVarName = null;
@@ -487,11 +493,13 @@ class EmbeddedDartParser {
         }
         // declare the local variable
         // Note the care that the varname's offset is preserved in place.
-        attributes.add(new TextAttribute(
+        attributes.add(new TextAttribute.synthetic(
             'let-$localVarName',
             localVarOffset - 'let-'.length,
             internalVarName,
-            internalVarOffset, []));
+            internalVarOffset,
+            originalName,
+            originalVarOffset, []));
         continue;
       }
       // key
