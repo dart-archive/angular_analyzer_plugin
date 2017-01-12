@@ -8,6 +8,7 @@ import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -2148,6 +2149,44 @@ class ComponentA {
     fillErrorListener(DART_TEMPLATES_ERRORS);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNRESOLVED_TAG, code, 'unresolved-tag');
+  }
+
+  void test_errorFromWeirdInclude_includesFromPath() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa', templateUrl: "test.html")
+class ComponentA {
+}
+''';
+    Source dartSource = newSource('/weird.dart', code);
+    Source dartSourceRegular = newSource('/test.dart', code);
+    Source htmlSource =
+        newSource('/test.html', "<unresolved-tag></unresolved-tag>");
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSourceRegular, dartSourceRegular);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    }
+    // compute Angular templates
+    computeResult(htmlSource, HTML_TEMPLATES_ERRORS);
+    expect(task, new isInstanceOf<ResolveHtmlTemplatesTask>());
+    // validate
+    fillErrorListener(HTML_TEMPLATES_ERRORS);
+    expect(outputs[HTML_TEMPLATES_ERRORS], hasLength(2));
+    expect(outputs[HTML_TEMPLATES_ERRORS].first,
+        new isInstanceOf<AnalysisError>());
+    expect(outputs[HTML_TEMPLATES_ERRORS].first.message,
+        equals('Unresolved tag "unresolved-tag"'));
+    expect(outputs[HTML_TEMPLATES_ERRORS][1],
+        new isInstanceOf<FromFilePrefixedError>());
+    expect(outputs[HTML_TEMPLATES_ERRORS][1].message,
+        equals('Unresolved tag "unresolved-tag" (from /weird.dart)'));
   }
 
   void test_suppressError_UnresolvedTag() {
