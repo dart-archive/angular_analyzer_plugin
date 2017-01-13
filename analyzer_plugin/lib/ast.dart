@@ -314,6 +314,10 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   }
 
   bool get isSynthetic => openingSpan == null;
+  bool get openingSpanIsClosed => isSynthetic
+      ? false
+      : (openingSpan.offset + openingSpan.length) ==
+          (openingNameSpan.offset + openingNameSpan.length + ">".length);
 
   int get offset => openingSpan.offset;
   int get length => (closingSpan != null)

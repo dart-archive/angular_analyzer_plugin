@@ -28,6 +28,7 @@ import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:front_end/src/scanner/errors.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
@@ -251,7 +252,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
       ];
       outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = null;
     } else {
-      html.HtmlParser parser = new html.HtmlParser(content,
+      AngularHtmlParser parser = new AngularHtmlParser(content,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
       html.Document document = parser.parse();

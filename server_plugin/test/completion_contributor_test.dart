@@ -74,6 +74,120 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
+  test_completeMemberInInputOutput_at_incompleteTag_with_newTag() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[stringInput]");
+    assertSuggestGetter("(myEvent)", "String");
+  }
+
+  test_completeInputStarted_at_incompleteTag_with_newTag() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag [^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[stringInput]");
+    assertNotSuggested("(myEvent)");
+  }
+
+  test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag (^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[stringInput]");
+    assertSuggestGetter("(myEvent)", "String");
+  }
+
+  test_completeMemberInInputOutput_at_incompleteTag_with_EOF() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag ^', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[stringInput]");
+    assertSuggestGetter("(myEvent)", "String");
+  }
+
+  test_completeInputStarted_at_incompleteTag_with_EOF() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag [^', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[stringInput]");
+    assertNotSuggested("(myEvent)");
+  }
+
+  test_completeOutputStarted_at_incompleteTag_with_EOF() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag (^', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[stringInput]");
+    assertSuggestGetter("(myEvent)", "String");
+  }
+
   test_completeMemberInStyleBinding() async {
     addTestSource('''
 import '/angular2/angular2.dart';
@@ -747,6 +861,190 @@ class OtherComp {
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
     assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  test_completeInputOutput_at_incompleteTag_with_newTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag ^<div></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  test_completeInputStarted_at_incompleteTag_with_newTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag [^<div></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertNotSuggested("(nameEvent)");
+    assertNotSuggested("(click)");
+  }
+
+  test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag (^<div></div>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[name]");
+    assertNotSuggested("[hidden]");
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  test_completeInputOutput_at_incompleteTag_with_EOF() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag ^');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestGetter("(nameEvent)", "String");
+    assertSuggestGetter("(click)", "MouseEvent",
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  test_completeInputStarted_at_incompleteTag_with_EOF() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag [^');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter("[name]");
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertNotSuggested("(nameEvent)");
+    assertNotSuggested("(click)");
+  }
+
+  test_completeOutputStarted_at_incompleteTag_with_EOF() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+
+    addTestSource('<my-tag (^');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested("[name]");
+    assertNotSuggested("[hidden]");
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);

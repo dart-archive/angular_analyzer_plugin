@@ -14,6 +14,7 @@ import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -60,9 +61,8 @@ class DartTemplateResolver {
     html.Document document;
     List<NodeInfo> extraNodes;
     {
-      String fragmentText =
-          ' ' * view.templateOffset + templateText.trimRight();
-      html.HtmlParser parser = new html.HtmlParser(fragmentText,
+      String fragmentText = ' ' * view.templateOffset + templateText;
+      AngularHtmlParser parser = new AngularHtmlParser(fragmentText,
           generateSpans: true, lowercaseAttrName: false);
       parser.compatMode = 'quirks';
 
@@ -106,7 +106,11 @@ class DartTemplateResolver {
       if (parseError.errorCode == 'eof-in-tag-name' ||
           parseError.errorCode == 'expected-attribute-name-but-got-eof') {
         int localNameOffset = span.start.offset + "<".length;
-        String localName = fragmentText.substring(localNameOffset).trimRight();
+        String localName = fragmentText.substring(localNameOffset);
+        if (localName.length > 0) {
+          localName = localName.replaceRange(
+              localName.length, localName.length - 1, "");
+        }
         ElementInfo extraNode = new ElementInfo(
             localName,
             new SourceRange(span.start.offset, span.length),
