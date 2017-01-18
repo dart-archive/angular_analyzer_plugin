@@ -267,11 +267,12 @@ class OutputBinding {
 class TextInfo extends NodeInfo {
   final List<Mustache> mustaches;
   List<AngularAstNode> get children => new List<AngularAstNode>.from(mustaches);
+  final ElementInfo parent;
 
   final String text;
   final int offset;
 
-  TextInfo(this.offset, this.text, this.mustaches);
+  TextInfo(this.offset, this.text, this.parent, this.mustaches);
 
   int get length => text.length;
 
@@ -292,12 +293,15 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   final bool isTemplate;
   final List<AttributeInfo> attributes;
   final TemplateAttribute templateAttribute;
+  final ElementInfo parent;
+
   List<DirectiveBinding> boundDirectives = <DirectiveBinding>[];
   List<OutputBinding> boundStandardOutputs = <OutputBinding>[];
   List<InputBinding> boundStandardInputs = <InputBinding>[];
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective);
   int childNodesMaxEnd;
+  bool tagMatchedAsTransclusion = false;
 
   ElementInfo(
       this.localName,
@@ -307,7 +311,8 @@ class ElementInfo extends NodeInfo implements HasDirectives {
       this.closingNameSpan,
       this.isTemplate,
       this.attributes,
-      this.templateAttribute) {
+      this.templateAttribute,
+      this.parent) {
     if (!isSynthetic) {
       childNodesMaxEnd = offset + length;
     }

@@ -17,6 +17,8 @@ main() {
   defineReflectiveTests(NotSelectorTest);
   defineReflectiveTests(AttributeValueRegexSelectorTest);
   defineReflectiveTests(SelectorParserTest);
+  defineReflectiveTests(SuggestTagsTest);
+  defineReflectiveTests(HtmlTagForSelectorTest);
 }
 
 @reflectiveTest
@@ -535,6 +537,480 @@ class SelectorParserTest {
         }
       }
     }
+  }
+}
+
+@reflectiveTest
+class SuggestTagsTest {
+  void test_suggestNodeName() {
+    Selector selector =
+        new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
+
+    List<HtmlTagForSelector> suggestions = selector.suggestTags();
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isTrue);
+    expect(suggestions.first.toString(), equals("<panel"));
+  }
+
+  void test_suggestTagsFiltersInvalidResults() {
+    Selector selector =
+        new ClassSelector(new AngularElementImpl('class', 10, 5, null));
+    expect(_evenInvalidSuggestions(selector), hasLength(1));
+    expect(_evenInvalidSuggestions(selector).first.isValid, isFalse);
+    expect(selector.suggestTags(), hasLength(0));
+  }
+
+  void test_suggestClass() {
+    Selector selector =
+        new ClassSelector(new AngularElementImpl('myclass', 10, 5, null));
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    expect(suggestions.first.toString(), equals('<null class="myclass"'));
+  }
+
+  void test_suggestClasses() {
+    Selector selector1 =
+        new ClassSelector(new AngularElementImpl('class1', 10, 5, null));
+    Selector selector2 =
+        new ClassSelector(new AngularElementImpl('class2', 10, 5, null));
+
+    List<HtmlTagForSelector> suggestions =
+        selector2.refineTagSuggestions(_evenInvalidSuggestions(selector1));
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    // check ClassSelector used tag.addClass(x), not tag.setAttr("class", x)
+    expect(suggestions.first.toString(), equals('<null class="class1 class2"'));
+  }
+
+  void test_suggestPropertyNoValue() {
+    Selector selector = new AttributeSelector(
+        new AngularElementImpl('attr', 10, 5, null), null, false);
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    expect(suggestions.first.toString(), equals("<null attr"));
+  }
+
+  void test_suggestPropertyWithValue() {
+    Selector selector = new AttributeSelector(
+        new AngularElementImpl('attr', 10, 5, null), "blah", false);
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    expect(suggestions.first.toString(), equals('<null attr="blah"'));
+  }
+
+  void test_suggestWildcardProperty() {
+    Selector selector = new AttributeSelector(
+        new AngularElementImpl('attr', 10, 5, null), null, true);
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    // [attr*] tells us they at LEAST want attr
+    expect(suggestions.first.toString(), equals('<null attr'));
+  }
+
+  void test_suggestWildcardPropertyValue() {
+    Selector selector = new AttributeSelector(
+        new AngularElementImpl('attr', 10, 5, null), "value", true);
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    // [attr*=x] tells us they at LEAST want attr=x
+    expect(suggestions.first.toString(), equals('<null attr="value"'));
+  }
+
+  void test_suggestContainsIsInvalid() {
+    Selector selector = new ContainsSelector("foo");
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    // we could assert that it can't be made valid by adding a name,
+    // but :contains is only allowed if it comprises the WHOLE selector (which
+    // is admittedly not as well as the angular team coulddo and might change,
+    // but :contains is so rare we can leave this).
+  }
+
+  void test_suggestRegexPropertyValueNoops() {
+    Selector selector = new AttributeValueRegexSelector("foo");
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isFalse);
+    expect(suggestions.first.toString(),
+        equals(new HtmlTagForSelector().toString()));
+  }
+
+  void test_suggestAndMergesSuggestionConstraints() {
+    Selector nameSelector =
+        new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
+    Selector attrSelector = new AttributeSelector(
+        new AngularElementImpl('attr', 10, 5, null), "value", true);
+    Selector selector = new AndSelector([nameSelector, attrSelector]);
+
+    List<HtmlTagForSelector> suggestions = selector.suggestTags();
+    expect(suggestions.length, 1);
+    expect(suggestions.first.isValid, isTrue);
+    expect(suggestions.first.toString(), equals('<panel attr="value"'));
+  }
+
+  void test_suggestOrMergesSuggestionConstraints() {
+    Selector nameSelector =
+        new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
+    Selector attrSelector = new AttributeSelector(
+        new AngularElementImpl('attr', 10, 5, null), "value", true);
+    Selector selector = new OrSelector([nameSelector, attrSelector]);
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 2);
+    Map<String, HtmlTagForSelector> suggestionsMap =
+        <String, HtmlTagForSelector>{};
+    suggestions.forEach((s) => suggestionsMap[s.toString()] = s);
+    expect(suggestionsMap["<panel"], isNotNull);
+    expect(suggestionsMap["<panel"].isValid, isTrue);
+    expect(suggestionsMap['<null attr="value"'], isNotNull);
+    expect(suggestionsMap['<null attr="value"'].isValid, isFalse);
+  }
+
+  void test_suggestOrAnd() {
+    Selector nameSelector1 =
+        new ElementNameSelector(new AngularElementImpl('name1', 10, 5, null));
+    Selector attrSelector1 = new AttributeSelector(
+        new AngularElementImpl('attr1', 10, 5, null), "value", true);
+    Selector andSelector1 = new AndSelector([nameSelector1, attrSelector1]);
+    Selector nameSelector2 =
+        new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
+    Selector attrSelector2 = new AttributeSelector(
+        new AngularElementImpl('attr2', 10, 5, null), "value", true);
+    Selector andSelector2 = new AndSelector([nameSelector2, attrSelector2]);
+    Selector selector = new OrSelector([andSelector1, andSelector2]);
+
+    List<HtmlTagForSelector> suggestions = selector.suggestTags();
+    expect(suggestions.length, 2);
+    Map<String, HtmlTagForSelector> suggestionsMap =
+        <String, HtmlTagForSelector>{};
+    suggestions.forEach((s) => suggestionsMap[s.toString()] = s);
+    expect(suggestionsMap['<name1 attr1="value"'], isNotNull);
+    expect(suggestionsMap['<name2 attr2="value"'], isNotNull);
+  }
+
+  void test_suggestAndOr() {
+    Selector nameSelector1 =
+        new ElementNameSelector(new AngularElementImpl('name1', 10, 5, null));
+    Selector nameSelector2 =
+        new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
+    Selector orSelector1 = new OrSelector([nameSelector1, nameSelector2]);
+
+    Selector attrSelector1 = new AttributeSelector(
+        new AngularElementImpl('attr1', 10, 5, null), "value", true);
+    Selector attrSelector2 = new AttributeSelector(
+        new AngularElementImpl('attr2', 10, 5, null), "value", true);
+    Selector orSelector2 = new OrSelector([attrSelector1, attrSelector2]);
+
+    Selector selector = new AndSelector([orSelector1, orSelector2]);
+
+    List<HtmlTagForSelector> suggestions = selector.suggestTags();
+    expect(suggestions.length, 4);
+    Map<String, HtmlTagForSelector> suggestionsMap =
+        <String, HtmlTagForSelector>{};
+    suggestions.forEach((s) => suggestionsMap[s.toString()] = s);
+
+    // basically (name1, name2)(attr1, attr2) though I'm not sure that's legal
+    expect(suggestionsMap['<name1 attr1="value"'], isNotNull);
+    expect(suggestionsMap['<name1 attr2="value"'], isNotNull);
+    expect(suggestionsMap['<name2 attr1="value"'], isNotNull);
+    expect(suggestionsMap['<name2 attr2="value"'], isNotNull);
+  }
+
+  void test_suggestOrOr() {
+    Selector nameSelector1 =
+        new ElementNameSelector(new AngularElementImpl('name1', 10, 5, null));
+    Selector nameSelector2 =
+        new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
+    Selector orSelector1 = new OrSelector([nameSelector1, nameSelector2]);
+
+    Selector attrSelector1 = new AttributeSelector(
+        new AngularElementImpl('attr1', 10, 5, null), "value", true);
+    Selector attrSelector2 = new AttributeSelector(
+        new AngularElementImpl('attr2', 10, 5, null), "value", true);
+    Selector orSelector2 = new OrSelector([attrSelector1, attrSelector2]);
+
+    Selector selector = new OrSelector([orSelector1, orSelector2]);
+
+    List<HtmlTagForSelector> suggestions = _evenInvalidSuggestions(selector);
+    expect(suggestions.length, 4);
+    Map<String, HtmlTagForSelector> suggestionsMap =
+        <String, HtmlTagForSelector>{};
+    suggestions.forEach((s) => suggestionsMap[s.toString()] = s);
+
+    // basically (name1, name2),(attr1, attr2) though I'm not sure that's legal
+    expect(suggestionsMap['<name1'], isNotNull);
+    expect(suggestionsMap['<null attr2="value"'], isNotNull);
+    expect(suggestionsMap['<name2'], isNotNull);
+    expect(suggestionsMap['<null attr2="value"'], isNotNull);
+  }
+
+  /**
+   * [refineTagSuggestions] filters out invalid tags, but those are important
+   * for us to test sometimes. This will do the same thing, but keep invalid
+   * suggestions so we can inspect them.
+   */
+  List<HtmlTagForSelector> _evenInvalidSuggestions(Selector selector) {
+    List<HtmlTagForSelector> tags = <HtmlTagForSelector>[
+      new HtmlTagForSelector()
+    ];
+    return selector.refineTagSuggestions(tags);
+  }
+}
+
+@reflectiveTest
+class HtmlTagForSelectorTest {
+  void test_noNameIsInvalid() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    expect(tag.isValid, isFalse);
+  }
+
+  void test_setName() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "myname";
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals("<myname"));
+  }
+
+  void test_setNameTwice() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "myname";
+    tag.name = "myname";
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals("<myname"));
+  }
+
+  void test_setNameConflicting() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "myname1";
+    tag.name = "myname2";
+    expect(tag.isValid, isFalse);
+  }
+
+  void test_setAttributeNoValue() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals("<tagname attr"));
+  }
+
+  void test_setAttributeNoValueTwice() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr");
+    tag.setAttribute("attr");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals("<tagname attr"));
+  }
+
+  void test_setAttributeValue() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr", value: "value");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname attr="value"'));
+  }
+
+  void test_setAttributeValueTwice() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr", value: "value");
+    tag.setAttribute("attr", value: "value");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname attr="value"'));
+  }
+
+  void test_setAttributeValueAfterJustAttr() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr");
+    tag.setAttribute("attr", value: "value");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname attr="value"'));
+  }
+
+  void test_setAttributeNoValueAfterValue() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr", value: "value");
+    tag.setAttribute("attr");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname attr="value"'));
+  }
+
+  void test_setAttributeConflictingValues() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr", value: "value1");
+    tag.setAttribute("attr", value: "value2");
+    expect(tag.isValid, isFalse);
+  }
+
+  void test_addClassOneClass() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("myclass");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname class="myclass"'));
+  }
+
+  void test_addClassTwoClasses() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("myclass");
+    tag.addClass("myotherclass");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname class="myclass myotherclass"'));
+  }
+
+  void test_addClassMultipleTimesOKDoesntRepeat() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("myclass");
+    tag.addClass("myclass");
+    tag.addClass("myclass");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname class="myclass"'));
+  }
+
+  void test_classesAndClassAttrBindingInvalid() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("myclass");
+    tag.setAttribute("class", value: "blah");
+    expect(tag.isValid, isFalse);
+  }
+
+  void test_classesAndEmptyClassAttrBindingValid() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("myclass");
+    tag.setAttribute("class");
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname class="myclass"'));
+  }
+
+  void test_classesAndMatchingClassAttrBindingValid() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("myclass");
+    tag.setAttribute("class", value: 'myclass');
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname class="myclass"'));
+  }
+
+  void test_cloneKeepsName() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag = tag.clone();
+    expect(tag.toString(), equals("<tagname"));
+  }
+
+  void test_cloneKeepsAttributes() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr1");
+    tag.setAttribute("attr2");
+    tag = tag.clone();
+    expect(tag.toString(), equals("<tagname attr1 attr2"));
+  }
+
+  void test_cloneKeepsAttributeValues() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("attr1", value: 'value1');
+    tag.setAttribute("attr2", value: 'value2');
+    tag = tag.clone();
+    expect(tag.toString(), equals('<tagname attr1="value1" attr2="value2"'));
+  }
+
+  void test_cloneKeepsClassnames() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("class1");
+    tag.addClass("class2");
+    tag = tag.clone();
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), equals('<tagname class="class1 class2"'));
+  }
+
+  void test_cloneKeepsValid() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.name = "break this tag";
+    tag = tag.clone();
+    expect(tag.isValid, isFalse);
+  }
+
+  void test_cloneWithoutNameCanBecomeValid() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag = tag.clone();
+    tag.name = "tagname";
+    expect(tag.isValid, isTrue);
+  }
+
+  void test_cloneIsAClone() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    HtmlTagForSelector clone = tag.clone();
+    tag.name = "original";
+    clone.name = "clone";
+    expect(tag, isNot(equals(clone)));
+    expect(tag.isValid, isTrue);
+    expect(tag.toString(), "<original");
+    expect(clone.isValid, isTrue);
+    expect(clone.toString(), "<clone");
+  }
+
+  void test_cloneHasItsOwnProperties() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    HtmlTagForSelector clone = tag.clone();
+    clone.setAttribute("attr");
+    expect(tag.toString(), "<tagname");
+    expect(clone.toString(), "<tagname attr");
+  }
+
+  void test_cloneHasItsOwnClasses() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    HtmlTagForSelector clone = tag.clone();
+    clone.addClass("myclass");
+    expect(tag.toString(), "<tagname");
+    expect(clone.toString(), '<tagname class="myclass"');
+  }
+
+  void test_toStringIsAlphabeticalProperties() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.setAttribute("apple");
+    tag.setAttribute("flick");
+    tag.setAttribute("ziggy");
+    tag.setAttribute("cow");
+    tag.addClass("classes");
+    expect(tag.toString(), '<tagname apple class="classes" cow flick ziggy');
+  }
+
+  void test_toStringIsAlphabeticalClasses() {
+    HtmlTagForSelector tag = new HtmlTagForSelector();
+    tag.name = "tagname";
+    tag.addClass("apple");
+    tag.addClass("flick");
+    tag.addClass("ziggy");
+    tag.addClass("cow");
+    expect(tag.toString(), '<tagname class="apple cow flick ziggy"');
   }
 }
 
