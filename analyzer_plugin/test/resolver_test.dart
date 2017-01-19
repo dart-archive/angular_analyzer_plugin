@@ -2485,6 +2485,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     errorListener.assertErrorsWithCodes([
+      HtmlErrorCode.PARSE_ERROR,
       ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
       ParserErrorCode.EXPECTED_TOKEN,
       ParserErrorCode.EXPECTED_TYPE_NAME,
