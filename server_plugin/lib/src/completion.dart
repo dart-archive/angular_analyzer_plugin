@@ -209,6 +209,8 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
 }
 
 class TemplateCompleter {
+  static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
+
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request,
       List<Template> templates,
@@ -270,6 +272,9 @@ class TemplateCompleter {
               standardHtmlEvents, target.boundStandardOutputs);
         } else {
           suggestHtmlTags(template, suggestions);
+          if (target.parent != null) {
+            suggestTransclusions(target.parent, suggestions);
+          }
         }
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
@@ -279,10 +284,15 @@ class TemplateCompleter {
           request.offset ==
               (target.closingSpan.offset + target.closingSpan.length)) {
         suggestHtmlTags(template, suggestions, addOpenBracket: true);
+        suggestTransclusions(target.parent, suggestions);
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           request.offset == target.childNodesMaxEnd) {
         suggestHtmlTags(template, suggestions);
+        suggestTransclusions(target, suggestions);
+      } else if (target is ElementInfo) {
+        suggestHtmlTags(template, suggestions, addOpenBracket: true);
+        suggestTransclusions(target, suggestions);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
@@ -304,10 +314,47 @@ class TemplateCompleter {
             ? true
             : target.text[request.offset - target.offset - 1] != '<';
         suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
+        suggestTransclusions(target.parent, suggestions);
       }
     }
 
     return suggestions;
+  }
+
+  suggestTransclusions(
+      ElementInfo container, List<CompletionSuggestion> suggestions) {
+    for (AbstractDirective directive in container.directives) {
+      if (directive is! Component) {
+        continue;
+      }
+
+      Component component = directive;
+      Template template = component?.view?.template;
+      if (template == null) {
+        continue;
+      }
+
+      for (NgContent ngContent in template.ngContents) {
+        if (ngContent.selector == null) {
+          continue;
+        }
+
+        List<HtmlTagForSelector> tags = ngContent.selector.suggestTags();
+        for (HtmlTagForSelector tag in tags) {
+          Location location = new Location(
+              template.view.templateSource.fullName,
+              ngContent.offset,
+              ngContent.length,
+              0,
+              0);
+          suggestions.add(_createHtmlTagSuggestion(
+              tag.toString(),
+              RELEVANCE_TRANSCLUSION,
+              _createHtmlTagTransclusionElement(tag.toString(),
+                  protocol.ElementKind.CLASS_TYPE_ALIAS, location)));
+        }
+      }
+    }
   }
 
   suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions,
@@ -466,6 +513,14 @@ class TemplateCompleter {
     int flags = protocol.Element
         .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
     return new protocol.Element(kind, leftPad + elementTagName, flags,
+        location: location);
+  }
+
+  protocol.Element _createHtmlTagTransclusionElement(
+      String elementTagName, protocol.ElementKind kind, Location location) {
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, elementTagName, flags,
         location: location);
   }
 

@@ -63,7 +63,7 @@ class AngularNavigationContributor implements NavigationContributor {
         }
         // views
         {
-          List<View> views = context.getResult(target, VIEWS);
+          List<View> views = context.getResult(target, VIEWS2);
           for (View view in views) {
             _addViewRegions(collector, lineInfo, view);
           }

@@ -112,8 +112,8 @@ class AbstractAngularTest {
   List<View> computeLibraryViews(Source dartSource) {
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
-    return outputs[VIEWS_WITH_HTML_TEMPLATES];
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    return outputs[VIEWS_WITH_HTML_TEMPLATES2];
   }
 
   void computeResult(AnalysisTarget target, ResultDescriptor result) {

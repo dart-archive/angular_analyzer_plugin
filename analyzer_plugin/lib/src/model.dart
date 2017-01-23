@@ -9,7 +9,6 @@ import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:html/dom.dart' as html;
 
 /**
  * An abstract model of an Angular directive.
@@ -117,6 +116,8 @@ class AngularElementImpl implements AngularElement {
  * The model of an Angular component.
  */
 class Component extends AbstractDirective {
+  View view;
+
   Component(dart.ClassElement classElement,
       {AngularElement exportAs,
       List<InputElement> inputs,
@@ -172,8 +173,7 @@ class HtmlTemplate extends Template {
    */
   final Source source;
 
-  HtmlTemplate(View view, html.Element element, this.source)
-      : super(view, element);
+  HtmlTemplate(View view, this.source) : super(view);
 }
 
 /**
@@ -255,6 +255,28 @@ class ResolvedRange {
   }
 }
 
+class NgContent {
+  final int offset;
+  final int length;
+
+  /**
+   * NOTE: May contain Null. Null in this case means no selector (all content).
+   */
+  final Selector selector;
+  final int selectorOffset;
+  final int selectorLength;
+
+  NgContent(this.offset, this.length)
+      : selector = null,
+        selectorOffset = null,
+        selectorLength = null;
+
+  NgContent.withSelector(this.offset, this.length, this.selector,
+      this.selectorOffset, this.selectorLength);
+
+  bool get matchesAll => selector == null;
+}
+
 /**
  * An Angular template.
  * Templates can be embedded into Dart.
@@ -266,11 +288,6 @@ class Template {
    * The [View] that describes the template.
    */
   final View view;
-
-  /**
-   * The [html.Element] of the template.
-   */
-  final html.Element element;
 
   /**
    * The [ResolvedRange]s of the template.
@@ -288,11 +305,16 @@ class Template {
   List<NodeInfo> _extraNodes = new List<NodeInfo>();
 
   /**
+    * List of <ng-content> selectors in this template.
+    */
+  final List<NgContent> ngContents = <NgContent>[];
+
+  /**
    * The errors that are ignored in this template
    */
   final Set<String> ignoredErrors = new HashSet<String>();
 
-  Template(this.view, this.element);
+  Template(this.view);
 
   /**
    * Records that the given [element] is referenced at the given [range].
@@ -334,11 +356,13 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
-  final Map<String, List<AbstractDirective>> elementTagsInfo;
+  final Map<String, List<AbstractDirective>> elementTagsInfo =
+      <String, List<AbstractDirective>>{};
   final String templateText;
   final int templateOffset;
   final Source templateUriSource;
   final SourceRange templateUrlRange;
+  final dart.Annotation annotation;
 
   int get end => templateOffset + templateText.length;
 
@@ -348,11 +372,14 @@ class View implements AnalysisTarget {
   Template template;
 
   View(this.classElement, this.component, this.directives,
-      {this.elementTagsInfo,
-      this.templateText,
+      {this.templateText,
       this.templateOffset: 0,
       this.templateUriSource,
-      this.templateUrlRange});
+      this.templateUrlRange,
+      this.annotation}) {
+    // stability/error-recovery: @Component can be missing
+    component?.view = this;
+  }
 
   /**
    * The source that contains this view.

@@ -6,8 +6,8 @@ import 'package:front_end/src/scanner/token.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/html.dart';
 import 'package:analyzer/task/model.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
@@ -429,7 +429,7 @@ class CounterComponent {
       fuzz_addHtmlChunk,
     ];
 
-    const iters = 50000;
+    const iters = 1000000;
     for (var i = 0; i < iters; ++i) {
       var transforms = random.nextInt(20) + 1;
       print("Fuzz $i: $transforms transforms");
@@ -591,8 +591,8 @@ class CounterComponent {
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
     // compute Angular templates, ensure no exception thrown
-    checkNoCrashForComputeResult(target, VIEWS_WITH_HTML_TEMPLATES, reason);
-    List<View> views = task.outputs[VIEWS_WITH_HTML_TEMPLATES];
+    checkNoCrashForComputeResult(target, VIEWS_WITH_HTML_TEMPLATES2, reason);
+    List<View> views = task.outputs[VIEWS_WITH_HTML_TEMPLATES2];
     checkNoCrashForComputeResult(dartSource, DART_ERRORS, reason);
     if (views.length > 0 &&
         views.first.templateUriSource.fullName == '/test.html') {
