@@ -102,13 +102,13 @@ class AngularWorkManagerTest {
     expect(
         nextResult,
         new TargetedResult(new LibrarySpecificUnit(dartSource1, dartSource1),
-            VIEWS_WITH_HTML_TEMPLATES));
+            VIEWS_WITH_HTML_TEMPLATES2));
     expect(manager.priorityDartSourcesForViews, [dartSource1]);
   }
 
   void test_getNextResult_priorityDartSourcesForViews_alreadyComputed() {
     manager.priorityDartSourcesForViews.add(dartSource1);
-    dartUnitEntry1.setValue(VIEWS_WITH_HTML_TEMPLATES, [], []);
+    dartUnitEntry1.setValue(VIEWS_WITH_HTML_TEMPLATES2, [], []);
     TargetedResult nextResult = manager.getNextResult();
     expect(nextResult, null);
     expect(manager.priorityDartSourcesForKind, isEmpty);
@@ -189,25 +189,25 @@ class AngularWorkManagerTest {
     expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS), isEmpty);
     // add "view1"
     manager.resultsComputed(source1, {
-      VIEWS_WITH_HTML_TEMPLATES: [view1]
+      VIEWS_WITH_HTML_TEMPLATES2: [view1]
     });
     expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1]));
     // add "view2" from "source3"
-    entry3.setValue(VIEWS_WITH_HTML_TEMPLATES, [view2], []);
+    entry3.setValue(VIEWS_WITH_HTML_TEMPLATES2, [view2], []);
     manager.resultsComputed(source3, {
-      VIEWS_WITH_HTML_TEMPLATES: [view2]
+      VIEWS_WITH_HTML_TEMPLATES2: [view2]
     });
     expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view2]));
     // add "view3"
     manager.resultsComputed(source1, {
-      VIEWS_WITH_HTML_TEMPLATES: [view3]
+      VIEWS_WITH_HTML_TEMPLATES2: [view3]
     });
     expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view2, view3]));
     // invalidate [view2]
-    entry3.setState(VIEWS_WITH_HTML_TEMPLATES, CacheState.INVALID);
+    entry3.setState(VIEWS_WITH_HTML_TEMPLATES2, CacheState.INVALID);
     expect(cache.getValue(templateUriSource, TEMPLATE_VIEWS),
         unorderedEquals([view1, view3]));
   }

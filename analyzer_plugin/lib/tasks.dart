@@ -299,6 +299,25 @@ class AngularWarningCode extends ErrorCode {
               " too complex for errors to be mapped to locations in the file");
 
   /**
+   * An error code indicating that dom inside a component won't be transcluded
+   */
+  static const AngularWarningCode CONTENT_NOT_TRANSCLUDED =
+      const AngularWarningCode(
+          'CONTENT_NOT_TRANSCLUDED',
+          "The content does not match any transclusion selectors of the" +
+              " surrounding component");
+
+  /**
+   * An error code indicating that an <ng-content> tag had content, which is not
+   * allowed.
+   */
+  static const AngularWarningCode NG_CONTENT_MUST_BE_EMPTY =
+      const AngularWarningCode(
+          'NG_CONTENT_MUST_BE_EMPTY',
+          "Nothing is allowed inside an <ng-content> tag, as it will be" +
+              " replaced");
+
+  /**
    * Initialize a newly created error code to have the given [name].
    * The message associated with the error will be created from the given
    * [message] template. The correction associated with the error will be

@@ -9,127 +9,14 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:html/dom.dart' as html;
-import 'package:html/parser.dart' as html;
-import 'package:source_span/source_span.dart';
-
-html.Element _firstElement(html.Node node) {
-  for (html.Element child in node.children) {
-    if (child is html.Element) {
-      return child;
-    }
-  }
-  return null;
-}
-
-/**
- * [DartTemplateResolver]s resolve inline [View] templates.
- */
-class DartTemplateResolver {
-  final TypeProvider typeProvider;
-  final List<Component> standardHtmlComponents;
-  final Map<String, OutputElement> standardHtmlEvents;
-  final Map<String, InputElement> standardHtmlAttributes;
-  final AnalysisErrorListener errorListener;
-  final View view;
-
-  DartTemplateResolver(
-      this.typeProvider,
-      this.standardHtmlComponents,
-      this.standardHtmlEvents,
-      this.standardHtmlAttributes,
-      this.errorListener,
-      this.view);
-
-  Template resolve() {
-    String templateText = view.templateText;
-    if (templateText == null) {
-      return null;
-    }
-    // Parse HTML.
-    html.Document document;
-    List<NodeInfo> extraNodes;
-    {
-      String fragmentText =
-          ' ' * view.templateOffset + templateText.trimRight();
-      html.HtmlParser parser = new html.HtmlParser(fragmentText,
-          generateSpans: true, lowercaseAttrName: false);
-      parser.compatMode = 'quirks';
-
-      // Don't parse as a fragment, but parse as a document. That way there
-      // will be a single first element with all contents.
-      document = parser.parse();
-      extraNodes = _filterParserErrorsToExtraNodes(parser, fragmentText);
-    }
-    // Create and resolve Template.
-    Template template = new Template(view, _firstElement(document));
-    view.template = template;
-    template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
-            standardHtmlEvents, standardHtmlAttributes, errorListener)
-        .resolve(template);
-    if (extraNodes.isNotEmpty) {
-      template.extraNodes.addAll(extraNodes);
-    }
-    _setIgnoredErrors(template, document);
-    return template;
-  }
-
-  /**
-   * Report HTML errors as [AnalysisError]s except for 'eof-in-tag-name' error,
-   * which should be returned as a list of TextNodes
-   */
-  List<NodeInfo> _filterParserErrorsToExtraNodes(
-      html.HtmlParser parser, String fragmentText) {
-    List<html.ParseError> parseErrors = parser.errors;
-    List<NodeInfo> extraNodes = <NodeInfo>[];
-
-    for (html.ParseError parseError in parseErrors) {
-      // We parse this as a full document rather than as a template so
-      // that everything is in the first document element. But then we
-      // get these errors which don't apply -- suppress them.
-      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
-          parseError.errorCode == 'expected-doctype-but-got-chars' ||
-          parseError.errorCode == 'expected-doctype-but-got-eof') {
-        continue;
-      }
-      SourceSpan span = parseError.span;
-      if (parseError.errorCode == 'eof-in-tag-name' ||
-          parseError.errorCode == 'expected-attribute-name-but-got-eof') {
-        int localNameOffset = span.start.offset + "<".length;
-        String localName = fragmentText.substring(localNameOffset).trimRight();
-        ElementInfo extraNode = new ElementInfo(
-            localName,
-            new SourceRange(span.start.offset, span.length),
-            null,
-            new SourceRange(localNameOffset, localName.length),
-            null,
-            localName == 'template',
-            <AttributeInfo>[],
-            null);
-        extraNodes.add(extraNode);
-      }
-      _reportErrorForSpan(
-          span, HtmlErrorCode.PARSE_ERROR, [parseError.message]);
-    }
-    return extraNodes;
-  }
-
-  void _reportErrorForSpan(SourceSpan span, ErrorCode errorCode,
-      [List<Object> arguments]) {
-    errorListener.onError(new AnalysisError(
-        view.source, span.start.offset, span.length, errorCode, arguments));
-  }
-}
 
 /**
  * The implementation of [ElementView] using [AttributeInfo]s.
@@ -180,65 +67,6 @@ class ElementViewImpl implements ElementView {
   }
 }
 
-_setIgnoredErrors(Template template, html.Document document) {
-  html.Node firstNode = document.nodes[0];
-  if (firstNode is html.Comment) {
-    String text = firstNode.text.trim();
-    if (text.startsWith("@ngIgnoreErrors")) {
-      text = text.substring("@ngIgnoreErrors".length);
-      // Per spec: optional color
-      if (text.startsWith(":")) {
-        text = text.substring(1);
-      }
-      // Per spec: optional commas
-      String delim = text.indexOf(',') == -1 ? ' ' : ',';
-      template.ignoredErrors.addAll(new HashSet.from(
-          text.split(delim).map((c) => c.trim().toUpperCase())));
-    }
-  }
-}
-
-/**
- * [HtmlTemplateResolver]s resolve templates in separate Html files.
- */
-class HtmlTemplateResolver {
-  final TypeProvider typeProvider;
-  final List<Component> standardHtmlComponents;
-  final Map<String, OutputElement> standardHtmlEvents;
-  final Map<String, InputElement> standardHtmlAttributes;
-  final AnalysisErrorListener errorListener;
-  final View view;
-  final html.Document document;
-  final List<NodeInfo> extraNodes;
-
-  HtmlTemplateResolver(
-      this.typeProvider,
-      this.standardHtmlComponents,
-      this.standardHtmlEvents,
-      this.standardHtmlAttributes,
-      this.errorListener,
-      this.view,
-      this.document,
-      this.extraNodes);
-
-  HtmlTemplate resolve() {
-    HtmlTemplate template =
-        new HtmlTemplate(view, _firstElement(document), view.templateUriSource);
-
-    view.template = template;
-    template.ast = new TemplateResolver(typeProvider, standardHtmlComponents,
-            standardHtmlEvents, standardHtmlAttributes, errorListener)
-        .resolve(template);
-    _setIgnoredErrors(template, document);
-
-    if (extraNodes != null && extraNodes.isNotEmpty) {
-      template.extraNodes.addAll(extraNodes);
-    }
-
-    return template;
-  }
-}
-
 /**
  * A variable defined by a [AbstractDirective].
  */
@@ -280,17 +108,13 @@ class TemplateResolver {
   TemplateResolver(this.typeProvider, this.standardHtmlComponents,
       this.standardHtmlEvents, this.standardHtmlAttributes, this.errorListener);
 
-  ElementInfo resolve(Template template) {
+  void resolve(Template template) {
     this.template = template;
     this.view = template.view;
     this.templateSource = view.templateSource;
     this.errorReporter = new ErrorReporter(errorListener, templateSource);
-    EmbeddedDartParser parser = new EmbeddedDartParser(
-        templateSource, errorListener, typeProvider, errorReporter);
 
-    ElementInfo root =
-        new HtmlTreeConverter(parser, templateSource, errorListener)
-            .convert(template.element);
+    ElementInfo root = template.ast;
 
     var allDirectives = <AbstractDirective>[]
       ..addAll(standardHtmlComponents)
@@ -300,7 +124,6 @@ class TemplateResolver {
     root.accept(directiveResolver);
 
     _resolveScope(root);
-    return root;
   }
 
   /**
@@ -882,8 +705,9 @@ class DirectiveResolver extends AngularAstVisitor {
     }
 
     ElementView elementView = new ElementViewImpl(element.attributes, element);
-    bool tagIsResolved = false;
+    bool tagIsResolved = element.tagMatchedAsTransclusion;
     bool tagIsStandard = _isStandardTagName(element.localName);
+    Component component;
 
     for (AbstractDirective directive in allDirectives) {
       SelectorMatch match = directive.selector.match(elementView, template);
@@ -891,6 +715,10 @@ class DirectiveResolver extends AngularAstVisitor {
         element.boundDirectives.add(new DirectiveBinding(directive));
         if (match == SelectorMatch.TagMatch) {
           tagIsResolved = true;
+        }
+
+        if (directive is Component) {
+          component = directive;
         }
       }
     }
@@ -903,8 +731,50 @@ class DirectiveResolver extends AngularAstVisitor {
       _checkNoStructuralDirectives(element.attributes);
     }
 
+    if (!tagIsStandard) {
+      _checkTranscludedContent(component, element.childNodes, tagIsStandard);
+    }
+
     for (NodeInfo child in element.childNodes) {
       child.accept(this);
+    }
+  }
+
+  void _checkTranscludedContent(
+      Component component, List<NodeInfo> children, bool tagIsStandard) {
+    Template componentTemplate = component?.view?.template;
+    if (componentTemplate == null) {
+      return;
+    }
+
+    bool acceptAll = componentTemplate.ngContents.any((s) => s.matchesAll);
+    for (NodeInfo child in children) {
+      if (child is TextInfo && !acceptAll && child.text.trim() != "") {
+        _reportErrorForRange(new SourceRange(child.offset, child.length),
+            AngularWarningCode.CONTENT_NOT_TRANSCLUDED);
+      } else if (child is ElementInfo) {
+        ElementView view = new ElementViewImpl(child.attributes, child);
+        bool matched = acceptAll;
+        bool matchedTag = false;
+        if (componentTemplate != null) {
+          for (NgContent ngContent in componentTemplate.ngContents) {
+            SelectorMatch match = ngContent.matchesAll
+                ? SelectorMatch.NonTagMatch
+                : ngContent.selector.match(view, template);
+            if (match != SelectorMatch.NoMatch) {
+              matched = true;
+              matchedTag = matchedTag || match == SelectorMatch.TagMatch;
+            }
+          }
+        }
+
+        if (!matched) {
+          _reportErrorForRange(new SourceRange(child.offset, child.length),
+              AngularWarningCode.CONTENT_NOT_TRANSCLUDED);
+        } else if (matchedTag) {
+          child.tagMatchedAsTransclusion = true;
+        }
+      }
     }
   }
 
@@ -943,6 +813,75 @@ class DirectiveResolver extends AngularAstVisitor {
   static bool _isStandardTagName(String name) {
     name = name.toLowerCase();
     return !name.contains('-') || name == 'ng-content';
+  }
+}
+
+class NgContentRecorder extends AngularScopeVisitor {
+  final Template template;
+  final Source source;
+  final ErrorReporter errorReporter;
+
+  NgContentRecorder(Template template, this.errorReporter)
+      : template = template,
+        source = template.view.templateSource;
+
+  @override
+  void visitElementInfo(ElementInfo element) {
+    if (element.localName != 'ng-content') {
+      for (NodeInfo child in element.childNodes) {
+        child.accept(this);
+      }
+
+      return;
+    }
+
+    List<AttributeInfo> selectorAttrs =
+        element.attributes.where((a) => a.name == 'select');
+
+    if (element.childNodes.length > 0) {
+      errorReporter.reportErrorForOffset(
+          AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
+          element.openingSpan.offset,
+          element.openingSpan.length);
+    }
+
+    if (selectorAttrs.length == 0) {
+      template.ngContents.add(new NgContent(element.offset, element.length));
+      return;
+    }
+
+    // We don't actually check if selectors.length > 2, because the html parser
+    // reports that.
+    try {
+      AttributeInfo selectorAttr = selectorAttrs.first;
+      if (selectorAttr.value == null) {
+        errorReporter.reportErrorForOffset(
+            AngularWarningCode.CANNOT_PARSE_SELECTOR,
+            selectorAttr.nameOffset,
+            selectorAttr.name.length);
+      } else if (selectorAttr.value == "") {
+        errorReporter.reportErrorForOffset(
+            AngularWarningCode.CANNOT_PARSE_SELECTOR,
+            selectorAttr.valueOffset - 1,
+            2);
+      } else {
+        Selector selector = new SelectorParser(
+                source, selectorAttr.valueOffset, selectorAttr.value)
+            .parse();
+        template.ngContents.add(new NgContent.withSelector(
+            element.offset,
+            element.length,
+            selector,
+            selectorAttr.valueOffset,
+            selectorAttr.value.length));
+      }
+    } on SelectorParseError catch (e) {
+      errorReporter.reportErrorForOffset(
+          AngularWarningCode.CANNOT_PARSE_SELECTOR,
+          e.offset,
+          e.length,
+          [e.message]);
+    }
   }
 }
 

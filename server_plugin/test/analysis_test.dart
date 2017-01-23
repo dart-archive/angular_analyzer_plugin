@@ -203,7 +203,7 @@ class TextPanel {}
     {
       LibrarySpecificUnit target =
           new LibrarySpecificUnit(dartSource, dartSource);
-      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
     }
     // compute Angular templates
     computeResult(htmlSource, HTML_TEMPLATES);
@@ -241,7 +241,7 @@ class TextPanel {
     {
       LibrarySpecificUnit target =
           new LibrarySpecificUnit(dartSource, dartSource);
-      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
     }
     // compute Angular templates
     computeResult(htmlSource, HTML_TEMPLATES);

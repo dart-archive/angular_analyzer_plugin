@@ -354,7 +354,7 @@ class MyComp {
     addTestSource('html file {{^}} with mustache');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -378,7 +378,7 @@ class MyComp {
     addTestSource('html file {{text.^}} with mustache');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -400,7 +400,7 @@ class MyComp {
     addTestSource('<div *ngFor="let item of text.^"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -422,7 +422,7 @@ class MyComp {
     addTestSource('<div *ngFor="let item of ^"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -446,7 +446,7 @@ class MyComp {
     addTestSource('<div *ngFor="let^ item of [text]"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -468,7 +468,7 @@ class MyComp {
     addTestSource('<div *ngFor="l^et item of [text]"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -490,7 +490,7 @@ class MyComp {
     addTestSource('<div *ngFor="let item^ of [text]"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -512,7 +512,7 @@ class MyComp {
     addTestSource('<div *ngFor="let i^tem of [text]"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -534,7 +534,7 @@ class MyComp {
     addTestSource('<div *ngFor="let ^"></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -556,7 +556,7 @@ class MyComp {
     addTestSource('<div *ngFor="let item of items">{{^}}</div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -577,7 +577,7 @@ class MyComp {
     addTestSource('<button #buttonEl>button</button> {{^}}');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -600,7 +600,7 @@ class MyComp {
         '<button #buttonEl>button</button><div *ngFor="item of items">{{hashCode.^}}</div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -623,7 +623,7 @@ class MyComp {
     addTestSource('<input /> {{^}}');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -645,7 +645,7 @@ class MyComp {
     addTestSource('<button (click)="^"></button>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -668,7 +668,7 @@ class MyComp {
     addTestSource('some text and {{^   <div>some html</div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -690,7 +690,7 @@ class MyComp {
     addTestSource('{{^}}');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -713,7 +713,7 @@ class MyComp {
     addTestSource('{{takesArg(^)}}');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -740,7 +740,7 @@ class OtherComp {
     addTestSource('<my-tag ^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -771,7 +771,7 @@ class OtherComp {
     addTestSource('<my-tag [name]="\'bob\'" ^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -801,7 +801,7 @@ class OtherComp {
     addTestSource('<my-tag [hidden]="true" ^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -832,7 +832,7 @@ class OtherComp {
     addTestSource('<my-tag [name^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -859,7 +859,7 @@ class OtherComp {
     addTestSource('<my-tag [hidden^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -886,7 +886,7 @@ class OtherComp {
     addTestSource('<my-tag (nameEvent)="" ^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -917,7 +917,7 @@ class OtherComp {
     addTestSource('<my-tag (nameEvent^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -944,7 +944,7 @@ class OtherComp {
     addTestSource('<my-tag (click)="" ^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -974,7 +974,7 @@ class OtherComp {
     addTestSource('<my-tag (click^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1003,7 +1003,7 @@ class OtherComp {
     addTestSource('<my-tag [(name)]="name" ^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1031,7 +1031,7 @@ class OtherComp {
     addTestSource('<my-tag [^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1061,7 +1061,7 @@ class OtherComp {
     addTestSource('<my-tag (^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1091,7 +1091,7 @@ class OtherComp {
     addTestSource('<my-tag [^input]="4"></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1121,7 +1121,7 @@ class OtherComp {
     addTestSource('<my-tag (^output)="4"></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1151,7 +1151,7 @@ class OtherComp {
     addTestSource('<my-tag></my-tag ^>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1181,7 +1181,7 @@ class OtherComp {
     addTestSource('<my-tag>^</my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1211,7 +1211,7 @@ class OtherComp {
     addTestSource('<my-tag^></my-tag>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1238,7 +1238,7 @@ class OtherComp {
     addTestSource('<^<div></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1264,7 +1264,7 @@ class OtherComp {
     addTestSource('<my^<div></div>');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1290,7 +1290,7 @@ class OtherComp {
     addTestSource('''<div><div><^</div></div>''');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1316,7 +1316,7 @@ class OtherComp {
     addTestSource('''<div><div> some text<^</div></div>''');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1342,7 +1342,7 @@ class OtherComp {
     addTestSource('''<div><div><my^</div></div>''');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1368,7 +1368,7 @@ class OtherComp {
     addTestSource('''<div><div></div></div><^''');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1395,7 +1395,7 @@ class OtherComp {
     <my^''');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1421,7 +1421,7 @@ class OtherComp {
     addTestSource('^');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1447,7 +1447,7 @@ class OtherComp {
     addTestSource('<div><div></div></div>^');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1473,7 +1473,7 @@ class OtherComp {
     addTestSource('<div>some text<^');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1481,5 +1481,189 @@ class OtherComp {
     assertSuggestClassTypeAlias("my-child1");
     assertSuggestClassTypeAlias("my-child2");
     assertSuggestClassTypeAlias("my-child3");
+  }
+
+  test_completeTransclusionSuggestion() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [ContainerComponent])
+class MyComp{}
+
+@Component(template:
+    '<ng-content select="tag1,tag2[withattr],tag3.withclass"></ng-content>',
+    selector: 'container')
+class ContainerComponent{}
+      ''');
+    addTestSource('<container>^</container>');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTransclusion("<tag1");
+    assertSuggestTransclusion("<tag2 withattr");
+    assertSuggestTransclusion("<tag3 class=\"withclass\"");
+  }
+
+  test_completeTransclusionSuggestionInWhitespace() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [ContainerComponent])
+class MyComp{}
+
+@Component(template:
+    '<ng-content select="tag1,tag2[withattr],tag3.withclass"></ng-content>',
+    selector: 'container')
+class ContainerComponent{}
+      ''');
+    addTestSource('''
+<container>
+  ^
+</container>''');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTransclusion("<tag1");
+    assertSuggestTransclusion("<tag2 withattr");
+    assertSuggestTransclusion("<tag3 class=\"withclass\"");
+  }
+
+  test_completeTransclusionSuggestionStarted() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [ContainerComponent])
+class MyComp{}
+
+@Component(template:
+    '<ng-content select="tag1,tag2[withattr],tag3.withclass"></ng-content>',
+    selector: 'container')
+class ContainerComponent{}
+      ''');
+    addTestSource('''
+<container>
+  <^
+</container>''');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    //expect(replacementOffset, completionOffset - 1);
+    //expect(replacementLength, 1);
+    assertSuggestTransclusion("<tag1");
+    assertSuggestTransclusion("<tag2 withattr");
+    assertSuggestTransclusion("<tag3 class=\"withclass\"");
+  }
+
+  test_completeTransclusionSuggestionStartedTagName() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [ContainerComponent])
+class MyComp{}
+
+@Component(template:
+    '<ng-content select="tag1,tag2[withattr],tag3.withclass"></ng-content>',
+    selector: 'container')
+class ContainerComponent{}
+      ''');
+    addTestSource('''
+<container>
+  <tag^
+</container>''');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    //expect(replacementOffset, completionOffset - 4);
+    //expect(replacementLength, 4);
+    assertSuggestTransclusion("<tag1");
+    assertSuggestTransclusion("<tag2 withattr");
+    assertSuggestTransclusion("<tag3 class=\"withclass\"");
+  }
+
+  test_completeTransclusionSuggestionAfterTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [ContainerComponent])
+class MyComp{}
+
+@Component(template:
+    '<ng-content select="tag1,tag2[withattr],tag3.withclass"></ng-content>',
+    selector: 'container')
+class ContainerComponent{}
+      ''');
+    addTestSource('''
+<container>
+  <blah></blah>
+  ^
+</container>''');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTransclusion("<tag1");
+    assertSuggestTransclusion("<tag2 withattr");
+    assertSuggestTransclusion("<tag3 class=\"withclass\"");
+  }
+
+  test_completeTransclusionSuggestionBeforeTag() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [ContainerComponent])
+class MyComp{}
+
+@Component(template:
+    '<ng-content select="tag1,tag2[withattr],tag3.withclass"></ng-content>',
+    selector: 'container')
+class ContainerComponent{}
+      ''');
+    addTestSource('''
+<container>
+  ^
+  <blah></blah>
+</container>''');
+    LibrarySpecificUnit target =
+        new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTransclusion("<tag1");
+    assertSuggestTransclusion("<tag2 withattr");
+    assertSuggestTransclusion("<tag3 class=\"withclass\"");
+  }
+
+  assertSuggestTransclusion(String name) {
+    assertSuggestClassTypeAlias(name,
+        relevance: TemplateCompleter.RELEVANCE_TRANSCLUSION);
   }
 }

@@ -30,7 +30,7 @@ class AngularAnalyzerPlugin implements Plugin {
     {
       String id = DART_ERRORS_FOR_UNIT_EXTENSION_POINT_ID;
       registerExtension(id, DIRECTIVES_ERRORS);
-      registerExtension(id, VIEWS_ERRORS);
+      registerExtension(id, VIEWS_ERRORS2);
       registerExtension(id, DART_TEMPLATES_ERRORS);
     }
     // errors for HTML sources
@@ -45,7 +45,9 @@ class AngularAnalyzerPlugin implements Plugin {
         ..addTaskDescriptor(BuildStandardHtmlComponentsTask.DESCRIPTOR)
         ..addTaskDescriptor(BuildUnitDirectivesTask.DESCRIPTOR)
         ..addTaskDescriptor(BuildUnitViewsTask.DESCRIPTOR)
+        ..addTaskDescriptor(BuildUnitViewsTask2.DESCRIPTOR)
         ..addTaskDescriptor(ComputeDirectivesInLibraryTask.DESCRIPTOR)
+        ..addTaskDescriptor(GetAstsForTemplatesInUnitTask.DESCRIPTOR)
         ..addTaskDescriptor(ResolveDartTemplatesTask.DESCRIPTOR)
         ..addTaskDescriptor(ResolveHtmlTemplatesTask.DESCRIPTOR)
         ..addTaskDescriptor(ResolveHtmlTemplateTask.DESCRIPTOR);
