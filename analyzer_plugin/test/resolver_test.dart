@@ -2681,6 +2681,27 @@ class NoTransclude {
     errorListener.assertNoErrors();
   }
 
+  void test_resolvedTag_complexSelector() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+@Component(selector: 'my-tag[my-prop]', template: '')
+class MyTag {
+}
+''');
+    String code = r"""
+<my-tag my-prop></my-tag>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_resolveTemplate_provideContentNgSelectAllWithSelectors() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -2833,6 +2854,57 @@ class TranscludeSome {
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNRESOLVED_TAG, code, "unknown-tag");
+  }
+
+  void test_unResolvedTag_evenThoughMatchedComplexSelector() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+@Component(selector: 'my-tag.not-this-class,[my-prop]', template: '')
+class MyTag {
+}
+''');
+    String code = r"""
+<my-tag my-prop></my-tag>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    _assertElement("my-prop")
+        .selector
+        .inFileName("test_panel.dart")
+        .at("my-prop");
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNRESOLVED_TAG, code, "my-tag");
+  }
+
+  void test_resolvedTag_evenThoughAlsoMatchesNonTagMatch() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+@Component(selector: '[red-herring],my-tag,[unrelated]', template: '')
+class MyTag {
+}
+''');
+    String code = r"""
+<my-tag red-herring unrelated></my-tag>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    _assertElement("my-tag")
+        .selector
+        .inFileName("test_panel.dart")
+        .at("my-tag");
+    errorListener.assertNoErrors();
   }
 
   void _addDartSource(String code) {

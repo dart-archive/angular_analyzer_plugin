@@ -6,6 +6,8 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 
+enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
+
 /**
  * The [Selector] that matches all of the given [selectors].
  */
@@ -15,16 +17,20 @@ class AndSelector extends Selector {
   AndSelector(this.selectors);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
+    SelectorMatch onSuccess = SelectorMatch.NonTagMatch;
     for (Selector selector in selectors) {
-      if (!selector.match(element, null)) {
-        return false;
+      SelectorMatch theMatch = selector.match(element, null);
+      if (theMatch == SelectorMatch.TagMatch) {
+        onSuccess = theMatch;
+      } else if (theMatch == SelectorMatch.NoMatch) {
+        return SelectorMatch.NoMatch;
       }
     }
     for (Selector selector in selectors) {
       selector.match(element, template);
     }
-    return true;
+    return onSuccess;
   }
 
   @override
@@ -51,7 +57,7 @@ class AttributeSelector extends Selector {
   AttributeSelector(this.nameElement, this.value, this.isWildcard);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     String name = nameElement.name;
     SourceRange attributeSpan = null;
     String attributeValue = null;
@@ -59,7 +65,7 @@ class AttributeSelector extends Selector {
     // standard case: exact match, use hash for fast lookup
     if (!isWildcard) {
       if (!element.attributes.containsKey(name)) {
-        return false;
+        return SelectorMatch.NoMatch;
       }
       attributeSpan = element.attributeNameSpans[name];
       attributeValue = element.attributes[name];
@@ -75,13 +81,13 @@ class AttributeSelector extends Selector {
 
       // no matching prop to wildcard
       if (attributeSpan == null) {
-        return false;
+        return SelectorMatch.NoMatch;
       }
     }
 
     // match the actual value against the required
     if (value != null && attributeValue != value) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
 
     // OK
@@ -90,7 +96,7 @@ class AttributeSelector extends Selector {
           new SourceRange(attributeSpan.offset, attributeSpan.length),
           nameElement);
     }
-    return true;
+    return SelectorMatch.NonTagMatch;
   }
 
   @override
@@ -122,14 +128,14 @@ class AttributeValueRegexSelector extends Selector {
   AttributeValueRegexSelector(this.regexpStr) : regexp = new RegExp(regexpStr);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     for (String value in element.attributes.values) {
       if (regexp.hasMatch(value)) {
-        return true;
+        return SelectorMatch.NonTagMatch;
       }
     }
 
-    return false;
+    return SelectorMatch.NoMatch;
   }
 
   @override
@@ -152,16 +158,16 @@ class ClassSelector extends Selector {
   ClassSelector(this.nameElement);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     String name = nameElement.name;
     String val = element.attributes['class'];
     // no 'class' attribute
     if (val == null) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
     // no such class
     if (!val.split(' ').contains(name)) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
     // prepare index of "name" int the "class" attribute value
     int index;
@@ -176,7 +182,7 @@ class ClassSelector extends Selector {
     int valueOffset = element.attributeValueSpans['class'].offset;
     int offset = valueOffset + index;
     template.addRange(new SourceRange(offset, name.length), nameElement);
-    return true;
+    return SelectorMatch.NonTagMatch;
   }
 
   @override
@@ -201,15 +207,15 @@ class ElementNameSelector extends Selector {
   ElementNameSelector(this.nameElement);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     String name = nameElement.name;
     // match
     if (element.localName != name) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
     // done if no template
     if (template == null) {
-      return true;
+      return SelectorMatch.TagMatch;
     }
     // record resolution
     if (element.openingNameSpan != null) {
@@ -218,7 +224,7 @@ class ElementNameSelector extends Selector {
     if (element.closingNameSpan != null) {
       template.addRange(element.closingNameSpan, nameElement);
     }
-    return true;
+    return SelectorMatch.TagMatch;
   }
 
   @override
@@ -253,13 +259,17 @@ class OrSelector extends Selector {
   OrSelector(this.selectors);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
+    SelectorMatch onNoTagMatch = SelectorMatch.NoMatch;
     for (Selector selector in selectors) {
-      if (selector.match(element, template)) {
-        return true;
+      SelectorMatch theMatch = selector.match(element, template);
+      if (theMatch == SelectorMatch.TagMatch) {
+        return SelectorMatch.TagMatch;
+      } else if (theMatch == SelectorMatch.NonTagMatch) {
+        onNoTagMatch = SelectorMatch.NonTagMatch;
       }
     }
-    return false;
+    return onNoTagMatch;
   }
 
   @override
@@ -287,8 +297,10 @@ class NotSelector extends Selector {
   NotSelector(this.condition);
 
   @override
-  bool match(ElementView element, Template template) {
-    return !condition.match(element, template);
+  SelectorMatch match(ElementView element, Template template) {
+    return condition.match(element, template) == SelectorMatch.NoMatch
+        ? SelectorMatch.NonTagMatch
+        : SelectorMatch.NoMatch;
   }
 
   @override
@@ -309,7 +321,7 @@ class ContainsSelector extends Selector {
   ContainsSelector(this.regex);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     // TODO check against actual text contents so we know which :contains
     // directives were used (for when we want to advise removal of unused
     // directives).
@@ -320,7 +332,7 @@ class ContainsSelector extends Selector {
     // Not sure what else we could do.
     //
     // Never matches elements. Only matches [TextNode]s. Return false for now.
-    return false;
+    return SelectorMatch.NoMatch;
   }
 
   @override
@@ -340,7 +352,7 @@ abstract class Selector {
    * Check whether the given [element] matches this selector.
    * If yes, then record resolved ranges into [template].
    */
-  bool match(ElementView element, Template template);
+  SelectorMatch match(ElementView element, Template template);
 
   /**
    * See [HtmlTagForSelector] for info on what this does.

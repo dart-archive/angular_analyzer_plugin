@@ -710,10 +710,10 @@ class DirectiveResolver extends AngularAstVisitor {
     Component component;
 
     for (AbstractDirective directive in allDirectives) {
-      Selector selector = directive.selector;
-      if (selector.match(elementView, template)) {
+      SelectorMatch match = directive.selector.match(elementView, template);
+      if (match != SelectorMatch.NoMatch) {
         element.boundDirectives.add(new DirectiveBinding(directive));
-        if (selector is ElementNameSelector) {
+        if (match == SelectorMatch.TagMatch) {
           tagIsResolved = true;
         }
 
@@ -758,12 +758,12 @@ class DirectiveResolver extends AngularAstVisitor {
         bool matchedTag = false;
         if (componentTemplate != null) {
           for (NgContent ngContent in componentTemplate.ngContents) {
-            if (ngContent.matchesAll ||
-                ngContent.selector.match(view, template)) {
+            SelectorMatch match = ngContent.matchesAll
+                ? SelectorMatch.NonTagMatch
+                : ngContent.selector.match(view, template);
+            if (match != SelectorMatch.NoMatch) {
               matched = true;
-              // TODO don't just check is ElementNameSelector
-              matchedTag =
-                  matchedTag || ngContent.selector is ElementNameSelector;
+              matchedTag = matchedTag || match == SelectorMatch.TagMatch;
             }
           }
         }
@@ -783,7 +783,8 @@ class DirectiveResolver extends AngularAstVisitor {
     // TODO: report error if no directives matched here?
     ElementView elementView = new ElementViewImpl(attr.virtualAttributes, null);
     for (AbstractDirective directive in allDirectives) {
-      if (directive.selector.match(elementView, template)) {
+      if (directive.selector.match(elementView, template) !=
+          SelectorMatch.NoMatch) {
         attr.boundDirectives.add(new DirectiveBinding(directive));
       }
     }
