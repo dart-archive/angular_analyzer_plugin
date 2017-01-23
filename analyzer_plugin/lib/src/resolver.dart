@@ -886,10 +886,10 @@ class DirectiveResolver extends AngularAstVisitor {
     bool tagIsStandard = _isStandardTagName(element.localName);
 
     for (AbstractDirective directive in allDirectives) {
-      Selector selector = directive.selector;
-      if (selector.match(elementView, template)) {
+      SelectorMatch match = directive.selector.match(elementView, template);
+      if (match != SelectorMatch.NoMatch) {
         element.boundDirectives.add(new DirectiveBinding(directive));
-        if (selector is ElementNameSelector) {
+        if (match == SelectorMatch.TagMatch) {
           tagIsResolved = true;
         }
       }
@@ -913,7 +913,8 @@ class DirectiveResolver extends AngularAstVisitor {
     // TODO: report error if no directives matched here?
     ElementView elementView = new ElementViewImpl(attr.virtualAttributes, null);
     for (AbstractDirective directive in allDirectives) {
-      if (directive.selector.match(elementView, template)) {
+      if (directive.selector.match(elementView, template) !=
+          SelectorMatch.NoMatch) {
         attr.boundDirectives.add(new DirectiveBinding(directive));
       }
     }
