@@ -8,6 +8,7 @@ import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -25,6 +26,7 @@ main() {
   defineReflectiveTests(BuildStandardHtmlComponentsTaskTest);
   defineReflectiveTests(BuildUnitDirectivesTaskTest);
   defineReflectiveTests(BuildUnitViewsTaskTest);
+  defineReflectiveTests(BuildUnitViewsTask2Test);
   defineReflectiveTests(ComputeDirectivesInLibraryTaskTest);
   defineReflectiveTests(ResolveDartTemplatesTaskTest);
   defineReflectiveTests(ResolveHtmlTemplatesTaskTest);
@@ -1525,6 +1527,49 @@ class MyComponent {
 
 @reflectiveTest
 class BuildUnitViewsTaskTest extends AbstractAngularTest {
+  void test_buildViewsDoesntGetDependentDirectives() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'other_file.dart';
+
+import '/angular2/angular2.dart';
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [OtherComponent])
+class MyComponent {}
+''';
+    String otherCode = r'''
+import '/angular2/angular2.dart';
+@Component(selector: 'other-component', template: 'My template',
+    directives: const [])
+class OtherComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    Source dependentSource = newSource('/other_file.dart', otherCode);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS1);
+    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    // validate views
+    List<View> views = outputs[VIEWS1];
+    {
+      View view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(0));
+      }
+    }
+    // no errors
+    fillErrorListener(VIEWS_ERRORS1);
+    errorListener.assertNoErrors();
+
+    List<AbstractDirective> otherFileDirectives = context.analysisCache
+        .getValue(new LibrarySpecificUnit(dependentSource, dependentSource),
+            DIRECTIVES_IN_UNIT);
+    // shouldn't be run yet
+    expect(otherFileDirectives, hasLength(0));
+  }
+}
+
+@reflectiveTest
+class BuildUnitViewsTask2Test extends AbstractAngularTest {
   void test_directives() {
     String code = r'''
 import '/angular2/angular2.dart';
@@ -1546,10 +1591,10 @@ class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate views
-    List<View> views = outputs[VIEWS];
+    List<View> views = outputs[VIEWS2];
     {
       View view = getViewByClassName(views, 'MyComponent');
       {
@@ -1562,7 +1607,7 @@ class MyComponent {}
       }
     }
     // no errors
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertNoErrors();
   }
 
@@ -1578,10 +1623,10 @@ class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // no errors
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
   }
@@ -1597,10 +1642,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.COMPONENT_ANNOTATION_MISSING]);
   }
@@ -1616,10 +1661,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED]);
   }
@@ -1635,10 +1680,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
   }
@@ -1654,10 +1699,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertNoErrors();
   }
 
@@ -1674,10 +1719,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
   }
@@ -1693,10 +1738,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
   }
@@ -1713,10 +1758,10 @@ class ComponentA {
 ''');
     newSource('/a.html', '');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED]);
   }
@@ -1732,10 +1777,10 @@ class ComponentA {
 }
 ''');
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED]);
   }
@@ -1750,10 +1795,10 @@ class MyComponent {}
     Source dartSource = newSource('/test.dart', code);
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    fillErrorListener(VIEWS_ERRORS);
+    fillErrorListener(VIEWS_ERRORS2);
     assertErrorInCodeAtPosition(
         AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
         code,
@@ -1771,12 +1816,12 @@ class MyComponent {}
     Source htmlSource = newSource('/my-template.html', '');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     List<AbstractDirective> directives =
         context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     // validate views
-    List<View> views = outputs[VIEWS];
+    List<View> views = outputs[VIEWS2];
     expect(views, hasLength(1));
     // MyComponent
     View view = getViewByClassName(views, 'MyComponent');
@@ -1791,7 +1836,7 @@ class MyComponent {}
           new SourceRange(code.indexOf(url), url.length));
     }
     // has a single view
-    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES2];
     expect(templateViews, unorderedEquals([view]));
   }
 
@@ -1807,12 +1852,12 @@ class MyComponent {}
     Source htmlSource = newSource('/my-template.html', '');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     List<AbstractDirective> directives =
         context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     // validate views
-    List<View> views = outputs[VIEWS];
+    List<View> views = outputs[VIEWS2];
     expect(views, hasLength(1));
     // MyComponent
     View view = getViewByClassName(views, 'MyComponent');
@@ -1827,7 +1872,7 @@ class MyComponent {}
           new SourceRange(code.indexOf(url), url.length));
     }
     // has a single view
-    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES2];
     expect(templateViews, unorderedEquals([view]));
   }
 
@@ -1847,12 +1892,12 @@ class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     List<AbstractDirective> directives =
         context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     // validate views
-    List<View> views = outputs[VIEWS];
+    List<View> views = outputs[VIEWS2];
     expect(views, hasLength(2));
     {
       View view = getViewByClassName(views, 'MyComponent');
@@ -1872,7 +1917,7 @@ class MyComponent {}
       }
     }
     // no view with external templates
-    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES2];
     expect(templateViews, hasLength(0));
   }
 
@@ -1893,12 +1938,12 @@ class MyComponent {}
 ''';
     Source source = newSource('/test.dart', code);
     LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    computeResult(target, VIEWS2);
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     List<AbstractDirective> directives =
         context.analysisCache.getValue(target, DIRECTIVES_IN_UNIT);
     // validate views
-    List<View> views = outputs[VIEWS];
+    List<View> views = outputs[VIEWS2];
     expect(views, hasLength(2));
     {
       View view = getViewByClassName(views, 'MyComponent');
@@ -1918,7 +1963,7 @@ class MyComponent {}
       }
     }
     // no view with external templates
-    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    List<View> templateViews = outputs[VIEWS_WITH_HTML_TEMPLATES2];
     expect(templateViews, hasLength(0));
   }
 }
@@ -2150,6 +2195,44 @@ class ComponentA {
         AngularWarningCode.UNRESOLVED_TAG, code, 'unresolved-tag');
   }
 
+  void test_errorFromWeirdInclude_includesFromPath() {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa', templateUrl: "test.html")
+class ComponentA {
+}
+''';
+    Source dartSource = newSource('/weird.dart', code);
+    Source dartSourceRegular = newSource('/test.dart', code);
+    Source htmlSource =
+        newSource('/test.html', "<unresolved-tag></unresolved-tag>");
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSource, dartSource);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    }
+    {
+      LibrarySpecificUnit target =
+          new LibrarySpecificUnit(dartSourceRegular, dartSourceRegular);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    }
+    // compute Angular templates
+    computeResult(htmlSource, HTML_TEMPLATES_ERRORS);
+    expect(task, new isInstanceOf<ResolveHtmlTemplatesTask>());
+    // validate
+    fillErrorListener(HTML_TEMPLATES_ERRORS);
+    expect(outputs[HTML_TEMPLATES_ERRORS], hasLength(2));
+    expect(outputs[HTML_TEMPLATES_ERRORS].first,
+        new isInstanceOf<AnalysisError>());
+    expect(outputs[HTML_TEMPLATES_ERRORS].first.message,
+        equals('Unresolved tag "unresolved-tag"'));
+    expect(outputs[HTML_TEMPLATES_ERRORS][1],
+        new isInstanceOf<FromFilePrefixedError>());
+    expect(outputs[HTML_TEMPLATES_ERRORS][1].message,
+        equals('Unresolved tag "unresolved-tag" (from /weird.dart)'));
+  }
+
   void test_suppressError_UnresolvedTag() {
     String code = r'''
 import '/angular2/angular2.dart';
@@ -2210,7 +2293,7 @@ class ComponentA {
     {
       LibrarySpecificUnit target =
           new LibrarySpecificUnit(dartSource, dartSource);
-      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
     }
     // compute Angular templates
     computeResult(htmlSource, HTML_TEMPLATES);
@@ -2251,11 +2334,9 @@ class TextPanel {
 }
 ''';
     Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    computeResult(source, DART_ERRORS);
     // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
+    fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([HtmlErrorCode.PARSE_ERROR]);
   }
 
@@ -2488,14 +2569,9 @@ class TextPanel {
 }
 ''';
     Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // validate
-    List<Template> templates = outputs[DART_TEMPLATES];
-    expect(templates, hasLength(1));
+    computeResult(source, DART_ERRORS);
     // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
+    fillErrorListener(DART_ERRORS);
     errorListener
         .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
   }
@@ -2509,14 +2585,9 @@ class TextPanel {
 }
 ''';
     Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // validate
-    List<Template> templates = outputs[DART_TEMPLATES];
-    expect(templates, hasLength(1));
+    computeResult(source, DART_ERRORS);
     // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
+    fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
   }
 
@@ -2530,14 +2601,9 @@ class TextPanel {
 }
 ''';
     Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // validate
-    List<Template> templates = outputs[DART_TEMPLATES];
-    expect(templates, hasLength(1));
+    computeResult(source, DART_ERRORS);
     // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
+    fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
       AngularWarningCode.UNTERMINATED_MUSTACHE,
       StaticWarningCode.UNDEFINED_IDENTIFIER
@@ -2554,14 +2620,9 @@ class TextPanel {
 }
 ''';
     Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, DART_TEMPLATES);
-    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
-    // validate
-    List<Template> templates = outputs[DART_TEMPLATES];
-    expect(templates, hasLength(1));
+    computeResult(source, DART_ERRORS);
     // has errors
-    fillErrorListener(DART_TEMPLATES_ERRORS);
+    fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
       AngularWarningCode.UNTERMINATED_MUSTACHE,
       AngularWarningCode.UNTERMINATED_MUSTACHE,
@@ -2622,6 +2683,103 @@ class TextPanel {
     errorListener.assertNoErrors();
   }
 
+  void test_resolveGetChildDirectivesNgContentSelectors() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'child_file.dart';
+
+import '/angular2/angular2.dart';
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [ChildComponent])
+class MyComponent {}
+''';
+    String childCode = r'''
+import '/angular2/angular2.dart';
+@Component(selector: 'child-component',
+    template: 'My template <ng-content></ng-content>',
+    directives: const [])
+class ChildComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    Source childSource = newSource('/child_file.dart', childCode);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate views
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // no errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+
+    List<AbstractDirective> childDirectives = context.analysisCache.getValue(
+        new LibrarySpecificUnit(childSource, childSource), DIRECTIVES_IN_UNIT);
+    expect(childDirectives, hasLength(1));
+
+    List<View> childViews = context.analysisCache
+        .getValue(new LibrarySpecificUnit(childSource, childSource), VIEWS1);
+    expect(childViews, hasLength(1));
+    View childView = childViews.first;
+    expect(childView.template, isNotNull);
+    expect(childView.template.ngContents, hasLength(1));
+  }
+
+  /**
+   * On hold. We need to make a "EXPORTED_DIRECTIVES_IN_UNIT" result/task pair
+   * and use that
+   *
+  void test_resolveDoesntGetGrandchildDirectives() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'child_file.dart';
+
+import '/angular2/angular2.dart';
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [ChildComponent])
+class MyComponent {}
+''';
+    String childCode = r'''
+import '/angular2/angular2.dart';
+import 'grandchild_file.dart';
+@Component(selector: 'child-component', template: 'My template',
+    directives: const [GrandchildComponent])
+class ChildComponent {}
+''';
+    String grandchildCode = r'''
+import '/angular2/angular2.dart';
+@Component(selector: 'grandchild-component', template: 'My template',
+    directives: const [])
+class GrandchildComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    Source childSource = newSource('/child_file.dart', childCode);
+    Source grandchildSource =
+        newSource('/grandchild_file.dart', grandchildCode);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, DART_TEMPLATES);
+    expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+    // validate views
+    List<Template> templates = outputs[DART_TEMPLATES];
+    expect(templates, hasLength(1));
+    // no errors
+    fillErrorListener(DART_TEMPLATES_ERRORS);
+    errorListener.assertNoErrors();
+
+    List<AbstractDirective> childDirectives = context.analysisCache.getValue(
+        new LibrarySpecificUnit(childSource, childSource), DIRECTIVES_IN_UNIT);
+    expect(childDirectives, hasLength(1));
+
+    List<View> childViews = context.analysisCache
+        .getValue(new LibrarySpecificUnit(childSource, childSource), VIEWS1);
+    expect(childViews, hasLength(0));
+
+    List<AbstractDirective> grandchildDirectives = context.analysisCache
+        .getValue(new LibrarySpecificUnit(grandchildSource, grandchildSource),
+            DIRECTIVES_IN_UNIT);
+    expect(grandchildDirectives, hasLength(0));
+  }
+  */
+
   static Template _getDartTemplateByClassName(
       List<Template> templates, String className) {
     return templates.firstWhere(
@@ -2659,7 +2817,7 @@ class TextPanelB {
     {
       LibrarySpecificUnit target =
           new LibrarySpecificUnit(dartSource, dartSource);
-      computeResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
     }
     // compute Angular templates
     computeResult(htmlSource, HTML_TEMPLATES);
@@ -2752,9 +2910,9 @@ class TextPanel {
     newSource('/text_panel.html', htmlCode);
     // compute
     computeLibraryViews(dartSource);
-    expect(task, new isInstanceOf<BuildUnitViewsTask>());
+    expect(task, new isInstanceOf<BuildUnitViewsTask2>());
     // validate
-    List<View> views = outputs[VIEWS_WITH_HTML_TEMPLATES];
+    List<View> views = outputs[VIEWS_WITH_HTML_TEMPLATES2];
     expect(views, hasLength(1));
     {
       View view = getViewByClassName(views, 'TextPanel');
@@ -2776,5 +2934,56 @@ class TextPanel {
         expect(element.nameOffset, dartCode.indexOf('text; // 1'));
       }
     }
+  }
+
+  void test_resolveGetChildDirectivesNgContentSelectors() {
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'child_file.dart';
+
+import '/angular2/angular2.dart';
+@Component(selector: 'my-component', templateUrl: 'test.html',
+    directives: const [ChildComponent])
+class MyComponent {}
+''';
+    String childCode = r'''
+import '/angular2/angular2.dart';
+@Component(selector: 'child-component',
+    template: 'My template <ng-content></ng-content>',
+    directives: const [])
+class ChildComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    Source childSource = newSource('/child_file.dart', childCode);
+    newSource('/test.html', '');
+    View view;
+    {
+      LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+      computeResult(target, VIEWS_WITH_HTML_TEMPLATES1);
+      expect(task, new isInstanceOf<BuildUnitViewsTask>());
+      List<View> views;
+      views = outputs[VIEWS_WITH_HTML_TEMPLATES1];
+      expect(views, hasLength(1));
+      view = views.first;
+    }
+    computeResult(view, HTML_TEMPLATE);
+    expect(task, new isInstanceOf<ResolveHtmlTemplateTask>());
+    // validate views
+    Template template = outputs[HTML_TEMPLATE];
+    expect(template, isNotNull);
+    // no errors
+    fillErrorListener(HTML_TEMPLATE_ERRORS);
+    errorListener.assertNoErrors();
+
+    List<AbstractDirective> childDirectives = context.analysisCache.getValue(
+        new LibrarySpecificUnit(childSource, childSource), DIRECTIVES_IN_UNIT);
+    expect(childDirectives, hasLength(1));
+
+    List<View> childViews = context.analysisCache
+        .getValue(new LibrarySpecificUnit(childSource, childSource), VIEWS1);
+    expect(childViews, hasLength(1));
+    View childView = childViews.first;
+    expect(childView.template, isNotNull);
+    expect(childView.template.ngContents, hasLength(1));
   }
 }

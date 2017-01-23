@@ -1,5 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.tasks;
 
+import 'dart:collection';
+
 import 'package:analyzer/src/context/cache.dart';
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/token.dart';
@@ -23,6 +25,8 @@ import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/task/general.dart';
+import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
+import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -178,30 +182,78 @@ final ListResultDescriptor<View> TEMPLATE_VIEWS =
     new ListResultDescriptor<View>('ANGULAR_TEMPLATE_VIEWS', View.EMPTY_LIST);
 
 /**
- * The [View]s of a [LibrarySpecificUnit].
+ * The [View]s of a [LibrarySpecificUnit], without looking at what directives
+ * they use.
  */
-final ListResultDescriptor<View> VIEWS =
-    new ListResultDescriptor<View>('ANGULAR_VIEWS', View.EMPTY_LIST);
+final ListResultDescriptor<View> VIEWS1 =
+    new ListResultDescriptor<View>('ANGULAR_VIEWS1', View.EMPTY_LIST);
 
 /**
- * The errors produced while building [VIEWS].
+ * The [View]s of a [LibrarySpecificUnit], including what directives they use.
+ */
+final ListResultDescriptor<View> VIEWS2 =
+    new ListResultDescriptor<View>('ANGULAR_VIEWS2', View.EMPTY_LIST);
+
+/**
+ * The errors produced while building [VIEWS1]. Included in [VIEWS_ERRORS2].
  *
  * The list will be empty if there were no errors, but will not be `null`.
  *
  * The result is only available for [LibrarySpecificUnit]s.
  */
-final ListResultDescriptor<AnalysisError> VIEWS_ERRORS =
+final ListResultDescriptor<AnalysisError> VIEWS_ERRORS1 =
     new ListResultDescriptor<AnalysisError>(
-        'ANGULAR_VIEWS_ERRORS', AnalysisError.NO_ERRORS);
+        'ANGULAR_VIEWS_ERRORS1', AnalysisError.NO_ERRORS);
 
 /**
- * The [View]s with templates in separate HTML files.
+ * The errors produced while building [VIEWS2]. Includes [VIEWS_ERRORS2].
+ *
+ * The list will be empty if there were no errors, but will not be `null`.
  *
  * The result is only available for [LibrarySpecificUnit]s.
  */
-final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
+final ListResultDescriptor<AnalysisError> VIEWS_ERRORS2 =
+    new ListResultDescriptor<AnalysisError>(
+        'ANGULAR_VIEWS_ERRORS2', AnalysisError.NO_ERRORS);
+
+/**
+ * The [View]s with templates in separate HTML files, without including what
+ * directives they use.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
+final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES1 =
     new ListResultDescriptor<View>(
-        'ANGULAR_VIEWS_WITH_TEMPLATES', View.EMPTY_LIST);
+        'ANGULAR_VIEWS_WITH_TEMPLATES1', View.EMPTY_LIST);
+
+/**
+ * The [View]s with templates in separate HTML files, including what directives
+ * they use.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
+final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES2 =
+    new ListResultDescriptor<View>(
+        'ANGULAR_VIEWS_WITH_TEMPLATES2', View.EMPTY_LIST);
+
+/**
+ * The asts on the [VIEWS] in a [LibrarySpecificUnit]. Usually you will depend
+ * on this and [VIEWS] and use the asts that will therefore be guaranteed to be
+ * set on the [View] objects you get.
+ */
+final ListResultDescriptor<ElementInfo> ANGULAR_ASTS =
+    new ListResultDescriptor<ElementInfo>('ANGULAR_ASTS', const []);
+
+/**
+ * The errors produced while creating [ANGULAR_ASTS]. Use a Map<Source, ...>
+ * because the ast is usually in a different file from the view, and there may
+ * be multiple views (and therefore multiple different sources) in a unit.
+ *
+ * The result is only available for [LibrarySpecificUnit]s.
+ */
+final ResultDescriptor<Map<Source, List<AnalysisError>>> ANGULAR_ASTS_ERRORS =
+    new ResultDescriptor<Map<Source, List<AnalysisError>>>(
+        'ANGULAR_ASTS_ERRORS', const <Source, List<AnalysisError>>{});
 
 /**
  * A task that scans contents of a HTML file,
@@ -211,7 +263,7 @@ final ListResultDescriptor<View> VIEWS_WITH_HTML_TEMPLATES =
  * Builds [ANGULAR_HTML_DOCUMENT],[ANGULAR_HTML_DOCUMENT_ERRORS], and
  * [ANGULAR_HTML_DOCUMENT_EXTRA_NODES].
  */
-class AngularParseHtmlTask extends SourceBasedAnalysisTask {
+class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
   static const String CONTENT_INPUT_NAME = 'CONTENT_INPUT_NAME';
   static const String MODIFICATION_TIME_INPUT = 'MODIFICATION_TIME_INPUT';
 
@@ -251,43 +303,9 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
       ];
       outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = null;
     } else {
-      html.HtmlParser parser = new html.HtmlParser(content,
-          generateSpans: true, lowercaseAttrName: false);
-      parser.compatMode = 'quirks';
-      html.Document document = parser.parse();
-
-      List<AnalysisError> documentErrors = <AnalysisError>[];
-      List<NodeInfo> extraNodes = <NodeInfo>[];
-      List<html.ParseError> parseErrors = parser.errors;
-
-      for (html.ParseError parseError in parseErrors) {
-        if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
-            parseError.errorCode == 'expected-doctype-but-got-chars' ||
-            parseError.errorCode == 'expected-doctype-but-got-eof') {
-          continue;
-        }
-        SourceSpan span = parseError.span;
-        if (parseError.errorCode == 'eof-in-tag-name' ||
-            parseError.errorCode == 'expected-attribute-name-but-got-eof') {
-          int localNameOffset = span.start.offset + "<".length;
-          String localName = content.substring(localNameOffset).trimRight();
-          ElementInfo extraNode = new ElementInfo(
-              localName,
-              new SourceRange(span.start.offset, span.length),
-              null,
-              new SourceRange(localNameOffset, localName.length),
-              null,
-              localName == 'template',
-              <AttributeInfo>[],
-              null);
-          extraNodes.add(extraNode);
-        }
-        documentErrors.add(new AnalysisError(target.source, span.start.offset,
-            span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
-      }
-
+      parse(content);
       outputs[ANGULAR_HTML_DOCUMENT] = document;
-      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = documentErrors;
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
       outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = extraNodes;
     }
   }
@@ -302,6 +320,53 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask {
   static AngularParseHtmlTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new AngularParseHtmlTask(context, target);
+  }
+}
+
+abstract class ParseHtmlMixin implements AnalysisTask {
+  html.Document document;
+  final List<AnalysisError> parseErrors = <AnalysisError>[];
+  final List<NodeInfo> extraNodes = <NodeInfo>[];
+
+  void parse(String content) {
+    html.HtmlParser parser = new html.HtmlParser(content,
+        generateSpans: true, lowercaseAttrName: false);
+    parser.compatMode = 'quirks';
+    document = parser.parse();
+
+    List<html.ParseError> htmlErrors = parser.errors;
+
+    for (html.ParseError parseError in htmlErrors) {
+      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
+          parseError.errorCode == 'expected-doctype-but-got-chars' ||
+          parseError.errorCode == 'expected-doctype-but-got-eof') {
+        continue;
+      }
+
+      SourceSpan span = parseError.span;
+      // html parser lib isn't nice enough to send this error all the time
+      // see github #47 for dart-lang/html
+      if (span == null) continue;
+
+      if (parseError.errorCode == 'eof-in-tag-name' ||
+          parseError.errorCode == 'expected-attribute-name-but-got-eof') {
+        int localNameOffset = span.start.offset + "<".length;
+        String localName = content.substring(localNameOffset).trimRight();
+        ElementInfo extraNode = new ElementInfo(
+            localName,
+            new SourceRange(span.start.offset, span.length),
+            null,
+            new SourceRange(localNameOffset, localName.length),
+            null,
+            localName == 'template',
+            <AttributeInfo>[],
+            null,
+            null);
+        extraNodes.add(extraNode);
+      }
+      this.parseErrors.add(new AnalysisError(target.source, span.start.offset,
+          span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
+    }
   }
 }
 
@@ -925,23 +990,24 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
  * A task that builds [View]s of a [CompilationUnit].
  */
 class BuildUnitViewsTask extends SourceBasedAnalysisTask
-    with _AnnotationProcessorMixin {
-  static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
+    with _AnnotationProcessorMixin, ParseHtmlMixin {
+  static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String UNIT_INPUT = 'UNIT_INPUT';
+  static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'BuildUnitViewsTask',
       createTask,
       buildInputs,
-      <ResultDescriptor>[VIEWS, VIEWS_ERRORS, VIEWS_WITH_HTML_TEMPLATES]);
-
-  List<AbstractDirective> _allDirectives;
+      <ResultDescriptor>[VIEWS1, VIEWS_ERRORS1, VIEWS_WITH_HTML_TEMPLATES1]);
 
   BuildUnitViewsTask(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
 
   @override
   TaskDescriptor get descriptor => DESCRIPTOR;
+
+  List<AbstractDirective> directivesDefinedInFile;
 
   @override
   void internalPerform() {
@@ -950,7 +1016,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     // Prepare inputs.
     //
     ast.CompilationUnit unit = getRequiredInput(UNIT_INPUT);
-    _allDirectives = getRequiredInput(DIRECTIVES_INPUT);
+    directivesDefinedInFile = getRequiredInput(DIRECTIVES_INPUT);
 
     //
     // Process all classes.
@@ -990,9 +1056,190 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     //
     // Record outputs.
     //
-    outputs[VIEWS] = views;
-    outputs[VIEWS_ERRORS] = errorListener.errors;
-    outputs[VIEWS_WITH_HTML_TEMPLATES] = viewsWithTemplates;
+    outputs[VIEWS1] = views;
+    outputs[VIEWS_ERRORS1] = errorListener.errors;
+    outputs[VIEWS_WITH_HTML_TEMPLATES1] = viewsWithTemplates;
+  }
+
+  /**
+   * Create a new [View] for the given [annotation], may return `null`
+   * if [annotation] or [classElement] don't provide enough information.
+   */
+  View _createView(ClassElement classElement, ast.Annotation annotation) {
+    // Template in a separate HTML file.
+    Source templateUriSource = null;
+    bool definesTemplate = false;
+    bool definesTemplateUrl = false;
+    SourceRange templateUrlRange = null;
+    {
+      ast.Expression templateUrlExpression =
+          _getNamedArgument(annotation, 'templateUrl');
+      definesTemplateUrl = templateUrlExpression != null;
+      String templateUrl = _getExpressionString(templateUrlExpression);
+      if (templateUrl != null) {
+        SourceFactory sourceFactory = context.sourceFactory;
+        templateUriSource =
+            sourceFactory.resolveUri(target.source, templateUrl);
+
+        if (templateUriSource == null || !templateUriSource.exists()) {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
+              templateUrlExpression);
+        }
+
+        templateUrlRange = new SourceRange(
+            templateUrlExpression.offset, templateUrlExpression.length);
+      }
+    }
+    // Try to find inline "template".
+    String templateText;
+    int templateOffset = 0;
+    {
+      ast.Expression expression = _getNamedArgument(annotation, 'template');
+      if (expression != null) {
+        templateOffset = expression.offset;
+        definesTemplate = true;
+        OffsettingConstantEvaluator constantEvaluation =
+            _calculateStringWithOffsets(expression);
+
+        // highly dynamically generated constant expressions can't be validated
+        if (constantEvaluation == null || !constantEvaluation.offsetsAreValid) {
+          templateText = '';
+        } else {
+          templateText = constantEvaluation.value;
+        }
+      }
+    }
+
+    if (definesTemplate && definesTemplateUrl) {
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED, annotation);
+
+      return null;
+    }
+
+    if (!definesTemplate && !definesTemplateUrl) {
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
+
+      return null;
+    }
+
+    // Find the corresponding Component.
+    Component component = _findComponentAnnotationOrReportError(classElement);
+    if (component == null) {
+      return null;
+    }
+    // Create View.
+    return new View(classElement, component, <AbstractDirective>[],
+        templateText: templateText,
+        templateOffset: templateOffset,
+        templateUriSource: templateUriSource,
+        templateUrlRange: templateUrlRange,
+        annotation: annotation);
+  }
+
+  Component _findComponentAnnotationOrReportError(ClassElement classElement) {
+    for (AbstractDirective directive in directivesDefinedInFile) {
+      if (directive is Component && directive.classElement == classElement) {
+        return directive;
+      }
+    }
+    errorReporter.reportErrorForElement(
+        AngularWarningCode.COMPONENT_ANNOTATION_MISSING, classElement, []);
+    return null;
+  }
+
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
+    return <String, TaskInput>{
+      DIRECTIVES_INPUT: DIRECTIVES_IN_UNIT.of(target),
+      UNIT_INPUT: RESOLVED_UNIT.of(target),
+      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
+    };
+  }
+
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
+  static BuildUnitViewsTask createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new BuildUnitViewsTask(context, target);
+  }
+}
+
+class BuildUnitViewsTask2 extends SourceBasedAnalysisTask
+    with _AnnotationProcessorMixin {
+  static const String VIEWS1_INPUT = 'VIEWS1_INPUT';
+  static const String VIEWS_ERRORS1_INPUT = 'VIEWS_ERRORS1_INPUT';
+  static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'BuildUnitViewsTask2',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[VIEWS2, VIEWS_ERRORS2, VIEWS_WITH_HTML_TEMPLATES2]);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  List<AbstractDirective> _allDirectives;
+
+  BuildUnitViewsTask2(AnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  void internalPerform() {
+    List<View> views = getRequiredInput(VIEWS1_INPUT);
+    _allDirectives = getRequiredInput(DIRECTIVES_INPUT);
+    initAnnotationProcessor(target);
+
+    views.forEach(findDirectives);
+    outputs[VIEWS2] = views;
+
+    outputs[VIEWS_WITH_HTML_TEMPLATES2] =
+        views.where((d) => d.templateUriSource != null).toList();
+
+    outputs[VIEWS_ERRORS2] = new List<AnalysisError>.from(errorListener.errors)
+      ..addAll(getRequiredInput(VIEWS_ERRORS1_INPUT));
+  }
+
+  void findDirectives(View view) {
+    // Prepare directives and elementTags
+    ast.Expression listExpression =
+        _getNamedArgument(view.annotation, 'directives');
+    if (listExpression is ast.ListLiteral) {
+      for (ast.Expression item in listExpression.elements) {
+        if (item is ast.Identifier) {
+          Element element = item.staticElement;
+          // TypeLiteral
+          if (element is ClassElement) {
+            _addDirectiveAndElementTagOrReportError(
+                view.directives, view.elementTagsInfo, item, element);
+            continue;
+          }
+          // LIST_OF_DIRECTIVES
+          if (element is PropertyAccessorElement &&
+              element.variable.constantValue != null) {
+            DartObject value = element.variable.constantValue;
+            bool success = _addDirectivesAndElementTagsForDartObject(
+                view.directives, view.elementTagsInfo, value);
+            if (!success) {
+              errorReporter.reportErrorForNode(
+                  AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
+              return null;
+            }
+            continue;
+          }
+        }
+        // unknown
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
+      }
+    }
   }
 
   /**
@@ -1066,132 +1313,6 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   }
 
   /**
-   * Create a new [View] for the given [annotation], may return `null`
-   * if [annotation] or [classElement] don't provide enough information.
-   */
-  View _createView(ClassElement classElement, ast.Annotation annotation) {
-    // Template in a separate HTML file.
-    Source templateUriSource = null;
-    bool definesTemplate = false;
-    bool definesTemplateUrl = false;
-    SourceRange templateUrlRange = null;
-    {
-      ast.Expression templateUrlExpression =
-          _getNamedArgument(annotation, 'templateUrl');
-      definesTemplateUrl = templateUrlExpression != null;
-      String templateUrl = _getExpressionString(templateUrlExpression);
-      if (templateUrl != null) {
-        SourceFactory sourceFactory = context.sourceFactory;
-        templateUriSource =
-            sourceFactory.resolveUri(target.source, templateUrl);
-
-        if (templateUriSource == null || !templateUriSource.exists()) {
-          errorReporter.reportErrorForNode(
-              AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
-              templateUrlExpression);
-        }
-
-        templateUrlRange = new SourceRange(
-            templateUrlExpression.offset, templateUrlExpression.length);
-      }
-    }
-    // Try to find inline "template".
-    String templateText;
-    int templateOffset = 0;
-    {
-      ast.Expression expression = _getNamedArgument(annotation, 'template');
-      if (expression != null) {
-        templateOffset = expression.offset;
-        definesTemplate = true;
-        OffsettingConstantEvaluator constantEvaluation =
-            _calculateStringWithOffsets(expression);
-
-        // highly dynamically generated constant expressions can't be validated
-        if (constantEvaluation == null || !constantEvaluation.offsetsAreValid) {
-          templateText = '';
-        } else {
-          templateText = constantEvaluation.value;
-        }
-      }
-    }
-
-    if (definesTemplate && definesTemplateUrl) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED, annotation);
-
-      return null;
-    }
-
-    if (!definesTemplate && !definesTemplateUrl) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
-
-      return null;
-    }
-
-    // Find the corresponding Component.
-    Component component = _findComponentAnnotationOrReportError(classElement);
-    if (component == null) {
-      return null;
-    }
-    // Prepare directives and elementTags
-    List<AbstractDirective> directives = <AbstractDirective>[];
-    Map<String, List<AbstractDirective>> elementTagsInfo =
-        new Map<String, List<AbstractDirective>>();
-    {
-      ast.Expression listExpression =
-          _getNamedArgument(annotation, 'directives');
-      if (listExpression is ast.ListLiteral) {
-        for (ast.Expression item in listExpression.elements) {
-          if (item is ast.Identifier) {
-            Element element = item.staticElement;
-            // TypeLiteral
-            if (element is ClassElement) {
-              _addDirectiveAndElementTagOrReportError(
-                  directives, elementTagsInfo, item, element);
-              continue;
-            }
-            // LIST_OF_DIRECTIVES
-            if (element is PropertyAccessorElement &&
-                element.variable.constantValue != null) {
-              DartObject value = element.variable.constantValue;
-              bool success = _addDirectivesAndElementTagsForDartObject(
-                  directives, elementTagsInfo, value);
-              if (!success) {
-                errorReporter.reportErrorForNode(
-                    AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-                return null;
-              }
-              continue;
-            }
-          }
-          // unknown
-          errorReporter.reportErrorForNode(
-              AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-        }
-      }
-    }
-    // Create View.
-    return new View(classElement, component, directives,
-        elementTagsInfo: elementTagsInfo,
-        templateText: templateText,
-        templateOffset: templateOffset,
-        templateUriSource: templateUriSource,
-        templateUrlRange: templateUrlRange);
-  }
-
-  Component _findComponentAnnotationOrReportError(ClassElement classElement) {
-    for (AbstractDirective directive in _allDirectives) {
-      if (directive is Component && directive.classElement == classElement) {
-        return directive;
-      }
-    }
-    errorReporter.reportErrorForElement(
-        AngularWarningCode.COMPONENT_ANNOTATION_MISSING, classElement, []);
-    return null;
-  }
-
-  /**
    * Return a map from the names of the inputs of this kind of task to the
    * task input descriptors describing those inputs for a task with the
    * given [target].
@@ -1200,16 +1321,17 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     return <String, TaskInput>{
       DIRECTIVES_INPUT:
           DIRECTIVES_IN_LIBRARY.of((target as LibrarySpecificUnit).library),
-      UNIT_INPUT: RESOLVED_UNIT.of(target)
+      VIEWS1_INPUT: VIEWS1.of(target),
+      VIEWS_ERRORS1_INPUT: VIEWS_ERRORS1.of(target),
     };
   }
 
   /**
    * Create a task based on the given [target] in the given [context].
    */
-  static BuildUnitViewsTask createTask(
+  static BuildUnitViewsTask2 createTask(
       AnalysisContext context, AnalysisTarget target) {
-    return new BuildUnitViewsTask(context, target);
+    return new BuildUnitViewsTask2(context, target);
   }
 }
 
@@ -1319,6 +1441,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static const String HTML_EVENTS_INPUT = 'HTML_EVENTS_INPUT';
   static const String HTML_ATTRIBUTES_INPUT = 'HTML_ATTRIBUTES_INPUT';
   static const String VIEWS_INPUT = 'VIEWS_INPUT';
+  static const String ANGULAR_ASTS_ERRORS_INPUT = 'ANGULAR_ASTS_ERRORS_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'ResolveDartTemplatesTask',
@@ -1351,23 +1474,24 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
     List<Template> templates = <Template>[];
     List<AnalysisError> errors = <AnalysisError>[];
     for (View view in views) {
-      if (view.templateText != null) {
+      if (view.template != null && view.templateText != null) {
         errorListener = new RecordingErrorListener();
-        Template template = new DartTemplateResolver(typeProvider,
-                htmlComponents, htmlEvents, htmlAttributes, errorListener, view)
-            .resolve();
-        if (template != null) {
-          templates.add(template);
+        new TemplateResolver(typeProvider, htmlComponents, htmlEvents,
+                htmlAttributes, errorListener)
+            .resolve(view.template);
+        if (view.template != null) {
+          templates.add(view.template);
         }
-        errors.addAll(errorListener.errors
-            .where((e) => !template.ignoredErrors.contains(e.errorCode.name)));
+        errors.addAll(errorListener.errors.where(
+            (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
       }
     }
     //
     // Record outputs.
     //
     outputs[DART_TEMPLATES] = templates;
-    outputs[DART_TEMPLATES_ERRORS] = errors;
+    outputs[DART_TEMPLATES_ERRORS] = errors
+      ..addAll(inputs[ANGULAR_ASTS_ERRORS_INPUT] ?? []);
   }
 
   /**
@@ -1384,7 +1508,23 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       HTML_ATTRIBUTES_INPUT:
           STANDARD_HTML_ELEMENT_ATTRIBUTES.of(AnalysisContextTarget.request),
-      VIEWS_INPUT: VIEWS.of(target),
+      VIEWS_INPUT: VIEWS2.of(target),
+      // Not only is it important we calculate these errors, its important that
+      // the AST conversion which creates those errors is performed
+      ANGULAR_ASTS_ERRORS_INPUT: ANGULAR_ASTS_ERRORS
+          .of(target)
+          .mappedToList((map) => map[(target as LibrarySpecificUnit).source]),
+      // only express the dependency that dependent directives have ngContentSelectors
+      'childDirectivesAsts': DIRECTIVES_IN_LIBRARY
+          .of((target as LibrarySpecificUnit).library)
+          .mappedToList((directives) => directives
+              .map((d) => new LibrarySpecificUnit(d.source, d.source))
+              // TODO we should get LIBRARY_SPECIFIC_UNITS, not make one.
+              // But for some reason this fails. Only affects files with parts.
+              //.map((d) => d.source)
+              .toList())
+          //.toListOf(LIBRARY_SPECIFIC_UNITS)
+          .toListOf(ANGULAR_ASTS),
     };
   }
 
@@ -1394,6 +1534,186 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   static ResolveDartTemplatesTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new ResolveDartTemplatesTask(context, target);
+  }
+}
+
+class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
+    with ParseHtmlMixin {
+  static const String DIRECTIVES_IN_UNIT1_INPUT = 'DIRECTIVES_IN_UNIT1_INPUT';
+  static const String HTML_DOCUMENTS_INPUT = 'HTML_DOCUMENTS_INPUT';
+  static const String HTML_DOCUMENTS_ERRORS_INPUT =
+      'HTML_DOCUMENTS_ERRORS_INPUT';
+  static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
+  static const String EXTRA_NODES_INPUT = 'EXTRA_NODES_INPUT';
+
+  static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
+      'GetAstsForTemplatesInUnitTask',
+      createTask,
+      buildInputs,
+      <ResultDescriptor>[ANGULAR_ASTS, ANGULAR_ASTS_ERRORS]);
+
+  @override
+  TaskDescriptor get descriptor => DESCRIPTOR;
+
+  GetAstsForTemplatesInUnitTask(AnalysisContext context, AnalysisTarget target)
+      : super(context, target);
+
+  void internalPerform() {
+    List<AbstractDirective> directives =
+        getRequiredInput(DIRECTIVES_IN_UNIT1_INPUT);
+    Map<Source, html.Document> documentsMap =
+        getRequiredInput(HTML_DOCUMENTS_INPUT);
+    Map<Source, List<AnalysisError>> documentsErrorsMap =
+        getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
+    Map<Source, List<NodeInfo>> extraNodesMap =
+        getRequiredInput(EXTRA_NODES_INPUT);
+    List<ElementInfo> asts = <ElementInfo>[];
+    Map<Source, List<AnalysisError>> errorsByFile =
+        <Source, List<AnalysisError>>{};
+    directives.forEach((d) {
+      if (d is Component) {
+        View view = d.view;
+        if (view == null || view.templateSource == null) {
+          return; // go to next forEach
+        }
+
+        RecordingErrorListener errorListener = new RecordingErrorListener();
+        ErrorReporter errorReporter =
+            new ErrorReporter(errorListener, view.templateSource);
+
+        Source source = view.templateSource;
+        if (view.templateUriSource != null) {
+          if (documentsMap[source].nodes.length == 0) {
+            return;
+          }
+
+          documentsErrorsMap[source].forEach(errorListener.onError);
+          _processView(
+              new Template(d.view),
+              documentsMap[source],
+              errorListener,
+              errorReporter,
+              extraNodesMap[source],
+              asts,
+              errorsByFile);
+        } else {
+          if (view.templateText == null) {
+            return;
+          }
+
+          parse((' ' * view.templateOffset) + view.templateText);
+          parseErrors.forEach(errorListener.onError);
+          parseErrors.clear();
+
+          _processView(new Template(view), document, errorListener,
+              errorReporter, extraNodes, asts, errorsByFile);
+          extraNodes.clear();
+        }
+      }
+    });
+    outputs[ANGULAR_ASTS] = asts;
+    outputs[ANGULAR_ASTS_ERRORS] = errorsByFile;
+  }
+
+  _processView(
+      Template template,
+      html.Document document,
+      RecordingErrorListener errorListener,
+      ErrorReporter errorReporter,
+      List<ElementInfo> extraNodes,
+      List<ElementInfo> asts,
+      Map<Source, List<AnalysisError>> errorsByFile) {
+    Source source = template.view.templateSource;
+    TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
+    EmbeddedDartParser parser = new EmbeddedDartParser(
+        source, errorListener, typeProvider, errorReporter);
+    template.view.template = template;
+
+    template.ast = new HtmlTreeConverter(parser, source, errorListener)
+        .convert(firstElement(document));
+    _setIgnoredErrors(template, document);
+
+    if (extraNodes != null) {
+      template.extraNodes.addAll(extraNodes);
+      extraNodes.clear();
+    }
+
+    template.ast.accept(new NgContentRecorder(template, errorReporter));
+
+    asts.add(template.ast);
+
+    if (errorsByFile[source] == null) {
+      errorsByFile[source] = <AnalysisError>[];
+    }
+    errorsByFile[source].addAll(errorListener.errors);
+  }
+
+  _setIgnoredErrors(Template template, html.Document document) {
+    if (document == null || document.nodes.length == 0) {
+      return;
+    }
+    html.Node firstNode = document.nodes[0];
+    if (firstNode is html.Comment) {
+      String text = firstNode.text.trim();
+      if (text.startsWith("@ngIgnoreErrors")) {
+        text = text.substring("@ngIgnoreErrors".length);
+        // Per spec: optional color
+        if (text.startsWith(":")) {
+          text = text.substring(1);
+        }
+        // Per spec: optional commas
+        String delim = text.indexOf(',') == -1 ? ' ' : ',';
+        template.ignoredErrors.addAll(new HashSet.from(
+            text.split(delim).map((c) => c.trim().toUpperCase())));
+      }
+    }
+  }
+
+  /**
+   * Return a map from the names of the inputs of this kind of task to the
+   * task input descriptors describing those inputs for a task with the
+   * given [target].
+   */
+  static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
+    return <String, TaskInput>{
+      DIRECTIVES_IN_UNIT1_INPUT: DIRECTIVES_IN_UNIT.of(target),
+      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
+      HTML_DOCUMENTS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
+          .of(target)
+          // mapped to html source of the view
+          .mappedToList((views) => views
+              .map((v) => v.templateUriSource)
+              .where((v) => v != null)
+              .toList())
+          // to map<source, html document of source>
+          .toMapOf(ANGULAR_HTML_DOCUMENT),
+      HTML_DOCUMENTS_ERRORS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
+          .of(target)
+          // mapped to html source of the view
+          .mappedToList((views) => views
+              .map((v) => v.templateUriSource)
+              .where((v) => v != null)
+              .toList())
+          // to map<source, html document of source>
+          .toMapOf(ANGULAR_HTML_DOCUMENT_ERRORS),
+      EXTRA_NODES_INPUT: VIEWS_WITH_HTML_TEMPLATES1
+          .of(target)
+          // mapped to html source of the view
+          .mappedToList((views) => views
+              .map((v) => v.templateUriSource)
+              .where((v) => v != null)
+              .toList())
+          // to map<source, html document of source>
+          .toMapOf(ANGULAR_HTML_DOCUMENT_EXTRA_NODES)
+    };
+  }
+
+  /**
+   * Create a task based on the given [target] in the given [context].
+   */
+  static GetAstsForTemplatesInUnitTask createTask(
+      AnalysisContext context, AnalysisTarget target) {
+    return new GetAstsForTemplatesInUnitTask(context, target);
   }
 }
 
@@ -1465,6 +1785,7 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static const String HTML_DOCUMENT_ERROR_INPUT = 'HTML_DOCUMENT_ERROR_INPUT';
   static const String HTML_DOCUMENT_EXTRA_NODES_INPUT =
       'HTML_DOCUMENT_EXTRA_NODES_INPUT';
+  static const String ANGULAR_ASTS_ERRORS_INPUT = 'ANGULAR_ASTS_ERRORS_INPUT';
 
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'ResolveHtmlTemplateTask',
@@ -1499,33 +1820,36 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     Map<String, InputElement> htmlAttributes =
         getRequiredInput(HTML_ATTRIBUTES_INPUT);
-    html.Document document = getRequiredInput(HTML_DOCUMENT_INPUT);
-    List<AnalysisError> documentErrors =
-        getRequiredInput(HTML_DOCUMENT_ERROR_INPUT);
-    List<NodeInfo> extraNodes =
-        getRequiredInput(HTML_DOCUMENT_EXTRA_NODES_INPUT);
     //
     // Resolve.
     //
     View view = target;
-    _addParseErrors(documentErrors);
-    Template template = new HtmlTemplateResolver(
-            typeProvider,
-            htmlComponents,
-            htmlEvents,
-            htmlAttributes,
-            errorListener,
-            view,
-            document,
-            extraNodes)
-        .resolve();
+    if (view.template != null) {
+      new TemplateResolver(typeProvider, htmlComponents, htmlEvents,
+              htmlAttributes, errorListener)
+          .resolve(view.template);
+    }
     //
     // Record outputs.
     //
-    outputs[HTML_TEMPLATE] = template;
-    outputs[HTML_TEMPLATE_ERRORS] = errorListener.errors
-        .where((e) => !template.ignoredErrors.contains(e.errorCode.name))
+    List<AnalysisError> errorList = (<AnalysisError>[]
+          ..addAll(errorListener.errors)
+          ..addAll(inputs[ANGULAR_ASTS_ERRORS_INPUT] ?? []))
+        .where((e) => !view.template.ignoredErrors.contains(e.errorCode.name))
         .toList();
+
+    String shorten(String filename) =>
+        filename.substring(0, filename.lastIndexOf('.'));
+
+    if (shorten(view.source.fullName) !=
+        shorten(view.templateSource.fullName)) {
+      errorList = errorList
+          .map((e) => new FromFilePrefixedError(view.source, e))
+          .toList();
+    }
+
+    outputs[HTML_TEMPLATE] = view.template;
+    outputs[HTML_TEMPLATE_ERRORS] = errorList;
   }
 
   /**
@@ -1542,12 +1866,30 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       HTML_ATTRIBUTES_INPUT:
           STANDARD_HTML_ELEMENT_ATTRIBUTES.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_INPUT:
-          ANGULAR_HTML_DOCUMENT.of((target as View).templateUriSource),
-      HTML_DOCUMENT_ERROR_INPUT:
-          ANGULAR_HTML_DOCUMENT_ERRORS.of((target as View).templateUriSource),
       HTML_DOCUMENT_EXTRA_NODES_INPUT: ANGULAR_HTML_DOCUMENT_EXTRA_NODES
           .of((target as View).templateUriSource),
+      // Not only is it important we calculate these errors, its important that
+      // the AST conversion which creates those errors is performed
+      ANGULAR_ASTS_ERRORS_INPUT: LIBRARY_SPECIFIC_UNITS
+          .of((target as View).component.source)
+          .toListOf(ANGULAR_ASTS_ERRORS)
+          .mappedToList((maps) {
+        Map<Source, List<AnalysisError>> deduped =
+            <Source, List<AnalysisError>>{};
+        maps.forEach(deduped.addAll);
+        return deduped[(target as View).templateSource];
+      }),
+      // only express the dependency that dependent directives have ngContentSelectors
+      'childDirectivesAsts': DIRECTIVES_IN_LIBRARY
+          .of((target as View).component.source)
+          .mappedToList((directives) => directives
+              .map((d) => new LibrarySpecificUnit(d.source, d.source))
+              // TODO we should get LIBRARY_SPECIFIC_UNITS, not make one.
+              // But for some reason this fails. Only affects files with parts.
+              //.map((d) => d.source)
+              .toList())
+          //.toListOf(LIBRARY_SPECIFIC_UNITS)
+          .toListOf(ANGULAR_ASTS),
     };
   }
 
@@ -1557,15 +1899,6 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
   static ResolveHtmlTemplateTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new ResolveHtmlTemplateTask(context, target);
-  }
-
-  /**
-   * Report HTML errors as [AnalysisError]
-   */
-  void _addParseErrors(List<AnalysisError> allErrors) {
-    for (AnalysisError error in allErrors) {
-      errorListener.onError(error);
-    }
   }
 }
 

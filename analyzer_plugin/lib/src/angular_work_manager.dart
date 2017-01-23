@@ -28,7 +28,7 @@ class AngularWorkManager implements WorkManager {
 
   /**
    * The list of Dart sources for which we want to compute
-   * [VIEWS_WITH_HTML_TEMPLATES] to be able to resolve [priorityHtmlSources].
+   * [VIEWS_WITH_HTML_TEMPLATES2] to be able to resolve [priorityHtmlSources].
    */
   final List<Source> priorityDartSourcesForViews = <Source>[];
 
@@ -42,7 +42,7 @@ class AngularWorkManager implements WorkManager {
    */
   AngularWorkManager(this.context) {
     context.onResultInvalidated.listen((InvalidatedResult result) {
-      if (result.descriptor == VIEWS_WITH_HTML_TEMPLATES) {
+      if (result.descriptor == VIEWS_WITH_HTML_TEMPLATES2) {
         List<View> views = result.value;
         for (View view in views) {
           _updateTemplateViews(view, false);
@@ -104,15 +104,15 @@ class AngularWorkManager implements WorkManager {
       }
       return new TargetedResult(source, SOURCE_KIND);
     }
-    // Request VIEWS_WITH_HTML_TEMPLATES computing.
+    // Request VIEWS_WITH_HTML_TEMPLATES2 computing.
     while (priorityDartSourcesForViews.isNotEmpty) {
       Source source = priorityDartSourcesForViews.last;
       LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-      if (!_needsComputing(target, VIEWS_WITH_HTML_TEMPLATES)) {
+      if (!_needsComputing(target, VIEWS_WITH_HTML_TEMPLATES2)) {
         priorityDartSourcesForViews.removeLast();
         continue;
       }
-      return new TargetedResult(target, VIEWS_WITH_HTML_TEMPLATES);
+      return new TargetedResult(target, VIEWS_WITH_HTML_TEMPLATES2);
     }
     // Request HTML_TEMPLATES computing.
     while (priorityHtmlSources.isNotEmpty) {
@@ -156,7 +156,7 @@ class AngularWorkManager implements WorkManager {
     }
     // Update views containing templates.
     {
-      List<View> newViews = outputs[VIEWS_WITH_HTML_TEMPLATES];
+      List<View> newViews = outputs[VIEWS_WITH_HTML_TEMPLATES2];
       if (newViews != null) {
         for (View newView in newViews) {
           _updateTemplateViews(newView, true);

@@ -16,6 +16,15 @@ import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
 
+html.Element firstElement(html.Node node) {
+  for (html.Element child in node.children) {
+    if (child is html.Element) {
+      return child;
+    }
+  }
+  return null;
+}
+
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
   final Source templateSource;
@@ -23,7 +32,7 @@ class HtmlTreeConverter {
 
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
-  NodeInfo convert(html.Node node) {
+  NodeInfo convert(html.Node node, {ElementInfo parent}) {
     if (node is html.Element) {
       String localName = node.localName;
       List<AttributeInfo> attributes = _convertAttributes(node);
@@ -44,7 +53,8 @@ class HtmlTreeConverter {
           closingNameSpan,
           isTemplate,
           attributes,
-          findTemplateAttribute(attributes));
+          findTemplateAttribute(attributes),
+          parent);
 
       for (AttributeInfo attribute in attributes) {
         attribute.parent = element;
@@ -57,7 +67,8 @@ class HtmlTreeConverter {
     if (node is html.Text) {
       int offset = node.sourceSpan.start.offset;
       String text = node.text;
-      return new TextInfo(offset, text, dartParser.findMustaches(text, offset));
+      return new TextInfo(
+          offset, text, parent, dartParser.findMustaches(text, offset));
     }
     return null;
   }
@@ -205,16 +216,16 @@ class HtmlTreeConverter {
         bound);
   }
 
-  List<NodeInfo> _convertChildren(html.Element node, ElementInfo root) {
+  List<NodeInfo> _convertChildren(html.Element node, ElementInfo parent) {
     List<NodeInfo> children = <NodeInfo>[];
     for (html.Node child in node.nodes) {
-      NodeInfo childNode = convert(child);
+      NodeInfo childNode = convert(child, parent: parent);
       if (childNode != null) {
         children.add(childNode);
         if (childNode is ElementInfo) {
-          root.childNodesMaxEnd = childNode.childNodesMaxEnd;
+          parent.childNodesMaxEnd = childNode.childNodesMaxEnd;
         } else {
-          root.childNodesMaxEnd = childNode.offset + childNode.length;
+          parent.childNodesMaxEnd = childNode.offset + childNode.length;
         }
       }
     }

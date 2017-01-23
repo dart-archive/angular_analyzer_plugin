@@ -1,39 +1,55 @@
 library angular2.src.analysis.analyzer_plugin.src.selector;
 
+import 'dart:collection';
+
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 
+enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
+
 /**
  * The [Selector] that matches all of the given [selectors].
  */
-class AndSelector implements Selector {
+class AndSelector extends Selector {
   final List<Selector> selectors;
 
   AndSelector(this.selectors);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
+    SelectorMatch onSuccess = SelectorMatch.NonTagMatch;
     for (Selector selector in selectors) {
-      if (!selector.match(element, null)) {
-        return false;
+      SelectorMatch theMatch = selector.match(element, null);
+      if (theMatch == SelectorMatch.TagMatch) {
+        onSuccess = theMatch;
+      } else if (theMatch == SelectorMatch.NoMatch) {
+        return SelectorMatch.NoMatch;
       }
     }
     for (Selector selector in selectors) {
       selector.match(element, template);
     }
-    return true;
+    return onSuccess;
   }
 
   @override
   String toString() => selectors.join(' && ');
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    for (Selector selector in selectors) {
+      context = selector.refineTagSuggestions(context);
+    }
+    return context;
+  }
 }
 
 /**
  * The [Selector] that matches elements that have an attribute with the
  * given name, and (optionally) with the given value;
  */
-class AttributeSelector implements Selector {
+class AttributeSelector extends Selector {
   final AngularElement nameElement;
   final bool isWildcard;
   final String value;
@@ -41,7 +57,7 @@ class AttributeSelector implements Selector {
   AttributeSelector(this.nameElement, this.value, this.isWildcard);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     String name = nameElement.name;
     SourceRange attributeSpan = null;
     String attributeValue = null;
@@ -49,7 +65,7 @@ class AttributeSelector implements Selector {
     // standard case: exact match, use hash for fast lookup
     if (!isWildcard) {
       if (!element.attributes.containsKey(name)) {
-        return false;
+        return SelectorMatch.NoMatch;
       }
       attributeSpan = element.attributeNameSpans[name];
       attributeValue = element.attributes[name];
@@ -65,13 +81,13 @@ class AttributeSelector implements Selector {
 
       // no matching prop to wildcard
       if (attributeSpan == null) {
-        return false;
+        return SelectorMatch.NoMatch;
       }
     }
 
     // match the actual value against the required
     if (value != null && attributeValue != value) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
 
     // OK
@@ -80,7 +96,7 @@ class AttributeSelector implements Selector {
           new SourceRange(attributeSpan.offset, attributeSpan.length),
           nameElement);
     }
-    return true;
+    return SelectorMatch.NonTagMatch;
   }
 
   @override
@@ -91,54 +107,67 @@ class AttributeSelector implements Selector {
     }
     return '[$name]';
   }
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    for (HtmlTagForSelector tag in context) {
+      tag.setAttribute(nameElement.name, value: value);
+    }
+    return context;
+  }
 }
 
 /**
  * The [Selector] that matches elements that have an attribute with any name,
  * and with contents that match the given regex.
  */
-class AttributeValueRegexSelector implements Selector {
+class AttributeValueRegexSelector extends Selector {
   final String regexpStr;
   final RegExp regexp;
 
   AttributeValueRegexSelector(this.regexpStr) : regexp = new RegExp(regexpStr);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     for (String value in element.attributes.values) {
       if (regexp.hasMatch(value)) {
-        return true;
+        return SelectorMatch.NonTagMatch;
       }
     }
 
-    return false;
+    return SelectorMatch.NoMatch;
   }
 
   @override
   String toString() {
     return '[*=$regexpStr]';
   }
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    return context;
+  }
 }
 
 /**
  * The [Selector] that matches elements with the given (static) classes.
  */
-class ClassSelector implements Selector {
+class ClassSelector extends Selector {
   final AngularElement nameElement;
 
   ClassSelector(this.nameElement);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     String name = nameElement.name;
     String val = element.attributes['class'];
     // no 'class' attribute
     if (val == null) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
     // no such class
     if (!val.split(' ').contains(name)) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
     // prepare index of "name" int the "class" attribute value
     int index;
@@ -153,32 +182,40 @@ class ClassSelector implements Selector {
     int valueOffset = element.attributeValueSpans['class'].offset;
     int offset = valueOffset + index;
     template.addRange(new SourceRange(offset, name.length), nameElement);
-    return true;
+    return SelectorMatch.NonTagMatch;
   }
 
   @override
   String toString() => '.' + nameElement.name;
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    for (HtmlTagForSelector tag in context) {
+      tag.addClass(nameElement.name);
+    }
+    return context;
+  }
 }
 
 /**
  * The element name based selector.
  */
-class ElementNameSelector implements Selector {
+class ElementNameSelector extends Selector {
   static List<ElementNameSelector> EMPTY_LIST = const <ElementNameSelector>[];
   final AngularElement nameElement;
 
   ElementNameSelector(this.nameElement);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     String name = nameElement.name;
     // match
     if (element.localName != name) {
-      return false;
+      return SelectorMatch.NoMatch;
     }
     // done if no template
     if (template == null) {
-      return true;
+      return SelectorMatch.TagMatch;
     }
     // record resolution
     if (element.openingNameSpan != null) {
@@ -187,11 +224,19 @@ class ElementNameSelector implements Selector {
     if (element.closingNameSpan != null) {
       template.addRange(element.closingNameSpan, nameElement);
     }
-    return true;
+    return SelectorMatch.TagMatch;
   }
 
   @override
   String toString() => nameElement.name;
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    for (HtmlTagForSelector tag in context) {
+      tag.name = nameElement.name;
+    }
+    return context;
+  }
 }
 
 abstract class ElementView {
@@ -208,52 +253,75 @@ abstract class ElementView {
 /**
  * The [Selector] that matches one of the given [selectors].
  */
-class OrSelector implements Selector {
+class OrSelector extends Selector {
   final List<Selector> selectors;
 
   OrSelector(this.selectors);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
+    SelectorMatch onNoTagMatch = SelectorMatch.NoMatch;
     for (Selector selector in selectors) {
-      if (selector.match(element, template)) {
-        return true;
+      SelectorMatch theMatch = selector.match(element, template);
+      if (theMatch == SelectorMatch.TagMatch) {
+        return SelectorMatch.TagMatch;
+      } else if (theMatch == SelectorMatch.NonTagMatch) {
+        onNoTagMatch = SelectorMatch.NonTagMatch;
       }
     }
-    return false;
+    return onNoTagMatch;
   }
 
   @override
   String toString() => selectors.join(' || ');
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    List<HtmlTagForSelector> response = <HtmlTagForSelector>[];
+    for (Selector selector in selectors) {
+      List<HtmlTagForSelector> newContext =
+          context.map((t) => t.clone()).toList();
+      response.addAll(selector.refineTagSuggestions(newContext));
+    }
+
+    return response;
+  }
 }
 
 /**
  * The [Selector] that confirms the inner [Selector] condition does NOT match
  */
-class NotSelector implements Selector {
+class NotSelector extends Selector {
   final Selector condition;
 
   NotSelector(this.condition);
 
   @override
-  bool match(ElementView element, Template template) {
-    return !condition.match(element, template);
+  SelectorMatch match(ElementView element, Template template) {
+    return condition.match(element, template) == SelectorMatch.NoMatch
+        ? SelectorMatch.NonTagMatch
+        : SelectorMatch.NoMatch;
   }
 
   @override
   String toString() => ":not($condition)";
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    return context;
+  }
 }
 
 /**
  * The [Selector] that checks a TextNode for contents by a regex
  */
-class ContainsSelector implements Selector {
+class ContainsSelector extends Selector {
   final String regex;
 
   ContainsSelector(this.regex);
 
   @override
-  bool match(ElementView element, Template template) {
+  SelectorMatch match(ElementView element, Template template) {
     // TODO check against actual text contents so we know which :contains
     // directives were used (for when we want to advise removal of unused
     // directives).
@@ -264,11 +332,16 @@ class ContainsSelector implements Selector {
     // Not sure what else we could do.
     //
     // Never matches elements. Only matches [TextNode]s. Return false for now.
-    return false;
+    return SelectorMatch.NoMatch;
   }
 
   @override
   String toString() => ":contains($regex)";
+
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    return context;
+  }
 }
 
 /**
@@ -279,7 +352,26 @@ abstract class Selector {
    * Check whether the given [element] matches this selector.
    * If yes, then record resolved ranges into [template].
    */
-  bool match(ElementView element, Template template);
+  SelectorMatch match(ElementView element, Template template);
+
+  /**
+   * See [HtmlTagForSelector] for info on what this does.
+   */
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context);
+
+  /**
+   * See [HtmlTagForSelector] for info on what this does. Selectors should NOT
+   * override this method, but rather [refineTagSuggestions].
+   */
+  List<HtmlTagForSelector> suggestTags() {
+    // create a seed tag: ORs will copy this, everything else modifies. Each
+    // selector returns the newest set of tags to be transformed.
+    List<HtmlTagForSelector> tags = <HtmlTagForSelector>[
+      new HtmlTagForSelector()
+    ];
+    return refineTagSuggestions(tags).where((t) => t.isValid);
+  }
 }
 
 enum _SelectorRegexMatch {
@@ -296,6 +388,98 @@ class SelectorParseError extends FormatException {
   int length;
   SelectorParseError(String message, String source, int offset, this.length)
       : super(message, source, offset);
+}
+
+/**
+ * Where possible it is good to be able to suggest a fully completed html tag to
+ * match a selector. This has a few challenges: the selector may match multiple
+ * things, it may not include any tag name to go off of at all. It may lend
+ * itself to infinite suggestions (such as matching a regex), and parts of its
+ * selector may cancel other parts out leading to invalid suggestions (such as
+ * [prop=this][prop=thistoo]), especially in the presence of heavy booleans.
+ * 
+ * This doesn't track :not, so it may still suggest invalid things, but in
+ * general the goal of this class is that its an empty shell which tracks
+ * conflicting information.
+ *
+ * Each selector takes in the current round of suggestions in
+ * [refineTagSuggestions], and may return more suggestions than it got
+ * originally (as in OR). At the end, all valid selectors can be checked for
+ * validity.
+ *
+ * Selector.suggestTags() handles creating a seed HtmlTagForSelector and
+ * stripping invalid suggestions at the end, potentially resulting in none.
+ */
+class HtmlTagForSelector {
+  String _name;
+  Map<String, String> _attributes = <String, String>{};
+  bool _isValid = true;
+  Set<String> _classes = new HashSet<String>();
+
+  bool get isValid => _name != null && _isValid && _classAttrValid;
+
+  bool get _classAttrValid => _classes.isEmpty || _attributes["class"] == null
+      ? true
+      : _classes.length == 1 && _classes.first == _attributes["class"];
+
+  void set name(String name) {
+    if (_name != null && _name != name) {
+      _isValid = false;
+    } else {
+      _name = name;
+    }
+  }
+
+  void setAttribute(String name, {String value}) {
+    if (_attributes.containsKey(name)) {
+      if (value != null) {
+        if (_attributes[name] != null && _attributes[name] != value) {
+          _isValid = false;
+        } else {
+          _attributes[name] = value;
+        }
+      }
+    } else {
+      _attributes[name] = value;
+    }
+  }
+
+  void addClass(String classname) {
+    _classes.add(classname);
+  }
+
+  HtmlTagForSelector clone() {
+    HtmlTagForSelector copy = new HtmlTagForSelector();
+    copy.name = _name;
+    copy._attributes = <String, String>{}..addAll(_attributes);
+    copy._isValid = _isValid;
+    copy._classes = new HashSet<String>.from(_classes);
+    return copy;
+  }
+
+  String toString() {
+    bool keepClassAttr = _classes.isEmpty;
+
+    List<String> attrStrs = <String>[];
+    _attributes.forEach((k, v) {
+      // in the case of [class].myclass don't create multiple class attrs
+      if (k != "class" || keepClassAttr) {
+        attrStrs.add(v == null ? k : '$k="$v"');
+      }
+    });
+
+    if (!_classes.isEmpty) {
+      String classesList = (<String>[]
+            ..addAll(_classes)
+            ..sort())
+          .join(' ');
+      attrStrs.add('class="$classesList"');
+    }
+
+    attrStrs.sort();
+
+    return (['<$_name']..addAll(attrStrs)).join(' ');
+  }
 }
 
 class SelectorParser {
