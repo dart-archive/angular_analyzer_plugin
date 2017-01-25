@@ -3,6 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/dart/error/syntactic_errors.dart';
+import 'package:analyzer/task/dart.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -2429,6 +2430,7 @@ class TestPanel {}
 """);
     _resolveSingleTemplate(dartSource);
     _assertElement('deferred-content>').selector.at("deferred-content]')");
+    errorListener.assertNoErrors();
   }
 
   void test_textInterpolation() {
@@ -2490,6 +2492,419 @@ class TestPanel {
       StaticTypeWarningCode.NON_TYPE_AS_TYPE_ARGUMENT,
       AngularWarningCode.DISALLOWED_EXPRESSION
     ]);
+  }
+
+  void test_resolveTemplateWithNgContentTracksSelectors() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    String code = r"""
+<div>
+  <ng-content select="foo"></ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    expect(template.ngContents, hasLength(1));
+  }
+
+  void test_resolveTemplateWithNgContent_noSelectorIsNull() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    String code = r"""
+<div>
+  <ng-content></ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    expect(template.ngContents, hasLength(1));
+    expect(template.ngContents.first.selector, isNull);
+  }
+
+  void test_resolveTemplateWithNgContent_selectorParseError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    String code = r"""
+<div>
+  <ng-content select="foo+bar"></ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    expect(template.ngContents, hasLength(0));
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
+  }
+
+  void test_resolveTemplateWithNgContent_emptySelectorError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    String code = r"""
+<div>
+  <ng-content select=""></ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    expect(template.ngContents, hasLength(0));
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "\"\"");
+  }
+
+  void test_resolveTemplateWithNgContent_noValueError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    String code = r"""
+<div>
+  <ng-content select></ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    expect(template.ngContents, hasLength(0));
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "select");
+  }
+
+  void test_resolveTemplateWithNgContent_hasContentsError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    String code = r"""
+<div>
+  <ng-content>with content</ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY, code, "<ng-content>");
+  }
+
+  void test_resolveTemplate_provideContentWhereInvalid() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NoTransclude])
+class TestPanel {
+}
+@Component(selector: 'no-transclude')
+@View(template: '')
+class NoTransclude {
+}
+''');
+    String code = r"""
+<no-transclude>doesn't belong</no-transclude>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "doesn't belong");
+  }
+
+  void test_resolveTemplate_provideContentNgSelectAll() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeAll])
+class TestPanel {
+}
+@Component(selector: 'transclude-all')
+@View(template: '<ng-content></ng-content>')
+class TranscludeAll {
+}
+''');
+    String code = r"""
+<transclude-all>belongs</transclude-all>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolveTemplate_provideContentEmptyTextAlwaysOK() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NoTransclude])
+class TestPanel {
+}
+@Component(selector: 'no-transclude')
+@View(template: '')
+class NoTransclude {
+}
+''');
+    String code = r"""
+<no-transclude>
+</no-transclude>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolvedTag_complexSelector() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+@Component(selector: 'my-tag[my-prop]', template: '')
+class MyTag {
+}
+''');
+    String code = r"""
+<my-tag my-prop></my-tag>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolveTemplate_provideContentNgSelectAllWithSelectors() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeAll])
+class TestPanel {
+}
+@Component(selector: 'transclude-all')
+@View(template: '<ng-content select="x"></ng-content><ng-content></ng-content>')
+class TranscludeAll {
+}
+''');
+    String code = r"""
+<transclude-all>belongs</transclude-all>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolveTemplate_provideContentNotMatchingSelectors() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+}
+''');
+    String code = r"""
+<transclude-some><div></div></transclude-some>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
+  }
+
+  void test_resolveTemplate_provideTextInfosDontMatchSelectors() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+}
+''');
+    String code = r"""
+<transclude-some>doesn't belong</transclude-some>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "doesn't belong");
+  }
+
+  void test_resolveTemplate_provideContentMatchingSelectors() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="[transclude-me]"></ng-content>')
+class TranscludeSome {
+}
+''');
+    String code = r"""
+<transclude-some><div transclude-me></div></transclude-some>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolveTemplate_provideContentMatchingSelectorsKnowsTag() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+}
+''');
+    String code = r"""
+<transclude-some><transclude-me></transclude-me></transclude-some>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolveTemplate_provideContentMatchingSelectorsAndAllKnowsTag() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeAllAndKnowsTag])
+class TestPanel {
+}
+@Component(selector: 'transclude-all-and-knows-tag')
+@View(template:
+    '<ng-content select="transclude-me"></ng-content><ng-content></ng-content>')
+class TranscludeAllAndKnowsTag {
+}
+''');
+    String code = r"""
+<transclude-all-and-knows-tag>
+  <transclude-me></transclude-me>
+</transclude-all-and-knows-tag>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  void test_resolveTemplate_provideContentMatchingSelectorsReportsUnknownTag() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="[transclude-me]"></ng-content>')
+class TranscludeSome {
+}
+''');
+    String code = r"""
+<transclude-some><unknown-tag transclude-me></unknown-tag></transclude-some>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNRESOLVED_TAG, code, "unknown-tag");
+  }
+
+  void test_unResolvedTag_evenThoughMatchedComplexSelector() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+@Component(selector: 'my-tag.not-this-class,[my-prop]', template: '')
+class MyTag {
+}
+''');
+    String code = r"""
+<my-tag my-prop></my-tag>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    _assertElement("my-prop")
+        .selector
+        .inFileName("test_panel.dart")
+        .at("my-prop");
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNRESOLVED_TAG, code, "my-tag");
+  }
+
+  void test_resolvedTag_evenThoughAlsoMatchesNonTagMatch() {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+class TestPanel {
+  void handleClick(MouseEvent e) {
+  }
+}
+@Component(selector: '[red-herring],my-tag,[unrelated]', template: '')
+class MyTag {
+}
+''');
+    String code = r"""
+<my-tag red-herring unrelated></my-tag>
+    """;
+    _addHtmlSource(code);
+    _resolveSingleTemplate(dartSource);
+    _assertElement("my-tag")
+        .selector
+        .inFileName("test_panel.dart")
+        .at("my-tag");
+    errorListener.assertNoErrors();
   }
 
   void _addDartSource(String code) {

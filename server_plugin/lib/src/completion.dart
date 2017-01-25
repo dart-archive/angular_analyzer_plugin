@@ -10,10 +10,13 @@ import 'package:analysis_server/src/services/completion/dart/completion_manager.
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
@@ -33,27 +36,25 @@ bool offsetContained(int offset, int start, int length) {
 
 AngularAstNode findTarget(int offset, AngularAstNode root) {
   for (AngularAstNode child in root.children) {
-    if (child is ElementInfo && child.openingSpan == null) {
-      var target = findTarget(offset, child);
-      if (!(target is ElementInfo && target.openingSpan == null)) {
-        return target;
+    if (child is ElementInfo) {
+      if (child.isSynthetic) {
+        var target = findTarget(offset, child);
+        if (!(target is ElementInfo && target.openingSpan == null)) {
+          return target;
+        }
+      } else {
+        if (offsetContained(offset, child.openingNameSpan.offset,
+            child.openingNameSpan.length)) {
+          return child;
+        } else if (offsetContained(offset, child.offset, child.length)) {
+          return findTarget(offset, child);
+        }
       }
     } else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
     }
   }
   return root;
-}
-
-AngularAstNode findTargetInExtraNodes(int offset, List<NodeInfo> extraNodes) {
-  if (extraNodes != null && extraNodes.isNotEmpty) {
-    for (NodeInfo node in extraNodes) {
-      if (offsetContained(offset, node.offset, node.length)) {
-        return node;
-      }
-    }
-  }
-  return null;
 }
 
 class DartSnippetExtractor extends AngularAstVisitor {
@@ -63,6 +64,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
   // don't recurse, findTarget already did that
   @override
   visitElementInfo(ElementInfo element) {}
+
   @override
   visitTextAttr(TextAttribute attr) {}
 
@@ -91,6 +93,32 @@ class DartSnippetExtractor extends AngularAstVisitor {
       dartSnippet = mustache.expression;
     }
   }
+
+  @override
+  visitTemplateAttr(TemplateAttribute attr) {
+    // if we visit this, we're in a template but after one of its attributes.
+    AttributeInfo attributeToAppendTo;
+    for (AttributeInfo subAttribute in attr.virtualAttributes) {
+      if (subAttribute.valueOffset == null && subAttribute.offset < offset) {
+        attributeToAppendTo = subAttribute;
+      }
+    }
+
+    if (attributeToAppendTo != null &&
+        attributeToAppendTo is TextAttribute &&
+        !attributeToAppendTo.name.startsWith("let")) {
+      AnalysisErrorListener analysisErrorListener =
+          new IgnoringAnalysisErrorListener();
+      EmbeddedDartParser dartParser =
+          new EmbeddedDartParser(null, analysisErrorListener, null, null);
+      dartSnippet = dartParser.parseDartExpression(offset, '', false);
+    }
+  }
+}
+
+class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
+  @override
+  void onError(AnalysisError error) {}
 }
 
 class LocalVariablesExtractor extends AngularAstVisitor {
@@ -143,7 +171,8 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   visitTextInfo(TextInfo textInfo) {
-    if (textInfo.text[request.offset - textInfo.offset - 1] == '<') {
+    if (request.offset > textInfo.offset &&
+        textInfo.text[request.offset - textInfo.offset - 1] == '<') {
       request.replacementOffset--;
       request.replacementLength = 1;
     }
@@ -228,6 +257,8 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
 }
 
 class TemplateCompleter {
+  static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
+
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request,
       List<Template> templates,
@@ -235,12 +266,8 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      AngularAstNode target;
-      target = findTargetInExtraNodes(request.offset, template.extraNodes) ??
-          findTarget(request.offset, template.ast);
-
+      AngularAstNode target = findTarget(request.offset, template.ast);
       target.accept(new ReplacementRangeCalculator(request));
-
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -286,8 +313,8 @@ class TemplateCompleter {
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
           target.openingNameSpan != null &&
-          offsetContained(request.offset, target.openingSpan.offset,
-              target.openingSpan.length - '>'.length)) {
+          (offsetContained(request.offset, target.openingSpan.offset,
+              target.openingSpan.length))) {
         if (!offsetContained(request.offset, target.openingNameSpan.offset,
             target.openingNameSpan.length)) {
           // TODO suggest these things if the target is ExpressionBoundInput with
@@ -298,6 +325,9 @@ class TemplateCompleter {
               standardHtmlEvents, target.boundStandardOutputs);
         } else {
           suggestHtmlTags(template, suggestions);
+          if (target.parent != null) {
+            suggestTransclusions(target.parent, suggestions);
+          }
         }
       } else if (target is ElementInfo &&
           target.openingSpan != null &&
@@ -307,6 +337,15 @@ class TemplateCompleter {
           request.offset ==
               (target.closingSpan.offset + target.closingSpan.length)) {
         suggestHtmlTags(template, suggestions);
+        suggestTransclusions(target.parent, suggestions);
+      } else if (target is ElementInfo &&
+          target.openingSpan != null &&
+          request.offset == target.childNodesMaxEnd) {
+        suggestHtmlTags(template, suggestions);
+        suggestTransclusions(target, suggestions);
+      } else if (target is ElementInfo) {
+        suggestHtmlTags(template, suggestions);
+        suggestTransclusions(target, suggestions);
       } else if (target is ExpressionBoundAttribute &&
           target.bound == ExpressionBoundType.input &&
           offsetContained(request.offset, target.originalNameOffset,
@@ -318,12 +357,59 @@ class TemplateCompleter {
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
+      } else if (target is TemplateAttribute) {
+        suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs);
+        suggestOutputs(target.parent.boundDirectives, suggestions,
+            standardHtmlEvents, target.parent.boundStandardOutputs);
+      } else if (target is TextAttribute) {
+        suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs);
+        suggestOutputs(target.parent.boundDirectives, suggestions,
+            standardHtmlEvents, target.parent.boundStandardOutputs);
       } else if (target is TextInfo) {
         suggestHtmlTags(template, suggestions);
+        suggestTransclusions(target.parent, suggestions);
       }
     }
 
     return suggestions;
+  }
+
+  suggestTransclusions(
+      ElementInfo container, List<CompletionSuggestion> suggestions) {
+    for (AbstractDirective directive in container.directives) {
+      if (directive is! Component) {
+        continue;
+      }
+
+      Component component = directive;
+      Template template = component?.view?.template;
+      if (template == null) {
+        continue;
+      }
+
+      for (NgContent ngContent in template.ngContents) {
+        if (ngContent.selector == null) {
+          continue;
+        }
+
+        List<HtmlTagForSelector> tags = ngContent.selector.suggestTags();
+        for (HtmlTagForSelector tag in tags) {
+          Location location = new Location(
+              template.view.templateSource.fullName,
+              ngContent.offset,
+              ngContent.length,
+              0,
+              0);
+          suggestions.add(_createHtmlTagSuggestion(
+              tag.toString(),
+              RELEVANCE_TRANSCLUSION,
+              _createHtmlTagTransclusionElement(tag.toString(),
+                  protocol.ElementKind.CLASS_TYPE_ALIAS, location)));
+        }
+      }
+    }
   }
 
   suggestHtmlTags(Template template, List<CompletionSuggestion> suggestions) {
@@ -479,6 +565,14 @@ class TemplateCompleter {
     int flags = protocol.Element
         .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
     return new protocol.Element(kind, '<' + elementTagName, flags,
+        location: location);
+  }
+
+  protocol.Element _createHtmlTagTransclusionElement(
+      String elementTagName, protocol.ElementKind kind, Location location) {
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, elementTagName, flags,
         location: location);
   }
 

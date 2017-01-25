@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
@@ -13,11 +11,21 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
+import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
+
+html.Element firstElement(html.Node node) {
+  for (html.Element child in node.children) {
+    if (child is html.Element) {
+      return child;
+    }
+  }
+  return null;
+}
 
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
@@ -26,7 +34,7 @@ class HtmlTreeConverter {
 
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
-  NodeInfo convert(html.Node node) {
+  NodeInfo convert(html.Node node, {ElementInfo parent}) {
     if (node is html.Element) {
       String localName = node.localName;
       List<AttributeInfo> attributes = _convertAttributes(node);
@@ -47,24 +55,32 @@ class HtmlTreeConverter {
           closingNameSpan,
           isTemplate,
           attributes,
-          findTemplateAttribute(attributes));
+          findTemplateAttribute(attributes),
+          parent);
 
       for (AttributeInfo attribute in attributes) {
         attribute.parent = element;
       }
 
-      if (element.openingSpan != null) {
-        element.childNodesMaxEnd = element.offset + element.length;
-      }
-
       List<NodeInfo> children = _convertChildren(node, element);
       element.childNodes.addAll(children);
+
+      if (!element.isSynthetic &&
+          element.openingSpanIsClosed &&
+          closingSpan != null &&
+          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
+        element.childNodes.add(new TextInfo(
+            openingSpan.offset + openingSpan.length, '', element, [],
+            synthetic: true));
+      }
+
       return element;
     }
     if (node is html.Text) {
       int offset = node.sourceSpan.start.offset;
       String text = node.text;
-      return new TextInfo(offset, text, dartParser.findMustaches(text, offset));
+      return new TextInfo(
+          offset, text, parent, dartParser.findMustaches(text, offset));
     }
     return null;
   }
@@ -74,7 +90,9 @@ class HtmlTreeConverter {
     element.attributes.forEach((name, String value) {
       if (name is String) {
         try {
-          if (name.startsWith('*')) {
+          if (name == "") {
+            attributes.add(_convertSyntheticAttribute(element));
+          } else if (name.startsWith('*')) {
             attributes.add(_convertTemplateAttribute(element, name, true));
           } else if (name == 'template') {
             attributes.add(_convertTemplateAttribute(element, name, false));
@@ -124,6 +142,14 @@ class HtmlTreeConverter {
       }
     });
     return attributes;
+  }
+
+  TextAttribute _convertSyntheticAttribute(html.Element element) {
+    FileSpan openSourceSpan = element.sourceSpan;
+    int nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
+    TextAttribute textAttribute =
+        new TextAttribute("", nameOffset, null, null, []);
+    return textAttribute;
   }
 
   TemplateAttribute _convertTemplateAttribute(
@@ -212,27 +238,16 @@ class HtmlTreeConverter {
         bound);
   }
 
-  List<NodeInfo> _convertChildren(html.Element node, ElementInfo root) {
+  List<NodeInfo> _convertChildren(html.Element node, ElementInfo parent) {
     List<NodeInfo> children = <NodeInfo>[];
     for (html.Node child in node.nodes) {
-      NodeInfo node = convert(child);
-      if (node != null) {
-        children.add(node);
-
-        if (node is ElementInfo) {
-          if (root.childNodesMaxEnd == null) {
-            root.childNodesMaxEnd = node.childNodesMaxEnd;
-          } else if (node.childNodesMaxEnd != null) {
-            root.childNodesMaxEnd =
-                max(root.childNodesMaxEnd, node.childNodesMaxEnd);
-          }
+      NodeInfo childNode = convert(child, parent: parent);
+      if (childNode != null) {
+        children.add(childNode);
+        if (childNode is ElementInfo) {
+          parent.childNodesMaxEnd = childNode.childNodesMaxEnd;
         } else {
-          if (root.childNodesMaxEnd == null) {
-            root.childNodesMaxEnd = node.offset + node.length;
-          } else {
-            root.childNodesMaxEnd =
-                max(root.childNodesMaxEnd, node.offset + node.length);
-          }
+          parent.childNodesMaxEnd = childNode.offset + childNode.length;
         }
       }
     }
@@ -258,22 +273,33 @@ class HtmlTreeConverter {
   }
 
   int _nameOffset(html.Element element, String name) {
+    String lowerName = name.toLowerCase();
     try {
-      String lowerName = name.toLowerCase();
       return element.attributeSpans[lowerName].start.offset;
       // See https://github.com/dart-lang/html/issues/44.
     } catch (e) {
-      throw new IgnorableHtmlInternalError(e);
+      try {
+        AttributeSpanContainer container =
+            AttributeSpanContainer.generateAttributeSpans(element);
+        return container.attributeSpans[name].start.offset;
+      } catch (e) {
+        throw new IgnorableHtmlInternalError(e);
+      }
     }
   }
 
   int _valueOffset(html.Element element, String name) {
+    String lowerName = name.toLowerCase();
     try {
-      SourceSpan span = element.attributeValueSpans[name.toLowerCase()];
+      SourceSpan span = element.attributeValueSpans[lowerName];
       if (span != null) {
         return span.start.offset;
       } else {
-        return null;
+        AttributeSpanContainer container =
+            AttributeSpanContainer.generateAttributeSpans(element);
+        return (container.attributeValueSpans.containsKey(name))
+            ? container.attributeValueSpans[name].start.offset
+            : null;
       }
     } catch (e) {
       throw new IgnorableHtmlInternalError(e);
@@ -483,7 +509,7 @@ class EmbeddedDartParser {
     String prefix = null;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
-      if (token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON) {
+      if (_isDelimiter(token)) {
         token = token.next;
         continue;
       }
@@ -493,16 +519,22 @@ class EmbeddedDartParser {
           errorReporter.reportErrorForToken(
               AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
         }
+        int originalVarOffset = token.offset;
+        String originalName = token.lexeme;
         token = token.next;
         // get the local variable name
+        String localVarName = "";
+        int localVarOffset = token.offset;
         if (!_tokenMatchesIdentifier(token)) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.EXPECTED_IDENTIFIER, token);
-          break;
+        } else {
+          localVarOffset = token.offset;
+          localVarName = token.lexeme;
+          originalName +=
+              ' ' * (token.offset - originalVarOffset) + localVarName;
+          token = token.next;
         }
-        int localVarOffset = token.offset;
-        String localVarName = token.lexeme;
-        token = token.next;
         // get an optional internal variable
         int internalVarOffset = null;
         String internalVarName = null;
@@ -520,15 +552,19 @@ class EmbeddedDartParser {
         }
         // declare the local variable
         // Note the care that the varname's offset is preserved in place.
-        attributes.add(new TextAttribute(
+        attributes.add(new TextAttribute.synthetic(
             'let-$localVarName',
             localVarOffset - 'let-'.length,
             internalVarName,
-            internalVarOffset, []));
+            internalVarOffset,
+            originalName,
+            originalVarOffset, []));
         continue;
       }
       // key
       int keyOffset = token.offset;
+      String originalName = null;
+      int originalNameOffset = keyOffset;
       String key = null;
       if (_tokenMatchesIdentifier(token)) {
         // scan for a full attribute name
@@ -540,6 +576,9 @@ class EmbeddedDartParser {
           lastEnd = token.end;
           token = token.next;
         }
+
+        originalName = key;
+
         // add the prefix
         if (prefix == null) {
           prefix = key;
@@ -556,21 +595,34 @@ class EmbeddedDartParser {
         token = token.next;
       }
       // expression
-      if (!_isTemplateVarBeginToken(token)) {
+      if (!_isTemplateVarBeginToken(token) &&
+          !_isDelimiter(token) &&
+          token.type != TokenType.EOF) {
         Expression expression = _parseDartExpressionAtToken(token);
         var start = token.offset - offset;
         token = expression.endToken.next;
         var end = token.offset - offset;
         var exprCode = code.substring(start, end);
-        attributes.add(new ExpressionBoundAttribute(key, keyOffset, key,
-            keyOffset, exprCode, start, expression, ExpressionBoundType.input));
+        attributes.add(new ExpressionBoundAttribute(
+            key,
+            keyOffset,
+            exprCode,
+            token.offset,
+            originalName,
+            originalNameOffset,
+            expression,
+            ExpressionBoundType.input));
       } else {
-        attributes.add(new TextAttribute(key, keyOffset, null, null, []));
+        attributes.add(new TextAttribute.synthetic(
+            key, keyOffset, null, null, originalName, originalNameOffset, []));
       }
     }
 
     return attributes;
   }
+
+  static bool _isDelimiter(Token token) =>
+      token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON;
 
   static bool _isTemplateVarBeginToken(Token token) {
     return token is KeywordToken && token.keyword == Keyword.VAR ||

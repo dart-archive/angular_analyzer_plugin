@@ -52,37 +52,40 @@ abstract class AttributeInfo extends AngularAstNode {
   final String value;
   final int valueOffset;
 
-  int get offset => nameOffset;
-  int get length => valueOffset == null
-      ? name.length
-      : valueOffset + value.length - nameOffset;
+  final String originalName;
+  final int originalNameOffset;
 
-  AttributeInfo(this.name, this.nameOffset, this.value, this.valueOffset);
+  int get offset => originalNameOffset;
+  int get length => valueOffset == null
+      ? originalName.length
+      : valueOffset + value.length - originalNameOffset;
+
+  AttributeInfo(this.name, this.nameOffset, this.value, this.valueOffset,
+      this.originalName, this.originalNameOffset);
 
   int get valueLength => value != null ? value.length : 0;
 
   @override
   String toString() {
-    return '([$name, $nameOffset], [$value, $valueOffset, $valueLength])';
+    return '([$name, $nameOffset], [$value, $valueOffset, $valueLength], ' +
+        '[$originalName, $originalNameOffset])';
   }
 }
 
 abstract class BoundAttributeInfo extends AttributeInfo {
-  final String originalName;
-  final int originalNameOffset;
-
   Map<String, LocalVariable> localVariables =
       new HashMap<String, LocalVariable>();
 
   BoundAttributeInfo(String name, int nameOffset, String value, int valueOffset,
-      this.originalName, this.originalNameOffset)
-      : super(name, nameOffset, value, valueOffset);
+      String originalName, int originalNameOffset)
+      : super(name, nameOffset, value, valueOffset, originalName,
+            originalNameOffset);
 
   List<AngularAstNode> get children => const <AngularAstNode>[];
 
   @override
   String toString() {
-    return '(' + super.toString() + ', [$originalName, $originalNameOffset])';
+    return '(' + super.toString() + ', [$children])';
   }
 }
 
@@ -162,7 +165,18 @@ class TextAttribute extends AttributeInfo {
 
   TextAttribute(String name, int nameOffset, String value, int valueOffset,
       this.mustaches)
-      : super(name, nameOffset, value, valueOffset);
+      : super(name, nameOffset, value, valueOffset, name, nameOffset);
+
+  TextAttribute.synthetic(
+      String name,
+      int nameOffset,
+      String value,
+      int valueOffset,
+      String originalName,
+      int originalNameOffset,
+      this.mustaches)
+      : super(name, nameOffset, value, valueOffset, originalName,
+            originalNameOffset);
 
   void accept(AngularAstVisitor visitor) => visitor.visitTextAttr(this);
 }
@@ -185,7 +199,9 @@ class Mustache extends AngularAstNode {
 /**
  * The HTML elements in the tree
  */
-abstract class NodeInfo extends AngularAstNode {}
+abstract class NodeInfo extends AngularAstNode {
+  bool get isSynthetic;
+}
 
 /**
  * An AngularAstNode which has directives, such as [ElementInfo] and
@@ -253,11 +269,18 @@ class OutputBinding {
 class TextInfo extends NodeInfo {
   final List<Mustache> mustaches;
   List<AngularAstNode> get children => new List<AngularAstNode>.from(mustaches);
+  final ElementInfo parent;
 
   final String text;
   final int offset;
+  final bool _isSynthetic;
 
-  TextInfo(this.offset, this.text, this.mustaches);
+  @override
+  bool get isSynthetic => _isSynthetic;
+
+  TextInfo(this.offset, this.text, this.parent, this.mustaches,
+      {synthetic: false})
+      : _isSynthetic = synthetic;
 
   int get length => text.length;
 
@@ -278,12 +301,15 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   final bool isTemplate;
   final List<AttributeInfo> attributes;
   final TemplateAttribute templateAttribute;
+  final ElementInfo parent;
+
   List<DirectiveBinding> boundDirectives = <DirectiveBinding>[];
   List<OutputBinding> boundStandardOutputs = <OutputBinding>[];
   List<InputBinding> boundStandardInputs = <InputBinding>[];
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective);
   int childNodesMaxEnd;
+  bool tagMatchedAsTransclusion = false;
 
   ElementInfo(
       this.localName,
@@ -293,7 +319,19 @@ class ElementInfo extends NodeInfo implements HasDirectives {
       this.closingNameSpan,
       this.isTemplate,
       this.attributes,
-      this.templateAttribute);
+      this.templateAttribute,
+      this.parent) {
+    if (!isSynthetic) {
+      childNodesMaxEnd = offset + length;
+    }
+  }
+
+  @override
+  bool get isSynthetic => openingSpan == null;
+  bool get openingSpanIsClosed => isSynthetic
+      ? false
+      : (openingSpan.offset + openingSpan.length) ==
+          (openingNameSpan.offset + openingNameSpan.length + ">".length);
 
   int get offset => openingSpan.offset;
   int get length => (closingSpan != null)
