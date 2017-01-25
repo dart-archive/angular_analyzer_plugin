@@ -34,28 +34,25 @@ bool offsetContained(int offset, int start, int length) {
 
 AngularAstNode findTarget(int offset, AngularAstNode root) {
   for (AngularAstNode child in root.children) {
-    if (child is ElementInfo && child.openingSpan == null) {
-      var target = findTarget(offset, child);
-      if (!(target is ElementInfo && target.openingSpan == null)) {
-        return target;
+    if (child is ElementInfo) {
+      if (child.isSynthetic) {
+        var target = findTarget(offset, child);
+        if (!(target is ElementInfo && target.openingSpan == null)) {
+          return target;
+        }
+      } else {
+        if (offsetContained(offset, child.openingNameSpan.offset,
+            child.openingNameSpan.length)) {
+          return child;
+        } else if (offsetContained(offset, child.offset, child.length)) {
+          return findTarget(offset, child);
+        }
       }
     } else if (offsetContained(offset, child.offset, child.length)) {
       return findTarget(offset, child);
     }
   }
   return root;
-}
-
-AngularAstNode findTargetInExtraNodes(
-    int targetOffset, List<NodeInfo> extraNodes) {
-  if (extraNodes != null && extraNodes.isNotEmpty) {
-    for (NodeInfo node in extraNodes) {
-      if (offsetContained(targetOffset, node.offset, node.length)) {
-        return node;
-      }
-    }
-  }
-  return null;
 }
 
 class DartSnippetExtractor extends AngularAstVisitor {
@@ -209,9 +206,7 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      AngularAstNode target =
-          findTargetInExtraNodes(request.offset, template.extraNodes) ??
-              findTarget(request.offset, template.ast);
+      AngularAstNode target = findTarget(request.offset, template.ast);
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);
@@ -252,7 +247,7 @@ class TemplateCompleter {
           target.openingSpan != null &&
           target.openingNameSpan != null &&
           (offsetContained(request.offset, target.openingSpan.offset,
-              target.openingSpan.length - '>'.length))) {
+              target.openingSpan.length))) {
         if (!offsetContained(request.offset, target.openingNameSpan.offset,
             target.openingNameSpan.length)) {
           // TODO suggest these things if the target is ExpressionBoundInput with
@@ -295,9 +290,20 @@ class TemplateCompleter {
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs,
             currentAttr: target);
+      } else if (target is TemplateAttribute) {
+        suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs);
+        suggestOutputs(target.parent.boundDirectives, suggestions,
+            standardHtmlEvents, target.parent.boundStandardOutputs);
+      } else if (target is TextAttribute) {
+        suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs);
+        suggestOutputs(target.parent.boundDirectives, suggestions,
+            standardHtmlEvents, target.parent.boundStandardOutputs);
       } else if (target is TextInfo) {
-        bool addOpenBracket =
-            target.text[request.offset - target.offset - 1] != '<';
+        bool addOpenBracket = target.text.length == 0
+            ? true
+            : target.text[request.offset - target.offset - 1] != '<';
         suggestHtmlTags(template, suggestions, addOpenBracket: addOpenBracket);
         suggestTransclusions(target.parent, suggestions);
       }

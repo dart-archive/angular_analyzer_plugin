@@ -10,6 +10,7 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
+import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
@@ -62,6 +63,16 @@ class HtmlTreeConverter {
 
       List<NodeInfo> children = _convertChildren(node, element);
       element.childNodes.addAll(children);
+
+      if (!element.isSynthetic &&
+          element.openingSpanIsClosed &&
+          closingSpan != null &&
+          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
+        element.childNodes.add(new TextInfo(
+            openingSpan.offset + openingSpan.length, '', element, [],
+            synthetic: true));
+      }
+
       return element;
     }
     if (node is html.Text) {
@@ -78,7 +89,9 @@ class HtmlTreeConverter {
     element.attributes.forEach((name, String value) {
       if (name is String) {
         try {
-          if (name.startsWith('*')) {
+          if (name == "") {
+            attributes.add(_convertSyntheticAttribute(element));
+          } else if (name.startsWith('*')) {
             attributes.add(_convertTemplateAttribute(element, name, true));
           } else if (name == 'template') {
             attributes.add(_convertTemplateAttribute(element, name, false));
@@ -128,6 +141,14 @@ class HtmlTreeConverter {
       }
     });
     return attributes;
+  }
+
+  TextAttribute _convertSyntheticAttribute(html.Element element) {
+    FileSpan openSourceSpan = element.sourceSpan;
+    int nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
+    TextAttribute textAttribute =
+        new TextAttribute("", nameOffset, null, null, []);
+    return textAttribute;
   }
 
   TemplateAttribute _convertTemplateAttribute(
@@ -251,22 +272,33 @@ class HtmlTreeConverter {
   }
 
   int _nameOffset(html.Element element, String name) {
+    String lowerName = name.toLowerCase();
     try {
-      String lowerName = name.toLowerCase();
       return element.attributeSpans[lowerName].start.offset;
       // See https://github.com/dart-lang/html/issues/44.
     } catch (e) {
-      throw new IgnorableHtmlInternalError(e);
+      try {
+        AttributeSpanContainer container =
+            AttributeSpanContainer.generateAttributeSpans(element);
+        return container.attributeSpans[name].start.offset;
+      } catch (e) {
+        throw new IgnorableHtmlInternalError(e);
+      }
     }
   }
 
   int _valueOffset(html.Element element, String name) {
+    String lowerName = name.toLowerCase();
     try {
-      SourceSpan span = element.attributeValueSpans[name.toLowerCase()];
+      SourceSpan span = element.attributeValueSpans[lowerName];
       if (span != null) {
         return span.start.offset;
       } else {
-        return null;
+        AttributeSpanContainer container =
+            AttributeSpanContainer.generateAttributeSpans(element);
+        return (container.attributeValueSpans.containsKey(name))
+            ? container.attributeValueSpans[name].start.offset
+            : null;
       }
     } catch (e) {
       throw new IgnorableHtmlInternalError(e);

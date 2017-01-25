@@ -99,7 +99,6 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       html.Element element = document.body.getElementsByTagName('h1').single;
       expect(element.attributes['myAttr'], 'my value');
     }
-    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
   }
 
   test_perform_noDocType() {
@@ -129,7 +128,6 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
     }
     // it's OK to don't have DOCTYPE
     expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
-    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
   }
 
   test_perform_noDocType_with_dangling_unclosed_tag() {
@@ -146,29 +144,10 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       expect(document, isNotNull);
       html.Element htmlElement = document.nodes[0];
       html.Element bodyElement = htmlElement.nodes[1];
-      expect(bodyElement.nodes, hasLength(4));
+      expect(bodyElement.nodes, hasLength(5));
       expect((bodyElement.nodes[0] as html.Element).localName, 'div');
       expect((bodyElement.nodes[2] as html.Element).localName, 'span');
-    }
-    //Test for 'eof-in-tag-name' error
-    {
-      List<AnalysisError> errors = outputs[ANGULAR_HTML_DOCUMENT_ERRORS];
-      expect(errors, hasLength(1));
-      AnalysisError danglingError = errors.first;
-      expect(danglingError.errorCode, HtmlErrorCode.PARSE_ERROR);
-      expect(danglingError.offset, 32);
-      expect(danglingError.message, 'eof-in-tag-name');
-    }
-    //Test for 'extraNodes'
-    {
-      List<NodeInfo> extraNodes = outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES];
-      expect(extraNodes, isNotNull);
-      expect(extraNodes, hasLength(1));
-      expect(extraNodes.first, new isInstanceOf<ElementInfo>());
-      ElementInfo extraNode = extraNodes.first;
-      expect(extraNode.localName, 'di');
-      expect(extraNode.length, 3);
-      expect(extraNode.offset, 32);
+      expect((bodyElement.nodes[4] as html.Element).localName, 'di');
     }
   }
 }
