@@ -13,15 +13,10 @@ import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
-import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:html/dom.dart' as html;
-import 'package:html/parser.dart' as html;
-import 'package:source_span/source_span.dart';
 
 /**
  * The implementation of [ElementView] using [AttributeInfo]s.
