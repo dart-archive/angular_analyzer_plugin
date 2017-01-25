@@ -99,7 +99,6 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       html.Element element = document.body.getElementsByTagName('h1').single;
       expect(element.attributes['myAttr'], 'my value');
     }
-    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
   }
 
   test_perform_noDocType() {
@@ -129,7 +128,6 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
     }
     // it's OK to don't have DOCTYPE
     expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
-    expect(outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES], isEmpty);
   }
 
   test_perform_noDocType_with_dangling_unclosed_tag() {

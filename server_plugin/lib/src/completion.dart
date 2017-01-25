@@ -55,18 +55,6 @@ AngularAstNode findTarget(int offset, AngularAstNode root) {
   return root;
 }
 
-AngularAstNode findTargetInExtraNodes(
-    int targetOffset, List<NodeInfo> extraNodes) {
-  if (extraNodes != null && extraNodes.isNotEmpty) {
-    for (NodeInfo node in extraNodes) {
-      if (offsetContained(targetOffset, node.offset, node.length)) {
-        return node;
-      }
-    }
-  }
-  return null;
-}
-
 class DartSnippetExtractor extends AngularAstVisitor {
   AstNode dartSnippet = null;
   int offset;
@@ -218,9 +206,7 @@ class TemplateCompleter {
       List<InputElement> standardHtmlAttributes) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
-      AngularAstNode target =
-          findTargetInExtraNodes(request.offset, template.extraNodes) ??
-              findTarget(request.offset, template.ast);
+      AngularAstNode target = findTarget(request.offset, template.ast);
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
       target.accept(extractor);

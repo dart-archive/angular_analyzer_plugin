@@ -53,13 +53,6 @@ final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
         'ANGULAR_HTML_DOCUMENT_ERRORS', AnalysisError.NO_ERRORS);
 
 /**
- * Additional Nodes generated from errors that need to be processed.
- */
-final ListResultDescriptor<NodeInfo> ANGULAR_HTML_DOCUMENT_EXTRA_NODES =
-    new ListResultDescriptor<NodeInfo>(
-        'ANGULAR_HTML_DOCUMENT_EXTRA_NODES', const <NodeInfo>[]);
-
-/**
  * The [Template]s of a [LibrarySpecificUnit].
  * This result is produced for templates specified directly in Dart files.
  */
@@ -272,7 +265,6 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
       'AngularParseHtmlTask', createTask, buildInputs, <ResultDescriptor>[
     ANGULAR_HTML_DOCUMENT,
     ANGULAR_HTML_DOCUMENT_ERRORS,
-    ANGULAR_HTML_DOCUMENT_EXTRA_NODES
   ]);
 
   AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
@@ -302,12 +294,10 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
         new AnalysisError(
             target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
       ];
-      outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = null;
     } else {
       parse(content);
       outputs[ANGULAR_HTML_DOCUMENT] = document;
       outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
-      outputs[ANGULAR_HTML_DOCUMENT_EXTRA_NODES] = extraNodes;
     }
   }
 
@@ -327,7 +317,6 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
 abstract class ParseHtmlMixin implements AnalysisTask {
   html.Document document;
   final List<AnalysisError> parseErrors = <AnalysisError>[];
-  final List<NodeInfo> extraNodes = <NodeInfo>[];
 
   void parse(String content) {
     AngularHtmlParser parser = new AngularHtmlParser(content,
@@ -349,22 +338,6 @@ abstract class ParseHtmlMixin implements AnalysisTask {
       // see github #47 for dart-lang/html
       if (span == null) continue;
 
-      if (parseError.errorCode == 'eof-in-tag-name' ||
-          parseError.errorCode == 'expected-attribute-name-but-got-eof') {
-        int localNameOffset = span.start.offset + "<".length;
-        String localName = content.substring(localNameOffset).trimRight();
-        ElementInfo extraNode = new ElementInfo(
-            localName,
-            new SourceRange(span.start.offset, span.length),
-            null,
-            new SourceRange(localNameOffset, localName.length),
-            null,
-            localName == 'template',
-            <AttributeInfo>[],
-            null,
-            null);
-        extraNodes.add(extraNode);
-      }
       this.parseErrors.add(new AnalysisError(target.source, span.start.offset,
           span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
     }
@@ -1566,8 +1539,6 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         getRequiredInput(HTML_DOCUMENTS_INPUT);
     Map<Source, List<AnalysisError>> documentsErrorsMap =
         getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
-    Map<Source, List<NodeInfo>> extraNodesMap =
-        getRequiredInput(EXTRA_NODES_INPUT);
     List<ElementInfo> asts = <ElementInfo>[];
     Map<Source, List<AnalysisError>> errorsByFile =
         <Source, List<AnalysisError>>{};
@@ -1589,14 +1560,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
           }
 
           documentsErrorsMap[source].forEach(errorListener.onError);
-          _processView(
-              new Template(d.view),
-              documentsMap[source],
-              errorListener,
-              errorReporter,
-              extraNodesMap[source],
-              asts,
-              errorsByFile);
+          _processView(new Template(d.view), documentsMap[source],
+              errorListener, errorReporter, asts, errorsByFile);
         } else {
           if (view.templateText == null) {
             return;
@@ -1608,8 +1573,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
           parseErrors.clear();
 
           _processView(new Template(view), document, errorListener,
-              errorReporter, extraNodes, asts, errorsByFile);
-          extraNodes.clear();
+              errorReporter, asts, errorsByFile);
         }
       }
     });
@@ -1622,7 +1586,6 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
       html.Document document,
       RecordingErrorListener errorListener,
       ErrorReporter errorReporter,
-      List<ElementInfo> extraNodes,
       List<ElementInfo> asts,
       Map<Source, List<AnalysisError>> errorsByFile) {
     Source source = template.view.templateSource;
@@ -1634,11 +1597,6 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     template.ast = new HtmlTreeConverter(parser, source, errorListener)
         .convert(firstElement(document));
     _setIgnoredErrors(template, document);
-
-    if (extraNodes != null) {
-      template.extraNodes.addAll(extraNodes);
-      extraNodes.clear();
-    }
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
 
@@ -1698,15 +1656,6 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
               .toList())
           // to map<source, html document of source>
           .toMapOf(ANGULAR_HTML_DOCUMENT_ERRORS),
-      EXTRA_NODES_INPUT: VIEWS_WITH_HTML_TEMPLATES1
-          .of(target)
-          // mapped to html source of the view
-          .mappedToList((views) => views
-              .map((v) => v.templateUriSource)
-              .where((v) => v != null)
-              .toList())
-          // to map<source, html document of source>
-          .toMapOf(ANGULAR_HTML_DOCUMENT_EXTRA_NODES)
     };
   }
 
@@ -1868,8 +1817,6 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
           STANDARD_HTML_ELEMENT_EVENTS.of(AnalysisContextTarget.request),
       HTML_ATTRIBUTES_INPUT:
           STANDARD_HTML_ELEMENT_ATTRIBUTES.of(AnalysisContextTarget.request),
-      HTML_DOCUMENT_EXTRA_NODES_INPUT: ANGULAR_HTML_DOCUMENT_EXTRA_NODES
-          .of((target as View).templateUriSource),
       // Not only is it important we calculate these errors, its important that
       // the AST conversion which creates those errors is performed
       ANGULAR_ASTS_ERRORS_INPUT: LIBRARY_SPECIFIC_UNITS
