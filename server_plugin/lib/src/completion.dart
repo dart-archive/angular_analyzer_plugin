@@ -295,6 +295,11 @@ class TemplateCompleter {
             standardHtmlAttributes, target.parent.boundStandardInputs);
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs);
+      } else if (target is TextAttribute) {
+        suggestInputs(target.parent.boundDirectives, suggestions,
+            standardHtmlAttributes, target.parent.boundStandardInputs);
+        suggestOutputs(target.parent.boundDirectives, suggestions,
+            standardHtmlEvents, target.parent.boundStandardOutputs);
       } else if (target is TextInfo) {
         bool addOpenBracket = target.text.length == 0
             ? true

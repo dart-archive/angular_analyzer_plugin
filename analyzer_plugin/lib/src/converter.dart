@@ -143,12 +143,12 @@ class HtmlTreeConverter {
     return attributes;
   }
 
-  TemplateAttribute _convertSyntheticAttribute(html.Element element) {
+  TextAttribute _convertSyntheticAttribute(html.Element element) {
     FileSpan openSourceSpan = element.sourceSpan;
-    int origNameOffset = openSourceSpan.start.offset + openSourceSpan.length;
-    TemplateAttribute templateAttribute = new TemplateAttribute(
-        "", origNameOffset, null, null, "", origNameOffset, []);
-    return templateAttribute;
+    int nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
+    TextAttribute textAttribute =
+        new TextAttribute("", nameOffset, null, null, []);
+    return textAttribute;
   }
 
   TemplateAttribute _convertTemplateAttribute(
