@@ -199,7 +199,9 @@ class Mustache extends AngularAstNode {
 /**
  * The HTML elements in the tree
  */
-abstract class NodeInfo extends AngularAstNode {}
+abstract class NodeInfo extends AngularAstNode {
+  bool get isSynthetic;
+}
 
 /**
  * An AngularAstNode which has directives, such as [ElementInfo] and
@@ -271,8 +273,14 @@ class TextInfo extends NodeInfo {
 
   final String text;
   final int offset;
+  final bool _isSynthetic;
 
-  TextInfo(this.offset, this.text, this.parent, this.mustaches);
+  @override
+  bool get isSynthetic => _isSynthetic;
+
+  TextInfo(this.offset, this.text, this.parent, this.mustaches,
+      {synthetic: false})
+      : _isSynthetic = synthetic;
 
   int get length => text.length;
 
@@ -318,6 +326,7 @@ class ElementInfo extends NodeInfo implements HasDirectives {
     }
   }
 
+  @override
   bool get isSynthetic => openingSpan == null;
   bool get openingSpanIsClosed => isSynthetic
       ? false

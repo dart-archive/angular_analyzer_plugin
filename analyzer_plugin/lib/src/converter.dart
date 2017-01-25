@@ -68,8 +68,9 @@ class HtmlTreeConverter {
           element.openingSpanIsClosed &&
           closingSpan != null &&
           (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
-        element.childNodes
-            .add(new TextInfo(openingSpan.offset + openingSpan.length, '', parent, []));
+        element.childNodes.add(new TextInfo(
+            openingSpan.offset + openingSpan.length, '', element, [],
+            synthetic: true));
       }
 
       return element;

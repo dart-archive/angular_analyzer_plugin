@@ -1602,7 +1602,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
             return;
           }
 
-          parse((' ' * view.templateOffset) + view.templateText);
+          parse((' ' * view.templateOffset) +
+              view.templateText.substring(0, view.templateText.length - 1));
           parseErrors.forEach(errorListener.onError);
           parseErrors.clear();
 
