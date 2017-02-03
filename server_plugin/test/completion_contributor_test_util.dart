@@ -65,9 +65,8 @@ abstract class AbstractDartCompletionContributorTest
     });
     request = await performAnalysis(times, requestCompleter);
 
-    var range = new ReplacementRange.compute(request.offset, request.target);
-    replacementOffset = range.offset;
-    replacementLength = range.length;
+    replacementOffset = (request as CompletionRequestImpl).replacementOffset;
+    replacementLength = (request as CompletionRequestImpl).replacementLength;
     Completer<List<CompletionSuggestion>> suggestionCompleter =
         new Completer<List<CompletionSuggestion>>();
 
@@ -115,8 +114,6 @@ abstract class AbstractCompletionContributorTest
     requestCompleter.complete(request);
     request = await performAnalysis<CompletionRequest>(times, requestCompleter);
 
-    replacementOffset = request.offset;
-    replacementLength = 0;
     Completer<List<CompletionSuggestion>> suggestionCompleter =
         new Completer<List<CompletionSuggestion>>();
 
@@ -130,6 +127,8 @@ abstract class AbstractCompletionContributorTest
     // Perform analysis until the suggestions have been computed
     // or the max analysis cycles ([times]) has been reached
     suggestions = await performAnalysis(times, suggestionCompleter);
+    replacementOffset = request.replacementOffset;
+    replacementLength = request.replacementLength;
     expect(suggestions, isNotNull, reason: 'expected suggestions');
   }
 }
