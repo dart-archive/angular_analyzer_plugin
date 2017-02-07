@@ -351,6 +351,7 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
+  final List<String> directiveNames;
   final Map<String, List<AbstractDirective>> elementTagsInfo =
       <String, List<AbstractDirective>>{};
   final String templateText;
@@ -371,7 +372,8 @@ class View implements AnalysisTarget {
       this.templateOffset: 0,
       this.templateUriSource,
       this.templateUrlRange,
-      this.annotation}) {
+      this.annotation,
+      this.directiveNames}) {
     // stability/error-recovery: @Component can be missing
     component?.view = this;
   }

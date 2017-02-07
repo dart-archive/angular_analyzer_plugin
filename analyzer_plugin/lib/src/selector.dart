@@ -348,6 +348,9 @@ class ContainsSelector extends Selector {
  * The base class for all Angular selectors.
  */
 abstract class Selector {
+  String originalString;
+  int offset;
+
   /**
    * Check whether the given [element] matches this selector.
    * If yes, then record resolved ranges into [template].
@@ -553,6 +556,8 @@ class SelectorParser {
       _unexpected(
           currentMatchStr, fileOffset + (currentMatch?.start ?? lastOffset));
     }
+    selector.originalString = str;
+    selector.offset = fileOffset;
     return selector;
   }
 
