@@ -7,8 +7,6 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
-import 'package:analyzer/src/generated/constant.dart';
-import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/exception/exception.dart';
@@ -30,13 +28,15 @@ import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
+import 'package:angular_analyzer_plugin/src/view_extraction.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:front_end/src/scanner/errors.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
-import 'package:tuple/tuple.dart';
 import 'package:source_span/source_span.dart';
 
 /**
@@ -257,7 +257,7 @@ final ResultDescriptor<Map<Source, List<AnalysisError>>> ANGULAR_ASTS_ERRORS =
  * Builds [ANGULAR_HTML_DOCUMENT],[ANGULAR_HTML_DOCUMENT_ERRORS], and
  * [ANGULAR_HTML_DOCUMENT_EXTRA_NODES].
  */
-class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
+class AngularParseHtmlTask extends SourceBasedAnalysisTask {
   static const String CONTENT_INPUT_NAME = 'CONTENT_INPUT_NAME';
   static const String MODIFICATION_TIME_INPUT = 'MODIFICATION_TIME_INPUT';
 
@@ -295,9 +295,10 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
             target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
       ];
     } else {
-      parse(content);
-      outputs[ANGULAR_HTML_DOCUMENT] = document;
-      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
+      final parser = new TemplateParser();
+      parser.parse(content, target.source);
+      outputs[ANGULAR_HTML_DOCUMENT] = parser.document;
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parser.parseErrors;
     }
   }
 
@@ -311,36 +312,6 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
   static AngularParseHtmlTask createTask(
       AnalysisContext context, AnalysisTarget target) {
     return new AngularParseHtmlTask(context, target);
-  }
-}
-
-abstract class ParseHtmlMixin implements AnalysisTask {
-  html.Document document;
-  final List<AnalysisError> parseErrors = <AnalysisError>[];
-
-  void parse(String content) {
-    AngularHtmlParser parser = new AngularHtmlParser(content,
-        generateSpans: true, lowercaseAttrName: false);
-    parser.compatMode = 'quirks';
-    document = parser.parse();
-
-    List<html.ParseError> htmlErrors = parser.errors;
-
-    for (html.ParseError parseError in htmlErrors) {
-      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
-          parseError.errorCode == 'expected-doctype-but-got-chars' ||
-          parseError.errorCode == 'expected-doctype-but-got-eof') {
-        continue;
-      }
-
-      SourceSpan span = parseError.span;
-      // html parser lib isn't nice enough to send this error all the time
-      // see github #47 for dart-lang/html
-      if (span == null) continue;
-
-      this.parseErrors.add(new AnalysisError(target.source, span.start.offset,
-          span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
-    }
   }
 }
 
@@ -386,7 +357,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
     Map<String, InputElement> attributes = <String, InputElement>{};
     for (ast.CompilationUnit unit in units) {
       Source source = unit.element.source;
-      unit.accept(new _BuildStandardHtmlComponentsVisitor(
+      unit.accept(new BuildStandardHtmlComponentsVisitor(
           components, events, attributes, source));
     }
     //
@@ -423,8 +394,7 @@ class BuildStandardHtmlComponentsTask extends AnalysisTask {
 /**
  * A task that builds [AbstractDirective]s of a [CompilationUnit].
  */
-class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
-    with _AnnotationProcessorMixin {
+class BuildUnitDirectivesTask extends SourceBasedAnalysisTask {
   static const String UNIT_INPUT = 'UNIT_INPUT';
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
 
@@ -440,25 +410,9 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
   @override
   TaskDescriptor get descriptor => DESCRIPTOR;
 
-  TypeProvider typeProvider;
-
-  /**
-   * Since <my-comp></my-comp> represents an instantiation of MyComp,
-   * especially when MyComp is generic or its superclasses are, we need
-   * this. Cache instead of passing around everywhere.
-   */
-  InterfaceType _instantiatedClassType;
-
-  /**
-   * The [ClassElement] being used to create the current component,
-   * stored here instead of passing around everywhere.
-   */
-  ClassElement _currentClassElement;
-
   @override
   void internalPerform() {
-    typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
-    initAnnotationProcessor(target);
+    TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
     //
     // Prepare inputs.
     //
@@ -466,477 +420,14 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
     //
     // Process all classes.
     //
-    List<AbstractDirective> directives = <AbstractDirective>[];
-    for (ast.CompilationUnitMember unitMember in unit.declarations) {
-      if (unitMember is ast.ClassDeclaration) {
-        for (ast.Annotation annotationNode in unitMember.metadata) {
-          AbstractDirective directive =
-              _createDirective(unitMember, annotationNode);
-          if (directive != null) {
-            directives.add(directive);
-          }
-        }
-      }
-    }
+    DirectiveExtractor directiveExtractor =
+        new DirectiveExtractor(unit, typeProvider, target.source, context);
+    List<AbstractDirective> directives = directiveExtractor.getDirectives();
     //
     // Record outputs.
     //
     outputs[DIRECTIVES_IN_UNIT] = directives;
-    outputs[DIRECTIVES_ERRORS] = errorListener.errors;
-  }
-
-  /**
-   * Returns an Angular [AbstractDirective] for to the given [node].
-   * Returns `null` if not an Angular annotation.
-   */
-  AbstractDirective _createDirective(
-      ast.ClassDeclaration classDeclaration, ast.Annotation node) {
-    _currentClassElement = classDeclaration.element;
-    _instantiatedClassType = _instantiateClass(_currentClassElement);
-    // TODO(scheglov) add support for all the arguments
-    bool isComponent = _isAngularAnnotation(node, 'Component');
-    bool isDirective = _isAngularAnnotation(node, 'Directive');
-    if (isComponent || isDirective) {
-      Selector selector = _parseSelector(node);
-      if (selector == null) {
-        return null;
-      }
-      List<ElementNameSelector> elementTags =
-          _getElementTagsFromSelector(selector);
-      AngularElement exportAs = _parseExportAs(node);
-      List<InputElement> inputElements = <InputElement>[];
-      List<OutputElement> outputElements = <OutputElement>[];
-      {
-        inputElements.addAll(_parseHeaderInputs(node));
-        outputElements.addAll(_parseHeaderOutputs(node));
-        _parseMemberInputsAndOutputs(
-            classDeclaration, inputElements, outputElements);
-      }
-      if (isComponent) {
-        return new Component(_currentClassElement,
-            exportAs: exportAs,
-            inputs: inputElements,
-            outputs: outputElements,
-            selector: selector,
-            elementTags: elementTags);
-      }
-      if (isDirective) {
-        return new Directive(_currentClassElement,
-            exportAs: exportAs,
-            inputs: inputElements,
-            outputs: outputElements,
-            selector: selector,
-            elementTags: elementTags);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Return the first named argument with one of the given names, or
-   * `null` if this argument is not [ast.ListLiteral] or no such arguments.
-   */
-  ast.ListLiteral _getListLiteralNamedArgument(
-      ast.Annotation node, List<String> names) {
-    for (var name in names) {
-      ast.Expression expression = _getNamedArgument(node, name);
-      if (expression != null) {
-        return expression is ast.ListLiteral ? expression : null;
-      }
-    }
-    return null;
-  }
-
-  AngularElement _parseExportAs(ast.Annotation node) {
-    // Find the "exportAs" argument.
-    ast.Expression expression = _getNamedArgument(node, 'exportAs');
-    if (expression == null) {
-      return null;
-    }
-
-    // Extract its content.
-    String name = _getExpressionString(expression);
-    if (name == null) {
-      return null;
-    }
-
-    int offset;
-    if (expression is ast.SimpleStringLiteral) {
-      offset = expression.contentsOffset;
-    } else {
-      offset = expression.offset;
-    }
-    // Create a new element.
-    return new AngularElementImpl(name, offset, name.length, target.source);
-  }
-
-  Tuple4<String, SourceRange, String, SourceRange>
-      _parseHeaderNameValueSourceRanges(ast.Expression expression) {
-    if (expression is ast.SimpleStringLiteral) {
-      int offset = expression.contentsOffset;
-      String value = expression.value;
-      // TODO(mfairhurst) support for pipes
-      int colonIndex = value.indexOf(':');
-      if (colonIndex == -1) {
-        String name = value;
-        SourceRange nameRange = new SourceRange(offset, name.length);
-        return new Tuple4<String, SourceRange, String, SourceRange>(
-            name, nameRange, name, nameRange);
-      } else {
-        // Resolve the setter.
-        String setterName = value.substring(0, colonIndex).trimRight();
-        // Find the name.
-        int boundOffset = colonIndex;
-        while (true) {
-          boundOffset++;
-          if (boundOffset >= value.length) {
-            // TODO(mfairhurst) report a warning
-            return null;
-          }
-          if (value.substring(boundOffset, boundOffset + 1) != ' ') {
-            break;
-          }
-        }
-        String boundName = value.substring(boundOffset);
-        // TODO(mfairhurst) test that a valid bound name
-        return new Tuple4<String, SourceRange, String, SourceRange>(
-            boundName,
-            new SourceRange(offset + boundOffset, boundName.length),
-            setterName,
-            new SourceRange(offset, setterName.length));
-      }
-    } else {
-      // TODO(mfairhurst) report a warning
-      return null;
-    }
-  }
-
-  InputElement _parseHeaderInput(ast.Expression expression) {
-    Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
-        _parseHeaderNameValueSourceRanges(expression);
-    if (nameValueAndRanges != null) {
-      var boundName = nameValueAndRanges.item1;
-      var boundRange = nameValueAndRanges.item2;
-      var name = nameValueAndRanges.item3;
-      var nameRange = nameValueAndRanges.item4;
-
-      PropertyAccessorElement setter = _resolveSetter(expression, name);
-      if (setter == null) {
-        return null;
-      }
-
-      return new InputElement(boundName, boundRange.offset, boundRange.length,
-          target.source, setter, nameRange, _getSetterType(setter));
-    } else {
-      // TODO(mfairhurst) report a warning
-      return null;
-    }
-  }
-
-  OutputElement _parseHeaderOutput(ast.Expression expression) {
-    Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
-        _parseHeaderNameValueSourceRanges(expression);
-    if (nameValueAndRanges != null) {
-      var boundName = nameValueAndRanges.item1;
-      var boundRange = nameValueAndRanges.item2;
-      var name = nameValueAndRanges.item3;
-      var nameRange = nameValueAndRanges.item4;
-
-      PropertyAccessorElement getter = _resolveGetter(expression, name);
-      if (getter == null) {
-        return null;
-      }
-
-      var eventType = getEventType(getter, name);
-
-      return new OutputElement(boundName, boundRange.offset, boundRange.length,
-          target.source, getter, nameRange, eventType);
-    } else {
-      // TODO(mfairhurst) report a warning
-      return null;
-    }
-  }
-
-  DartType _getSetterType(PropertyAccessorElement setter) {
-    if (setter != null) {
-      setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
-          thisType: true);
-    }
-
-    if (setter != null && setter.variable != null) {
-      var type = setter.variable.type;
-      return type;
-    }
-
-    return null;
-  }
-
-  DartType getEventType(PropertyAccessorElement getter, String name) {
-    if (getter != null) {
-      getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
-          thisType: true);
-    }
-
-    if (getter != null && getter.type != null) {
-      var returnType = getter.type.returnType;
-      if (returnType != null && returnType is InterfaceType) {
-        DartType streamType = typeProvider.streamType;
-        DartType streamedType =
-            context.typeSystem.mostSpecificTypeArgument(returnType, streamType);
-        if (streamedType != null) {
-          return streamedType;
-        } else {
-          errorReporter.reportErrorForOffset(
-              AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
-              getter.nameOffset,
-              getter.name.length,
-              [name]);
-        }
-      } else {
-        errorReporter.reportErrorForOffset(
-            AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
-            getter.nameOffset,
-            getter.name.length,
-            [name]);
-      }
-    }
-
-    return typeProvider.dynamicType;
-  }
-
-  DartType _instantiateClass(ClassElement classElement) {
-    // TODO use `insantiateToBounds` for better all around support
-    // See #91 for discussion about bugs related to bounds
-    var getBound = (TypeParameterElement p) {
-      return p.bound == null
-          ? typeProvider.dynamicType
-          : p.bound.resolveToBound(typeProvider.dynamicType);
-    };
-
-    var bounds = classElement.typeParameters.map(getBound).toList();
-    return classElement.type.instantiate(bounds);
-  }
-
-  List<ElementNameSelector> _getElementTagsFromSelector(Selector selector) {
-    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
-    if (selector is ElementNameSelector) {
-      elementTags.add(selector);
-    } else if (selector is OrSelector) {
-      for (Selector innerSelector in selector.selectors) {
-        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
-      }
-    } else if (selector is AndSelector) {
-      for (Selector innerSelector in selector.selectors) {
-        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
-      }
-    }
-    return elementTags;
-  }
-
-  List<InputElement> _parseHeaderInputs(ast.Annotation node) {
-    ast.ListLiteral descList = _getListLiteralNamedArgument(
-        node, const <String>['inputs', 'properties']);
-    if (descList == null) {
-      return InputElement.EMPTY_LIST;
-    }
-    // Create an input for each element.
-    List<InputElement> inputElements = <InputElement>[];
-    for (ast.Expression element in descList.elements) {
-      InputElement inputElement = _parseHeaderInput(element);
-      if (inputElement != null) {
-        inputElements.add(inputElement);
-      }
-    }
-    return inputElements;
-  }
-
-  List<OutputElement> _parseHeaderOutputs(ast.Annotation node) {
-    ast.ListLiteral descList =
-        _getListLiteralNamedArgument(node, const <String>['outputs']);
-    if (descList == null) {
-      return OutputElement.EMPTY_LIST;
-    }
-    // Create an output for each element.
-    List<OutputElement> outputs = <OutputElement>[];
-    for (ast.Expression element in descList.elements) {
-      OutputElement outputElement = _parseHeaderOutput(element);
-      if (outputElement != null) {
-        outputs.add(outputElement);
-      }
-    }
-    return outputs;
-  }
-
-  /**
-   * Create a new input or output for the given class member [node] with
-   * the given `@Input` or `@Output` [annotation], and add it to the
-   * [inputElements] or [outputElements] array.
-   */
-  _parseMemberInputOrOutput(ast.ClassMember node, ast.Annotation annotation,
-      List<InputElement> inputElements, List<OutputElement> outputElements) {
-    // analyze the annotation
-    final isInput = _isAngularAnnotation(annotation, 'Input');
-    final isOutput = _isAngularAnnotation(annotation, 'Output');
-    if ((!isInput && !isOutput) || annotation.arguments == null) {
-      return null;
-    }
-
-    // analyze the class member
-    PropertyAccessorElement property;
-    if (node is ast.FieldDeclaration && node.fields.variables.length == 1) {
-      ast.VariableDeclaration variable = node.fields.variables.first;
-      FieldElement fieldElement = variable.element;
-      property = isInput ? fieldElement.setter : fieldElement.getter;
-    } else if (node is ast.MethodDeclaration) {
-      if (isInput && node.isSetter) {
-        property = node.element;
-      } else if (isOutput && node.isGetter) {
-        property = node.element;
-      }
-    }
-
-    if (property == null) {
-      errorReporter.reportErrorForOffset(
-          isInput
-              ? AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID
-              : AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-          annotation.offset,
-          annotation.length);
-      return null;
-    }
-
-    // prepare the input name
-    String name;
-    int nameOffset;
-    int nameLength;
-    int setterOffset = property.nameOffset;
-    int setterLength = property.nameLength;
-    List<ast.Expression> arguments = annotation.arguments.arguments;
-    if (arguments.isEmpty) {
-      String propertyName = property.displayName;
-      name = propertyName;
-      nameOffset = property.nameOffset;
-      nameLength = name.length;
-    } else {
-      ast.Expression nameArgument = arguments[0];
-      if (nameArgument is ast.SimpleStringLiteral) {
-        name = nameArgument.value;
-        nameOffset = nameArgument.contentsOffset;
-        nameLength = name.length;
-      } else {
-        errorReporter.reportErrorForNode(
-            AngularWarningCode.STRING_VALUE_EXPECTED, nameArgument);
-      }
-      if (name == null) {
-        return null;
-      }
-    }
-
-    if (isInput) {
-      inputElements.add(new InputElement(
-          name,
-          nameOffset,
-          nameLength,
-          target.source,
-          property,
-          new SourceRange(setterOffset, setterLength),
-          _getSetterType(property)));
-    } else {
-      var eventType = getEventType(property, name);
-      outputElements.add(new OutputElement(
-          name,
-          nameOffset,
-          nameLength,
-          target.source,
-          property,
-          new SourceRange(setterOffset, setterLength),
-          eventType));
-    }
-  }
-
-  /**
-   * Collect inputs and outputs for all class members with `@Input`
-   * or `@Output` annotations.
-   */
-  _parseMemberInputsAndOutputs(ast.ClassDeclaration node,
-      List<InputElement> inputElements, List<OutputElement> outputElements) {
-    for (ast.ClassMember member in node.members) {
-      for (ast.Annotation annotation in member.metadata) {
-        _parseMemberInputOrOutput(
-            member, annotation, inputElements, outputElements);
-      }
-    }
-  }
-
-  Selector _parseSelector(ast.Annotation node) {
-    // Find the "selector" argument.
-    ast.Expression expression = _getNamedArgument(node, 'selector');
-    if (expression == null) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.ARGUMENT_SELECTOR_MISSING, node);
-      return null;
-    }
-    // Compute the selector text. Careful! Offsets may not be valid after this,
-    // however, at the moment we don't use them anyway.
-    OffsettingConstantEvaluator constantEvaluation =
-        _calculateStringWithOffsets(expression);
-    if (constantEvaluation == null) {
-      return null;
-    }
-
-    String selectorStr = constantEvaluation.value;
-    int selectorOffset = expression.offset;
-    // Parse the selector text.
-    try {
-      Selector selector =
-          new SelectorParser(target.source, selectorOffset, selectorStr)
-              .parse();
-      if (selector == null) {
-        errorReporter.reportErrorForNode(
-            AngularWarningCode.CANNOT_PARSE_SELECTOR,
-            expression,
-            [selectorStr]);
-      }
-      return selector;
-    } on SelectorParseError catch (e) {
-      errorReporter.reportErrorForOffset(
-          AngularWarningCode.CANNOT_PARSE_SELECTOR,
-          e.offset,
-          e.length,
-          [e.message]);
-    }
-
-    return null;
-  }
-
-  /**
-   * Resolve the input setter with the given [name] in [_currentClassElement].
-   * If undefined, report a warning and return `null`.
-   */
-  PropertyAccessorElement _resolveSetter(
-      ast.SimpleStringLiteral literal, String name) {
-    PropertyAccessorElement setter =
-        _currentClassElement.lookUpSetter(name, _currentClassElement.library);
-    if (setter == null) {
-      errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_SETTER,
-          literal, [name, _currentClassElement.displayName]);
-    }
-    return setter;
-  }
-
-  /**
-   * Resolve the output getter with the given [name] in [_currentClassElement].
-   * If undefined, report a warning and return `null`.
-   */
-  PropertyAccessorElement _resolveGetter(
-      ast.SimpleStringLiteral literal, String name) {
-    PropertyAccessorElement getter =
-        _currentClassElement.lookUpGetter(name, _currentClassElement.library);
-    if (getter == null) {
-      errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_GETTER,
-          literal, [name, _currentClassElement.displayName]);
-    }
-    return getter;
+    outputs[DIRECTIVES_ERRORS] = directiveExtractor.errorListener.errors;
   }
 
   /**
@@ -963,8 +454,7 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
 /**
  * A task that builds [View]s of a [CompilationUnit].
  */
-class BuildUnitViewsTask extends SourceBasedAnalysisTask
-    with _AnnotationProcessorMixin, ParseHtmlMixin {
+class BuildUnitViewsTask extends SourceBasedAnalysisTask {
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String UNIT_INPUT = 'UNIT_INPUT';
   static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
@@ -985,7 +475,6 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
 
   @override
   void internalPerform() {
-    initAnnotationProcessor(target);
     //
     // Prepare inputs.
     //
@@ -995,133 +484,17 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
     //
     // Process all classes.
     //
-    List<View> views = <View>[];
-    List<View> viewsWithTemplates = <View>[];
-    for (ast.CompilationUnitMember unitMember in unit.declarations) {
-      if (unitMember is ast.ClassDeclaration) {
-        ClassElement classElement = unitMember.element;
-        ast.Annotation viewAnnotation;
-        ast.Annotation componentAnnotation;
-
-        for (ast.Annotation annotation in unitMember.metadata) {
-          if (_isAngularAnnotation(annotation, 'View')) {
-            viewAnnotation = annotation;
-          } else if (_isAngularAnnotation(annotation, 'Component')) {
-            componentAnnotation = annotation;
-          }
-        }
-
-        if (viewAnnotation == null && componentAnnotation == null) {
-          continue;
-        }
-
-        //@TODO when there's both a @View and @Component, handle edge cases
-        View view =
-            _createView(classElement, viewAnnotation ?? componentAnnotation);
-
-        if (view != null) {
-          views.add(view);
-          if (view.templateUriSource != null) {
-            viewsWithTemplates.add(view);
-          }
-        }
-      }
-    }
+    ViewExtractor extractor = new ViewExtractor(
+        unit, directivesDefinedInFile, context, target.source);
+    List<View> views = extractor.getViews();
+    List<View> viewsWithTemplates =
+        views.where((v) => v.templateUriSource != null).toList();
     //
     // Record outputs.
     //
     outputs[VIEWS1] = views;
-    outputs[VIEWS_ERRORS1] = errorListener.errors;
+    outputs[VIEWS_ERRORS1] = extractor.errorListener.errors;
     outputs[VIEWS_WITH_HTML_TEMPLATES1] = viewsWithTemplates;
-  }
-
-  /**
-   * Create a new [View] for the given [annotation], may return `null`
-   * if [annotation] or [classElement] don't provide enough information.
-   */
-  View _createView(ClassElement classElement, ast.Annotation annotation) {
-    // Template in a separate HTML file.
-    Source templateUriSource = null;
-    bool definesTemplate = false;
-    bool definesTemplateUrl = false;
-    SourceRange templateUrlRange = null;
-    {
-      ast.Expression templateUrlExpression =
-          _getNamedArgument(annotation, 'templateUrl');
-      definesTemplateUrl = templateUrlExpression != null;
-      String templateUrl = _getExpressionString(templateUrlExpression);
-      if (templateUrl != null) {
-        SourceFactory sourceFactory = context.sourceFactory;
-        templateUriSource =
-            sourceFactory.resolveUri(target.source, templateUrl);
-
-        if (templateUriSource == null || !templateUriSource.exists()) {
-          errorReporter.reportErrorForNode(
-              AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
-              templateUrlExpression);
-        }
-
-        templateUrlRange = new SourceRange(
-            templateUrlExpression.offset, templateUrlExpression.length);
-      }
-    }
-    // Try to find inline "template".
-    String templateText;
-    int templateOffset = 0;
-    {
-      ast.Expression expression = _getNamedArgument(annotation, 'template');
-      if (expression != null) {
-        templateOffset = expression.offset;
-        definesTemplate = true;
-        OffsettingConstantEvaluator constantEvaluation =
-            _calculateStringWithOffsets(expression);
-
-        // highly dynamically generated constant expressions can't be validated
-        if (constantEvaluation == null || !constantEvaluation.offsetsAreValid) {
-          templateText = '';
-        } else {
-          templateText = constantEvaluation.value;
-        }
-      }
-    }
-
-    if (definesTemplate && definesTemplateUrl) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED, annotation);
-
-      return null;
-    }
-
-    if (!definesTemplate && !definesTemplateUrl) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED, annotation);
-
-      return null;
-    }
-
-    // Find the corresponding Component.
-    Component component = _findComponentAnnotationOrReportError(classElement);
-    if (component == null) {
-      return null;
-    }
-    // Create View.
-    return new View(classElement, component, <AbstractDirective>[],
-        templateText: templateText,
-        templateOffset: templateOffset,
-        templateUriSource: templateUriSource,
-        templateUrlRange: templateUrlRange,
-        annotation: annotation);
-  }
-
-  Component _findComponentAnnotationOrReportError(ClassElement classElement) {
-    for (AbstractDirective directive in directivesDefinedInFile) {
-      if (directive is Component && directive.classElement == classElement) {
-        return directive;
-      }
-    }
-    errorReporter.reportErrorForElement(
-        AngularWarningCode.COMPONENT_ANNOTATION_MISSING, classElement, []);
-    return null;
   }
 
   /**
@@ -1146,8 +519,7 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
   }
 }
 
-class BuildUnitViewsTask2 extends SourceBasedAnalysisTask
-    with _AnnotationProcessorMixin {
+class BuildUnitViewsTask2 extends SourceBasedAnalysisTask {
   static const String VIEWS1_INPUT = 'VIEWS1_INPUT';
   static const String VIEWS_ERRORS1_INPUT = 'VIEWS_ERRORS1_INPUT';
   static const String DIRECTIVES_INPUT = 'DIRECTIVES_INPUT';
@@ -1161,129 +533,24 @@ class BuildUnitViewsTask2 extends SourceBasedAnalysisTask
   @override
   TaskDescriptor get descriptor => DESCRIPTOR;
 
-  List<AbstractDirective> _allDirectives;
-
   BuildUnitViewsTask2(AnalysisContext context, AnalysisTarget target)
       : super(context, target);
 
   void internalPerform() {
     List<View> views = getRequiredInput(VIEWS1_INPUT);
-    _allDirectives = getRequiredInput(DIRECTIVES_INPUT);
-    initAnnotationProcessor(target);
+    List<AbstractDirective> allDirectives = getRequiredInput(DIRECTIVES_INPUT);
 
-    views.forEach(findDirectives);
+    ViewDirectiveLinker linker =
+        new ViewDirectiveLinker(views, allDirectives, target.source);
+    linker.linkDirectives();
     outputs[VIEWS2] = views;
 
     outputs[VIEWS_WITH_HTML_TEMPLATES2] =
         views.where((d) => d.templateUriSource != null).toList();
 
-    outputs[VIEWS_ERRORS2] = new List<AnalysisError>.from(errorListener.errors)
-      ..addAll(getRequiredInput(VIEWS_ERRORS1_INPUT));
-  }
-
-  void findDirectives(View view) {
-    // Prepare directives and elementTags
-    ast.Expression listExpression =
-        _getNamedArgument(view.annotation, 'directives');
-    if (listExpression is ast.ListLiteral) {
-      for (ast.Expression item in listExpression.elements) {
-        if (item is ast.Identifier) {
-          Element element = item.staticElement;
-          // TypeLiteral
-          if (element is ClassElement) {
-            _addDirectiveAndElementTagOrReportError(
-                view.directives, view.elementTagsInfo, item, element);
-            continue;
-          }
-          // LIST_OF_DIRECTIVES
-          if (element is PropertyAccessorElement &&
-              element.variable.constantValue != null) {
-            DartObject value = element.variable.constantValue;
-            bool success = _addDirectivesAndElementTagsForDartObject(
-                view.directives, view.elementTagsInfo, value);
-            if (!success) {
-              errorReporter.reportErrorForNode(
-                  AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-              return null;
-            }
-            continue;
-          }
-        }
-        // unknown
-        errorReporter.reportErrorForNode(
-            AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-      }
-    }
-  }
-
-  /**
-   * Attempt to find and add the [AbstractDirective] that corresponds to
-   * the [classElement]. In addition, if Component, adds it to elementTags.
-   * Returns `true` if at least directive is successfully added.
-   */
-  bool _addDirectiveAndElementTag(
-      List<AbstractDirective> directives,
-      Map<String, List<AbstractDirective>> elementTagsInfo,
-      ClassElement classElement) {
-    for (AbstractDirective directive in _allDirectives) {
-      if (directive.classElement == classElement) {
-        directives.add(directive);
-        for (ElementNameSelector elementTag in directive.elementTags) {
-          String elementTagName = elementTag.toString();
-          if (!elementTagsInfo.containsKey(elementTagName)) {
-            elementTagsInfo.putIfAbsent(
-                elementTagName, () => new List<AbstractDirective>());
-          }
-          elementTagsInfo[elementTagName].add(directive);
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Attempt to find and add the [AbstractDirective] and elementTag(if Component)
-   * that corresponds to
-   * the [classElement]. Return an error if the directive not found.
-   */
-  void _addDirectiveAndElementTagOrReportError(
-      List<AbstractDirective> directives,
-      Map<String, List<AbstractDirective>> elementTagsInfo,
-      ast.Expression expression,
-      ClassElement classElement) {
-    bool success =
-        _addDirectiveAndElementTag(directives, elementTagsInfo, classElement);
-    if (!success) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED, expression);
-    }
-  }
-
-  /**
-   * Walk the given [value] and add directives into [directives].
-   * Return `true` if success, or `false` the [value] has items that don't
-   * correspond to a directive.
-   */
-  bool _addDirectivesAndElementTagsForDartObject(
-      List<AbstractDirective> directives,
-      Map<String, List<AbstractDirective>> elementTagsInfo,
-      DartObject value) {
-    List<DartObject> listValue = value.toListValue();
-    if (listValue != null) {
-      for (DartObject listItem in listValue) {
-        Object typeValue = listItem.toTypeValue();
-        if (typeValue is InterfaceType) {
-          bool success = _addDirectiveAndElementTag(
-              directives, elementTagsInfo, typeValue.element);
-          if (!success) {
-            return false;
-          }
-        }
-      }
-      return true;
-    }
-    return false;
+    outputs[VIEWS_ERRORS2] =
+        new List<AnalysisError>.from(linker.errorListener.errors)
+          ..addAll(getRequiredInput(VIEWS_ERRORS1_INPUT));
   }
 
   /**
@@ -1511,8 +778,7 @@ class ResolveDartTemplatesTask extends SourceBasedAnalysisTask {
   }
 }
 
-class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
-    with ParseHtmlMixin {
+class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask {
   static const String DIRECTIVES_IN_UNIT1_INPUT = 'DIRECTIVES_IN_UNIT1_INPUT';
   static const String HTML_DOCUMENTS_INPUT = 'HTML_DOCUMENTS_INPUT';
   static const String HTML_DOCUMENTS_ERRORS_INPUT =
@@ -1567,12 +833,12 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
             return;
           }
 
-          parse((' ' * view.templateOffset) +
-              view.templateText.substring(0, view.templateText.length - 1));
-          parseErrors.forEach(errorListener.onError);
-          parseErrors.clear();
+          final parser = new TemplateParser();
+          parser.parse(view.templateText, source, offset: view.templateOffset);
+          parser.parseErrors.forEach(errorListener.onError);
+          parser.parseErrors.clear();
 
-          _processView(new Template(view), document, errorListener,
+          _processView(new Template(view), parser.document, errorListener,
               errorReporter, asts, errorsByFile);
         }
       }
@@ -1596,7 +862,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
 
     template.ast = new HtmlTreeConverter(parser, source, errorListener)
         .convert(firstElement(document));
-    _setIgnoredErrors(template, document);
+    setIgnoredErrors(template, document);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
 
@@ -1606,27 +872,6 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
       errorsByFile[source] = <AnalysisError>[];
     }
     errorsByFile[source].addAll(errorListener.errors);
-  }
-
-  _setIgnoredErrors(Template template, html.Document document) {
-    if (document == null || document.nodes.length == 0) {
-      return;
-    }
-    html.Node firstNode = document.nodes[0];
-    if (firstNode is html.Comment) {
-      String text = firstNode.text.trim();
-      if (text.startsWith("@ngIgnoreErrors")) {
-        text = text.substring("@ngIgnoreErrors".length);
-        // Per spec: optional color
-        if (text.startsWith(":")) {
-          text = text.substring(1);
-        }
-        // Per spec: optional commas
-        String delim = text.indexOf(',') == -1 ? ' ' : ',';
-        template.ignoredErrors.addAll(new HashSet.from(
-            text.split(delim).map((c) => c.trim().toUpperCase())));
-      }
-    }
   }
 
   /**
@@ -1961,7 +1206,7 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
 /**
  * Helper for processing Angular annotations.
  */
-class _AnnotationProcessorMixin {
+class AnnotationProcessorMixin {
   RecordingErrorListener errorListener = new RecordingErrorListener();
   ErrorReporter errorReporter;
 
@@ -1974,9 +1219,9 @@ class _AnnotationProcessorMixin {
   /**
    * Initialize the processor working in the given [target].
    */
-  void initAnnotationProcessor(AnalysisTarget target) {
+  void initAnnotationProcessor(Source source) {
     assert(errorReporter == null);
-    errorReporter = new ErrorReporter(errorListener, target.source);
+    errorReporter = new ErrorReporter(errorListener, source);
   }
 
   /**
@@ -1984,7 +1229,7 @@ class _AnnotationProcessorMixin {
    * If [expression] does not have a [String] value, reports an error
    * and returns `null`.
    */
-  String _getExpressionString(ast.Expression expression) {
+  String getExpressionString(ast.Expression expression) {
     if (expression != null) {
       Object value = expression.accept(_constantEvaluator);
       if (value is String) {
@@ -2001,7 +1246,7 @@ class _AnnotationProcessorMixin {
    * If [expression] does not have a [String] value, reports an error
    * and returns `null`.
    */
-  OffsettingConstantEvaluator _calculateStringWithOffsets(
+  OffsettingConstantEvaluator calculateStringWithOffsets(
       ast.Expression expression) {
     if (expression != null) {
       OffsettingConstantEvaluator evaluator = new OffsettingConstantEvaluator();
@@ -2025,7 +1270,7 @@ class _AnnotationProcessorMixin {
    * Returns the value of the argument with the given [name].
    * Returns `null` if not found.
    */
-  ast.Expression _getNamedArgument(ast.Annotation node, String name) {
+  ast.Expression getNamedArgument(ast.Annotation node, String name) {
     if (node.arguments != null) {
       List<ast.Expression> arguments = node.arguments.arguments;
       for (ast.Expression argument in arguments) {
@@ -2044,7 +1289,7 @@ class _AnnotationProcessorMixin {
    * Returns `true` is the given [node] is resolved to a creation of an Angular
    * annotation class with the given [name].
    */
-  bool _isAngularAnnotation(ast.Annotation node, String name) {
+  bool isAngularAnnotation(ast.Annotation node, String name) {
     if (node.element is ConstructorElement) {
       ClassElement clazz = node.element.enclosingElement;
       return clazz.library.source.uri.path
@@ -2052,188 +1297,6 @@ class _AnnotationProcessorMixin {
           clazz.name == name;
     }
     return false;
-  }
-}
-
-class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
-  final Map<String, Component> components;
-  final Map<String, OutputElement> events;
-  final Map<String, InputElement> attributes;
-  final Source source;
-
-  static const Map<String, String> specialElementClasses =
-      const <String, String>{
-    "OptionElement": 'option',
-    "DialogElement": "dialog",
-    "MediaElement": "media",
-    "MenuItemElement": "menuitem",
-    "ModElement": "mod",
-    "PictureElement": "picture"
-  };
-
-  ClassElement classElement;
-
-  _BuildStandardHtmlComponentsVisitor(
-      this.components, this.events, this.attributes, this.source);
-
-  @override
-  void visitClassDeclaration(ast.ClassDeclaration node) {
-    classElement = node.element;
-    super.visitClassDeclaration(node);
-    if (classElement.name == 'HtmlElement') {
-      List<OutputElement> outputElements = _buildOutputs(false);
-      for (OutputElement outputElement in outputElements) {
-        events[outputElement.name] = outputElement;
-      }
-      List<InputElement> inputElements = _buildInputs(false);
-      for (InputElement inputElement in inputElements) {
-        attributes[inputElement.name] = inputElement;
-      }
-    } else {
-      String specialTagName = specialElementClasses[classElement.name];
-      if (specialTagName != null) {
-        String tag = specialTagName;
-        // TODO any better offset we can do here?
-        int tagOffset = classElement.nameOffset + 'HTML'.length;
-        Component component = _buildComponent(tag, tagOffset);
-        components[tag] = component;
-      }
-    }
-    classElement = null;
-  }
-
-  @override
-  void visitConstructorDeclaration(ast.ConstructorDeclaration node) {
-    if (node.factoryKeyword != null) {
-      super.visitConstructorDeclaration(node);
-    }
-  }
-
-  @override
-  void visitMethodInvocation(ast.MethodInvocation node) {
-    ast.Expression target = node.target;
-    ast.ArgumentList argumentList = node.argumentList;
-    if (target is ast.SimpleIdentifier &&
-        target.name == 'document' &&
-        node.methodName.name == 'createElement' &&
-        argumentList != null &&
-        argumentList.arguments.length == 1) {
-      ast.Expression argument = argumentList.arguments.single;
-      if (argument is ast.SimpleStringLiteral) {
-        String tag = argument.value;
-        int tagOffset = argument.contentsOffset;
-        Component component = _buildComponent(tag, tagOffset);
-        components[tag] = component;
-      }
-    }
-  }
-
-  /**
-   * Return a new [Component] for the current [classElement].
-   */
-  Component _buildComponent(String tag, int tagOffset) {
-    List<InputElement> inputElements = _buildInputs(true);
-    List<OutputElement> outputElements = _buildOutputs(true);
-    return new Component(classElement,
-        inputs: inputElements,
-        outputs: outputElements,
-        selector: new ElementNameSelector(
-            new SelectorName(tag, tagOffset, tag.length, source)));
-  }
-
-  List<InputElement> _buildInputs(bool skipHtmlElement) {
-    return _captureAspects(
-        (Map<String, InputElement> inputMap, PropertyAccessorElement accessor) {
-      String name = accessor.displayName;
-      if (!inputMap.containsKey(name)) {
-        if (accessor.isSetter) {
-          inputMap[name] = new InputElement(
-              name,
-              accessor.nameOffset,
-              accessor.nameLength,
-              accessor.source,
-              accessor,
-              new SourceRange(accessor.nameOffset, accessor.nameLength),
-              accessor.variable.type);
-        }
-      }
-    }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them
-  }
-
-  List<OutputElement> _buildOutputs(bool skipHtmlElement) {
-    return _captureAspects((Map<String, OutputElement> outputMap,
-        PropertyAccessorElement accessor) {
-      String domName = _getDomName(accessor);
-      if (domName == null) {
-        return;
-      }
-
-      // Event domnames start with Element.on or Document.on
-      int offset = domName.indexOf(".") + ".on".length;
-      String name = domName.substring(offset);
-
-      if (!outputMap.containsKey(name)) {
-        if (accessor.isGetter) {
-          var returnType =
-              accessor.type == null ? null : accessor.type.returnType;
-          DartType eventType = null;
-          if (returnType != null && returnType is InterfaceType) {
-            // TODO allow subtypes of ElementStream? This is a generated file
-            // so might not be necessary.
-            if (returnType.element.name == 'ElementStream') {
-              eventType = returnType.typeArguments[0]; // may be null
-              outputMap[name] = new OutputElement(
-                  name,
-                  accessor.nameOffset,
-                  accessor.nameLength,
-                  accessor.source,
-                  accessor,
-                  null,
-                  eventType);
-            }
-          }
-        }
-      }
-    }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
-  }
-
-  String _getDomName(Element element) {
-    for (ElementAnnotation annotation in element.metadata) {
-      // this has caching built in, so we can compute every time
-      var value = annotation.computeConstantValue();
-      if (value != null && value.type is InterfaceType) {
-        if (value.type.element.name == 'DomName') {
-          return value.getField("name").toStringValue();
-        }
-      }
-    }
-
-    return null;
-  }
-
-  List<T> _captureAspects<T>(
-      CaptureAspectFn<T> addAspect, bool skipHtmlElement) {
-    Map<String, T> aspectMap = <String, T>{};
-    Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
-
-    void addAspects(InterfaceType type) {
-      if (type != null && visitedTypes.add(type)) {
-        // The events defined here are handled specially because everything
-        // (even directives) can use them. Note, this leaves only a few
-        // special elements with outputs such as BodyElement, everything else
-        // relies on standardHtmlEvents checked after the outputs.
-        if (!skipHtmlElement || type.name != 'HtmlElement') {
-          type.accessors
-              .where((elem) => !elem.isPrivate)
-              .forEach((elem) => addAspect(aspectMap, elem));
-          type.mixins.forEach(addAspects);
-          addAspects(type.superclass);
-        }
-      }
-    }
-
-    addAspects(classElement.type);
-    return aspectMap.values.toList();
   }
 }
 

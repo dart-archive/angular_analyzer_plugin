@@ -3,18 +3,34 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:analysis_server/starter.dart';
-import 'package:angular_analyzer_plugin/plugin.dart';
-import 'package:angular_analyzer_server_plugin/plugin.dart';
-import 'package:plugin/plugin.dart';
+
+import 'package:analysis_server/src/analysis_server.dart';
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 
 /**
  * Create and run an analysis server with Angular plugins.
  */
 void main(List<String> args) {
-  ServerStarter starter = new ServerStarter();
-  starter.userDefinedPlugins = <Plugin>[
-    new AngularAnalyzerPlugin(),
-    new AngularServerPlugin()
-  ];
+  AnalysisServer.onCreate = (AnalysisServer server) {
+    ServerContextManagerCallbacks.onCreateAnalysisDriver = (analysisDriver,
+        scheduler,
+        logger,
+        resourceProvider,
+        byteStore,
+        contentOverlay,
+        sourceFactory,
+        analysisOptions) {
+      final AngularDriver driver = new AngularDriver(
+          server, analysisDriver, scheduler, byteStore, sourceFactory);
+      AnalysisServer.onFileAdd = (String path) {
+        driver.addFile(path);
+      };
+      AnalysisServer.onFileChange = (String path) {
+        driver.fileChanged(path);
+      };
+    };
+  };
+
+  final ServerStarter starter = new ServerStarter();
   starter.start(args);
 }
