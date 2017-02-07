@@ -1,6 +1,67 @@
 library angular2.src.analysis.analyzer_plugin.tasks;
 
+import 'dart:collection';
 import 'package:analyzer/error/error.dart';
+
+const List<AngularWarningCode> angularWarningCodeValues = const [
+  AngularWarningCode.ARGUMENT_SELECTOR_MISSING,
+  AngularWarningCode.CANNOT_PARSE_SELECTOR,
+  AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
+  AngularWarningCode.COMPONENT_ANNOTATION_MISSING,
+  AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED,
+  AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED,
+  AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED,
+  AngularWarningCode.EXPECTED_IDENTIFIER,
+  AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE,
+  AngularWarningCode.STRING_VALUE_EXPECTED,
+  AngularWarningCode.TYPE_LITERAL_EXPECTED,
+  AngularWarningCode.UNRESOLVED_TAG,
+  AngularWarningCode.UNTERMINATED_MUSTACHE,
+  AngularWarningCode.UNOPENED_MUSTACHE,
+  AngularWarningCode.NONEXIST_INPUT_BOUND,
+  AngularWarningCode.NONEXIST_OUTPUT_BOUND,
+  AngularWarningCode.EMPTY_BINDING,
+  AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
+  AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
+  AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+  AngularWarningCode.TRAILING_EXPRESSION,
+  AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+  AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
+  AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+  AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+  AngularWarningCode.INVALID_HTML_CLASSNAME,
+  AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN,
+  AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER,
+  AngularWarningCode.INVALID_CSS_UNIT_NAME,
+  AngularWarningCode.INVALID_CSS_PROPERTY_NAME,
+  AngularWarningCode.INVALID_BINDING_NAME,
+  AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+  AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
+  AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
+  AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+  AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
+  AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT
+];
+
+/**
+ * The lazy initialized map from [AngularWarningCode.uniqueName] to the
+ * [AngularWarningCode] instance.
+ */
+HashMap<String, AngularWarningCode> _uniqueNameToCodeMap;
+
+/**
+ * Return the [AngularWarningCode] with the given [uniqueName], or `null` if not
+ * found.
+ */
+AngularWarningCode angularWarningCodeByUniqueName(String uniqueName) {
+  if (_uniqueNameToCodeMap == null) {
+    _uniqueNameToCodeMap = new HashMap<String, AngularWarningCode>();
+    for (AngularWarningCode angularCode in angularWarningCodeValues) {
+      _uniqueNameToCodeMap[angularCode.uniqueName] = angularCode;
+    }
+  }
+  return _uniqueNameToCodeMap[uniqueName];
+}
 
 /**
  * The error codes used for Angular warnings. The convention for this
