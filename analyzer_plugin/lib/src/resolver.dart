@@ -423,15 +423,24 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
     // TODO(scheglov) Once Angular has a way to describe variables, reimplement
     // https://github.com/angular/angular/issues/4850
     if (directive.classElement.displayName == 'NgFor') {
-      internalVariables['index'] = new InternalVariable('index',
-          new DartElement(directive.classElement), typeProvider.intType);
+      final dartElem = new DartElement(directive.classElement);
+      internalVariables['index'] =
+          new InternalVariable('index', dartElem, typeProvider.intType);
+      internalVariables['even'] =
+          new InternalVariable('even', dartElem, typeProvider.boolType);
+      internalVariables['odd'] =
+          new InternalVariable('odd', dartElem, typeProvider.boolType);
+      internalVariables['first'] =
+          new InternalVariable('first', dartElem, typeProvider.boolType);
+      internalVariables['last'] =
+          new InternalVariable('last', dartElem, typeProvider.boolType);
       for (AttributeInfo attribute in attributes) {
         if (attribute is ExpressionBoundAttribute &&
             attribute.name == 'ngForOf' &&
             attribute.expression != null) {
           DartType itemType = _getIterableItemType(attribute.expression);
-          internalVariables[r'$implicit'] = new InternalVariable(
-              r'$implicit', new DartElement(directive.classElement), itemType);
+          internalVariables[r'$implicit'] =
+              new InternalVariable(r'$implicit', dartElem, itemType);
         }
       }
     }
