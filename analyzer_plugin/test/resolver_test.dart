@@ -2048,13 +2048,14 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='let item of items; let i = index'>
+<li *ngFor='let item of items; let i = index; let e = even; let o = odd; let f = first; let l = last;'>
   {{i}} {{item.length}}
+  {{o}} {{e}} {{f}} {{l}}
 </li>
 """);
     _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    expect(template.ranges, hasLength(10));
+    expect(template.ranges, hasLength(22));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
     _assertSelectorElement("of items")
@@ -2070,6 +2071,14 @@ class TestPanel {
     _assertElement("i}}").local.at('i = index');
     _assertElement("item.").local.at('item of');
     _assertElement("length}}").dart.getter;
+    _assertElement("e = even").local.declaration.type('bool');
+    _assertElement("e}}").local.at('e = even');
+    _assertElement("o = odd").local.declaration.type('bool');
+    _assertElement("o}}").local.at('o = odd');
+    _assertElement("f = first").local.declaration.type('bool');
+    _assertElement("f}}").local.at('f = first');
+    _assertElement("l = last").local.declaration.type('bool');
+    _assertElement("l}}").local.at('l = last');
   }
 
   void test_ngFor_noStarError() {
