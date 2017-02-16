@@ -719,6 +719,8 @@ class DirectiveResolver extends AngularAstVisitor {
 
         if (directive is Component) {
           component = directive;
+          // TODO better html tag detection, see #248
+          tagIsStandard = component.isHtml;
         }
       }
     }

@@ -518,7 +518,8 @@ class BuildUnitDirectivesTask extends SourceBasedAnalysisTask
             inputs: inputElements,
             outputs: outputElements,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            isHtml: false);
       }
       if (isDirective) {
         return new Directive(_currentClassElement,
@@ -2138,7 +2139,8 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         inputs: inputElements,
         outputs: outputElements,
         selector: new ElementNameSelector(
-            new SelectorName(tag, tagOffset, tag.length, source)));
+            new SelectorName(tag, tagOffset, tag.length, source)),
+        isHtml: true);
   }
 
   List<InputElement> _buildInputs(bool skipHtmlElement) {
