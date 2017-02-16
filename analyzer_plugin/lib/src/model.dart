@@ -117,13 +117,15 @@ class AngularElementImpl implements AngularElement {
  */
 class Component extends AbstractDirective {
   View view;
+  final bool isHtml;
 
   Component(dart.ClassElement classElement,
       {AngularElement exportAs,
       List<InputElement> inputs,
       List<OutputElement> outputs,
       Selector selector,
-      List<ElementNameSelector> elementTags})
+      List<ElementNameSelector> elementTags,
+      this.isHtml})
       : super(classElement,
             exportAs: exportAs,
             inputs: inputs,

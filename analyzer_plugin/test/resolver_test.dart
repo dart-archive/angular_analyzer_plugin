@@ -2843,6 +2843,53 @@ class TranscludeAllAndKnowsTag {
     errorListener.assertNoErrors();
   }
 
+  void test_resolveTemplate_noDashesAroundTranscludedContent_stillError() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeAllAndKnowsTag])
+class TestPanel {
+}
+@Component(selector: 'nodashes')
+@View(template: '')
+class TranscludeAllAndKnowsTag {
+}
+''');
+    String code = r"""
+<nodashes>shouldn't be allowed</nodashes>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "shouldn't be allowed");
+  }
+
+  void test_resolveTemplate_noDashesAroundTranscludedContent_stillMatchesTag() {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeAllAndKnowsTag])
+class TestPanel {
+}
+@Component(selector: 'nodashes')
+@View(template: '<ng-content select="custom-tag"></ng-content>')
+class TranscludeAllAndKnowsTag {
+}
+''');
+    String code = r"""
+<nodashes>
+  <custom-tag></custom-tag>
+</nodashes>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void test_resolveTemplate_provideContentMatchingSelectorsReportsUnknownTag() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
