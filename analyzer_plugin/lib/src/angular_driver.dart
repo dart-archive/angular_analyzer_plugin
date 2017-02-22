@@ -134,11 +134,11 @@ class AngularDriver
 
   Future<StandardHtml> getStandardHtml() async {
     final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
-    final unit = await dartDriver.getUnitElement(source.fullName);
+    final result = await dartDriver.getResult(source.fullName);
     final components = <String, Component>{};
     final events = <String, OutputElement>{};
     final attributes = <String, InputElement>{};
-    unit.computeNode().accept(new BuildStandardHtmlComponentsVisitor(
+    result.unit.accept(new BuildStandardHtmlComponentsVisitor(
         components, events, attributes, source));
 
     return new StandardHtml(components, events, attributes);
@@ -168,24 +168,25 @@ class AngularDriver
     return htmlKey.toHex() + '.ngresolved';
   }
 
-  Future<Tuple2<LinkedHtmlSummary, CompilationUnitElement>> resolveHtml(
+  Future<Tuple2<LinkedHtmlSummary, ParseResult>> resolveHtml(
       String htmlPath, String dartPath) async {
     final key = getHtmlKey(htmlPath, dartPath);
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
       final sum = new LinkedHtmlSummary.fromBuffer(bytes);
-      final unit = await dartDriver.getUnitElement(dartPath);
-
-      return new Tuple2(sum, unit);
+      return new Tuple2(sum, null);
     }
 
     final unlinked = await getDirectives(dartPath);
     final directives = await resynthesizeDirectives(unlinked, dartPath);
-    final unit = await dartDriver.getUnitElement(dartPath);
+    final unit = (await dartDriver.getUnitElement(dartPath)).element;
+
     if (unit == null) return null;
     final context = unit.context;
     final dartSource = _sourceFactory.forUri("file:" + dartPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
+    final parsed = await dartDriver.parseFile(htmlPath);
+    final htmlContent = parsed.content;
     final standardHtml = await getStandardHtml();
 
     final tplErrorListener = new RecordingErrorListener();
@@ -202,8 +203,7 @@ class AngularDriver
           view.template = template;
           final tplParser = new TemplateParser();
 
-          tplParser.parse(view.templateUriSource.contents.data, htmlSource,
-              offset: view.templateOffset);
+          tplParser.parse(htmlContent, htmlSource, offset: view.templateOffset);
           final document = tplParser.document;
           final EmbeddedDartParser parser = new EmbeddedDartParser(htmlSource,
               tplErrorListener, context.typeProvider, errorReporter);
@@ -228,20 +228,19 @@ class AngularDriver
       ..errors = summarizeErrors(tplErrorListener.errors);
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
-    return new Tuple2(sum, unit);
+    return new Tuple2(sum, parsed);
   }
 
   Future pushHtmlErrors(String htmlPath, String dartPath) async {
     final tuple = await resolveHtml(htmlPath, dartPath);
+    final parsed = tuple.item2 ?? await dartDriver.parseFile(htmlPath);
     final sum = tuple.item1;
-    final unit = tuple.item2;
-    final source = unit.source;
-    final context = unit.context;
+    final source = _sourceFactory.resolveUri(null, 'file:' + htmlPath);
     final errors =
         new List<AnalysisError>.from(deserializeErrors(source, sum.errors));
-    final lineInfo = context.getLineInfo(source);
+    final lineInfo = parsed.lineInfo;
     final serverErrors = protocol.doAnalysisError_listFromEngine(
-        context.analysisOptions, lineInfo, errors);
+        dartDriver.analysisOptions, lineInfo, errors);
     final params = new protocol.AnalysisErrorsParams(htmlPath, serverErrors);
     server.sendNotification(params.toNotification());
   }
@@ -249,48 +248,46 @@ class AngularDriver
   Future<List<AnalysisError>> getHtmlErrors(
       String htmlPath, String dartPath) async {
     final tuple = await resolveHtml(htmlPath, dartPath);
-    return deserializeErrors(tuple.item2.source, tuple.item1.errors);
+    final source = _sourceFactory.resolveUri(null, 'file:' + htmlPath);
+    return deserializeErrors(source, tuple.item1.errors);
   }
 
   Future pushDartErrors(String path) async {
-    final tuple = await resolveDart(path);
-    final sum = tuple.item1;
-    final unit = tuple.item2;
-    final source = unit.source;
-    final context = unit.context;
+    final sum = await resolveDart(path);
+    final parsed = await dartDriver.parseFile(path);
+    final source = _sourceFactory.resolveUri(null, 'file:' + path);
     final errors =
         new List<AnalysisError>.from(deserializeErrors(source, sum.errors));
-    final lineInfo = context.getLineInfo(source);
+    final lineInfo = parsed.lineInfo;
     final serverErrors = protocol.doAnalysisError_listFromEngine(
-        context.analysisOptions, lineInfo, errors);
+        dartDriver.analysisOptions, lineInfo, errors);
     final params = new protocol.AnalysisErrorsParams(path, serverErrors);
     server.sendNotification(params.toNotification());
   }
 
   Future<List<AnalysisError>> getDartErrors(String path) async {
-    final tuple = await resolveDart(path);
-    return deserializeErrors(tuple.item2.source, tuple.item1.errors);
+    final result = await resolveDart(path);
+    final source = _sourceFactory.resolveUri(null, 'file:' + path);
+    return deserializeErrors(source, result.errors);
   }
 
-  Future<Tuple2<LinkedDartSummary, CompilationUnitElement>> resolveDart(
-      String path) async {
+  Future<LinkedDartSummary> resolveDart(String path) async {
     final key =
         dartDriver.getResolvedUnitKeyByPath(path).toHex() + '.ngresolved';
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
       final sum = new LinkedDartSummary.fromBuffer(bytes);
-      final unit = await dartDriver.getUnitElement(path);
 
       for (final htmlView in sum.referencedHtmlFiles) {
         _htmlViewsToAnalyze.add(new Tuple2(htmlView, path));
       }
 
-      return new Tuple2(sum, unit);
+      return sum;
     }
 
     final unlinked = await getDirectives(path);
     final directives = await resynthesizeDirectives(unlinked, path);
-    final unit = await dartDriver.getUnitElement(path);
+    final unit = (await dartDriver.getUnitElement(path)).element;
     if (unit == null) return null;
     final context = unit.context;
     final source = unit.source;
@@ -350,7 +347,7 @@ class AngularDriver
       ..referencedHtmlFiles = htmlViews;
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
-    return new Tuple2(sum, unit);
+    return new Tuple2(sum, null);
   }
 
   List<AnalysisDriverUnitError> summarizeErrors(List<AnalysisError> errors) {
@@ -368,8 +365,8 @@ class AngularDriver
     return _sourceFactory.resolveUri(null, 'file:' + path);
   }
 
-  Future<CompilationUnitElement> getUnit(String path) {
-    return dartDriver.getUnitElement(path);
+  Future<CompilationUnitElement> getUnit(String path) async {
+    return (await dartDriver.getUnitElement(path)).element;
   }
 
   Future<List<AbstractDirective>> resynthesizeDirectives(
@@ -389,14 +386,14 @@ class AngularDriver
       return new UnlinkedDartSummary.fromBuffer(bytes);
     }
 
-    final unit = await dartDriver.getUnitElement(path);
-    if (unit == null) {
+    final result = await dartDriver.getResult(path);
+    if (result == null) {
       return null;
     }
 
-    final context = unit.context;
-    final ast = unit.computeNode();
-    final source = unit.source;
+    final context = result.unit.element.context;
+    final ast = result.unit;
+    final source = result.unit.element.source;
     final extractor =
         new DirectiveExtractor(ast, context.typeProvider, source, context);
     final directives =
