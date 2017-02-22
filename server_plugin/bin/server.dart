@@ -6,13 +6,14 @@ import 'package:analysis_server/starter.dart';
 
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:analyzer/src/context/builder.dart';
 
 /**
  * Create and run an analysis server with Angular plugins.
  */
 void main(List<String> args) {
   AnalysisServer.onCreate = (AnalysisServer server) {
-    ServerContextManagerCallbacks.onCreateAnalysisDriver = (analysisDriver,
+    ContextBuilder.onCreateAnalysisDriver = (analysisDriver,
         scheduler,
         logger,
         resourceProvider,
