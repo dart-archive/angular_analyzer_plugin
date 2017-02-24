@@ -3,18 +3,14 @@ import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/ast/token.dart';
-import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
 import 'package:front_end/src/scanner/token.dart';
 
 class NgExprParser extends Parser {
-  NgExprParser(
-      Source source, AnalysisErrorListener errorListener, this.typeProvider)
+  NgExprParser(Source source, AnalysisErrorListener errorListener)
       : super(source, errorListener);
 
   Token get _currentToken => super.currentToken;
-
-  final TypeProvider typeProvider;
 
   /**
    * Parse a bitwise or expression to be treated as a pipe.
