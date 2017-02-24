@@ -25,14 +25,11 @@ abstract class LinkedHtmlSummary extends base.SummaryClass {
 
 @TopLevel('APUH')
 abstract class UnlinkedHtmlSummary extends base.SummaryClass {
-  factory UnlinkedDartSummary.fromBuffer(List<int> buffer) =>
+  factory UnlinkedHtmlSummary.fromBuffer(List<int> buffer) =>
       generated.readUnlinkedHtmlSummary(buffer);
 
   @Id(0)
   List<SummarizedNgContent> get ngContents;
-
-  @Id(1)
-  List<AnalysisDriverUnitError> get errors;
 }
 
 @TopLevel('APLD')

@@ -855,9 +855,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask {
       List<ElementInfo> asts,
       Map<Source, List<AnalysisError>> errorsByFile) {
     Source source = template.view.templateSource;
-    TypeProvider typeProvider = getRequiredInput(TYPE_PROVIDER_INPUT);
-    EmbeddedDartParser parser = new EmbeddedDartParser(
-        source, errorListener, typeProvider, errorReporter);
+    EmbeddedDartParser parser =
+        new EmbeddedDartParser(source, errorListener, errorReporter);
     template.view.template = template;
 
     template.ast = new HtmlTreeConverter(parser, source, errorListener)
@@ -883,7 +882,6 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask {
   static Map<String, TaskInput> buildInputs(AnalysisTarget target) {
     return <String, TaskInput>{
       DIRECTIVES_IN_UNIT1_INPUT: DIRECTIVES_IN_UNIT.of(target),
-      TYPE_PROVIDER_INPUT: TYPE_PROVIDER.of(AnalysisContextTarget.request),
       HTML_DOCUMENTS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
           .of(target)
           // mapped to html source of the view

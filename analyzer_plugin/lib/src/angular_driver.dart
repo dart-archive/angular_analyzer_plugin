@@ -217,10 +217,10 @@ class AngularDriver
           view.template = template;
           final tplParser = new TemplateParser();
 
-          tplParser.parse(htmlContent, htmlSource, offset: view.templateOffset);
+          tplParser.parse(htmlContent, htmlSource);
           final document = tplParser.document;
-          final EmbeddedDartParser parser = new EmbeddedDartParser(htmlSource,
-              tplErrorListener, context.typeProvider, errorReporter);
+          final EmbeddedDartParser parser = new EmbeddedDartParser(
+              htmlSource, tplErrorListener, errorReporter);
 
           template.ast =
               new HtmlTreeConverter(parser, htmlSource, tplErrorListener)
@@ -243,6 +243,38 @@ class AngularDriver
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
     return new Tuple2(sum, parsed);
+  }
+
+  Future<List<SummarizedNgContent>> getHtmlNgContent(String path) async {
+    final htmlSig = dartDriver.getContentHash(path);
+    final key = htmlSig.toHex() + '.ngunlinked';
+    final List<int> bytes = byteStore.get(key);
+    if (bytes != null) {
+      return new UnlinkedHtmlSummary.fromBuffer(bytes).ngContents;
+    }
+    final source = _sourceFactory.forUri("file:" + path);
+    final parsed = await dartDriver.parseFile(path);
+    final htmlContent = parsed.content;
+
+    final tplErrorListener = new RecordingErrorListener();
+    final errorReporter = new ErrorReporter(tplErrorListener, source);
+
+    final tplParser = new TemplateParser();
+
+    tplParser.parse(htmlContent, source);
+    final EmbeddedDartParser parser =
+        new EmbeddedDartParser(source, tplErrorListener, errorReporter);
+
+    final ast = new HtmlTreeConverter(parser, source, tplErrorListener)
+        .convert(firstElement(tplParser.document));
+    final contents = <NgContent>[];
+    ast.accept(new NgContentRecorder.forFile(contents, source, errorReporter));
+
+    final sum = new UnlinkedHtmlSummaryBuilder()
+      ..ngContents = serializeNgContents(contents);
+    final List<int> newBytes = sum.toBuffer();
+    byteStore.put(key, newBytes);
+    return sum.ngContents;
   }
 
   Future pushHtmlErrors(String htmlPath, String dartPath) async {
@@ -327,8 +359,8 @@ class AngularDriver
           tplParser.parse(view.templateText, source,
               offset: view.templateOffset);
           final document = tplParser.document;
-          final EmbeddedDartParser parser = new EmbeddedDartParser(
-              source, tplErrorListener, context.typeProvider, errorReporter);
+          final EmbeddedDartParser parser =
+              new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
               .convert(firstElement(tplParser.document));
@@ -419,6 +451,7 @@ class AngularDriver
     final tplErrorListener = new RecordingErrorListener();
     final errorReporter = new ErrorReporter(tplErrorListener, source);
 
+    // collect inline ng-content tags
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
@@ -430,8 +463,8 @@ class AngularDriver
           tplParser.parse(view.templateText, source,
               offset: view.templateOffset);
           final document = tplParser.document;
-          final EmbeddedDartParser parser = new EmbeddedDartParser(
-              source, tplErrorListener, context.typeProvider, errorReporter);
+          final EmbeddedDartParser parser =
+              new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           // TODO store these errors rather than recalculating them on resolve
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
@@ -488,13 +521,7 @@ class AngularDriver
             ..prefix = prefix);
         }
         if (directive.ngContents != null) {
-          for (final ngContent in directive.ngContents) {
-            ngContents.add(new SummarizedNgContentBuilder()
-              ..selectorStr = ngContent.selector?.originalString
-              ..selectorOffset = ngContent.selector?.offset
-              ..offset = ngContent.offset
-              ..length = ngContent.length);
-          }
+          ngContents.addAll(serializeNgContents(directive.ngContents));
         }
       }
 
@@ -522,5 +549,16 @@ class AngularDriver
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
     return sum;
+  }
+
+  List<SummarizedNgContentBuilder> serializeNgContents(
+      List<NgContent> ngContents) {
+    return ngContents
+        .map((ngContent) => new SummarizedNgContentBuilder()
+          ..selectorStr = ngContent.selector?.originalString
+          ..selectorOffset = ngContent.selector?.offset
+          ..offset = ngContent.offset
+          ..length = ngContent.length)
+        .toList();
   }
 }

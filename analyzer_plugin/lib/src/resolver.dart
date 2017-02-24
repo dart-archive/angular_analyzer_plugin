@@ -814,13 +814,15 @@ class DirectiveResolver extends AngularAstVisitor {
 }
 
 class NgContentRecorder extends AngularScopeVisitor {
-  final Component component;
+  final List<NgContent> ngContents;
   final Source source;
   final ErrorReporter errorReporter;
 
   NgContentRecorder(Component component, this.errorReporter)
-      : component = component,
+      : ngContents = component.ngContents,
         source = component.view.templateSource;
+
+  NgContentRecorder.forFile(this.ngContents, this.source, this.errorReporter);
 
   @override
   void visitElementInfo(ElementInfo element) {
@@ -845,7 +847,7 @@ class NgContentRecorder extends AngularScopeVisitor {
     }
 
     if (selectorAttrs.length == 0) {
-      component.ngContents.add(new NgContent(element.offset, element.length));
+      ngContents.add(new NgContent(element.offset, element.length));
       return;
     }
 
@@ -867,7 +869,7 @@ class NgContentRecorder extends AngularScopeVisitor {
         Selector selector = new SelectorParser(
                 source, selectorAttr.valueOffset, selectorAttr.value)
             .parse();
-        component.ngContents.add(new NgContent.withSelector(
+        ngContents.add(new NgContent.withSelector(
             element.offset,
             element.length,
             selector,
