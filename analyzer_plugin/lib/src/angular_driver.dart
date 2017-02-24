@@ -462,7 +462,6 @@ class AngularDriver
 
           tplParser.parse(view.templateText, source,
               offset: view.templateOffset);
-          final document = tplParser.document;
           final EmbeddedDartParser parser =
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
