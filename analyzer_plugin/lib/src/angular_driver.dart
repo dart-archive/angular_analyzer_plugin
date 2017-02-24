@@ -203,8 +203,7 @@ class AngularDriver
     final htmlContent = parsed.content;
     final standardHtml = await getStandardHtml();
 
-    final tplErrorListener = new RecordingErrorListener();
-    final errorReporter = new ErrorReporter(tplErrorListener, dartSource);
+    final errors = <AnalysisError>[];
 
     final linker = new ChildDirectiveLinker(this);
     await linker.linkDirectives(directives, unit.library);
@@ -213,6 +212,8 @@ class AngularDriver
       if (directive is Component) {
         final view = directive.view;
         if (view.templateUriSource?.fullName == htmlPath) {
+          final tplErrorListener = new RecordingErrorListener();
+          final errorReporter = new ErrorReporter(tplErrorListener, dartSource);
           final template = new Template(view);
           view.template = template;
           final tplParser = new TemplateParser();
@@ -234,12 +235,14 @@ class AngularDriver
               standardHtml.attributes,
               tplErrorListener);
           resolver.resolve(template);
+          errors.addAll(tplErrorListener.errors.where(
+              (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
         }
       }
     }
 
     final sum = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(tplErrorListener.errors);
+      ..errors = summarizeErrors(errors);
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
     return new Tuple2(sum, parsed);
@@ -340,8 +343,6 @@ class AngularDriver
 
     final errors = new List<AnalysisError>.from(
         deserializeErrors(source, unlinked.errors));
-    final tplErrorListener = new RecordingErrorListener();
-    final errorReporter = new ErrorReporter(tplErrorListener, source);
     final standardHtml = await getStandardHtml();
 
     final linker = new ChildDirectiveLinker(this);
@@ -352,6 +353,8 @@ class AngularDriver
       if (directive is Component) {
         final view = directive.view;
         if (view.templateText != '') {
+          final tplErrorListener = new RecordingErrorListener();
+          final errorReporter = new ErrorReporter(tplErrorListener, source);
           final template = new Template(view);
           view.template = template;
           final tplParser = new TemplateParser();
@@ -373,6 +376,8 @@ class AngularDriver
               standardHtml.attributes,
               tplErrorListener);
           resolver.resolve(template);
+          errors.addAll(tplErrorListener.errors.where(
+              (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
         } else if (view.templateUriSource != null) {
           _htmlViewsToAnalyze
               .add(new Tuple2(view.templateUriSource.fullName, path));
@@ -381,7 +386,6 @@ class AngularDriver
       }
     }
 
-    errors.addAll(tplErrorListener.errors);
     final lineInfo = context.getLineInfo(source);
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         context.analysisOptions, lineInfo, errors);
