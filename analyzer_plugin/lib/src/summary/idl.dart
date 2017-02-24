@@ -108,7 +108,7 @@ abstract class SummarizedDirectiveUse extends base.SummaryClass {
 
 abstract class SummarizedNgContent extends base.SummaryClass {
   @Id(0)
-  String get offset;
+  int get offset;
   @Id(1)
   int get length;
   @Id(2)

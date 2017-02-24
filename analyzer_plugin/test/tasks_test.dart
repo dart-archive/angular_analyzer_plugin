@@ -2699,8 +2699,8 @@ class ChildComponent {}
         .getValue(new LibrarySpecificUnit(childSource, childSource), VIEWS1);
     expect(childViews, hasLength(1));
     View childView = childViews.first;
-    expect(childView.template, isNotNull);
-    expect(childView.template.ngContents, hasLength(1));
+    expect(childView.component, isNotNull);
+    expect(childView.component.ngContents, hasLength(1));
   }
 
   /**
@@ -2962,7 +2962,7 @@ class ChildComponent {}
         .getValue(new LibrarySpecificUnit(childSource, childSource), VIEWS1);
     expect(childViews, hasLength(1));
     View childView = childViews.first;
-    expect(childView.template, isNotNull);
-    expect(childView.template.ngContents, hasLength(1));
+    expect(childView.component, isNotNull);
+    expect(childView.component.ngContents, hasLength(1));
   }
 }
