@@ -86,13 +86,27 @@ class DirectiveLinker {
             bindingSynthesizer.getEventType(getter, getter.name)));
       }
       if (dirSum.isComponent) {
+        final ngContents = <NgContent>[];
+        for (final ngContentSum in dirSum.ngContents) {
+          final selector = ngContentSum.selectorStr == ""
+              ? null
+              : new SelectorParser(source, ngContentSum.selectorOffset,
+                      ngContentSum.selectorStr)
+                  .parse();
+          ngContents.add(new NgContent.withSelector(
+              ngContentSum.offset,
+              ngContentSum.length,
+              selector,
+              selector?.offset,
+              ngContentSum.selectorStr.length));
+        }
         final component = new Component(classElem,
             exportAs: exportAs,
             selector: selector,
             inputs: inputs,
-            outputs: outputs);
+            outputs: outputs,
+            ngContents: ngContents);
         directives.add(component);
-        // TODO get subdirectives from summary
         final subDirectives = <String>[];
         for (final useSum in dirSum.subdirectives) {
           subDirectives.add(useSum.name);
