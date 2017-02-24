@@ -742,12 +742,11 @@ class DirectiveResolver extends AngularAstVisitor {
 
   void _checkTranscludedContent(
       Component component, List<NodeInfo> children, bool tagIsStandard) {
-    Template componentTemplate = component?.view?.template;
-    if (componentTemplate == null) {
+    if (component?.ngContents == null) {
       return;
     }
 
-    bool acceptAll = componentTemplate.ngContents.any((s) => s.matchesAll);
+    bool acceptAll = component.ngContents.any((s) => s.matchesAll);
     for (NodeInfo child in children) {
       if (child is TextInfo && !acceptAll && child.text.trim() != "") {
         _reportErrorForRange(new SourceRange(child.offset, child.length),
@@ -756,15 +755,13 @@ class DirectiveResolver extends AngularAstVisitor {
         ElementView view = new ElementViewImpl(child.attributes, child);
         bool matched = acceptAll;
         bool matchedTag = false;
-        if (componentTemplate != null) {
-          for (NgContent ngContent in componentTemplate.ngContents) {
-            SelectorMatch match = ngContent.matchesAll
-                ? SelectorMatch.NonTagMatch
-                : ngContent.selector.match(view, template);
-            if (match != SelectorMatch.NoMatch) {
-              matched = true;
-              matchedTag = matchedTag || match == SelectorMatch.TagMatch;
-            }
+        for (NgContent ngContent in component.ngContents) {
+          SelectorMatch match = ngContent.matchesAll
+              ? SelectorMatch.NonTagMatch
+              : ngContent.selector.match(view, template);
+          if (match != SelectorMatch.NoMatch) {
+            matched = true;
+            matchedTag = matchedTag || match == SelectorMatch.TagMatch;
           }
         }
 
@@ -817,13 +814,13 @@ class DirectiveResolver extends AngularAstVisitor {
 }
 
 class NgContentRecorder extends AngularScopeVisitor {
-  final Template template;
+  final Component component;
   final Source source;
   final ErrorReporter errorReporter;
 
-  NgContentRecorder(Template template, this.errorReporter)
-      : template = template,
-        source = template.view.templateSource;
+  NgContentRecorder(Component component, this.errorReporter)
+      : component = component,
+        source = component.view.templateSource;
 
   @override
   void visitElementInfo(ElementInfo element) {
@@ -848,7 +845,7 @@ class NgContentRecorder extends AngularScopeVisitor {
     }
 
     if (selectorAttrs.length == 0) {
-      template.ngContents.add(new NgContent(element.offset, element.length));
+      component.ngContents.add(new NgContent(element.offset, element.length));
       return;
     }
 
@@ -870,7 +867,7 @@ class NgContentRecorder extends AngularScopeVisitor {
         Selector selector = new SelectorParser(
                 source, selectorAttr.valueOffset, selectorAttr.value)
             .parse();
-        template.ngContents.add(new NgContent.withSelector(
+        component.ngContents.add(new NgContent.withSelector(
             element.offset,
             element.length,
             selector,

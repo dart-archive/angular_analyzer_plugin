@@ -1254,15 +1254,16 @@ abstract class _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUs
 }
 
 class SummarizedNgContentBuilder extends Object with _SummarizedNgContentMixin implements idl.SummarizedNgContent {
-  String _offset;
+  int _offset;
   int _length;
   String _selectorStr;
   int _selectorOffset;
 
   @override
-  String get offset => _offset ??= '';
+  int get offset => _offset ??= 0;
 
-  void set offset(String value) {
+  void set offset(int value) {
+    assert(value == null || value >= 0);
     this._offset = value;
   }
 
@@ -1289,7 +1290,7 @@ class SummarizedNgContentBuilder extends Object with _SummarizedNgContentMixin i
     this._selectorOffset = value;
   }
 
-  SummarizedNgContentBuilder({String offset, int length, String selectorStr, int selectorOffset})
+  SummarizedNgContentBuilder({int offset, int length, String selectorStr, int selectorOffset})
     : _offset = offset,
       _length = length,
       _selectorStr = selectorStr,
@@ -1305,24 +1306,20 @@ class SummarizedNgContentBuilder extends Object with _SummarizedNgContentMixin i
    * Accumulate non-[informative] data into [signature].
    */
   void collectApiSignature(api_sig.ApiSignature signature) {
-    signature.addString(this._offset ?? '');
+    signature.addInt(this._offset ?? 0);
     signature.addInt(this._length ?? 0);
     signature.addString(this._selectorStr ?? '');
     signature.addInt(this._selectorOffset ?? 0);
   }
 
   fb.Offset finish(fb.Builder fbBuilder) {
-    fb.Offset offset_offset;
     fb.Offset offset_selectorStr;
-    if (_offset != null) {
-      offset_offset = fbBuilder.writeString(_offset);
-    }
     if (_selectorStr != null) {
       offset_selectorStr = fbBuilder.writeString(_selectorStr);
     }
     fbBuilder.startTable();
-    if (offset_offset != null) {
-      fbBuilder.addOffset(0, offset_offset);
+    if (_offset != null && _offset != 0) {
+      fbBuilder.addUint32(0, _offset);
     }
     if (_length != null && _length != 0) {
       fbBuilder.addUint32(1, _length);
@@ -1350,14 +1347,14 @@ class _SummarizedNgContentImpl extends Object with _SummarizedNgContentMixin imp
 
   _SummarizedNgContentImpl(this._bc, this._bcOffset);
 
-  String _offset;
+  int _offset;
   int _length;
   String _selectorStr;
   int _selectorOffset;
 
   @override
-  String get offset {
-    _offset ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 0, '');
+  int get offset {
+    _offset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 0, 0);
     return _offset;
   }
 
@@ -1384,7 +1381,7 @@ abstract class _SummarizedNgContentMixin implements idl.SummarizedNgContent {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
-    if (offset != '') _result["offset"] = offset;
+    if (offset != 0) _result["offset"] = offset;
     if (length != 0) _result["length"] = length;
     if (selectorStr != '') _result["selectorStr"] = selectorStr;
     if (selectorOffset != 0) _result["selectorOffset"] = selectorOffset;

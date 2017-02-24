@@ -118,13 +118,20 @@ class AngularElementImpl implements AngularElement {
 class Component extends AbstractDirective {
   View view;
 
+  /**
+    * List of <ng-content> selectors in this component's view
+    */
+  List<NgContent> ngContents = <NgContent>[];
+
   Component(dart.ClassElement classElement,
       {AngularElement exportAs,
       List<InputElement> inputs,
       List<OutputElement> outputs,
       Selector selector,
-      List<ElementNameSelector> elementTags})
-      : super(classElement,
+      List<ElementNameSelector> elementTags,
+      List<NgContent> ngContents})
+      : ngContents = ngContents ?? [],
+        super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
@@ -298,11 +305,6 @@ class Template {
    * The [ElementInfo] that begins the AST of the resolved template
    */
   ElementInfo _ast;
-
-  /**
-    * List of <ng-content> selectors in this template.
-    */
-  final List<NgContent> ngContents = <NgContent>[];
 
   /**
    * The errors that are ignored in this template

@@ -864,7 +864,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask {
         .convert(firstElement(document));
     setIgnoredErrors(template, document);
 
-    template.ast.accept(new NgContentRecorder(template, errorReporter));
+    template.ast
+        .accept(new NgContentRecorder(template.view.component, errorReporter));
 
     asts.add(template.ast);
 

@@ -33,6 +33,7 @@ class AngularDriver
   final AnalysisServer server;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
+  StandardHtml standardHtml = null;
   SourceFactory _sourceFactory;
   final LinkedHashSet<String> _addedFiles = new LinkedHashSet<String>();
   final LinkedHashSet<String> _dartFiles = new LinkedHashSet<String>();
@@ -80,6 +81,10 @@ class AngularDriver
   }
 
   AnalysisDriverPriority get workPriority {
+    if (standardHtml == null) {
+      return AnalysisDriverPriority.interactive;
+    }
+
     if (_requestedFiles.isNotEmpty) {
       return AnalysisDriverPriority.interactive;
     }
@@ -98,6 +103,11 @@ class AngularDriver
   }
 
   Future<Null> performWork() async {
+    if (standardHtml == null) {
+      getStandardHtml();
+      return;
+    }
+
     if (_changedFiles.isNotEmpty) {
       _changedFiles.clear();
       _filesToAnalyze.addAll(_dartFiles);
@@ -133,15 +143,19 @@ class AngularDriver
   }
 
   Future<StandardHtml> getStandardHtml() async {
-    final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
-    final result = await dartDriver.getResult(source.fullName);
-    final components = <String, Component>{};
-    final events = <String, OutputElement>{};
-    final attributes = <String, InputElement>{};
-    result.unit.accept(new BuildStandardHtmlComponentsVisitor(
-        components, events, attributes, source));
+    if (standardHtml == null) {
+      final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
+      final result = await dartDriver.getResult(source.fullName);
+      final components = <String, Component>{};
+      final events = <String, OutputElement>{};
+      final attributes = <String, InputElement>{};
+      result.unit.accept(new BuildStandardHtmlComponentsVisitor(
+          components, events, attributes, source));
 
-    return new StandardHtml(components, events, attributes);
+      standardHtml = new StandardHtml(components, events, attributes);
+    }
+
+    return standardHtml;
   }
 
   List<AnalysisError> deserializeErrors(
@@ -211,7 +225,7 @@ class AngularDriver
           template.ast =
               new HtmlTreeConverter(parser, htmlSource, tplErrorListener)
                   .convert(firstElement(tplParser.document));
-          template.ast.accept(new NgContentRecorder(template, errorReporter));
+          template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
           final resolver = new TemplateResolver(
               context.typeProvider,
@@ -318,7 +332,7 @@ class AngularDriver
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
               .convert(firstElement(tplParser.document));
-          template.ast.accept(new NgContentRecorder(template, errorReporter));
+          template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
           final resolver = new TemplateResolver(
               context.typeProvider,
@@ -347,7 +361,7 @@ class AngularDriver
       ..referencedHtmlFiles = htmlViews;
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
-    return new Tuple2(sum, null);
+    return sum;
   }
 
   List<AnalysisDriverUnitError> summarizeErrors(List<AnalysisError> errors) {
@@ -402,6 +416,31 @@ class AngularDriver
     final viewExtractor = new ViewExtractor(ast, directives, context, source);
     viewExtractor.getViews();
 
+    final tplErrorListener = new RecordingErrorListener();
+    final errorReporter = new ErrorReporter(tplErrorListener, source);
+
+    for (final directive in directives) {
+      if (directive is Component) {
+        final view = directive.view;
+        if (view.templateText != null) {
+          final template = new Template(view);
+          view.template = template;
+          final tplParser = new TemplateParser();
+
+          tplParser.parse(view.templateText, source,
+              offset: view.templateOffset);
+          final document = tplParser.document;
+          final EmbeddedDartParser parser = new EmbeddedDartParser(
+              source, tplErrorListener, context.typeProvider, errorReporter);
+
+          // TODO store these errors rather than recalculating them on resolve
+          template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
+              .convert(firstElement(tplParser.document));
+          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+        }
+      }
+    }
+
     final dirSums = <SummarizedDirectiveBuilder>[];
     for (final directive in directives) {
       final className = directive.classElement.name;
@@ -427,13 +466,14 @@ class AngularDriver
         final nameOffset = output.nameOffset;
         final propName = output.getter.name;
         final propNameOffset = output.getterRange.offset;
-        inputs.add(new SummarizedBindableBuilder()
+        outputs.add(new SummarizedBindableBuilder()
           ..name = name
           ..nameOffset = nameOffset
           ..propName = propName
           ..propNameOffset = propNameOffset);
       }
       final dirUseSums = <SummarizedDirectiveUseBuilder>[];
+      final ngContents = <SummarizedNgContentBuilder>[];
       var templateUrl;
       var templateText;
       var templateTextOffset;
@@ -447,6 +487,15 @@ class AngularDriver
             ..name = directiveName
             ..prefix = prefix);
         }
+        if (directive.ngContents != null) {
+          for (final ngContent in directive.ngContents) {
+            ngContents.add(new SummarizedNgContentBuilder()
+              ..selectorStr = ngContent.selector?.originalString
+              ..selectorOffset = ngContent.selector?.offset
+              ..offset = ngContent.offset
+              ..length = ngContent.length);
+          }
+        }
       }
 
       dirSums.add(new SummarizedDirectiveBuilder()
@@ -459,7 +508,7 @@ class AngularDriver
         ..templateText = templateText
         ..templateOffset = templateTextOffset
         ..templateUrl = templateUrl
-        ..ngContents = [] // TODO ngContents
+        ..ngContents = ngContents
         ..inputs = inputs
         ..outputs = outputs
         ..subdirectives = dirUseSums);

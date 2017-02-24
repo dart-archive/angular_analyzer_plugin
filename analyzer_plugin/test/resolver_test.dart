@@ -2510,7 +2510,7 @@ class TestPanel {
     computeResult(
         new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
     _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(1));
+    expect(template.view.component.ngContents, hasLength(1));
   }
 
   void test_resolveTemplateWithNgContent_noSelectorIsNull() {
@@ -2529,8 +2529,8 @@ class TestPanel {
     computeResult(
         new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
     _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(1));
-    expect(template.ngContents.first.selector, isNull);
+    expect(template.view.component.ngContents, hasLength(1));
+    expect(template.view.component.ngContents.first.selector, isNull);
   }
 
   void test_resolveTemplateWithNgContent_selectorParseError() {
@@ -2549,7 +2549,7 @@ class TestPanel {
     computeResult(
         new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
     _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
   }
@@ -2570,7 +2570,7 @@ class TestPanel {
     computeResult(
         new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
     _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "\"\"");
   }
@@ -2591,7 +2591,7 @@ class TestPanel {
     computeResult(
         new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
     _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "select");
   }
