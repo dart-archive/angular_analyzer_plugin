@@ -40,7 +40,8 @@ const List<AngularWarningCode> angularWarningCodeValues = const [
   AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
   AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
-  AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT
+  AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
+  AngularWarningCode.DISALLOWED_EXPRESSION,
 ];
 
 /**
