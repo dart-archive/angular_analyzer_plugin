@@ -48,7 +48,7 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
           unit.context.typeProvider,
           unit.context,
           new ErrorReporter(new IgnoringErrorListener(), unit.source));
-      final exportAs = dirSum.exportAs == null
+      final exportAs = dirSum.exportAs == ""
           ? null
           : new AngularElementImpl(dirSum.exportAs, dirSum.exportAsOffset,
               dirSum.exportAs.length, source);
@@ -67,7 +67,7 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
             inputSum.name.length,
             source,
             setter,
-            new SourceRange(setter.nameOffset, setter.name.length),
+            new SourceRange(inputSum.propNameOffset, inputSum.propName.length),
             bindingSynthesizer
                 .getSetterType(setter))); // Don't think type is correct
       }
@@ -83,7 +83,8 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
             outputSum.name.length,
             source,
             getter,
-            new SourceRange(getter.nameOffset, getter.nameLength),
+            new SourceRange(
+                outputSum.propNameOffset, outputSum.propName.length),
             bindingSynthesizer.getEventType(getter, getter.name)));
       }
       if (dirSum.isComponent) {

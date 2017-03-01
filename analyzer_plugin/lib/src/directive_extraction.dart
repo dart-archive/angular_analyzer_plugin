@@ -69,7 +69,9 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     if (isComponent || isDirective) {
       Selector selector = _parseSelector(node);
       if (selector == null) {
-        return null;
+        // empty selector. Don't fail to create a Component just because of a
+        // broken or missing selector, that results in cascading errors.
+        selector = new AndSelector([]);
       }
       List<ElementNameSelector> elementTags =
           _getElementTagsFromSelector(selector);

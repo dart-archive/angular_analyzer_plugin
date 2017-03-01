@@ -1,3 +1,5 @@
+library angular2.src.analysis.analyzer_plugin.src.tasks_test;
+
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';

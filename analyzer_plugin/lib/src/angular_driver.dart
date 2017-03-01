@@ -13,6 +13,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
@@ -235,10 +236,22 @@ class AngularDriver
               standardHtml.attributes,
               tplErrorListener);
           resolver.resolve(template);
-          errors.addAll(tplParser.parseErrors.where(
-              (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
-          errors.addAll(tplErrorListener.errors.where(
-              (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
+
+          bool rightErrorType(AnalysisError e) =>
+              !view.template.ignoredErrors.contains(e.errorCode.name);
+          String shorten(String filename) =>
+              filename.substring(0, filename.lastIndexOf('.'));
+
+          errors.addAll(tplParser.parseErrors.where(rightErrorType));
+
+          if (shorten(view.source.fullName) !=
+              shorten(view.templateSource.fullName)) {
+            errors.addAll(tplErrorListener.errors
+                .where(rightErrorType)
+                .map((e) => new FromFilePrefixedError(view.source, e)));
+          } else {
+            errors.addAll(tplErrorListener.errors.where(rightErrorType));
+          }
         }
       }
     }
@@ -456,7 +469,7 @@ class AngularDriver
 
     // collect inline ng-content tags
     for (final directive in directives) {
-      if (directive is Component) {
+      if (directive is Component && directive?.view != null) {
         final view = directive.view;
         if (view.templateText != null) {
           final template = new Template(view);
@@ -488,8 +501,8 @@ class AngularDriver
       for (final input in directive.inputs) {
         final name = input.name;
         final nameOffset = input.nameOffset;
-        final propName = input.setter.name;
-        final propNameOffset = input.setter.nameOffset;
+        final propName = input.setter.name.replaceAll('=', '');
+        final propNameOffset = input.setterRange.offset;
         inputs.add(new SummarizedBindableBuilder()
           ..name = name
           ..nameOffset = nameOffset
@@ -499,7 +512,7 @@ class AngularDriver
       for (final output in directive.outputs) {
         final name = output.name;
         final nameOffset = output.nameOffset;
-        final propName = output.getter.name;
+        final propName = output.getter.name.replaceAll('=', '');
         final propNameOffset = output.getterRange.offset;
         outputs.add(new SummarizedBindableBuilder()
           ..name = name
@@ -512,9 +525,9 @@ class AngularDriver
       var templateUrl;
       var templateText;
       var templateTextOffset;
-      if (directive is Component) {
+      if (directive is Component && directive.view != null) {
         templateUrl = directive.view?.templateUriSource?.fullName;
-        templateText = directive.view?.templateText;
+        templateText = directive.view.templateText;
         templateTextOffset = directive.view.templateOffset;
         for (final directiveName in directive.view.directiveNames) {
           final prefix = null; // TODO track this
