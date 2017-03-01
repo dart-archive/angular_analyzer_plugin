@@ -100,6 +100,7 @@ class AbstractAngularTest {
 
   DartSdk sdk;
   AngularDriver angularDriver;
+  AnalysisDriver dartDriver;
 
   GatheringErrorListener errorListener;
 
@@ -107,6 +108,7 @@ class AbstractAngularTest {
     fs.File file = resourceProvider.newFile(path, content);
     final source = file.createSource();
     angularDriver.addFile(path);
+    dartDriver.addFile(path);
     return source;
   }
 
@@ -127,7 +129,7 @@ class AbstractAngularTest {
       packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
-    AnalysisDriver driver = new AnalysisDriver(
+    dartDriver = new AnalysisDriver(
         scheduler,
         logger,
         resourceProvider,
@@ -137,7 +139,7 @@ class AbstractAngularTest {
         sf,
         new AnalysisOptionsImpl());
     angularDriver = new AngularDriver(
-        new MockAnalysisServer(), driver, scheduler, byteStore, sf);
+        new MockAnalysisServer(), dartDriver, scheduler, byteStore, sf);
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();
