@@ -73,8 +73,6 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
         // broken or missing selector, that results in cascading errors.
         selector = new AndSelector([]);
       }
-      List<ElementNameSelector> elementTags =
-          _getElementTagsFromSelector(selector);
       AngularElement exportAs = _parseExportAs(node);
       List<InputElement> inputElements = <InputElement>[];
       List<OutputElement> outputElements = <OutputElement>[];
@@ -89,16 +87,14 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector,
-            elementTags: elementTags);
+            selector: selector);
       }
       if (isDirective) {
         return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector,
-            elementTags: elementTags);
+            selector: selector);
       }
     }
     return null;
@@ -233,22 +229,6 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
       // TODO(mfairhurst) report a warning
       return null;
     }
-  }
-
-  List<ElementNameSelector> _getElementTagsFromSelector(Selector selector) {
-    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
-    if (selector is ElementNameSelector) {
-      elementTags.add(selector);
-    } else if (selector is OrSelector) {
-      for (Selector innerSelector in selector.selectors) {
-        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
-      }
-    } else if (selector is AndSelector) {
-      for (Selector innerSelector in selector.selectors) {
-        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
-      }
-    }
-    return elementTags;
   }
 
   List<InputElement> _parseHeaderInputs(ast.Annotation node) {

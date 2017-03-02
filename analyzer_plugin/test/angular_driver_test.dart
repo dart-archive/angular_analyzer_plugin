@@ -1,5 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.tasks_test;
 
+import 'dart:async';
+
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
@@ -8,7 +10,6 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
@@ -250,10 +251,9 @@ class BuildUnitDirectivesTest extends AbstractAngularTest {
   List<AnalysisError> errors;
 
   Future getDirectives(Source source) async {
-    AnalysisResult result = await dartDriver.getResult(source.fullName);
+    final result = await dartDriver.getResult(source.fullName);
     fillErrorListener(result.errors);
-    UnlinkedDartSummary sum =
-        await angularDriver.getDirectives(source.fullName);
+    final sum = await angularDriver.getDirectives(source.fullName);
     directives =
         await angularDriver.resynthesizeDirectives(sum, source.fullName);
     errors = angularDriver.deserializeErrors(source, sum.errors);
@@ -1349,10 +1349,9 @@ class BuildUnitViewsTest extends AbstractAngularTest {
   List<AnalysisError> errors;
 
   Future getViews(Source source) async {
-    AnalysisResult result = await dartDriver.getResult(source.fullName);
+    final result = await dartDriver.getResult(source.fullName);
     fillErrorListener(result.errors);
-    UnlinkedDartSummary sum =
-        await angularDriver.getDirectives(source.fullName);
+    final sum = await angularDriver.getDirectives(source.fullName);
     directives =
         await angularDriver.resynthesizeDirectives(sum, source.fullName);
 
@@ -1724,7 +1723,7 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
   List<AnalysisError> errors;
 
   Future getDirectives(Source source) async {
-    AnalysisResult result = await dartDriver.getResult(source.fullName);
+    final result = await dartDriver.getResult(source.fullName);
     fillErrorListener(result.errors);
     final ngResult = await angularDriver.resolveDart(source.fullName);
     directives = ngResult.item2;
@@ -2255,7 +2254,7 @@ import '/angular2/angular2.dart';
 class ChildComponent {}
 ''';
     Source source = newSource('/test.dart', code);
-    Source childSource = newSource('/child_file.dart', childCode);
+    newSource('/child_file.dart', childCode);
     await getDirectives(source);
     expect(templates, hasLength(1));
     // no errors
@@ -2289,8 +2288,8 @@ class ResolveHtmlTemplatesTest extends AbstractAngularTest {
   List<Template> templates;
   Future getDirectives(Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder =
-        (Directive d) => d is Component && d.view.templateUriSource != null;
+    final finder = (AbstractDirective d) =>
+        d is Component && d.view.templateUriSource != null;
     fillErrorListener(
         angularDriver.deserializeErrors(dartSource, result.item1.errors));
     final directives = result.item2.where(finder);
@@ -2326,7 +2325,7 @@ class TextPanelB {
 </div>
 """;
     Source dartSource = newSource('/test.dart', dartCode);
-    Source htmlSource = newSource('/text_panel.html', htmlCode);
+    newSource('/text_panel.html', htmlCode);
     await getDirectives(dartSource);
     expect(templates, hasLength(2));
     // validate templates
@@ -2362,18 +2361,20 @@ class ResolveHtmlTemplateTest extends AbstractAngularTest {
   List<View> views;
   Future getDirectives(Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder =
-        (Directive d) => d is Component && d.view.templateUriSource != null;
+    final finder = (AbstractDirective d) =>
+        d is Component && d.view.templateUriSource != null;
     fillErrorListener(
         angularDriver.deserializeErrors(dartSource, result.item1.errors));
     final directives = result.item2;
     final directive = directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
-    final result2 =
+    final ngResult =
         await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
     fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, result2.item1.errors));
-    views = result2.item3
+        angularDriver.deserializeErrors(dartSource, ngResult.item1.errors));
+    fillErrorListener(angularDriver.deserializeFromPathErrors(
+        dartSource, ngResult.item1.errorsFromPath));
+    views = ngResult.item3
         .where(finder)
         .map((d) => d is Component ? d.view : null)
         .where((d) => d != null);
@@ -2389,7 +2390,7 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''');
-    Source htmlSource = newSource(
+    newSource(
         '/test.html',
         '''
 <!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
@@ -2408,8 +2409,7 @@ class ComponentA {
 }
 ''';
     Source dartSource = newSource('/weird.dart', code);
-    Source htmlSource =
-        newSource('/test.html', "<unresolved-tag></unresolved-tag>");
+    newSource('/test.html', "<unresolved-tag></unresolved-tag>");
     await getDirectives(dartSource);
     final errors = errorListener.errors;
     expect(errors, hasLength(1));
@@ -2473,7 +2473,7 @@ import '/angular2/angular2.dart';
 class ChildComponent {}
 ''';
     Source source = newSource('/test.dart', code);
-    Source childSource = newSource('/child_file.dart', childCode);
+    newSource('/child_file.dart', childCode);
     newSource('/test.html', '');
     await getDirectives(source);
 

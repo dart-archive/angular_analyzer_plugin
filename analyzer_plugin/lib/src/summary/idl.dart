@@ -1,8 +1,6 @@
 import 'package:analyzer/src/summary/base.dart' as base;
-import 'package:analyzer/src/summary/base.dart' show Id, TopLevel, ImportedIdl;
+import 'package:analyzer/src/summary/base.dart' show Id, TopLevel;
 
-@ImportedIdl()
-import 'package:analyzer/src/summary/idl.dart' show AnalysisDriverUnitError;
 import 'format.dart' as generated;
 
 @TopLevel('APdl')
@@ -20,7 +18,9 @@ abstract class LinkedHtmlSummary extends base.SummaryClass {
       generated.readLinkedHtmlSummary(buffer);
 
   @Id(0)
-  List<AnalysisDriverUnitError> get errors;
+  List<SummarizedAnalysisError> get errors;
+  @Id(1)
+  List<SummarizedAnalysisErrorFromPath> get errorsFromPath;
 }
 
 @TopLevel('APUH')
@@ -38,7 +38,7 @@ abstract class LinkedDartSummary extends base.SummaryClass {
       generated.readLinkedDartSummary(buffer);
 
   @Id(0)
-  List<AnalysisDriverUnitError> get errors;
+  List<SummarizedAnalysisError> get errors;
 
   @Id(1)
   List<String> get referencedHtmlFiles;
@@ -53,7 +53,7 @@ abstract class UnlinkedDartSummary extends base.SummaryClass {
   List<SummarizedDirective> get directiveSummaries;
 
   @Id(1)
-  List<AnalysisDriverUnitError> get errors;
+  List<SummarizedAnalysisError> get errors;
 }
 
 abstract class SummarizedDirective extends base.SummaryClass {
@@ -72,17 +72,41 @@ abstract class SummarizedDirective extends base.SummaryClass {
   @Id(6)
   String get templateUrl;
   @Id(7)
-  String get templateText;
+  int get templateUrlOffset;
   @Id(8)
-  int get templateOffset;
+  int get templateUrlLength;
   @Id(9)
-  List<SummarizedNgContent> get ngContents;
+  String get templateText;
   @Id(10)
-  List<SummarizedBindable> get inputs;
+  int get templateOffset;
   @Id(11)
-  List<SummarizedBindable> get outputs;
+  List<SummarizedNgContent> get ngContents;
   @Id(12)
+  List<SummarizedBindable> get inputs;
+  @Id(13)
+  List<SummarizedBindable> get outputs;
+  @Id(14)
   List<SummarizedDirectiveUse> get subdirectives;
+}
+
+abstract class SummarizedAnalysisError extends base.SummaryClass {
+  @Id(0)
+  String get errorCode;
+  @Id(1)
+  String get message;
+  @Id(2)
+  String get correction;
+  @Id(3)
+  int get offset;
+  @Id(4)
+  int get length;
+}
+
+abstract class SummarizedAnalysisErrorFromPath extends base.SummaryClass {
+  @Id(0)
+  String get path;
+  @Id(1)
+  SummarizedAnalysisError get originalError;
 }
 
 abstract class SummarizedBindable extends base.SummaryClass {

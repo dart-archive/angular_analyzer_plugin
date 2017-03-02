@@ -55,6 +55,8 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
       final selector =
           new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
               .parse();
+      List<ElementNameSelector> elementTags =
+          _getElementTagsFromSelector(selector);
       final List<InputElement> inputs = [];
       for (final inputSum in dirSum.inputs) {
         // is this correct lookup?
@@ -94,25 +96,34 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
             selector: selector,
             inputs: inputs,
             outputs: outputs,
-            ngContents: ngContents);
+            ngContents: ngContents,
+            elementTags: elementTags);
         directives.add(component);
         final subDirectives = <String>[];
         for (final useSum in dirSum.subdirectives) {
           subDirectives.add(useSum.name);
         }
+        var templateUriSource = null;
+        var templateUrlRange = null;
+        if (dirSum.templateUrl != '') {
+          templateUriSource =
+              _directiveLinkerEnablement.getSource(dirSum.templateUrl);
+          templateUrlRange = new SourceRange(
+              dirSum.templateUrlOffset, dirSum.templateUrlLength);
+        }
         component.view = new View(classElem, component, [],
             templateText: dirSum.templateText,
             templateOffset: dirSum.templateOffset,
-            templateUriSource: dirSum.templateUrl == ''
-                ? null
-                : _directiveLinkerEnablement.getSource(dirSum.templateUrl),
+            templateUriSource: templateUriSource,
+            templateUrlRange: templateUrlRange,
             directiveNames: subDirectives);
       } else {
         final directive = new Directive(classElem,
             exportAs: exportAs,
             selector: selector,
             inputs: inputs,
-            outputs: outputs);
+            outputs: outputs,
+            elementTags: elementTags);
         directives.add(directive);
       }
     }
@@ -124,6 +135,22 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
     }
 
     return directives;
+  }
+
+  List<ElementNameSelector> _getElementTagsFromSelector(Selector selector) {
+    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
+    if (selector is ElementNameSelector) {
+      elementTags.add(selector);
+    } else if (selector is OrSelector) {
+      for (Selector innerSelector in selector.selectors) {
+        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
+      }
+    } else if (selector is AndSelector) {
+      for (Selector innerSelector in selector.selectors) {
+        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
+      }
+    }
+    return elementTags;
   }
 }
 
