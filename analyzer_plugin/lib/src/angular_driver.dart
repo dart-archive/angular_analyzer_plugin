@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:analyzer/src/summary/idl.dart';
-import 'package:analyzer/src/summary/format.dart';
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
@@ -159,21 +157,39 @@ class AngularDriver
     return standardHtml;
   }
 
-  List<AnalysisError> deserializeErrors(
-      Source source, List<AnalysisDriverUnitError> errors) {
+  List<AnalysisError> deserializeFromPathErrors(
+      Source source, List<SummarizedAnalysisErrorFromPath> errors) {
     return errors
         .map((error) {
-          final errorName = error.uniqueName;
-          final errorCode = angularWarningCodeByUniqueName(errorName) ??
-              errorCodeByUniqueName(errorName);
-          if (errorCode == null) {
+          final originalError = deserializeError(source, error.originalError);
+          if (originalError == null) {
             return null;
           }
-          return new AnalysisError.forValues(source, error.offset, error.length,
-              errorCode, error.message, error.correction);
+          return new FromFilePrefixedError.fromPath(error.path, originalError);
         })
         .where((e) => e != null)
         .toList();
+  }
+
+  List<AnalysisError> deserializeErrors(
+      Source source, List<SummarizedAnalysisError> errors) {
+    return errors
+        .map((error) {
+          return deserializeError(source, error);
+        })
+        .where((e) => e != null)
+        .toList();
+  }
+
+  AnalysisError deserializeError(Source source, SummarizedAnalysisError error) {
+    final errorName = error.errorCode;
+    final errorCode = angularWarningCodeByUniqueName(errorName) ??
+        errorCodeByUniqueName(errorName);
+    if (errorCode == null) {
+      return null;
+    }
+    return new AnalysisError.forValues(source, error.offset, error.length,
+        errorCode, error.message, error.correction);
   }
 
   String getHtmlKey(String htmlPath, String dartPath) {
@@ -301,7 +317,8 @@ class AngularDriver
     final sum = tuple.item1;
     final source = _sourceFactory.resolveUri(null, 'file:' + htmlPath);
     final errors =
-        new List<AnalysisError>.from(deserializeErrors(source, sum.errors));
+        new List<AnalysisError>.from(deserializeErrors(source, sum.errors))
+          ..addAll(deserializeFromPathErrors(source, sum.errorsFromPath));
     final lineInfo = parsed.lineInfo;
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
@@ -311,9 +328,10 @@ class AngularDriver
 
   Future<List<AnalysisError>> getHtmlErrors(
       String htmlPath, String dartPath) async {
-    final tuple = await resolveHtml(htmlPath, dartPath);
+    final sum = (await resolveHtml(htmlPath, dartPath)).item1;
     final source = _sourceFactory.resolveUri(null, 'file:' + htmlPath);
-    return deserializeErrors(source, tuple.item1.errors);
+    return new List<AnalysisError>.from(deserializeErrors(source, sum.errors))
+      ..addAll(deserializeFromPathErrors(source, sum.errorsFromPath));
   }
 
   Future pushDartErrors(String path) async {
@@ -412,12 +430,12 @@ class AngularDriver
     return new Tuple2(sum, directives);
   }
 
-  List<AnalysisDriverUnitError> summarizeErrors(List<AnalysisError> errors) {
+  List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) {
     return errors
-        .map((error) => new AnalysisDriverUnitErrorBuilder(
+        .map((error) => new SummarizedAnalysisErrorBuilder(
             offset: error.offset,
             length: error.length,
-            uniqueName: error.errorCode.uniqueName,
+            errorCode: error.errorCode.uniqueName,
             message: error.message,
             correction: error.correction))
         .toList();
@@ -523,10 +541,14 @@ class AngularDriver
       final dirUseSums = <SummarizedDirectiveUseBuilder>[];
       final ngContents = <SummarizedNgContentBuilder>[];
       var templateUrl;
+      var templateUrlOffset;
+      var templateUrlLength;
       var templateText;
       var templateTextOffset;
       if (directive is Component && directive.view != null) {
         templateUrl = directive.view?.templateUriSource?.fullName;
+        templateUrlOffset = directive.view?.templateUrlRange?.offset;
+        templateUrlLength = directive.view?.templateUrlRange?.length;
         templateText = directive.view.templateText;
         templateTextOffset = directive.view.templateOffset;
         for (final directiveName in directive.view.directiveNames) {
@@ -550,6 +572,8 @@ class AngularDriver
         ..templateText = templateText
         ..templateOffset = templateTextOffset
         ..templateUrl = templateUrl
+        ..templateUrlOffset = templateUrlOffset
+        ..templateUrlLength = templateUrlLength
         ..ngContents = ngContents
         ..inputs = inputs
         ..outputs = outputs

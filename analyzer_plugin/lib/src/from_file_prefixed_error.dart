@@ -10,15 +10,23 @@ import 'package:analyzer/src/generated/source.dart';
  * both sanely and strangely (which is common: prod and test).
  */
 class FromFilePrefixedError implements AnalysisError {
-  final Source fromSource;
+  final String fromSourcePath;
   final String originalMessage;
   final AnalysisError originalError;
   String _message;
 
-  FromFilePrefixedError(this.fromSource, AnalysisError originalError)
+  FromFilePrefixedError(Source fromSource, AnalysisError originalError)
+      : originalMessage = originalError.message,
+        fromSourcePath = fromSource.fullName,
+        originalError = originalError {
+    _message = "$originalMessage (from ${fromSourcePath})";
+  }
+
+  FromFilePrefixedError.fromPath(
+      this.fromSourcePath, AnalysisError originalError)
       : originalMessage = originalError.message,
         originalError = originalError {
-    _message = "$originalMessage (from ${fromSource.fullName})";
+    _message = "$originalMessage (from ${fromSourcePath})";
   }
 
   @override
@@ -41,9 +49,6 @@ class FromFilePrefixedError implements AnalysisError {
 
   @override
   set isStaticOnly(bool v) => originalError.isStaticOnly = v;
-
-  @override
-  getProperty<V>(ErrorProperty<V> v) => originalError.getProperty(v);
 
   @override
   String get correction => originalError.correction;
