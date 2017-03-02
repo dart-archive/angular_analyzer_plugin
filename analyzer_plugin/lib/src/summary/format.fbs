@@ -11,17 +11,17 @@ table PackageBundle {
 }
 
 table LinkedHtmlSummary {
-  errors:[AnalysisDriverUnitError] (id: 0);
+  errors:[SummarizedAnalysisError] (id: 0);
+
+  errorsFromPath:[SummarizedAnalysisErrorFromPath] (id: 1);
 }
 
 table UnlinkedHtmlSummary {
   ngContents:[SummarizedNgContent] (id: 0);
-
-  errors:[AnalysisDriverUnitError] (id: 1);
 }
 
 table LinkedDartSummary {
-  errors:[AnalysisDriverUnitError] (id: 0);
+  errors:[SummarizedAnalysisError] (id: 0);
 
   referencedHtmlFiles:[string] (id: 1);
 }
@@ -29,7 +29,7 @@ table LinkedDartSummary {
 table UnlinkedDartSummary {
   directiveSummaries:[SummarizedDirective] (id: 0);
 
-  errors:[AnalysisDriverUnitError] (id: 1);
+  errors:[SummarizedAnalysisError] (id: 1);
 }
 
 table SummarizedDirective {
@@ -47,17 +47,39 @@ table SummarizedDirective {
 
   templateUrl:string (id: 6);
 
-  templateText:string (id: 7);
+  templateUrlOffset:uint (id: 7);
 
-  templateOffset:uint (id: 8);
+  templateUrlLength:uint (id: 8);
 
-  ngContents:[SummarizedNgContent] (id: 9);
+  templateText:string (id: 9);
 
-  inputs:[SummarizedBindable] (id: 10);
+  templateOffset:uint (id: 10);
 
-  outputs:[SummarizedBindable] (id: 11);
+  ngContents:[SummarizedNgContent] (id: 11);
 
-  subdirectives:[SummarizedDirectiveUse] (id: 12);
+  inputs:[SummarizedBindable] (id: 12);
+
+  outputs:[SummarizedBindable] (id: 13);
+
+  subdirectives:[SummarizedDirectiveUse] (id: 14);
+}
+
+table SummarizedAnalysisError {
+  errorCode:string (id: 0);
+
+  message:string (id: 1);
+
+  correction:string (id: 2);
+
+  offset:uint (id: 3);
+
+  length:uint (id: 4);
+}
+
+table SummarizedAnalysisErrorFromPath {
+  path:string (id: 0);
+
+  originalError:SummarizedAnalysisError (id: 1);
 }
 
 table SummarizedBindable {
