@@ -10,6 +10,8 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
+import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
+import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
@@ -62,6 +64,16 @@ class HtmlTreeConverter {
 
       List<NodeInfo> children = _convertChildren(node, element);
       element.childNodes.addAll(children);
+
+      if (!element.isSynthetic &&
+          element.openingSpanIsClosed &&
+          closingSpan != null &&
+          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
+        element.childNodes.add(new TextInfo(
+            openingSpan.offset + openingSpan.length, '', element, [],
+            synthetic: true));
+      }
+
       return element;
     }
     if (node is html.Text) {
@@ -78,7 +90,9 @@ class HtmlTreeConverter {
     element.attributes.forEach((name, String value) {
       if (name is String) {
         try {
-          if (name.startsWith('*')) {
+          if (name == "") {
+            attributes.add(_convertSyntheticAttribute(element));
+          } else if (name.startsWith('*')) {
             attributes.add(_convertTemplateAttribute(element, name, true));
           } else if (name == 'template') {
             attributes.add(_convertTemplateAttribute(element, name, false));
@@ -128,6 +142,14 @@ class HtmlTreeConverter {
       }
     });
     return attributes;
+  }
+
+  TextAttribute _convertSyntheticAttribute(html.Element element) {
+    FileSpan openSourceSpan = element.sourceSpan;
+    int nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
+    TextAttribute textAttribute =
+        new TextAttribute("", nameOffset, null, null, []);
+    return textAttribute;
   }
 
   TemplateAttribute _convertTemplateAttribute(
@@ -199,9 +221,9 @@ class HtmlTreeConverter {
     if (value == null || value == "") {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
-      value = value == ""
-          ? "null"
-          : value; // we've created a warning. Suppress parse error now.
+      //value = value == ""
+      //    ? "null"
+      //    : value; // we've created a warning. Suppress parse error now.
     }
     int propNameOffset = origNameOffset + prefix.length;
     String propName = _removePrefixSuffix(origName, prefix, suffix);
@@ -251,22 +273,33 @@ class HtmlTreeConverter {
   }
 
   int _nameOffset(html.Element element, String name) {
+    String lowerName = name.toLowerCase();
     try {
-      String lowerName = name.toLowerCase();
       return element.attributeSpans[lowerName].start.offset;
       // See https://github.com/dart-lang/html/issues/44.
     } catch (e) {
-      throw new IgnorableHtmlInternalError(e);
+      try {
+        AttributeSpanContainer container =
+            AttributeSpanContainer.generateAttributeSpans(element);
+        return container.attributeSpans[name].start.offset;
+      } catch (e) {
+        throw new IgnorableHtmlInternalError(e);
+      }
     }
   }
 
   int _valueOffset(html.Element element, String name) {
+    String lowerName = name.toLowerCase();
     try {
-      SourceSpan span = element.attributeValueSpans[name.toLowerCase()];
+      SourceSpan span = element.attributeValueSpans[lowerName];
       if (span != null) {
         return span.start.offset;
       } else {
-        return null;
+        AttributeSpanContainer container =
+            AttributeSpanContainer.generateAttributeSpans(element);
+        return (container.attributeValueSpans.containsKey(name))
+            ? container.attributeValueSpans[name].start.offset
+            : null;
       }
     } catch (e) {
       throw new IgnorableHtmlInternalError(e);
@@ -298,8 +331,16 @@ class EmbeddedDartParser {
       return null;
     }
 
-    Token token = _scanDartCode(offset, code);
-    Expression expression = _parseDartExpressionAtToken(token);
+    final Token token = _scanDartCode(offset, code);
+    Expression expression;
+
+    // suppress errors for this. But still parse it so we can analyze it and stuff
+    if (code == "") {
+      expression = _parseDartExpressionAtToken(token,
+          errorListener: new IgnoringAnalysisErrorListener());
+    } else {
+      expression = _parseDartExpressionAtToken(token);
+    }
 
     if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
       int trailingExpressionBegin = expression.endToken.next.offset;
@@ -359,7 +400,9 @@ class EmbeddedDartParser {
   /**
    * Parse the Dart expression starting at the given [token].
    */
-  Expression _parseDartExpressionAtToken(Token token) {
+  Expression _parseDartExpressionAtToken(Token token,
+      {AnalysisErrorListener errorListener}) {
+    errorListener ??= this.errorListener;
     Parser parser =
         new NgExprParser(templateSource, errorListener, typeProvider);
     return parser.parseExpression(token);

@@ -838,11 +838,13 @@ class NgContentRecorder extends AngularScopeVisitor {
     List<AttributeInfo> selectorAttrs =
         element.attributes.where((a) => a.name == 'select');
 
-    if (element.childNodes.length > 0) {
-      errorReporter.reportErrorForOffset(
-          AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
-          element.openingSpan.offset,
-          element.openingSpan.length);
+    for (NodeInfo child in element.childNodes) {
+      if (!child.isSynthetic) {
+        errorReporter.reportErrorForOffset(
+            AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
+            element.openingSpan.offset,
+            element.openingSpan.length);
+      }
     }
 
     if (selectorAttrs.length == 0) {

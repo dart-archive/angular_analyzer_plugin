@@ -300,11 +300,6 @@ class Template {
   ElementInfo _ast;
 
   /**
-   * List of [NodeInfo] that were generated from recoverable parse errors.
-   */
-  List<NodeInfo> _extraNodes = new List<NodeInfo>();
-
-  /**
     * List of <ng-content> selectors in this template.
     */
   final List<NgContent> ngContents = <NgContent>[];
@@ -339,8 +334,6 @@ class Template {
 
     _ast = ast;
   }
-
-  List<NodeInfo> get extraNodes => _extraNodes;
 }
 
 /**
