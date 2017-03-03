@@ -252,12 +252,11 @@ class BuildUnitDirectivesTest extends AbstractAngularTest {
   List<AnalysisError> errors;
 
   Future getDirectives(Source source) async {
-    final result = await dartDriver.getResult(source.fullName);
-    fillErrorListener(result.errors);
-    final sum = await angularDriver.getDirectives(source.fullName);
-    directives =
-        await angularDriver.resynthesizeDirectives(sum, source.fullName);
-    errors = angularDriver.deserializeErrors(source, sum.errors);
+    final dartResult = await dartDriver.getResult(source.fullName);
+    fillErrorListener(dartResult.errors);
+    final result = await angularDriver.getDirectives(source.fullName);
+    directives = result.directives;
+    errors = result.errors;
     fillErrorListener(errors);
   }
 
@@ -1350,20 +1349,19 @@ class BuildUnitViewsTest extends AbstractAngularTest {
   List<AnalysisError> errors;
 
   Future getViews(Source source) async {
-    final result = await dartDriver.getResult(source.fullName);
-    fillErrorListener(result.errors);
-    final sum = await angularDriver.getDirectives(source.fullName);
-    directives =
-        await angularDriver.resynthesizeDirectives(sum, source.fullName);
+    final dartResult = await dartDriver.getResult(source.fullName);
+    fillErrorListener(dartResult.errors);
+    final result = await angularDriver.getDirectives(source.fullName);
+    directives = result.directives;
 
     final linker = new ChildDirectiveLinker(
         angularDriver, new ErrorReporter(errorListener, source));
-    await linker.linkDirectives(directives, result.unit.element.library);
+    await linker.linkDirectives(directives, dartResult.unit.element.library);
     views = directives
         .map((d) => d is Component ? d.view : null)
         .where((d) => d != null)
         .toList();
-    errors = angularDriver.deserializeErrors(source, sum.errors);
+    errors = result.errors;
     fillErrorListener(errors);
   }
 
@@ -1634,7 +1632,7 @@ class MyComponent {}
     // MyComponent
     View view = getViewByClassName(views, 'MyComponent');
     expect(view.component, getComponentByClassName(directives, 'MyComponent'));
-    expect(view.templateText, equals(""));
+    expect(view.templateText, isNull);
     expect(view.templateUriSource, isNotNull);
     expect(view.templateUriSource, htmlSource);
     expect(view.templateSource, htmlSource);
@@ -1660,7 +1658,7 @@ class MyComponent {}
     // MyComponent
     View view = getViewByClassName(views, 'MyComponent');
     expect(view.component, getComponentByClassName(directives, 'MyComponent'));
-    expect(view.templateText, equals(""));
+    expect(view.templateText, isNull);
     expect(view.templateUriSource, isNotNull);
     expect(view.templateUriSource, htmlSource);
     expect(view.templateSource, htmlSource);
@@ -1752,11 +1750,11 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
   List<AnalysisError> errors;
 
   Future getDirectives(Source source) async {
-    final result = await dartDriver.getResult(source.fullName);
-    fillErrorListener(result.errors);
+    final dartResult = await dartDriver.getResult(source.fullName);
+    fillErrorListener(dartResult.errors);
     final ngResult = await angularDriver.resolveDart(source.fullName);
-    directives = ngResult.item2;
-    errors = angularDriver.deserializeErrors(source, ngResult.item1.errors);
+    directives = ngResult.directives;
+    errors = ngResult.errors;
     fillErrorListener(errors);
     templates = directives
         .map((d) => d is Component ? d.view?.template : null)
@@ -2334,16 +2332,14 @@ class ResolveHtmlTemplatesTest extends AbstractAngularTest {
     final result = await angularDriver.resolveDart(dartSource.fullName);
     final finder = (AbstractDirective d) =>
         d is Component && d.view.templateUriSource != null;
-    fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, result.item1.errors));
-    final directives = result.item2.where(finder);
+    fillErrorListener(result.errors);
+    final directives = result.directives.where(finder);
     final htmlPath =
         (directives.first as Component).view.templateUriSource.fullName;
     final result2 =
         await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
-    fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, result2.item1.errors));
-    templates = result2.item3
+    fillErrorListener(result2.errors);
+    templates = result2.directives
         .where(finder)
         .map((d) => d is Component ? d.view?.template : null)
         .where((d) => d != null);
@@ -2407,18 +2403,13 @@ class ResolveHtmlTemplateTest extends AbstractAngularTest {
     final result = await angularDriver.resolveDart(dartSource.fullName);
     final finder = (AbstractDirective d) =>
         d is Component && d.view.templateUriSource != null;
-    fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, result.item1.errors));
-    final directives = result.item2;
-    final directive = directives.singleWhere(finder);
+    fillErrorListener(result.errors);
+    final directive = result.directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
     final ngResult =
         await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
-    fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, ngResult.item1.errors));
-    fillErrorListener(angularDriver.deserializeFromPathErrors(
-        dartSource, ngResult.item1.errorsFromPath));
-    views = ngResult.item3
+    fillErrorListener(ngResult.errors);
+    views = ngResult.directives
         .where(finder)
         .map((d) => d is Component ? d.view : null)
         .where((d) => d != null);

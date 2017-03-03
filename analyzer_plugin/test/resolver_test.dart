@@ -2988,18 +2988,15 @@ $code
    */
   Future _resolveSingleTemplate(Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder =
-        (Directive d) => d is Component && d.view.templateUriSource != null;
-    fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, result.item1.errors));
-    final directives = result.item2;
-    final directive = directives.singleWhere(finder);
+    final finder = (AbstractDirective d) =>
+        d is Component && d.view.templateUriSource != null;
+    fillErrorListener(result.errors);
+    final directive = result.directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
     final result2 =
         await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
-    fillErrorListener(
-        angularDriver.deserializeErrors(dartSource, result2.item1.errors));
-    final view = (result2.item3.singleWhere(finder) as Component).view;
+    fillErrorListener(result2.errors);
+    final view = (result2.directives.singleWhere(finder) as Component).view;
 
     template = view.template;
     ranges = template.ranges;

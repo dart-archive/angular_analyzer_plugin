@@ -43,6 +43,11 @@ class AndSelector extends Selector {
     }
     return context;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    selectors.forEach(
+        (selector) => selector.recordElementNameSelectors(recordingList));
+  }
 }
 
 /**
@@ -115,6 +120,10 @@ class AttributeSelector extends Selector {
     }
     return context;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
 }
 
 /**
@@ -146,6 +155,10 @@ class AttributeValueRegexSelector extends Selector {
   List<HtmlTagForSelector> refineTagSuggestions(
       List<HtmlTagForSelector> context) {
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
   }
 }
 
@@ -195,6 +208,10 @@ class ClassSelector extends Selector {
     }
     return context;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
 }
 
 /**
@@ -236,6 +253,10 @@ class ElementNameSelector extends Selector {
       tag.name = nameElement.name;
     }
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    recordingList.add(this);
   }
 }
 
@@ -286,6 +307,11 @@ class OrSelector extends Selector {
 
     return response;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    selectors.forEach(
+        (selector) => selector.recordElementNameSelectors(recordingList));
+  }
 }
 
 /**
@@ -309,6 +335,10 @@ class NotSelector extends Selector {
   List<HtmlTagForSelector> refineTagSuggestions(
       List<HtmlTagForSelector> context) {
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
   }
 }
 
@@ -341,6 +371,10 @@ class ContainsSelector extends Selector {
   List<HtmlTagForSelector> refineTagSuggestions(
       List<HtmlTagForSelector> context) {
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
   }
 }
 
@@ -375,6 +409,8 @@ abstract class Selector {
     ];
     return refineTagSuggestions(tags).where((t) => t.isValid);
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList);
 }
 
 enum _SelectorRegexMatch {

@@ -16,7 +16,7 @@ import 'summary/idl.dart';
 
 abstract class FileDirectiveProvider {
   Future<List<AbstractDirective>> getUnlinkedDirectives(String path);
-  Future<List<SummarizedNgContent>> getHtmlNgContent(String path);
+  Future<List<NgContent>> getHtmlNgContent(String path);
 }
 
 abstract class DirectiveLinkerEnablement {
@@ -28,7 +28,7 @@ class IgnoringErrorListener implements AnalysisErrorListener {
   void onError(Object o) {}
 }
 
-class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
+class DirectiveLinker {
   final DirectiveLinkerEnablement _directiveLinkerEnablement;
 
   DirectiveLinker(this._directiveLinkerEnablement);
@@ -59,8 +59,8 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
       final selector =
           new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
               .parse();
-      List<ElementNameSelector> elementTags =
-          _getElementTagsFromSelector(selector);
+      List<ElementNameSelector> elementTags = <ElementNameSelector>[];
+      selector.recordElementNameSelectors(elementTags);
       final List<InputElement> inputs = [];
       for (final inputSum in dirSum.inputs) {
         // is this correct lookup?
@@ -157,9 +157,26 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
     }
     return elementTags;
   }
+
+  List<NgContent> deserializeNgContents(
+      List<SummarizedNgContent> ngContentSums, Source source) {
+    return ngContentSums.map((ngContentSum) {
+      final selector = ngContentSum.selectorStr == ""
+          ? null
+          : new SelectorParser(
+                  source, ngContentSum.selectorOffset, ngContentSum.selectorStr)
+              .parse();
+      return new NgContent.withSelector(
+          ngContentSum.offset,
+          ngContentSum.length,
+          selector,
+          selector?.offset,
+          ngContentSum.selectorStr.length);
+    }).toList();
+  }
 }
 
-class ChildDirectiveLinker extends Object with _DeserializeNgContentsMixin {
+class ChildDirectiveLinker {
   final FileDirectiveProvider _fileDirectiveProvider;
   final ErrorReporter _errorReporter;
 
@@ -171,7 +188,7 @@ class ChildDirectiveLinker extends Object with _DeserializeNgContentsMixin {
   ) async {
     final scope = new LibraryScope(library);
     for (final directive in directivesToLink) {
-      if (directive is Component) {
+      if (directive is Component && directive.view != null) {
         for (final reference in directive.view.directiveReferences) {
           final referent = lookupByName(reference, directivesToLink);
           if (referent != null) {
@@ -286,29 +303,9 @@ class ChildDirectiveLinker extends Object with _DeserializeNgContentsMixin {
   Future<AbstractDirective> withNgContent(AbstractDirective directive) async {
     if (directive is Component && directive?.view?.templateUriSource != null) {
       final source = directive.view.templateUriSource;
-      final ngContentSums =
-          await _fileDirectiveProvider.getHtmlNgContent(source.fullName);
-      directive.ngContents = deserializeNgContents(ngContentSums, source);
+      directive.ngContents.addAll(
+          await _fileDirectiveProvider.getHtmlNgContent(source.fullName));
     }
     return directive;
-  }
-}
-
-class _DeserializeNgContentsMixin {
-  List<NgContent> deserializeNgContents(
-      List<SummarizedNgContent> ngContentSums, Source source) {
-    return ngContentSums.map((ngContentSum) {
-      final selector = ngContentSum.selectorStr == ""
-          ? null
-          : new SelectorParser(
-                  source, ngContentSum.selectorOffset, ngContentSum.selectorStr)
-              .parse();
-      return new NgContent.withSelector(
-          ngContentSum.offset,
-          ngContentSum.length,
-          selector,
-          selector?.offset,
-          ngContentSum.selectorStr.length);
-    }).toList();
   }
 }
