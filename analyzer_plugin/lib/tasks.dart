@@ -10,11 +10,11 @@ const List<AngularWarningCode> angularWarningCodeValues = const [
   AngularWarningCode.COMPONENT_ANNOTATION_MISSING,
   AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED,
   AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED,
-  AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED,
   AngularWarningCode.EXPECTED_IDENTIFIER,
   AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE,
   AngularWarningCode.STRING_VALUE_EXPECTED,
   AngularWarningCode.TYPE_LITERAL_EXPECTED,
+  AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
   AngularWarningCode.UNRESOLVED_TAG,
   AngularWarningCode.UNTERMINATED_MUSTACHE,
   AngularWarningCode.UNOPENED_MUSTACHE,
@@ -118,13 +118,6 @@ class AngularWarningCode extends ErrorCode {
           'Either a template or templateUrl is required');
 
   /**
-   * An error code indicating that the value of an expression is not a string.
-   */
-  static const AngularWarningCode DIRECTIVE_TYPE_LITERAL_EXPECTED =
-      const AngularWarningCode('DIRECTIVE_TYPE_LITERAL_EXPECTED',
-          'A directive type literal expected');
-
-  /**
    * An error code indicating that an identifier was expected, but not found.
    */
   static const AngularWarningCode EXPECTED_IDENTIFIER =
@@ -150,6 +143,15 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode TYPE_LITERAL_EXPECTED =
       const AngularWarningCode(
           'TYPE_LITERAL_EXPECTED', 'A type literal expected');
+
+  /**
+   * An error code indicating that the value of an expression is not a string.
+   */
+  static const AngularWarningCode TYPE_IS_NOT_A_DIRECTIVE =
+      const AngularWarningCode(
+          'TYPE_IS_NOT_A_DIRECTIVE',
+          'The type "{0}" is included in the directives list, but is not a' +
+              ' directive');
 
   /**
    * An error code indicating that the tag was not resolved.

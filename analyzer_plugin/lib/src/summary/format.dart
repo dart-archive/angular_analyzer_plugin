@@ -1482,6 +1482,8 @@ abstract class _SummarizedBindableMixin implements idl.SummarizedBindable {
 class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUse {
   String _name;
   String _prefix;
+  int _offset;
+  int _length;
 
   @override
   String get name => _name ??= '';
@@ -1497,9 +1499,27 @@ class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseM
     this._prefix = value;
   }
 
-  SummarizedDirectiveUseBuilder({String name, String prefix})
+  @override
+  int get offset => _offset ??= 0;
+
+  void set offset(int value) {
+    assert(value == null || value >= 0);
+    this._offset = value;
+  }
+
+  @override
+  int get length => _length ??= 0;
+
+  void set length(int value) {
+    assert(value == null || value >= 0);
+    this._length = value;
+  }
+
+  SummarizedDirectiveUseBuilder({String name, String prefix, int offset, int length})
     : _name = name,
-      _prefix = prefix;
+      _prefix = prefix,
+      _offset = offset,
+      _length = length;
 
   /**
    * Flush [informative] data recursively.
@@ -1513,6 +1533,8 @@ class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseM
   void collectApiSignature(api_sig.ApiSignature signature) {
     signature.addString(this._name ?? '');
     signature.addString(this._prefix ?? '');
+    signature.addInt(this._offset ?? 0);
+    signature.addInt(this._length ?? 0);
   }
 
   fb.Offset finish(fb.Builder fbBuilder) {
@@ -1530,6 +1552,12 @@ class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseM
     }
     if (offset_prefix != null) {
       fbBuilder.addOffset(1, offset_prefix);
+    }
+    if (_offset != null && _offset != 0) {
+      fbBuilder.addUint32(2, _offset);
+    }
+    if (_length != null && _length != 0) {
+      fbBuilder.addUint32(3, _length);
     }
     return fbBuilder.endTable();
   }
@@ -1550,6 +1578,8 @@ class _SummarizedDirectiveUseImpl extends Object with _SummarizedDirectiveUseMix
 
   String _name;
   String _prefix;
+  int _offset;
+  int _length;
 
   @override
   String get name {
@@ -1562,6 +1592,18 @@ class _SummarizedDirectiveUseImpl extends Object with _SummarizedDirectiveUseMix
     _prefix ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 1, '');
     return _prefix;
   }
+
+  @override
+  int get offset {
+    _offset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 2, 0);
+    return _offset;
+  }
+
+  @override
+  int get length {
+    _length ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 3, 0);
+    return _length;
+  }
 }
 
 abstract class _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUse {
@@ -1570,6 +1612,8 @@ abstract class _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUs
     Map<String, Object> _result = <String, Object>{};
     if (name != '') _result["name"] = name;
     if (prefix != '') _result["prefix"] = prefix;
+    if (offset != 0) _result["offset"] = offset;
+    if (length != 0) _result["length"] = length;
     return _result;
   }
 
@@ -1577,6 +1621,8 @@ abstract class _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUs
   Map<String, Object> toMap() => {
     "name": name,
     "prefix": prefix,
+    "offset": offset,
+    "length": length,
   };
 
   @override

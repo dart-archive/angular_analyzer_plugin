@@ -96,6 +96,10 @@ table SummarizedDirectiveUse {
   name:string (id: 0);
 
   prefix:string (id: 1);
+
+  offset:uint (id: 2);
+
+  length:uint (id: 3);
 }
 
 table SummarizedNgContent {

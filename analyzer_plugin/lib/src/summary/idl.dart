@@ -125,6 +125,10 @@ abstract class SummarizedDirectiveUse extends base.SummaryClass {
   String get name;
   @Id(1)
   String get prefix;
+  @Id(2)
+  int get offset;
+  @Id(3)
+  int get length;
 }
 
 abstract class SummarizedNgContent extends base.SummaryClass {

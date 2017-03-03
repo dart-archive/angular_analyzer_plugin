@@ -353,7 +353,7 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
-  final List<String> directiveNames;
+  final List<DirectiveReference> directiveReferences;
   final Map<String, List<AbstractDirective>> elementTagsInfo =
       <String, List<AbstractDirective>>{};
   final String templateText;
@@ -375,7 +375,7 @@ class View implements AnalysisTarget {
       this.templateUriSource,
       this.templateUrlRange,
       this.annotation,
-      this.directiveNames}) {
+      this.directiveReferences}) {
     // stability/error-recovery: @Component can be missing
     component?.view = this;
   }
@@ -398,4 +398,12 @@ class View implements AnalysisTarget {
       'classElement=$classElement, '
       'component=$component, '
       'directives=$directives)';
+}
+
+class DirectiveReference {
+  String name;
+  String prefix;
+  SourceRange range;
+
+  DirectiveReference(this.name, this.prefix, this.range);
 }

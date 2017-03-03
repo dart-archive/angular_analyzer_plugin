@@ -135,15 +135,15 @@ class ViewExtractor extends AnnotationProcessorMixin {
     if (component == null) {
       return null;
     }
-    final directiveNames = <String>[];
-    findDirectives(annotation, directiveNames);
+    final directiveReferences = <DirectiveReference>[];
+    findDirectives(annotation, directiveReferences);
     // Create View.
     return new View(classElement, component, <AbstractDirective>[],
         templateText: templateText,
         templateOffset: templateOffset,
         templateUriSource: templateUriSource,
         templateUrlRange: templateUrlRange,
-        directiveNames: directiveNames,
+        directiveReferences: directiveReferences,
         annotation: annotation);
   }
 
@@ -158,29 +158,33 @@ class ViewExtractor extends AnnotationProcessorMixin {
     return null;
   }
 
-  void findDirectives(ast.Annotation annotation, List<String> directiveNames) {
+  void findDirectives(
+      ast.Annotation annotation, List<DirectiveReference> directiveReferences) {
     // Prepare directives and elementTags
     ast.Expression listExpression = getNamedArgument(annotation, 'directives');
     if (listExpression is ast.ListLiteral) {
       for (ast.Expression item in listExpression.elements) {
         if (item is ast.Identifier) {
-          Element element = item.staticElement;
-          // TypeLiteral
-          if (element is ClassElement) {
-            directiveNames.add(element.name);
-            continue;
+          var name = item.name;
+          var prefix = "";
+          if (item is ast.PrefixedIdentifier) {
+            prefix = item.prefix.name;
           }
-          // LIST_OF_DIRECTIVES
-          if (element is PropertyAccessorElement &&
-              element.variable.constantValue != null) {
-            DartObject value = element.variable.constantValue;
-            bool success = _addDirectivesAndElementTagsForDartObject(
-                directiveNames, value);
-            if (!success) {
-              errorReporter.reportErrorForNode(
-                  AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-              return null;
-            }
+          Element element = item.staticElement;
+          // LIST_OF_DIRECTIVES or TypeLiteral
+          if (element is ClassElement ||
+              element is PropertyAccessorElement &&
+                  element.variable.constantValue != null) {
+            directiveReferences.add(new DirectiveReference(
+                name, prefix, new SourceRange(item.offset, item.length)));
+            //DartObject value = element.variable.constantValue;
+            //bool success = _addDirectivesAndElementTagsForDartObject(
+            //    directiveReferences, value);
+            //if (!success) {
+            //  errorReporter.reportErrorForNode(
+            //      AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
+            //  return null;
+            //}
             continue;
           }
         }
@@ -189,28 +193,6 @@ class ViewExtractor extends AnnotationProcessorMixin {
             AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
       }
     }
-  }
-
-  /**
-   * Walk the given [value] and add directives into [directives].
-   * Return `true` if success, or `false` the [value] has items that don't
-   * correspond to a directive.
-   */
-  bool _addDirectivesAndElementTagsForDartObject(
-      List<String> directiveNames, DartObject value) {
-    List<DartObject> listValue = value.toListValue();
-    if (listValue != null) {
-      for (DartObject listItem in listValue) {
-        Object typeValue = listItem.toTypeValue();
-        if (typeValue is InterfaceType && typeValue.element is ClassElement) {
-          directiveNames.add(typeValue.element.name);
-        } else {
-          return false;
-        }
-      }
-      return true;
-    }
-    return false;
   }
 }
 
@@ -302,8 +284,8 @@ class ViewDirectiveLinker extends AnnotationProcessorMixin {
     bool success =
         _addDirectiveAndElementTag(directives, elementTagsInfo, classElement);
     if (!success) {
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED, expression);
+      errorReporter.reportErrorForNode(AngularWarningCode.TYPE_IS_NOT_DIRECTIVE,
+          expression, [classElement.name]);
     }
   }
 
