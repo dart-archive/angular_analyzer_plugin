@@ -25,6 +25,7 @@ import 'package:analyzer/src/task/general.dart';
 import 'package:analyzer/task/dart.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/task/general.dart';
+import 'package:angular_ast/angular_ast.dart' as NgAst;
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
@@ -42,15 +43,16 @@ import 'package:source_span/source_span.dart';
 /**
  * The [html.Document] of an HTML file.
  */
-final ResultDescriptor<html.Document> ANGULAR_HTML_DOCUMENT =
-    new ResultDescriptor<html.Document>('ANGULAR_HTML_DOCUMENT', null);
+final ListResultDescriptor<NgAst.StandaloneTemplateAst> ANGULAR_HTML_DOCUMENT =
+    new ListResultDescriptor<NgAst.StandaloneTemplateAst>(
+        'ANGULAR_HTML_DOCUMENT', <NgAst.StandaloneTemplateAst>[]);
 
 /**
  * The analysis errors associated with a [Source] representing an HTML file.
  */
-final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
-    new ListResultDescriptor<AnalysisError>(
-        'ANGULAR_HTML_DOCUMENT_ERRORS', AnalysisError.NO_ERRORS);
+final ListResultDescriptor<Exception> ANGULAR_HTML_DOCUMENT_ERRORS =
+    new ListResultDescriptor<Exception>(
+        'ANGULAR_HTML_DOCUMENT_ERRORS', <Exception>[]);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -295,8 +297,8 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
             target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
       ];
     } else {
-      parse(content);
-      outputs[ANGULAR_HTML_DOCUMENT] = document;
+      parse(content, target.source.uri.toString());
+      outputs[ANGULAR_HTML_DOCUMENT] = documentAsts;
       outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
     }
   }
@@ -315,32 +317,20 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
 }
 
 abstract class ParseHtmlMixin implements AnalysisTask {
-  html.Document document;
-  final List<AnalysisError> parseErrors = <AnalysisError>[];
+  List<NgAst.StandaloneTemplateAst> documentAsts;
+  final List<Exception> parseErrors = <Exception>[];
 
-  void parse(String content) {
-    AngularHtmlParser parser = new AngularHtmlParser(content,
-        generateSpans: true, lowercaseAttrName: false);
-    parser.compatMode = 'quirks';
-    document = parser.parse();
+  void parse(String content, String sourceUrl) {
+    NgAst.RecoveringExceptionHandler exceptionHandler =
+        new NgAst.RecoveringExceptionHandler();
+    List<NgAst.StandaloneTemplateAst> documentAsts = NgAst.parse(
+      content,
+      sourceUrl: sourceUrl,
+      desugar: false,
+      exceptionHandler: exceptionHandler,
+    );
 
-    List<html.ParseError> htmlErrors = parser.errors;
-
-    for (html.ParseError parseError in htmlErrors) {
-      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
-          parseError.errorCode == 'expected-doctype-but-got-chars' ||
-          parseError.errorCode == 'expected-doctype-but-got-eof') {
-        continue;
-      }
-
-      SourceSpan span = parseError.span;
-      // html parser lib isn't nice enough to send this error all the time
-      // see github #47 for dart-lang/html
-      if (span == null) continue;
-
-      this.parseErrors.add(new AnalysisError(target.source, span.start.offset,
-          span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
-    }
+    parseErrors.addAll(exceptionHandler.exceptions);
   }
 }
 
@@ -1567,12 +1557,13 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
             return;
           }
 
-          parse((' ' * view.templateOffset) +
-              view.templateText.substring(0, view.templateText.length - 1));
-          parseErrors.forEach(errorListener.onError);
+          parse(
+              (' ' * view.templateOffset) +
+                  view.templateText.substring(0, view.templateText.length - 1),
+              view.templateUriSource.toString());
           parseErrors.clear();
 
-          _processView(new Template(view), document, errorListener,
+          _processView(new Template(view), documentAsts, errorListener,
               errorReporter, asts, errorsByFile);
         }
       }
@@ -1583,7 +1574,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
 
   _processView(
       Template template,
-      html.Document document,
+      List<NgAst.StandaloneTemplateAst> documentAsts,
       RecordingErrorListener errorListener,
       ErrorReporter errorReporter,
       List<ElementInfo> asts,
@@ -1595,8 +1586,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     template.view.template = template;
 
     template.ast = new HtmlTreeConverter(parser, source, errorListener)
-        .convert(firstElement(document));
-    _setIgnoredErrors(template, document);
+        .convert(documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
 
@@ -2235,26 +2225,6 @@ class _BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     addAspects(classElement.type);
     return aspectMap.values.toList();
   }
-}
-
-List<AnalysisError> filterParserErrors(
-    AngularHtmlParser parser, String content, Source source) {
-  List<AnalysisError> errors = <AnalysisError>[];
-  List<html.ParseError> parseErrors = parser.errors;
-
-  for (html.ParseError parseError in parseErrors) {
-    //Append error codes that are useful to this analyzer
-    if (parseError.errorCode == 'eof-in-tag-name') {
-      SourceSpan span = parseError.span;
-      errors.add(new AnalysisError(
-          source,
-          span.start.offset,
-          span.length,
-          HtmlErrorCode.PARSE_ERROR,
-          [parseError.errorCode, content.substring(span.start.offset)]));
-    }
-  }
-  return errors;
 }
 
 typedef void CaptureAspectFn<T>(

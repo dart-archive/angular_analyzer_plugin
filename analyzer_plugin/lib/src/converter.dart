@@ -8,6 +8,7 @@ import 'package:analyzer/src/dart/scanner/reader.dart';
 import 'package:analyzer/src/dart/scanner/scanner.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
@@ -34,7 +35,20 @@ class HtmlTreeConverter {
 
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
-  NodeInfo convert(html.Node node, {ElementInfo parent}) {
+  NodeInfo convert(List<StandaloneTemplateAst> documentAsts, {ElementInfo parent}) {
+    if (documentAsts.length )
+    // This is a synthetic 'html'
+    NodeInfo root = new ElementInfo(
+      'html',
+      null,
+      null,
+      null,
+      null,
+      false,
+      <AttributeInfo>[],
+      null,
+      null,
+    );
     if (node is html.Element) {
       String localName = node.localName;
       List<AttributeInfo> attributes = _convertAttributes(node);
