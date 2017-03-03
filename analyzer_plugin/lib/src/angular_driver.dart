@@ -221,8 +221,11 @@ class AngularDriver
     final standardHtml = await getStandardHtml();
 
     final errors = <AnalysisError>[];
+    // ignore link errors, they are exposed when resolving dart
+    final linkErrorListener = new IgnoringErrorListener();
+    final linkErrorReporter = new ErrorReporter(linkErrorListener, dartSource);
 
-    final linker = new ChildDirectiveLinker(this);
+    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
 
     for (final directive in directives) {
@@ -273,7 +276,14 @@ class AngularDriver
     }
 
     final sum = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(errors);
+      ..errors = summarizeErrors(
+          errors.where((error) => error is! FromFilePrefixedError))
+      ..errorsFromPath = errors
+          .where((error) => error is FromFilePrefixedError)
+          .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
+            ..path = (error as FromFilePrefixedError).fromSourcePath
+            ..originalError =
+                summarizeError((error as FromFilePrefixedError).originalError));
     final List<int> newBytes = sum.toBuffer();
     byteStore.put(key, newBytes);
     return new Tuple3(sum, parsed, directives);
@@ -379,8 +389,13 @@ class AngularDriver
         deserializeErrors(source, unlinked.errors));
     final standardHtml = await getStandardHtml();
 
-    final linker = new ChildDirectiveLinker(this);
+    final linkErrorListener = new RecordingErrorListener();
+    final linkErrorReporter = new ErrorReporter(linkErrorListener, source);
+
+    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
+    errors.addAll(linkErrorListener.errors);
+
     final List<String> htmlViews = [];
 
     for (final directive in directives) {
@@ -431,14 +446,16 @@ class AngularDriver
   }
 
   List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) {
-    return errors
-        .map((error) => new SummarizedAnalysisErrorBuilder(
-            offset: error.offset,
-            length: error.length,
-            errorCode: error.errorCode.uniqueName,
-            message: error.message,
-            correction: error.correction))
-        .toList();
+    return errors.map((error) => summarizeError(error)).toList();
+  }
+
+  SummarizedAnalysisError summarizeError(AnalysisError error) {
+    return new SummarizedAnalysisErrorBuilder(
+        offset: error.offset,
+        length: error.length,
+        errorCode: error.errorCode.uniqueName,
+        message: error.message,
+        correction: error.correction);
   }
 
   Source getSource(String path) {
@@ -551,11 +568,12 @@ class AngularDriver
         templateUrlLength = directive.view?.templateUrlRange?.length;
         templateText = directive.view.templateText;
         templateTextOffset = directive.view.templateOffset;
-        for (final directiveName in directive.view.directiveNames) {
-          final prefix = null; // TODO track this
+        for (final reference in directive.view.directiveReferences) {
           dirUseSums.add(new SummarizedDirectiveUseBuilder()
-            ..name = directiveName
-            ..prefix = prefix);
+            ..name = reference.name
+            ..prefix = reference.prefix
+            ..offset = reference.range.offset
+            ..length = reference.range.length);
         }
         if (directive.ngContents != null) {
           ngContents.addAll(serializeNgContents(directive.ngContents));

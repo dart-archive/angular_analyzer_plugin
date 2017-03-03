@@ -2,11 +2,15 @@ import 'dart:async';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
+import 'package:analyzer/src/generated/constant.dart';
+import 'package:analyzer/dart/constant/value.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:front_end/src/scanner/token.dart';
 import 'summary/idl.dart';
 
@@ -99,9 +103,10 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
             ngContents: ngContents,
             elementTags: elementTags);
         directives.add(component);
-        final subDirectives = <String>[];
+        final subDirectives = <DirectiveReference>[];
         for (final useSum in dirSum.subdirectives) {
-          subDirectives.add(useSum.name);
+          subDirectives.add(new DirectiveReference(useSum.name, useSum.prefix,
+              new SourceRange(useSum.offset, useSum.length)));
         }
         var templateUriSource = null;
         var templateUrlRange = null;
@@ -116,7 +121,7 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
             templateOffset: dirSum.templateOffset,
             templateUriSource: templateUriSource,
             templateUrlRange: templateUrlRange,
-            directiveNames: subDirectives);
+            directiveReferences: subDirectives);
       } else {
         final directive = new Directive(classElem,
             exportAs: exportAs,
@@ -156,8 +161,9 @@ class DirectiveLinker extends Object with _DeserializeNgContentsMixin {
 
 class ChildDirectiveLinker extends Object with _DeserializeNgContentsMixin {
   final FileDirectiveProvider _fileDirectiveProvider;
+  final ErrorReporter _errorReporter;
 
-  ChildDirectiveLinker(this._fileDirectiveProvider);
+  ChildDirectiveLinker(this._fileDirectiveProvider, this._errorReporter);
 
   Future linkDirectives(
     List<AbstractDirective> directivesToLink,
@@ -166,33 +172,113 @@ class ChildDirectiveLinker extends Object with _DeserializeNgContentsMixin {
     final scope = new LibraryScope(library);
     for (final directive in directivesToLink) {
       if (directive is Component) {
-        for (final name in directive.view.directiveNames) {
-          final options =
-              directivesToLink.where((d) => d.classElement.name == name);
-          if (options.length == 1) {
-            directive.view.directives.add(await withNgContent(options.first));
+        for (final reference in directive.view.directiveReferences) {
+          final referent = lookupByName(reference, directivesToLink);
+          if (referent != null) {
+            directive.view.directives.add(await withNgContent(referent));
           } else {
-            final type = scope.lookup(
-                astFactory.simpleIdentifier(
-                    new StringToken(TokenType.IDENTIFIER, name, 0)),
-                directive.classElement.library);
-            if (type == null) {
-              continue;
-            }
-
-            final fileDirectives = await _fileDirectiveProvider
-                .getUnlinkedDirectives(type.source.fullName);
-            final fileDirectivesOptions =
-                fileDirectives.where((d) => d.classElement.name == name);
-
-            if (fileDirectivesOptions.length != 1) {
-              continue;
-            }
-
-            directive.view.directives
-                .add(await withNgContent(fileDirectivesOptions.first));
+            await lookupFromLibrary(
+                reference, scope, directive.view.directives);
           }
         }
+      }
+    }
+  }
+
+  AbstractDirective lookupByName(
+      DirectiveReference reference, List<AbstractDirective> directivesToLink) {
+    if (reference.prefix != "") {
+      return null;
+    }
+    final options =
+        directivesToLink.where((d) => d.classElement.name == reference.name);
+    if (options.length == 1) {
+      return options.first;
+    }
+    return null;
+  }
+
+  Future lookupFromLibrary(DirectiveReference reference, LibraryScope scope,
+      List<AbstractDirective> directives) async {
+    final type = scope.lookup(
+        astFactory.simpleIdentifier(
+            new StringToken(TokenType.IDENTIFIER, reference.name, 0)),
+        null);
+
+    if (type != null) {
+      final fileDirectives = await _fileDirectiveProvider
+          .getUnlinkedDirectives(type.source.fullName);
+
+      if (type is ClassElement) {
+        final directive = matchDirective(type, fileDirectives);
+
+        if (directive != null) {
+          directives.add(await withNgContent(directive));
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+              reference.range.offset,
+              reference.range.length,
+              [type.name]);
+        }
+        return;
+      } else if (type is PropertyAccessorElement) {
+        final values = type.variable.constantValue?.toListValue();
+        if (values != null) {
+          await _addDirectivesAndElementTagsForDartObject(
+              directives, fileDirectives, values, reference);
+          return;
+        }
+      }
+    }
+
+    _errorReporter.reportErrorForOffset(
+        AngularWarningCode.TYPE_LITERAL_EXPECTED,
+        reference.range.offset,
+        reference.range.length);
+  }
+
+  AbstractDirective matchDirective(
+      ClassElement clazz, List<AbstractDirective> fileDirectives) {
+    final options =
+        fileDirectives.where((d) => d.classElement.name == clazz.name);
+
+    if (options.length == 1) {
+      return options.first;
+    }
+
+    return null;
+  }
+
+  /**
+   * Walk the given [value] and add directives into [directives].
+   * Return `true` if success, or `false` the [value] has items that don't
+   * correspond to a directive.
+   */
+  Future _addDirectivesAndElementTagsForDartObject(
+      List<AbstractDirective> directives,
+      List<AbstractDirective> fileDirectives,
+      List<DartObject> values,
+      DirectiveReference reference) async {
+    for (DartObject listItem in values) {
+      final typeValue = listItem.toTypeValue();
+      if (typeValue is InterfaceType && typeValue.element is ClassElement) {
+        final directive = matchDirective(typeValue.element, fileDirectives);
+        if (directive != null) {
+          directives.add(await withNgContent(directive));
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+              reference.range.offset,
+              reference.range.length,
+              [typeValue.name]);
+        }
+      } else {
+        _errorReporter.reportErrorForOffset(
+          AngularWarningCode.TYPE_LITERAL_EXPECTED,
+          reference.range.offset,
+          reference.range.length,
+        );
       }
     }
   }

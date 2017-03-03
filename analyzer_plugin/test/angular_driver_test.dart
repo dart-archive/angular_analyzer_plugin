@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
@@ -1355,7 +1356,8 @@ class BuildUnitViewsTest extends AbstractAngularTest {
     directives =
         await angularDriver.resynthesizeDirectives(sum, source.fullName);
 
-    final linker = new ChildDirectiveLinker(angularDriver);
+    final linker = new ChildDirectiveLinker(
+        angularDriver, new ErrorReporter(errorListener, source));
     await linker.linkDirectives(directives, result.unit.element.library);
     views = directives
         .map((d) => d is Component ? d.view : null)
@@ -1381,7 +1383,7 @@ import '/angular2/angular2.dart';
 class OtherComponent {}
 ''';
     Source source = newSource('/test.dart', code);
-    Source dependentSource = newSource('/other_file.dart', otherCode);
+    newSource('/other_file.dart', otherCode);
     await getViews(source);
     {
       View view = getViewByClassName(views, 'MyComponent');
@@ -1436,6 +1438,48 @@ class MyComponent {}
     errorListener.assertNoErrors();
   }
 
+  Future test_prefixedDirectives() async {
+    String otherCode = r'''
+import '/angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+@Directive(selector: '[ccc]')
+class DirectiveC {}
+
+const DIR_AB = const [DirectiveA, DirectiveB];
+''';
+
+    String code = r'''
+import '/angular2/angular2.dart';
+import 'other.dart' as other;
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [other.DIR_AB, other.DirectiveC])
+class MyComponent {}
+''';
+    Source source = newSource('/test.dart', code);
+    newSource('/other.dart', otherCode);
+    await getViews(source);
+    {
+      View view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(3));
+        List<String> directiveClassNames = view.directives
+            .map((directive) => directive.classElement.name)
+            .toList();
+        expect(directiveClassNames,
+            unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
+      }
+    }
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
   Future test_directives_hasError_notListVariable() async {
     String code = r'''
 import '/angular2/angular2.dart';
@@ -1465,21 +1509,6 @@ class ComponentA {
     await getViews(source);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.COMPONENT_ANNOTATION_MISSING]);
-  }
-
-  Future test_hasError_DirectiveTypeLiteralExpected() async {
-    Source source = newSource(
-        '/test.dart',
-        r'''
-import '/angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 'AAA', directives: const [int])
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.DIRECTIVE_TYPE_LITERAL_EXPECTED]);
   }
 
   Future test_hasError_StringValueExpected() async {
@@ -1733,6 +1762,21 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
         .map((d) => d is Component ? d.view?.template : null)
         .where((d) => d != null)
         .toList();
+  }
+
+  Future test_hasError_DirectiveTypeLiteralExpected() async {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', directives: const [int])
+class ComponentA {
+}
+''');
+    await getDirectives(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
   }
 
   Future test_componentReference() async {
