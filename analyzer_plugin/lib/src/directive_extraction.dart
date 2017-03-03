@@ -82,19 +82,23 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
         _parseMemberInputsAndOutputs(
             classDeclaration, inputElements, outputElements);
       }
+      List<ElementNameSelector> elementTags = <ElementNameSelector>[];
+      selector.recordElementNameSelectors(elementTags);
       if (isComponent) {
         return new Component(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
       }
       if (isDirective) {
         return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
             outputs: outputElements,
-            selector: selector);
+            selector: selector,
+            elementTags: elementTags);
       }
     }
     return null;
