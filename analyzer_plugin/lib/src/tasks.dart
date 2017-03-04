@@ -33,12 +33,8 @@ import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:front_end/src/scanner/errors.dart';
-import 'package:html/dom.dart' as html;
-import 'package:html/parser.dart' as html;
 import 'package:tuple/tuple.dart';
-import 'package:source_span/source_span.dart';
 
 /**
  * The [html.Document] of an HTML file.
@@ -291,7 +287,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
         }
       }
 
-      outputs[ANGULAR_HTML_DOCUMENT] = new html.Document();
+      outputs[ANGULAR_HTML_DOCUMENT] = documentAsts;
       outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
         new AnalysisError(
             target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
@@ -323,7 +319,7 @@ abstract class ParseHtmlMixin implements AnalysisTask {
   void parse(String content, String sourceUrl) {
     NgAst.RecoveringExceptionHandler exceptionHandler =
         new NgAst.RecoveringExceptionHandler();
-    List<NgAst.StandaloneTemplateAst> documentAsts = NgAst.parse(
+    documentAsts = NgAst.parse(
       content,
       sourceUrl: sourceUrl,
       desugar: false,
@@ -1525,7 +1521,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
   void internalPerform() {
     List<AbstractDirective> directives =
         getRequiredInput(DIRECTIVES_IN_UNIT1_INPUT);
-    Map<Source, html.Document> documentsMap =
+    Map<Source, List<NgAst.StandaloneTemplateAst>> documentsMap =
         getRequiredInput(HTML_DOCUMENTS_INPUT);
     Map<Source, List<AnalysisError>> documentsErrorsMap =
         getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
@@ -1545,13 +1541,13 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
 
         Source source = view.templateSource;
         if (view.templateUriSource != null) {
-          if (documentsMap[source].nodes.length == 0) {
+          if (documentsMap[source].length == 0) {
             return;
           }
 
           documentsErrorsMap[source].forEach(errorListener.onError);
-          _processView(new Template(d.view), documentsMap[source],
-              errorListener, errorReporter, asts, errorsByFile);
+          _processView(new Template(d.view), documentAsts, errorListener,
+              errorReporter, asts, errorsByFile);
         } else {
           if (view.templateText == null) {
             return;
@@ -1586,7 +1582,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     template.view.template = template;
 
     template.ast = new HtmlTreeConverter(parser, source, errorListener)
-        .convert(documentAsts);
+        .convertFromAstList(documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
 
@@ -1597,27 +1593,27 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     }
     errorsByFile[source].addAll(errorListener.errors);
   }
-
-  _setIgnoredErrors(Template template, html.Document document) {
-    if (document == null || document.nodes.length == 0) {
-      return;
-    }
-    html.Node firstNode = document.nodes[0];
-    if (firstNode is html.Comment) {
-      String text = firstNode.text.trim();
-      if (text.startsWith("@ngIgnoreErrors")) {
-        text = text.substring("@ngIgnoreErrors".length);
-        // Per spec: optional color
-        if (text.startsWith(":")) {
-          text = text.substring(1);
-        }
-        // Per spec: optional commas
-        String delim = text.indexOf(',') == -1 ? ' ' : ',';
-        template.ignoredErrors.addAll(new HashSet.from(
-            text.split(delim).map((c) => c.trim().toUpperCase())));
-      }
-    }
-  }
+//
+//  _setIgnoredErrors(Template template, html.Document document) {
+//    if (document == null || document.nodes.length == 0) {
+//      return;
+//    }
+//    html.Node firstNode = document.nodes[0];
+//    if (firstNode is html.Comment) {
+//      String text = firstNode.text.trim();
+//      if (text.startsWith("@ngIgnoreErrors")) {
+//        text = text.substring("@ngIgnoreErrors".length);
+//        // Per spec: optional color
+//        if (text.startsWith(":")) {
+//          text = text.substring(1);
+//        }
+//        // Per spec: optional commas
+//        String delim = text.indexOf(',') == -1 ? ' ' : ',';
+//        template.ignoredErrors.addAll(new HashSet.from(
+//            text.split(delim).map((c) => c.trim().toUpperCase())));
+//      }
+//    }
+//  }
 
   /**
    * Return a map from the names of the inputs of this kind of task to the

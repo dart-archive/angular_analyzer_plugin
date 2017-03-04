@@ -3,6 +3,10 @@ version: 0.0.0
 description: What we need that the sdk doesn't provide
 dependencies:
   tuple: '^1.0.1'
+  angular_ast:
+    git:
+      url: https://github.com/mk13/angular_ast
+      ref: ast_recovery
 dev_dependencies:
   test_reflective_loader: '^0.0.3'
   typed_mock: '^0.0.4'
