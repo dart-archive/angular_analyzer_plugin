@@ -287,7 +287,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
         }
       }
 
-      outputs[ANGULAR_HTML_DOCUMENT] = documentAsts;
+      outputs[ANGULAR_HTML_DOCUMENT] = <NgAst.StandaloneTemplateAst>[];
       outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
         new AnalysisError(
             target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
@@ -1546,8 +1546,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
           }
 
           documentsErrorsMap[source].forEach(errorListener.onError);
-          _processView(new Template(d.view), documentAsts, errorListener,
-              errorReporter, asts, errorsByFile);
+          _processView(new Template(d.view), documentsMap[source],
+              errorListener, errorReporter, asts, errorsByFile);
         } else {
           if (view.templateText == null) {
             return;
