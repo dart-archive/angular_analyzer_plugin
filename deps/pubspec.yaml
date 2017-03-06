@@ -11,3 +11,4 @@ dev_dependencies:
   test_reflective_loader: '^0.0.3'
   typed_mock: '^0.0.4'
   unittest: '^0.11.0'
+  test: '^0.12.17'

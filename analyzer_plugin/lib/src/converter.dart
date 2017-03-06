@@ -33,8 +33,8 @@ class HtmlTreeConverter {
 
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
-  NodeInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
-    NodeInfo root;
+  ElementInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
+    ElementInfo root;
     if (asts.length == 1 && (asts[0] as ElementAst).name == 'html') {
       root = convert(asts[0]);
       return root;
@@ -52,7 +52,8 @@ class HtmlTreeConverter {
       );
     }
     for (StandaloneTemplateAst node in asts) {
-      convert(node, parent: root);
+      NodeInfo child = convert(node, parent: root);
+      root.childNodes.add(child);
     }
     return root;
   }

@@ -43,12 +43,13 @@ final ListResultDescriptor<NgAst.StandaloneTemplateAst> ANGULAR_HTML_DOCUMENT =
     new ListResultDescriptor<NgAst.StandaloneTemplateAst>(
         'ANGULAR_HTML_DOCUMENT', <NgAst.StandaloneTemplateAst>[]);
 
+//TODO: Max: reimplement once Exception is switched to AnalysisError in ast
 /**
  * The analysis errors associated with a [Source] representing an HTML file.
  */
-final ListResultDescriptor<Exception> ANGULAR_HTML_DOCUMENT_ERRORS =
-    new ListResultDescriptor<Exception>(
-        'ANGULAR_HTML_DOCUMENT_ERRORS', <Exception>[]);
+//final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
+//    new ListResultDescriptor<AnalysisError>(
+//        'ANGULAR_HTML_DOCUMENT_ERRORS', <AnalysisError>[]);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -262,7 +263,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'AngularParseHtmlTask', createTask, buildInputs, <ResultDescriptor>[
     ANGULAR_HTML_DOCUMENT,
-    ANGULAR_HTML_DOCUMENT_ERRORS,
+    //ANGULAR_HTML_DOCUMENT_ERRORS,
   ]);
 
   AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
@@ -288,14 +289,14 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
       }
 
       outputs[ANGULAR_HTML_DOCUMENT] = <NgAst.StandaloneTemplateAst>[];
-      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
-        new AnalysisError(
-            target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
-      ];
+//      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
+//        new AnalysisError(
+//            target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
+//      ];
     } else {
       parse(content, target.source.uri.toString());
       outputs[ANGULAR_HTML_DOCUMENT] = documentAsts;
-      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
+      //outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
     }
   }
 
@@ -1501,8 +1502,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     with ParseHtmlMixin {
   static const String DIRECTIVES_IN_UNIT1_INPUT = 'DIRECTIVES_IN_UNIT1_INPUT';
   static const String HTML_DOCUMENTS_INPUT = 'HTML_DOCUMENTS_INPUT';
-  static const String HTML_DOCUMENTS_ERRORS_INPUT =
-      'HTML_DOCUMENTS_ERRORS_INPUT';
+  //static const String HTML_DOCUMENTS_ERRORS_INPUT =
+  //    'HTML_DOCUMENTS_ERRORS_INPUT';
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String EXTRA_NODES_INPUT = 'EXTRA_NODES_INPUT';
 
@@ -1523,8 +1524,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         getRequiredInput(DIRECTIVES_IN_UNIT1_INPUT);
     Map<Source, List<NgAst.StandaloneTemplateAst>> documentsMap =
         getRequiredInput(HTML_DOCUMENTS_INPUT);
-    Map<Source, List<AnalysisError>> documentsErrorsMap =
-        getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
+//    Map<Source, List<AnalysisError>> documentsErrorsMap =
+//        getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
     List<ElementInfo> asts = <ElementInfo>[];
     Map<Source, List<AnalysisError>> errorsByFile =
         <Source, List<AnalysisError>>{};
@@ -1545,7 +1546,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
             return;
           }
 
-          documentsErrorsMap[source].forEach(errorListener.onError);
+          //TODO: Max: Figure out why this keeps throwing errors later
+          //documentsErrorsMap[source].forEach(errorListener.onError);
           _processView(new Template(d.view), documentsMap[source],
               errorListener, errorReporter, asts, errorsByFile);
         } else {
@@ -1633,15 +1635,15 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
               .toList())
           // to map<source, html document of source>
           .toMapOf(ANGULAR_HTML_DOCUMENT),
-      HTML_DOCUMENTS_ERRORS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
-          .of(target)
-          // mapped to html source of the view
-          .mappedToList((views) => views
-              .map((v) => v.templateUriSource)
-              .where((v) => v != null)
-              .toList())
-          // to map<source, html document of source>
-          .toMapOf(ANGULAR_HTML_DOCUMENT_ERRORS),
+//      HTML_DOCUMENTS_ERRORS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
+//          .of(target)
+//          // mapped to html source of the view
+//          .mappedToList((views) => views
+//              .map((v) => v.templateUriSource)
+//              .where((v) => v != null)
+//              .toList())
+//          // to map<source, html document of source>
+//          .toMapOf(ANGULAR_HTML_DOCUMENT_ERRORS),
     };
   }
 
