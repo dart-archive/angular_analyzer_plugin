@@ -138,8 +138,8 @@ class AbstractAngularTest {
         "test",
         sf,
         new AnalysisOptionsImpl());
-    angularDriver = new AngularDriver(
-        new MockAnalysisServer(), dartDriver, scheduler, byteStore, sf);
+    angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
+        scheduler, byteStore, sf, new FileContentOverlay());
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();

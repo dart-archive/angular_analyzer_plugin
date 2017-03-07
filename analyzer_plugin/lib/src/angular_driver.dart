@@ -23,6 +23,7 @@ import 'package:angular_analyzer_plugin/src/summary/format.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:tuple/tuple.dart';
+import 'package:analyzer/src/dart/analysis/file_state.dart';
 
 class AngularDriver
     implements
@@ -32,6 +33,7 @@ class AngularDriver
   final AnalysisServer server;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
+  final FileContentOverlay _contentOverlay;
   StandardHtml standardHtml = null;
   SourceFactory _sourceFactory;
   final LinkedHashSet<String> _addedFiles = new LinkedHashSet<String>();
@@ -43,13 +45,8 @@ class AngularDriver
       new HashSet<Tuple2<String, String>>();
   final ByteStore byteStore;
 
-  AngularDriver(
-    this.server,
-    this.dartDriver,
-    this._scheduler,
-    this.byteStore,
-    SourceFactory sourceFactory,
-  ) {
+  AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
+      SourceFactory sourceFactory, this._contentOverlay) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
   }
@@ -216,8 +213,10 @@ class AngularDriver
     if (unit == null) return null;
     final context = unit.context;
     final dartSource = _sourceFactory.forUri("file:" + dartPath);
-    final parsed = await dartDriver.parseFile(htmlPath);
-    final htmlContent = parsed.content;
+    //final parsed = await dartDriver.parseFile(htmlPath);
+    final htmlContent = _contentOverlay[htmlPath] ??
+        ((source) =>
+            source.exists() ? source.contents.data : "")(getSource(htmlPath));
     final standardHtml = await getStandardHtml();
 
     final errors = <AnalysisError>[];
@@ -329,8 +328,8 @@ class AngularDriver
     final lineInfo = parsed.lineInfo;
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
-    final params = new protocol.AnalysisErrorsParams(htmlPath, serverErrors);
-    server.sendNotification(params.toNotification());
+    server.notificationManager
+        .recordAnalysisErrors("angularPlugin", htmlPath, serverErrors);
   }
 
   Future pushDartErrors(String path) async {
@@ -339,8 +338,8 @@ class AngularDriver
     final lineInfo = parsed.lineInfo;
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
-    final params = new protocol.AnalysisErrorsParams(path, serverErrors);
-    server.sendNotification(params.toNotification());
+    server.notificationManager
+        .recordAnalysisErrors("angularPlugin", path, serverErrors);
   }
 
   Future<DirectivesResult> resolveDart(String path,

@@ -21,8 +21,8 @@ void main(List<String> args) {
         contentOverlay,
         sourceFactory,
         analysisOptions) {
-      final AngularDriver driver = new AngularDriver(
-          server, analysisDriver, scheduler, byteStore, sourceFactory);
+      final AngularDriver driver = new AngularDriver(server, analysisDriver,
+          scheduler, byteStore, sourceFactory, contentOverlay);
       AnalysisServer.onFileAdd = (String path) {
         driver.addFile(path);
       };
