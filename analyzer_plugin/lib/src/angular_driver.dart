@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'package:analysis_server/src/analysis_server.dart';
@@ -10,6 +11,7 @@ import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
+import 'package:analyzer/src/summary/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
@@ -24,6 +26,7 @@ import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:tuple/tuple.dart';
 import 'package:analyzer/src/dart/analysis/file_state.dart';
+import 'package:crypto/crypto.dart';
 
 class AngularDriver
     implements
@@ -188,10 +191,22 @@ class AngularDriver
   }
 
   String getHtmlKey(String htmlPath, String dartPath) {
-    final dartKey = dartDriver.getResolvedUnitKeyByPath(dartPath);
-    final htmlKey = dartDriver.getContentHash(htmlPath);
-    htmlKey.addBytes(dartKey.toByteList());
-    return htmlKey.toHex() + '.ngresolved';
+    final key = getContentHash(htmlPath);
+    key.addBytes(dartDriver.getUnitKeyByPath(dartPath).toByteList());
+    return key.toHex() + '.ngresolved';
+  }
+
+  ApiSignature getContentHash(String path) {
+    final key = new ApiSignature();
+    List<int> contentBytes = UTF8.encode(getHtmlContents(path));
+    key.addBytes(md5.convert(contentBytes).bytes);
+    return key;
+  }
+
+  String getHtmlContents(String htmlPath) {
+    return _contentOverlay[htmlPath] ??
+        ((source) =>
+            source.exists() ? source.contents.data : "")(getSource(htmlPath));
   }
 
   Future<DirectivesResult> resolveHtml(String htmlPath, String dartPath) async {
@@ -213,10 +228,7 @@ class AngularDriver
     if (unit == null) return null;
     final context = unit.context;
     final dartSource = _sourceFactory.forUri("file:" + dartPath);
-    //final parsed = await dartDriver.parseFile(htmlPath);
-    final htmlContent = _contentOverlay[htmlPath] ??
-        ((source) =>
-            source.exists() ? source.contents.data : "")(getSource(htmlPath));
+    final htmlContent = getHtmlContents(htmlPath);
     final standardHtml = await getStandardHtml();
 
     final errors = <AnalysisError>[];
@@ -289,8 +301,7 @@ class AngularDriver
   }
 
   Future<List<NgContent>> getHtmlNgContent(String path) async {
-    final htmlSig = dartDriver.getContentHash(path);
-    final key = htmlSig.toHex() + '.ngunlinked';
+    final key = getContentHash(path).toHex() + '.ngunlinked';
     final List<int> bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
@@ -458,7 +469,7 @@ class AngularDriver
   }
 
   Future<DirectivesResult> getDirectives(path) async {
-    final key = dartDriver.getContentHash(path).toHex() + '.ngunlinked';
+    final key = getContentHash(path).toHex() + '.ngunlinked';
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
