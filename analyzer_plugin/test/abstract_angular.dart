@@ -114,7 +114,7 @@ class AbstractAngularTest {
   }
 
   void setUp() {
-    PerformanceLog logger = new PerformanceLog(stdout);
+    PerformanceLog logger = new PerformanceLog(new StringBuffer());
     var byteStore = new MemoryByteStore();
 
     AnalysisDriverScheduler scheduler = new AnalysisDriverScheduler(logger);

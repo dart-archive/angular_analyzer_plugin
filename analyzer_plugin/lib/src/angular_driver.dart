@@ -383,7 +383,7 @@ class AngularDriver
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
-        if ((view.templateText ?? '') != '') {
+        if ((view?.templateText ?? '') != '') {
           final tplErrorListener = new RecordingErrorListener();
           final errorReporter = new ErrorReporter(tplErrorListener, source);
           final template = new Template(view);
@@ -411,7 +411,7 @@ class AngularDriver
               (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
           errors.addAll(tplErrorListener.errors.where(
               (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
-        } else if (view.templateUriSource != null) {
+        } else if (view?.templateUriSource != null) {
           _htmlViewsToAnalyze
               .add(new Tuple2(view.templateUriSource.fullName, path));
           htmlViews.add(view.templateUriSource.fullName);
@@ -506,11 +506,6 @@ class AngularDriver
       }
     }
 
-    for (final directive in directives) {
-      if (directive is Component) {
-        print(directive.ngContents);
-      }
-    }
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors);
     errors.addAll(viewExtractor.errorListener.errors);
     final result = new DirectivesResult(directives, errors);
