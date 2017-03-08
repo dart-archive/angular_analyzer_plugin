@@ -414,7 +414,7 @@ class CounterComponent {
 
   Random random = new Random();
 
-  void test_fuzz_continually() {
+  void test_fuzz_continually() async {
     List<FuzzModification> fuzzOptions = [
       fuzz_removeChar,
       fuzz_truncate,
@@ -445,13 +445,13 @@ class CounterComponent {
       }
 
       try {
-        checkNoCrash(dart, html);
+        super.setUp();
+        await checkNoCrash(dart, html);
       } catch (e, stacktrace) {
         // catch exceptions so that the test keeps running
         print(e);
         print(stacktrace);
       }
-      super.setUp();
     }
   }
 
@@ -582,30 +582,25 @@ class CounterComponent {
     return input.replaceRange(charpos, charpos, chunk);
   }
 
-  void checkNoCrash(String dart, String html) {
+  void checkNoCrash(String dart, String html) async {
     Source dartSource = newSource('/test.dart', dart);
     newSource('/test.html', html);
     String reason =
         '<<==DART CODE==>>\n$dart\n<<==HTML CODE==>>\n$html\n<<==DONE==>>';
-    // compute views, so that we have the TEMPLATE_VIEWS result
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    // compute Angular templates, ensure no exception thrown
-    checkNoCrashForComputeResult(target, VIEWS_WITH_HTML_TEMPLATES2, reason);
-    List<View> views = task.outputs[VIEWS_WITH_HTML_TEMPLATES2];
-    checkNoCrashForComputeResult(dartSource, DART_ERRORS, reason);
-    if (views.length > 0 &&
-        views.first.templateUriSource.fullName == '/test.html') {
-      checkNoCrashForComputeResult(
-          views.first.templateUriSource, HTML_ERRORS, reason);
+    try {
+      final result = await angularDriver.resolveDart('/test.dart');
+      if (result.directives.length > 0 &&
+          result.directives.first?.view?.templateUriSource?.fullName ==
+              '/test.html') {
+        try {
+          await angularDriver.resolveHtml('/test.html', '/test.dart');
+        } catch (e, stacktrace) {
+          print("ResolveHtml failed\n$reason\n$e\n$stacktrace");
+        }
+      }
+    } catch (e, stacktrace) {
+      print("ResolveDart failed\n$reason\n$e\n$stacktrace");
     }
-  }
-
-  void checkNoCrashForComputeResult(
-      AnalysisTarget target, ResultDescriptor result, String reason) {
-    task = analysisDriver.computeResult(target, result);
-    expect(task, isNotNull, reason: reason);
-    expect(task.caughtException, isNull, reason: reason);
   }
 
   /**
@@ -614,18 +609,6 @@ class CounterComponent {
    */
   Future check(Object actual, Matcher matcher, {String reason}) {
     var matchState = {};
-    try {
-      if (matcher.matches(actual, matchState)) {
-        print('returning future');
-        return new Future.value(null).then((_) {
-          print("in future");
-        });
-      }
-    } catch (e, trace) {
-      if (reason == null) {
-        reason = '${(e is String) ? e : e.toString()} at $trace';
-      }
-    }
 
     print('failed');
     var description = new StringDescription();
