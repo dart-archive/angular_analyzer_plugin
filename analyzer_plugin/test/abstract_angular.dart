@@ -16,8 +16,6 @@ import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
 
-import 'dart:io';
-
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analysis_server/src/plugin/notification_manager.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
