@@ -108,7 +108,7 @@ class OffsettingConstantValueVisitorTest {
         reason: "```$code```` doesn't contain ```$at```");
 
     OffsettingConstantEvaluator evaluator = new OffsettingConstantEvaluator();
-    Object value = expression.accept(evaluator);
+    expression.accept(evaluator);
     expect(evaluator.offsetsAreValid, isFalse);
     expect(evaluator.lastUnoffsettableNode, isNotNull);
     expect(evaluator.lastUnoffsettableNode.offset, equals(pos),

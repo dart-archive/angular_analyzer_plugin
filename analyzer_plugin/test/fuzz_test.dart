@@ -1,13 +1,8 @@
 import 'dart:math';
 import 'dart:async';
 
-import 'package:analyzer/src/generated/source.dart';
-import 'package:front_end/src/scanner/token.dart';
-import 'package:analyzer/task/dart.dart';
-import 'package:analyzer/task/html.dart';
-import 'package:analyzer/task/model.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
+import 'package:front_end/src/scanner/token.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
@@ -414,7 +409,7 @@ class CounterComponent {
 
   Random random = new Random();
 
-  void test_fuzz_continually() async {
+  Future test_fuzz_continually() async {
     List<FuzzModification> fuzzOptions = [
       fuzz_removeChar,
       fuzz_truncate,
@@ -582,20 +577,22 @@ class CounterComponent {
     return input.replaceRange(charpos, charpos, chunk);
   }
 
-  void checkNoCrash(String dart, String html) async {
-    Source dartSource = newSource('/test.dart', dart);
+  Future checkNoCrash(String dart, String html) async {
+    newSource('/test.dart', dart);
     newSource('/test.html', html);
     String reason =
         '<<==DART CODE==>>\n$dart\n<<==HTML CODE==>>\n$html\n<<==DONE==>>';
     try {
       final result = await angularDriver.resolveDart('/test.dart');
-      if (result.directives.length > 0 &&
-          result.directives.first?.view?.templateUriSource?.fullName ==
-              '/test.html') {
-        try {
-          await angularDriver.resolveHtml('/test.html', '/test.dart');
-        } catch (e, stacktrace) {
-          print("ResolveHtml failed\n$reason\n$e\n$stacktrace");
+      if (result.directives.length > 0) {
+        AbstractDirective directive = result.directives.first;
+        if (directive is Component &&
+            directive.view?.templateUriSource?.fullName == '/test.html') {
+          try {
+            await angularDriver.resolveHtml('/test.html', '/test.dart');
+          } catch (e, stacktrace) {
+            print("ResolveHtml failed\n$reason\n$e\n$stacktrace");
+          }
         }
       }
     } catch (e, stacktrace) {
