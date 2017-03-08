@@ -19,6 +19,7 @@ import 'mock_sdk.dart';
 import 'dart:io';
 
 import 'package:analysis_server/src/analysis_server.dart';
+import 'package:analysis_server/src/plugin/notification_manager.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart'
     show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
@@ -466,4 +467,9 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 }
 
-class MockAnalysisServer extends TypedMock implements AnalysisServer {}
+class MockAnalysisServer extends TypedMock implements AnalysisServer {
+  NotificationManager notificationManager = new MockNotificationManager();
+}
+
+class MockNotificationManager extends TypedMock implements NotificationManager {
+}
