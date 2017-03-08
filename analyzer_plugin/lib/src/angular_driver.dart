@@ -5,6 +5,7 @@ import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
+import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
 import 'package:analysis_server/src/protocol_server.dart' as protocol;
@@ -198,15 +199,15 @@ class AngularDriver
 
   ApiSignature getContentHash(String path) {
     final key = new ApiSignature();
-    List<int> contentBytes = UTF8.encode(getHtmlContents(path));
+    List<int> contentBytes = UTF8.encode(getFileContent(path));
     key.addBytes(md5.convert(contentBytes).bytes);
     return key;
   }
 
-  String getHtmlContents(String htmlPath) {
-    return _contentOverlay[htmlPath] ??
+  String getFileContent(String path) {
+    return _contentOverlay[path] ??
         ((source) =>
-            source.exists() ? source.contents.data : "")(getSource(htmlPath));
+            source.exists() ? source.contents.data : "")(getSource(path));
   }
 
   Future<DirectivesResult> resolveHtml(String htmlPath, String dartPath) async {
@@ -228,7 +229,7 @@ class AngularDriver
     if (unit == null) return null;
     final context = unit.context;
     final dartSource = _sourceFactory.forUri("file:" + dartPath);
-    final htmlContent = getHtmlContents(htmlPath);
+    final htmlContent = getFileContent(htmlPath);
     final standardHtml = await getStandardHtml();
 
     final errors = <AnalysisError>[];
@@ -308,9 +309,8 @@ class AngularDriver
       return new DirectiveLinker(this).deserializeNgContents(
           new UnlinkedHtmlSummary.fromBuffer(bytes).ngContents, source);
     }
-    final parsed = await dartDriver.parseFile(path);
-    final htmlContent = parsed.content;
 
+    final htmlContent = getFileContent(path);
     final tplErrorListener = new RecordingErrorListener();
     final errorReporter = new ErrorReporter(tplErrorListener, source);
 
@@ -335,8 +335,7 @@ class AngularDriver
 
   Future pushHtmlErrors(String htmlPath, String dartPath) async {
     final errors = (await resolveHtml(htmlPath, dartPath)).errors;
-    final parsed = await dartDriver.parseFile(htmlPath);
-    final lineInfo = parsed.lineInfo;
+    final lineInfo = new LineInfo.fromContent(getFileContent(htmlPath));
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
     server.notificationManager
@@ -344,9 +343,8 @@ class AngularDriver
   }
 
   Future pushDartErrors(String path) async {
-    final parsed = await dartDriver.parseFile(path);
     final errors = (await resolveDart(path)).errors;
-    final lineInfo = parsed.lineInfo;
+    final lineInfo = new LineInfo.fromContent(getFileContent(path));
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
     server.notificationManager
