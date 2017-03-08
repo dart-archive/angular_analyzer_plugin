@@ -195,3 +195,6 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     return aspectMap.values.toList();
   }
 }
+
+typedef void CaptureAspectFn<T>(
+    Map<String, T> aspectMap, PropertyAccessorElement accessor);

@@ -284,8 +284,10 @@ class ViewDirectiveLinker extends AnnotationProcessorMixin {
     bool success =
         _addDirectiveAndElementTag(directives, elementTagsInfo, classElement);
     if (!success) {
-      errorReporter.reportErrorForNode(AngularWarningCode.TYPE_IS_NOT_DIRECTIVE,
-          expression, [classElement.name]);
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+          expression,
+          [classElement.name]);
     }
   }
 
