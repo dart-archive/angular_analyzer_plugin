@@ -1313,6 +1313,3 @@ List<AnalysisError> filterParserErrors(
   }
   return errors;
 }
-
-typedef void CaptureAspectFn<T>(
-    Map<String, T> aspectMap, PropertyAccessorElement accessor);
