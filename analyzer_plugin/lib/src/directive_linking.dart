@@ -142,22 +142,6 @@ class DirectiveLinker {
     return directives;
   }
 
-  List<ElementNameSelector> _getElementTagsFromSelector(Selector selector) {
-    List<ElementNameSelector> elementTags = <ElementNameSelector>[];
-    if (selector is ElementNameSelector) {
-      elementTags.add(selector);
-    } else if (selector is OrSelector) {
-      for (Selector innerSelector in selector.selectors) {
-        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
-      }
-    } else if (selector is AndSelector) {
-      for (Selector innerSelector in selector.selectors) {
-        elementTags.addAll(_getElementTagsFromSelector(innerSelector));
-      }
-    }
-    return elementTags;
-  }
-
   List<NgContent> deserializeNgContents(
       List<SummarizedNgContent> ngContentSums, Source source) {
     return ngContentSums.map((ngContentSum) {
