@@ -35,16 +35,19 @@ class HtmlTreeConverter {
 
   ElementInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
     ElementInfo root;
-    if (asts.length == 1 && (asts[0] as ElementAst).name == 'html') {
+    if (asts != null &&
+        asts.length == 1 &&
+        asts[0] is ElementAst &&
+        (asts[0] as ElementAst).name == 'html') {
       root = convert(asts[0]);
       return root;
     } else {
       root = new ElementInfo(
         'html',
-        null,
-        null,
-        null,
-        null,
+        new SourceRange(0, 0),
+        new SourceRange(0, 0),
+        new SourceRange(0, 0),
+        new SourceRange(0, 0),
         false,
         <AttributeInfo>[],
         null,
@@ -53,40 +56,52 @@ class HtmlTreeConverter {
     }
     for (StandaloneTemplateAst node in asts) {
       NodeInfo child = convert(node, parent: root);
-      root.childNodes.add(child);
+      if (child != null) {
+        root.childNodes.add(child);
+      }
     }
     return root;
   }
 
   NodeInfo convert(StandaloneTemplateAst node, {ElementInfo parent}) {
-    // TODO: Handle EmbeddedContentAst case separately
     if (node is ElementAst) {
       String localName = node.name;
       List<AttributeInfo> attributes = _convertAttributes(node);
       bool isTemplate = localName == 'template';
-      TemplateAst closeComponent = node.closeComplement;
+      final closeComponent = node.closeComplement;
       SourceRange openingSpan;
+      SourceRange openingNameSpan;
       SourceRange closingSpan;
+      SourceRange closingNameSpan;
 
       if (node.isSynthetic) {
         openingSpan = _toSourceRange(closeComponent.beginToken.offset, 0);
+        openingNameSpan = openingSpan;
       } else {
         openingSpan = _toSourceRange(
             node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+        openingNameSpan =
+            new SourceRange(openingSpan.offset + '<'.length, localName.length);
       }
-      if (closeComponent.isSynthetic) {
-        closingSpan = _toSourceRange(node.endToken.end, 0);
-      } else {
-        closingSpan = _toSourceRange(closeComponent.beginToken.offset,
-            closeComponent.endToken.end - closeComponent.beginToken.offset);
+      // Check for void element cases (has closing complement)
+      if (closeComponent != null) {
+        if (closeComponent.isSynthetic) {
+          closingSpan = _toSourceRange(node.endToken.end, 0);
+          closingNameSpan = closingSpan;
+        } else {
+          closingSpan = _toSourceRange(closeComponent.beginToken.offset,
+              closeComponent.endToken.end - closeComponent.beginToken.offset);
+          closingNameSpan = new SourceRange(
+              closingSpan.offset + '</'.length, localName.length);
+        }
       }
-
-      SourceRange openingNameSpan = openingSpan != null
-          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
-          : null;
-      SourceRange closingNameSpan = closingSpan != null
-          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
-          : null;
+//
+//      SourceRange openingNameSpan = openingSpan != null
+//          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
+//          : null;
+//      SourceRange closingNameSpan = closingSpan != null
+//          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
+//          : null;
       ElementInfo element = new ElementInfo(
           localName,
           openingSpan,
@@ -115,6 +130,50 @@ class HtmlTreeConverter {
       }
 
       return element;
+    }
+    if (node is EmbeddedContentAst) {
+      final localName = 'ng-content';
+      final attributes = <AttributeInfo>[];
+      final closeComplement = node.closeComplement;
+      SourceRange openingSpan;
+      SourceRange openingNameSpan;
+      SourceRange closingSpan;
+      SourceRange closingNameSpan;
+
+      if (node.isSynthetic) {
+        openingSpan = _toSourceRange(closeComplement.beginToken.offset, 0);
+        openingNameSpan = openingSpan;
+      } else {
+        openingSpan = _toSourceRange(
+            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+        openingNameSpan =
+            new SourceRange(openingSpan.offset + '<'.length, localName.length);
+        var pnode = node as ParsedEmbeddedContentAst;
+        var valueToken = pnode.selectorValueToken;
+        if (pnode.selectorValueToken != null) {
+          attributes.add(new TextAttribute(
+            'select',
+            pnode.identifierToken.offset,
+            valueToken.lexeme,
+            valueToken.offset,
+            [],
+          ));
+        }
+      }
+
+      if (closeComplement.isSynthetic) {
+        closingSpan = _toSourceRange(node.endToken.end, 0);
+        closingNameSpan = closingSpan;
+      } else {
+        closingSpan = _toSourceRange(closeComplement.beginToken.offset,
+            closeComplement.endToken.end - closeComplement.beginToken.offset);
+        closingNameSpan =
+            new SourceRange(closingSpan.offset + '</'.length, localName.length);
+      }
+
+      var ngContent = new ElementInfo(localName, openingSpan, closingSpan,
+          openingNameSpan, closingNameSpan, false, attributes, null, parent);
+      return ngContent;
     }
     if (node is TextAst) {
       int offset = node.sourceSpan.start.offset;
@@ -165,13 +224,13 @@ class HtmlTreeConverter {
       });
 
       element.properties.forEach((property) {
-        if (property.name == "class") {
+        if (property.name.startsWith("class")) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[class.", "]", ExpressionBoundType.clazz));
-        } else if (property.name == "attr") {
+        } else if (property.name.startsWith("attr")) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[attr.", "]", ExpressionBoundType.attr));
-        } else if (property.name == "style") {
+        } else if (property.name.startsWith("style")) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[style.", "]", ExpressionBoundType.style));
         } else {
@@ -196,60 +255,6 @@ class HtmlTreeConverter {
         attributes.add(_convertTemplateAttribute(star));
       });
     }
-//    element.attributes.forEach((name, String value) {
-//      if (name is String) {
-//        try {
-//          if (name == "") {
-//            attributes.add(_convertSyntheticAttribute(element));
-//          } else if (name.startsWith('*')) {
-//            attributes.add(_convertTemplateAttribute(element, name, true));
-//          } else if (name == 'template') {
-//            attributes.add(_convertTemplateAttribute(element, name, false));
-//          } else if (name.startsWith('[(')) {
-//            attributes.add(_convertExpressionBoundAttribute(
-//                element, name, "[(", ")]", ExpressionBoundType.twoWay));
-//          } else if (name.startsWith('[class.')) {
-//            attributes.add(_convertExpressionBoundAttribute(
-//                element, name, "[class.", "]", ExpressionBoundType.clazz));
-//          } else if (name.startsWith('[attr.')) {
-//            attributes.add(_convertExpressionBoundAttribute(
-//                element, name, "[attr.", "]", ExpressionBoundType.attr));
-//          } else if (name.startsWith('[style.')) {
-//            attributes.add(_convertExpressionBoundAttribute(
-//                element, name, "[style.", "]", ExpressionBoundType.style));
-//          } else if (name.startsWith('[')) {
-//            attributes.add(_convertExpressionBoundAttribute(
-//                element, name, "[", "]", ExpressionBoundType.input));
-//          } else if (name.startsWith('bind-')) {
-//            attributes.add(_convertExpressionBoundAttribute(
-//                element, name, "bind-", null, ExpressionBoundType.input));
-//          } else if (name.startsWith('on-')) {
-//            attributes.add(
-//                _convertStatementsBoundAttribute(element, name, "on-", null));
-//          } else if (name.startsWith('(')) {
-//            attributes
-//                .add(_convertStatementsBoundAttribute(element, name, "(", ")"));
-//          } else {
-//            var valueOffset = _valueOffset(element, name);
-//            if (valueOffset == null) {
-//              value = null;
-//            }
-//
-//            attributes.add(new TextAttribute(
-//                name,
-//                _nameOffset(element, name),
-//                value,
-//                valueOffset,
-//                dartParser.findMustaches(value, valueOffset)));
-//          }
-//        } on IgnorableHtmlInternalError {
-//          // See https://github.com/dart-lang/html/issues/44, this error will
-//          // be thrown looking for nameOffset. Catch it so that analysis else
-//          // where continues.
-//          return;
-//        }
-//      }
-//    });
     return attributes;
   }
 
@@ -404,7 +409,7 @@ class HtmlTreeConverter {
       propName = _removePrefixSuffix(origName, prefix, suffix);
       propNameOffset = origNameOffset + prefix.length;
     }
-    if (ast is ParsedEventAst) {
+    if (ast is ParsedPropertyAst) {
       origName = ast.prefixToken.lexeme +
           ast.nameToken.lexeme +
           ast.suffixToken.lexeme;
@@ -618,11 +623,14 @@ class EmbeddedDartParser {
       final int end = text.indexOf('}}', textOffset);
       int exprBegin, exprEnd;
       bool detectTrailing = false;
+
+      // Absolutely no mustaches - simple text.
       if (begin == -1 && end == -1) {
         break;
       }
 
       if (end == -1) {
+        // Begin mustache exists, but no end mustache.
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
@@ -632,12 +640,16 @@ class EmbeddedDartParser {
             ? exprBegin
             : text.length;
       } else if (begin == -1 || end < begin) {
+        // Both exists, but there is an end before a begin.
+        // Example: blah }} {{ mustache ...
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = end + 2;
         continue;
       } else if (nextBegin != -1 && nextBegin < end) {
+        // Two open mustaches, but both opens are in sequence before an end.
+        // Example: {{ blah {{ mustache }}
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Skip this open mustache, check the next open we found
@@ -645,6 +657,7 @@ class EmbeddedDartParser {
         exprBegin = textOffset;
         exprEnd = nextBegin;
       } else {
+        // Proper open and close mustache exists and in correct order.
         exprBegin = begin + 2;
         exprEnd = end;
         textOffset = end + 2;

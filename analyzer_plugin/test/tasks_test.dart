@@ -76,7 +76,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
   }
 
   test_perform() {
-    //TODO: rever back once DOCTYPE is implement
+    //TODO: Max: revert back once DOCTYPE is implement
 //    String code = r'''
 //<!DOCTYPE html>
 //<html>
@@ -101,7 +101,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
     AnalysisTarget target = newSource('/test.html', code);
     computeResult(target, ANGULAR_HTML_DOCUMENT);
     expect(task, new isInstanceOf<AngularParseHtmlTask>());
-    //expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+    expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
     // HTML_DOCUMENT
     {
       List<StandaloneTemplateAst> asts = outputs[ANGULAR_HTML_DOCUMENT];
@@ -132,7 +132,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       expect((asts[2] as ElementAst).name, 'span');
     }
     // it's OK to don't have DOCTYPE
-    //expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
+    expect(outputs[ANGULAR_HTML_DOCUMENT_ERRORS], isEmpty);
   }
 
   test_perform_noDocType_with_dangling_unclosed_tag() {
@@ -2306,7 +2306,7 @@ class ComponentA {
     errorListener.assertNoErrors();
   }
 
-  void test_htmlParsing_hasError() {
+  void test_angularParsing_hasError() {
     String code = r'''
 import '/angular2/angular2.dart';
 
@@ -2319,7 +2319,10 @@ class TextPanel {
     computeResult(source, DART_ERRORS);
     // has errors
     fillErrorListener(DART_ERRORS);
-    errorListener.assertErrorsWithCodes([HtmlErrorCode.PARSE_ERROR]);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.ANGULAR_PARSER_ERROR,
+      AngularWarningCode.ANGULAR_PARSER_ERROR,
+    ]);
   }
 
   void test_input_OK_event() {
@@ -2564,6 +2567,7 @@ import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', template: r"<div> text}} </div>")
 class TextPanel {
+  String text;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -2665,7 +2669,7 @@ class TextPanel {
     errorListener.assertNoErrors();
   }
 
-  void test_resolveGetChildDirectivesNgContentSelectors() {
+  void test_resolveGetChildDirectivesNgContentSelectors_in_template() {
     String code = r'''
 import '/angular2/angular2.dart';
 import 'child_file.dart';
@@ -2918,7 +2922,7 @@ class TextPanel {
     }
   }
 
-  void test_resolveGetChildDirectivesNgContentSelectors() {
+  void test_resolveGetChildDirectivesNgContentSelectors_in_templateUrl() {
     String code = r'''
 import '/angular2/angular2.dart';
 import 'child_file.dart';

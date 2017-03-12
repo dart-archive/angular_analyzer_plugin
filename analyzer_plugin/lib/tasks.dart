@@ -10,6 +10,12 @@ import 'package:analyzer/error/error.dart';
  */
 class AngularWarningCode extends ErrorCode {
   /**
+   * An error code indicating that the error originated from Angular AST parse.
+   */
+  static const AngularWarningCode ANGULAR_PARSER_ERROR =
+      const AngularWarningCode('ANGULAR_PARSER_ERROR', 'Unexpected token');
+
+  /**
    * An error code indicating that the annotation does not define the
    * required "selector" argument.
    */

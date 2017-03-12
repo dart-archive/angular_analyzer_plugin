@@ -43,13 +43,12 @@ final ListResultDescriptor<NgAst.StandaloneTemplateAst> ANGULAR_HTML_DOCUMENT =
     new ListResultDescriptor<NgAst.StandaloneTemplateAst>(
         'ANGULAR_HTML_DOCUMENT', <NgAst.StandaloneTemplateAst>[]);
 
-//TODO: Max: reimplement once Exception is switched to AnalysisError in ast
 /**
  * The analysis errors associated with a [Source] representing an HTML file.
  */
-//final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
-//    new ListResultDescriptor<AnalysisError>(
-//        'ANGULAR_HTML_DOCUMENT_ERRORS', <AnalysisError>[]);
+final ListResultDescriptor<AnalysisError> ANGULAR_HTML_DOCUMENT_ERRORS =
+    new ListResultDescriptor<AnalysisError>(
+        'ANGULAR_HTML_DOCUMENT_ERRORS', <AnalysisError>[]);
 
 /**
  * The [Template]s of a [LibrarySpecificUnit].
@@ -263,7 +262,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
   static final TaskDescriptor DESCRIPTOR = new TaskDescriptor(
       'AngularParseHtmlTask', createTask, buildInputs, <ResultDescriptor>[
     ANGULAR_HTML_DOCUMENT,
-    //ANGULAR_HTML_DOCUMENT_ERRORS,
+    ANGULAR_HTML_DOCUMENT_ERRORS,
   ]);
 
   AngularParseHtmlTask(InternalAnalysisContext context, AnalysisTarget target)
@@ -289,14 +288,14 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
       }
 
       outputs[ANGULAR_HTML_DOCUMENT] = <NgAst.StandaloneTemplateAst>[];
-//      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
-//        new AnalysisError(
-//            target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
-//      ];
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = <AnalysisError>[
+        new AnalysisError(
+            target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
+      ];
     } else {
-      parse(content, target.source.uri.toString());
+      parse(content, target.source.uri.path);
       outputs[ANGULAR_HTML_DOCUMENT] = documentAsts;
-      //outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
+      outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
     }
   }
 
@@ -315,11 +314,10 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
 
 abstract class ParseHtmlMixin implements AnalysisTask {
   List<NgAst.StandaloneTemplateAst> documentAsts;
-  final List<Exception> parseErrors = <Exception>[];
+  final parseErrors = <AnalysisError>[];
 
   void parse(String content, String sourceUrl) {
-    NgAst.RecoveringExceptionHandler exceptionHandler =
-        new NgAst.RecoveringExceptionHandler();
+    final exceptionHandler = new NgAst.RecoveringExceptionHandler();
     documentAsts = NgAst.parse(
       content,
       sourceUrl: sourceUrl,
@@ -327,7 +325,23 @@ abstract class ParseHtmlMixin implements AnalysisTask {
       exceptionHandler: exceptionHandler,
     );
 
-    parseErrors.addAll(exceptionHandler.exceptions);
+    for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
+      ErrorCode errorCode;
+      if (e.message == 'Unopened mustache') {
+        errorCode = AngularWarningCode.UNOPENED_MUSTACHE;
+      } else if (e.message == 'Unclosed mustache') {
+        errorCode = AngularWarningCode.UNTERMINATED_MUSTACHE;
+      } else {
+        errorCode = AngularWarningCode.ANGULAR_PARSER_ERROR;
+      }
+
+      this.parseErrors.add(new AnalysisError(
+            target.source,
+            e.offset,
+            e.context.length,
+            errorCode,
+          ));
+    }
   }
 }
 
@@ -1005,7 +1019,6 @@ class BuildUnitViewsTask extends SourceBasedAnalysisTask
         //@TODO when there's both a @View and @Component, handle edge cases
         View view =
             _createView(classElement, viewAnnotation ?? componentAnnotation);
-
         if (view != null) {
           views.add(view);
           if (view.templateUriSource != null) {
@@ -1502,8 +1515,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     with ParseHtmlMixin {
   static const String DIRECTIVES_IN_UNIT1_INPUT = 'DIRECTIVES_IN_UNIT1_INPUT';
   static const String HTML_DOCUMENTS_INPUT = 'HTML_DOCUMENTS_INPUT';
-  //static const String HTML_DOCUMENTS_ERRORS_INPUT =
-  //    'HTML_DOCUMENTS_ERRORS_INPUT';
+  static const String HTML_DOCUMENTS_ERRORS_INPUT =
+      'HTML_DOCUMENTS_ERRORS_INPUT';
   static const String TYPE_PROVIDER_INPUT = 'TYPE_PROVIDER_INPUT';
   static const String EXTRA_NODES_INPUT = 'EXTRA_NODES_INPUT';
 
@@ -1524,8 +1537,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         getRequiredInput(DIRECTIVES_IN_UNIT1_INPUT);
     Map<Source, List<NgAst.StandaloneTemplateAst>> documentsMap =
         getRequiredInput(HTML_DOCUMENTS_INPUT);
-//    Map<Source, List<AnalysisError>> documentsErrorsMap =
-//        getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
+    Map<Source, List<AnalysisError>> documentsErrorsMap =
+        getRequiredInput(HTML_DOCUMENTS_ERRORS_INPUT);
     List<ElementInfo> asts = <ElementInfo>[];
     Map<Source, List<AnalysisError>> errorsByFile =
         <Source, List<AnalysisError>>{};
@@ -1539,15 +1552,9 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         RecordingErrorListener errorListener = new RecordingErrorListener();
         ErrorReporter errorReporter =
             new ErrorReporter(errorListener, view.templateSource);
-
         Source source = view.templateSource;
         if (view.templateUriSource != null) {
-          if (documentsMap[source].length == 0) {
-            return;
-          }
-
-          //TODO: Max: Figure out why this keeps throwing errors later
-          //documentsErrorsMap[source].forEach(errorListener.onError);
+          documentsErrorsMap[source].forEach(errorListener.onError);
           _processView(new Template(d.view), documentsMap[source],
               errorListener, errorReporter, asts, errorsByFile);
         } else {
@@ -1558,7 +1565,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
           parse(
               (' ' * view.templateOffset) +
                   view.templateText.substring(0, view.templateText.length - 1),
-              view.templateUriSource.toString());
+              source.uri.path);
+          parseErrors.forEach(errorListener.onError);
           parseErrors.clear();
 
           _processView(new Template(view), documentAsts, errorListener,
@@ -1585,6 +1593,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
 
     template.ast = new HtmlTreeConverter(parser, source, errorListener)
         .convertFromAstList(documentAsts);
+    _setIgnoredErrors(template, documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
 
@@ -1595,27 +1604,32 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     }
     errorsByFile[source].addAll(errorListener.errors);
   }
-//
-//  _setIgnoredErrors(Template template, html.Document document) {
-//    if (document == null || document.nodes.length == 0) {
-//      return;
-//    }
-//    html.Node firstNode = document.nodes[0];
-//    if (firstNode is html.Comment) {
-//      String text = firstNode.text.trim();
-//      if (text.startsWith("@ngIgnoreErrors")) {
-//        text = text.substring("@ngIgnoreErrors".length);
-//        // Per spec: optional color
-//        if (text.startsWith(":")) {
-//          text = text.substring(1);
-//        }
-//        // Per spec: optional commas
-//        String delim = text.indexOf(',') == -1 ? ' ' : ',';
-//        template.ignoredErrors.addAll(new HashSet.from(
-//            text.split(delim).map((c) => c.trim().toUpperCase())));
-//      }
-//    }
-//  }
+
+  _setIgnoredErrors(Template template, List<NgAst.TemplateAst> asts) {
+    if (asts == null || asts.length == 0) {
+      return;
+    }
+    for (NgAst.TemplateAst ast in asts) {
+      if (ast is NgAst.TextAst && ast.value.trim().isEmpty) {
+        continue;
+      } else if (ast is NgAst.CommentAst) {
+        String text = ast.value.trim();
+        if (text.startsWith("@ngIgnoreErrors")) {
+          text = text.substring("@ngIgnoreErrors".length);
+          // Per spec: optional color
+          if (text.startsWith(":")) {
+            text = text.substring(1);
+          }
+          // Per spec: optional commas
+          String delim = text.indexOf(',') == -1 ? ' ' : ',';
+          template.ignoredErrors.addAll(new HashSet.from(
+              text.split(delim).map((c) => c.trim().toUpperCase())));
+        }
+      } else {
+        return;
+      }
+    }
+  }
 
   /**
    * Return a map from the names of the inputs of this kind of task to the
@@ -1635,15 +1649,15 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
               .toList())
           // to map<source, html document of source>
           .toMapOf(ANGULAR_HTML_DOCUMENT),
-//      HTML_DOCUMENTS_ERRORS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
-//          .of(target)
-//          // mapped to html source of the view
-//          .mappedToList((views) => views
-//              .map((v) => v.templateUriSource)
-//              .where((v) => v != null)
-//              .toList())
-//          // to map<source, html document of source>
-//          .toMapOf(ANGULAR_HTML_DOCUMENT_ERRORS),
+      HTML_DOCUMENTS_ERRORS_INPUT: VIEWS_WITH_HTML_TEMPLATES1
+          .of(target)
+          // mapped to html source of the view
+          .mappedToList((views) => views
+              .map((v) => v.templateUriSource)
+              .where((v) => v != null)
+              .toList())
+          // to map<source, html document of source>
+          .toMapOf(ANGULAR_HTML_DOCUMENT_ERRORS),
     };
   }
 
