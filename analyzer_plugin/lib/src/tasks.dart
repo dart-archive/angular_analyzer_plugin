@@ -1591,8 +1591,16 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         source, errorListener, typeProvider, errorReporter);
     template.view.template = template;
 
-    template.ast = new HtmlTreeConverter(parser, source, errorListener)
-        .convertFromAstList(documentAsts);
+    //TODO: Max: Once done debugging, remove and uncomment duplicate below.
+    try {
+      template.ast = new HtmlTreeConverter(parser, source, errorListener)
+          .convertFromAstList(documentAsts);
+    } catch(e, stacktrace) {
+      print(stacktrace);
+    }
+
+//    template.ast = new HtmlTreeConverter(parser, source, errorListener)
+//        .convertFromAstList(documentAsts);
     _setIgnoredErrors(template, documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));

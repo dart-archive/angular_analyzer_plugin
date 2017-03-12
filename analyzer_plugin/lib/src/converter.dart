@@ -206,9 +206,13 @@ class HtmlTreeConverter {
         } else if (attribute.name == 'template') {
           attributes.add(_convertTemplateAttribute(attribute));
         } else {
+          String value;
+          int valueOffset;
           ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
-          String value = _attr.valueToken.innerValue.lexeme;
-          int valueOffset = _attr.valueToken.innerValue.offset;
+          if (_attr.valueToken != null) {
+            value = _attr.valueToken.innerValue.lexeme;
+            valueOffset = _attr.valueToken.innerValue.offset;
+          }
           attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
               valueOffset, dartParser.findMustaches(value, valueOffset)));
         }
@@ -240,9 +244,13 @@ class HtmlTreeConverter {
       });
 
       element.references.forEach((reference) {
+        String value;
+        int valueOffset;
         ParsedReferenceAst _attr = reference as ParsedReferenceAst;
-        String value = _attr.valueToken.innerValue.lexeme;
-        int valueOffset = _attr.valueToken.innerValue.offset;
+        if (_attr.valueToken != null) {
+          value = _attr.valueToken.innerValue.lexeme;
+          valueOffset = _attr.valueToken.innerValue.offset;
+        }
         attributes.add(new TextAttribute(
             _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
             _attr.prefixToken.offset,
@@ -341,7 +349,7 @@ class HtmlTreeConverter {
       origNameOffset = ast.nameOffset;
 
       value = ast.value;
-      if (value == null) {
+      if (value == null || value.isEmpty) {
         errorListener.onError(new AnalysisError(
             templateSource,
             origNameOffset,
@@ -360,7 +368,7 @@ class HtmlTreeConverter {
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
-      if (value == null) {
+      if (value == null || value.isEmpty) {
         errorListener.onError(new AnalysisError(
             templateSource,
             origNameOffset,
@@ -400,7 +408,7 @@ class HtmlTreeConverter {
       origNameOffset = ast.nameOffset;
 
       value = ast.value;
-      if (value == null || value == "") {
+      if (value == null) {
         errorListener.onError(new AnalysisError(templateSource, origNameOffset,
             origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
       }
@@ -416,7 +424,7 @@ class HtmlTreeConverter {
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
-      if (value == null || value == "") {
+      if (value == null) {
         errorListener.onError(new AnalysisError(templateSource, origNameOffset,
             origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
       }
@@ -432,7 +440,7 @@ class HtmlTreeConverter {
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
-      if (value == null || value == "") {
+      if (value == null) {
         errorListener.onError(new AnalysisError(templateSource, origNameOffset,
             origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
       }
