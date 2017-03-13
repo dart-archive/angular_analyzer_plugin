@@ -36,14 +36,16 @@ void main(List<String> args) {
     server.onFileAdded.listen((String path) {
       if (server.contextManager.getInnermostContextInfoFor(path).folder.path ==
           driverPath) {
+        // only the owning driver "adds" the path
         driver.addFile(path);
+      } else {
+        // but the addition of a file is a "change" to all the other drivers
+        driver.changeFile(path);
       }
     });
     server.onFileChanged.listen((String path) {
-      if (server.contextManager.getInnermostContextInfoFor(path).folder.path ==
-          driverPath) {
-        driver.fileChanged(path);
-      }
+      // all drivers get change notification
+      driver.fileChanged(path);
     });
   };
 }
