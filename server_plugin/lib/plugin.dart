@@ -26,12 +26,12 @@ class AngularServerPlugin implements Plugin {
 
   @override
   void registerExtensions(RegisterExtension registerExtension) {
-    registerExtension(SET_ANALYSIS_DOMAIN_EXTENSION_POINT_ID,
-        new AnalysisDomainContributor().setAnalysisDomain);
-    registerExtension(NAVIGATION_CONTRIBUTOR_EXTENSION_POINT_ID,
-        new AngularNavigationContributor());
-    registerExtension(OCCURRENCES_CONTRIBUTOR_EXTENSION_POINT_ID,
-        new AngularOccurrencesContributor());
+    //registerExtension(SET_ANALYSIS_DOMAIN_EXTENSION_POINT_ID,
+    //    new AnalysisDomainContributor().setAnalysisDomain);
+    //registerExtension(NAVIGATION_CONTRIBUTOR_EXTENSION_POINT_ID,
+    //    new AngularNavigationContributor());
+    //registerExtension(OCCURRENCES_CONTRIBUTOR_EXTENSION_POINT_ID,
+    //    new AngularOccurrencesContributor());
     registerExtension(COMPLETION_CONTRIBUTOR_EXTENSION_POINT_ID,
         () => new AngularTemplateCompletionContributor());
     registerExtension(COMPLETION_CONTRIBUTOR_EXTENSION_POINT_ID,
