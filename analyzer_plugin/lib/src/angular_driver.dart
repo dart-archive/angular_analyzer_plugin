@@ -116,6 +116,8 @@ class AngularDriver
       final path = _requestedFiles.first;
       try {
         pushDartErrors(path);
+        pushDartNavigation(path);
+        pushDartOccurrences(path);
         _requestedFiles.remove(path);
       } catch (e) {
         e;
@@ -191,9 +193,31 @@ class AngularDriver
         errorCode, error.message, error.correction);
   }
 
-  String getHtmlKey(String htmlPath, String dartPath) {
+  Future<String> getHtmlKey(String htmlPath, String dartPath) async {
     final key = getContentHash(htmlPath);
     key.addBytes(dartDriver.getUnitKeyByPath(dartPath).toByteList());
+    final directives = (await getDirectives(dartPath)).directives;
+    final unit = (await dartDriver.getUnitElement(dartPath)).element;
+    if (unit == null) return null;
+
+    final linkErrorListener = new IgnoringErrorListener();
+    final linkErrorReporter =
+        new ErrorReporter(linkErrorListener, getSource(dartPath));
+
+    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
+    await linker.linkDirectives(directives, unit.library);
+
+    Component component = directives.singleWhere((directive) =>
+        directive is Component &&
+        directive.view?.templateUriSource?.fullName == htmlPath);
+    for (final subdirective in component.view.directives) {
+      if (subdirective is Component) {
+        key.addBytes(
+            getContentHash(subdirective.view.templateUriSource.fullName)
+                .toByteList());
+      }
+    }
+
     return key.toHex() + '.ngresolved';
   }
 
@@ -211,7 +235,7 @@ class AngularDriver
   }
 
   Future<DirectivesResult> resolveHtml(String htmlPath, String dartPath) async {
-    final key = getHtmlKey(htmlPath, dartPath);
+    final key = await getHtmlKey(htmlPath, dartPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
@@ -341,6 +365,10 @@ class AngularDriver
     server.notificationManager
         .recordAnalysisErrors("angularPlugin", htmlPath, serverErrors);
   }
+
+  Future pushDartNavigation(String path) async {}
+
+  Future pushDartOccurrences(String path) async {}
 
   Future pushDartErrors(String path) async {
     final errors = (await resolveDart(path)).errors;
