@@ -4,11 +4,9 @@
 
 import 'package:analysis_server/starter.dart';
 
-import 'package:analysis_server/src/analysis_server.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
-import 'package:angular_analyzer_plugin/plugin.dart';
-import 'package:angular_analyzer_server_plugin/plugin.dart';
+//import 'package:angular_analyzer_server_plugin/plugin.dart';
 import 'package:plugin/plugin.dart';
 
 /**
@@ -34,13 +32,12 @@ void main(List<String> args) {
     final AngularDriver driver = new AngularDriver(server, analysisDriver,
         scheduler, byteStore, sourceFactory, contentOverlay);
     server.onFileAdded.listen((String path) {
-      if (server.contextManager.getInnermostContextInfoFor(path).folder.path ==
-          driverPath) {
+      if (server.contextManager.getContextFolderFor(path).path == driverPath) {
         // only the owning driver "adds" the path
         driver.addFile(path);
       } else {
         // but the addition of a file is a "change" to all the other drivers
-        driver.changeFile(path);
+        driver.fileChanged(path);
       }
     });
     server.onFileChanged.listen((String path) {
