@@ -5,24 +5,26 @@
 // This file has been automatically generated.  Please do not edit it manually.
 // To regenerate the file, use the script "pkg/analyzer/tool/generate_files".
 
-
 import 'package:analyzer/src/summary/flat_buffers.dart' as fb;
 import 'idl.dart' as idl;
 import 'dart:convert' as convert;
 import 'package:analyzer/src/summary/api_signature.dart' as api_sig;
 
-class PackageBundleBuilder extends Object with _PackageBundleMixin implements idl.PackageBundle {
+class PackageBundleBuilder extends Object
+    with _PackageBundleMixin
+    implements idl.PackageBundle {
   List<UnlinkedDartSummaryBuilder> _unlinkedDartSummary;
 
   @override
-  List<UnlinkedDartSummaryBuilder> get unlinkedDartSummary => _unlinkedDartSummary ??= <UnlinkedDartSummaryBuilder>[];
+  List<UnlinkedDartSummaryBuilder> get unlinkedDartSummary =>
+      _unlinkedDartSummary ??= <UnlinkedDartSummaryBuilder>[];
 
   void set unlinkedDartSummary(List<UnlinkedDartSummaryBuilder> value) {
     this._unlinkedDartSummary = value;
   }
 
   PackageBundleBuilder({List<UnlinkedDartSummaryBuilder> unlinkedDartSummary})
-    : _unlinkedDartSummary = unlinkedDartSummary;
+      : _unlinkedDartSummary = unlinkedDartSummary;
 
   /**
    * Flush [informative] data recursively.
@@ -53,7 +55,8 @@ class PackageBundleBuilder extends Object with _PackageBundleMixin implements id
   fb.Offset finish(fb.Builder fbBuilder) {
     fb.Offset offset_unlinkedDartSummary;
     if (!(_unlinkedDartSummary == null || _unlinkedDartSummary.isEmpty)) {
-      offset_unlinkedDartSummary = fbBuilder.writeList(_unlinkedDartSummary.map((b) => b.finish(fbBuilder)).toList());
+      offset_unlinkedDartSummary = fbBuilder.writeList(
+          _unlinkedDartSummary.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (offset_unlinkedDartSummary != null) {
@@ -72,10 +75,13 @@ class PackageBundleReader extends fb.TableReader<_PackageBundleImpl> {
   const PackageBundleReader();
 
   @override
-  _PackageBundleImpl createObject(fb.BufferContext bc, int offset) => new _PackageBundleImpl(bc, offset);
+  _PackageBundleImpl createObject(fb.BufferContext bc, int offset) =>
+      new _PackageBundleImpl(bc, offset);
 }
 
-class _PackageBundleImpl extends Object with _PackageBundleMixin implements idl.PackageBundle {
+class _PackageBundleImpl extends Object
+    with _PackageBundleMixin
+    implements idl.PackageBundle {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -85,7 +91,9 @@ class _PackageBundleImpl extends Object with _PackageBundleMixin implements idl.
 
   @override
   List<idl.UnlinkedDartSummary> get unlinkedDartSummary {
-    _unlinkedDartSummary ??= const fb.ListReader<idl.UnlinkedDartSummary>(const UnlinkedDartSummaryReader()).vTableGet(_bc, _bcOffset, 0, const <idl.UnlinkedDartSummary>[]);
+    _unlinkedDartSummary ??= const fb.ListReader<idl.UnlinkedDartSummary>(
+            const UnlinkedDartSummaryReader())
+        .vTableGet(_bc, _bcOffset, 0, const <idl.UnlinkedDartSummary>[]);
     return _unlinkedDartSummary;
   }
 }
@@ -94,40 +102,48 @@ abstract class _PackageBundleMixin implements idl.PackageBundle {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
-    if (unlinkedDartSummary.isNotEmpty) _result["unlinkedDartSummary"] = unlinkedDartSummary.map((_value) => _value.toJson()).toList();
+    if (unlinkedDartSummary.isNotEmpty)
+      _result["unlinkedDartSummary"] =
+          unlinkedDartSummary.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "unlinkedDartSummary": unlinkedDartSummary,
-  };
+        "unlinkedDartSummary": unlinkedDartSummary,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class LinkedHtmlSummaryBuilder extends Object with _LinkedHtmlSummaryMixin implements idl.LinkedHtmlSummary {
+class LinkedHtmlSummaryBuilder extends Object
+    with _LinkedHtmlSummaryMixin
+    implements idl.LinkedHtmlSummary {
   List<SummarizedAnalysisErrorBuilder> _errors;
   List<SummarizedAnalysisErrorFromPathBuilder> _errorsFromPath;
 
   @override
-  List<SummarizedAnalysisErrorBuilder> get errors => _errors ??= <SummarizedAnalysisErrorBuilder>[];
+  List<SummarizedAnalysisErrorBuilder> get errors =>
+      _errors ??= <SummarizedAnalysisErrorBuilder>[];
 
   void set errors(List<SummarizedAnalysisErrorBuilder> value) {
     this._errors = value;
   }
 
   @override
-  List<SummarizedAnalysisErrorFromPathBuilder> get errorsFromPath => _errorsFromPath ??= <SummarizedAnalysisErrorFromPathBuilder>[];
+  List<SummarizedAnalysisErrorFromPathBuilder> get errorsFromPath =>
+      _errorsFromPath ??= <SummarizedAnalysisErrorFromPathBuilder>[];
 
   void set errorsFromPath(List<SummarizedAnalysisErrorFromPathBuilder> value) {
     this._errorsFromPath = value;
   }
 
-  LinkedHtmlSummaryBuilder({List<SummarizedAnalysisErrorBuilder> errors, List<SummarizedAnalysisErrorFromPathBuilder> errorsFromPath})
-    : _errors = errors,
-      _errorsFromPath = errorsFromPath;
+  LinkedHtmlSummaryBuilder(
+      {List<SummarizedAnalysisErrorBuilder> errors,
+      List<SummarizedAnalysisErrorFromPathBuilder> errorsFromPath})
+      : _errors = errors,
+        _errorsFromPath = errorsFromPath;
 
   /**
    * Flush [informative] data recursively.
@@ -168,10 +184,12 @@ class LinkedHtmlSummaryBuilder extends Object with _LinkedHtmlSummaryMixin imple
     fb.Offset offset_errors;
     fb.Offset offset_errorsFromPath;
     if (!(_errors == null || _errors.isEmpty)) {
-      offset_errors = fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
+      offset_errors =
+          fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
     }
     if (!(_errorsFromPath == null || _errorsFromPath.isEmpty)) {
-      offset_errorsFromPath = fbBuilder.writeList(_errorsFromPath.map((b) => b.finish(fbBuilder)).toList());
+      offset_errorsFromPath = fbBuilder
+          .writeList(_errorsFromPath.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (offset_errors != null) {
@@ -193,10 +211,13 @@ class LinkedHtmlSummaryReader extends fb.TableReader<_LinkedHtmlSummaryImpl> {
   const LinkedHtmlSummaryReader();
 
   @override
-  _LinkedHtmlSummaryImpl createObject(fb.BufferContext bc, int offset) => new _LinkedHtmlSummaryImpl(bc, offset);
+  _LinkedHtmlSummaryImpl createObject(fb.BufferContext bc, int offset) =>
+      new _LinkedHtmlSummaryImpl(bc, offset);
 }
 
-class _LinkedHtmlSummaryImpl extends Object with _LinkedHtmlSummaryMixin implements idl.LinkedHtmlSummary {
+class _LinkedHtmlSummaryImpl extends Object
+    with _LinkedHtmlSummaryMixin
+    implements idl.LinkedHtmlSummary {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -207,13 +228,19 @@ class _LinkedHtmlSummaryImpl extends Object with _LinkedHtmlSummaryMixin impleme
 
   @override
   List<idl.SummarizedAnalysisError> get errors {
-    _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(const SummarizedAnalysisErrorReader()).vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedAnalysisError>[]);
+    _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(
+            const SummarizedAnalysisErrorReader())
+        .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
 
   @override
   List<idl.SummarizedAnalysisErrorFromPath> get errorsFromPath {
-    _errorsFromPath ??= const fb.ListReader<idl.SummarizedAnalysisErrorFromPath>(const SummarizedAnalysisErrorFromPathReader()).vTableGet(_bc, _bcOffset, 1, const <idl.SummarizedAnalysisErrorFromPath>[]);
+    _errorsFromPath ??=
+        const fb.ListReader<idl.SummarizedAnalysisErrorFromPath>(
+                const SummarizedAnalysisErrorFromPathReader())
+            .vTableGet(_bc, _bcOffset, 1,
+                const <idl.SummarizedAnalysisErrorFromPath>[]);
     return _errorsFromPath;
   }
 }
@@ -222,33 +249,39 @@ abstract class _LinkedHtmlSummaryMixin implements idl.LinkedHtmlSummary {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
-    if (errors.isNotEmpty) _result["errors"] = errors.map((_value) => _value.toJson()).toList();
-    if (errorsFromPath.isNotEmpty) _result["errorsFromPath"] = errorsFromPath.map((_value) => _value.toJson()).toList();
+    if (errors.isNotEmpty)
+      _result["errors"] = errors.map((_value) => _value.toJson()).toList();
+    if (errorsFromPath.isNotEmpty)
+      _result["errorsFromPath"] =
+          errorsFromPath.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "errors": errors,
-    "errorsFromPath": errorsFromPath,
-  };
+        "errors": errors,
+        "errorsFromPath": errorsFromPath,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class UnlinkedHtmlSummaryBuilder extends Object with _UnlinkedHtmlSummaryMixin implements idl.UnlinkedHtmlSummary {
+class UnlinkedHtmlSummaryBuilder extends Object
+    with _UnlinkedHtmlSummaryMixin
+    implements idl.UnlinkedHtmlSummary {
   List<SummarizedNgContentBuilder> _ngContents;
 
   @override
-  List<SummarizedNgContentBuilder> get ngContents => _ngContents ??= <SummarizedNgContentBuilder>[];
+  List<SummarizedNgContentBuilder> get ngContents =>
+      _ngContents ??= <SummarizedNgContentBuilder>[];
 
   void set ngContents(List<SummarizedNgContentBuilder> value) {
     this._ngContents = value;
   }
 
   UnlinkedHtmlSummaryBuilder({List<SummarizedNgContentBuilder> ngContents})
-    : _ngContents = ngContents;
+      : _ngContents = ngContents;
 
   /**
    * Flush [informative] data recursively.
@@ -279,7 +312,8 @@ class UnlinkedHtmlSummaryBuilder extends Object with _UnlinkedHtmlSummaryMixin i
   fb.Offset finish(fb.Builder fbBuilder) {
     fb.Offset offset_ngContents;
     if (!(_ngContents == null || _ngContents.isEmpty)) {
-      offset_ngContents = fbBuilder.writeList(_ngContents.map((b) => b.finish(fbBuilder)).toList());
+      offset_ngContents = fbBuilder
+          .writeList(_ngContents.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (offset_ngContents != null) {
@@ -294,14 +328,18 @@ idl.UnlinkedHtmlSummary readUnlinkedHtmlSummary(List<int> buffer) {
   return const UnlinkedHtmlSummaryReader().read(rootRef, 0);
 }
 
-class UnlinkedHtmlSummaryReader extends fb.TableReader<_UnlinkedHtmlSummaryImpl> {
+class UnlinkedHtmlSummaryReader
+    extends fb.TableReader<_UnlinkedHtmlSummaryImpl> {
   const UnlinkedHtmlSummaryReader();
 
   @override
-  _UnlinkedHtmlSummaryImpl createObject(fb.BufferContext bc, int offset) => new _UnlinkedHtmlSummaryImpl(bc, offset);
+  _UnlinkedHtmlSummaryImpl createObject(fb.BufferContext bc, int offset) =>
+      new _UnlinkedHtmlSummaryImpl(bc, offset);
 }
 
-class _UnlinkedHtmlSummaryImpl extends Object with _UnlinkedHtmlSummaryMixin implements idl.UnlinkedHtmlSummary {
+class _UnlinkedHtmlSummaryImpl extends Object
+    with _UnlinkedHtmlSummaryMixin
+    implements idl.UnlinkedHtmlSummary {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -311,7 +349,9 @@ class _UnlinkedHtmlSummaryImpl extends Object with _UnlinkedHtmlSummaryMixin imp
 
   @override
   List<idl.SummarizedNgContent> get ngContents {
-    _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(const SummarizedNgContentReader()).vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedNgContent>[]);
+    _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(
+            const SummarizedNgContentReader())
+        .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedNgContent>[]);
     return _ngContents;
   }
 }
@@ -320,25 +360,30 @@ abstract class _UnlinkedHtmlSummaryMixin implements idl.UnlinkedHtmlSummary {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
-    if (ngContents.isNotEmpty) _result["ngContents"] = ngContents.map((_value) => _value.toJson()).toList();
+    if (ngContents.isNotEmpty)
+      _result["ngContents"] =
+          ngContents.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "ngContents": ngContents,
-  };
+        "ngContents": ngContents,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class LinkedDartSummaryBuilder extends Object with _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
+class LinkedDartSummaryBuilder extends Object
+    with _LinkedDartSummaryMixin
+    implements idl.LinkedDartSummary {
   List<SummarizedAnalysisErrorBuilder> _errors;
   List<String> _referencedHtmlFiles;
 
   @override
-  List<SummarizedAnalysisErrorBuilder> get errors => _errors ??= <SummarizedAnalysisErrorBuilder>[];
+  List<SummarizedAnalysisErrorBuilder> get errors =>
+      _errors ??= <SummarizedAnalysisErrorBuilder>[];
 
   void set errors(List<SummarizedAnalysisErrorBuilder> value) {
     this._errors = value;
@@ -351,9 +396,11 @@ class LinkedDartSummaryBuilder extends Object with _LinkedDartSummaryMixin imple
     this._referencedHtmlFiles = value;
   }
 
-  LinkedDartSummaryBuilder({List<SummarizedAnalysisErrorBuilder> errors, List<String> referencedHtmlFiles})
-    : _errors = errors,
-      _referencedHtmlFiles = referencedHtmlFiles;
+  LinkedDartSummaryBuilder(
+      {List<SummarizedAnalysisErrorBuilder> errors,
+      List<String> referencedHtmlFiles})
+      : _errors = errors,
+        _referencedHtmlFiles = referencedHtmlFiles;
 
   /**
    * Flush [informative] data recursively.
@@ -393,10 +440,12 @@ class LinkedDartSummaryBuilder extends Object with _LinkedDartSummaryMixin imple
     fb.Offset offset_errors;
     fb.Offset offset_referencedHtmlFiles;
     if (!(_errors == null || _errors.isEmpty)) {
-      offset_errors = fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
+      offset_errors =
+          fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
     }
     if (!(_referencedHtmlFiles == null || _referencedHtmlFiles.isEmpty)) {
-      offset_referencedHtmlFiles = fbBuilder.writeList(_referencedHtmlFiles.map((b) => fbBuilder.writeString(b)).toList());
+      offset_referencedHtmlFiles = fbBuilder.writeList(
+          _referencedHtmlFiles.map((b) => fbBuilder.writeString(b)).toList());
     }
     fbBuilder.startTable();
     if (offset_errors != null) {
@@ -418,10 +467,13 @@ class LinkedDartSummaryReader extends fb.TableReader<_LinkedDartSummaryImpl> {
   const LinkedDartSummaryReader();
 
   @override
-  _LinkedDartSummaryImpl createObject(fb.BufferContext bc, int offset) => new _LinkedDartSummaryImpl(bc, offset);
+  _LinkedDartSummaryImpl createObject(fb.BufferContext bc, int offset) =>
+      new _LinkedDartSummaryImpl(bc, offset);
 }
 
-class _LinkedDartSummaryImpl extends Object with _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
+class _LinkedDartSummaryImpl extends Object
+    with _LinkedDartSummaryMixin
+    implements idl.LinkedDartSummary {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -432,13 +484,17 @@ class _LinkedDartSummaryImpl extends Object with _LinkedDartSummaryMixin impleme
 
   @override
   List<idl.SummarizedAnalysisError> get errors {
-    _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(const SummarizedAnalysisErrorReader()).vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedAnalysisError>[]);
+    _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(
+            const SummarizedAnalysisErrorReader())
+        .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
 
   @override
   List<String> get referencedHtmlFiles {
-    _referencedHtmlFiles ??= const fb.ListReader<String>(const fb.StringReader()).vTableGet(_bc, _bcOffset, 1, const <String>[]);
+    _referencedHtmlFiles ??=
+        const fb.ListReader<String>(const fb.StringReader())
+            .vTableGet(_bc, _bcOffset, 1, const <String>[]);
     return _referencedHtmlFiles;
   }
 }
@@ -447,42 +503,50 @@ abstract class _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
-    if (errors.isNotEmpty) _result["errors"] = errors.map((_value) => _value.toJson()).toList();
-    if (referencedHtmlFiles.isNotEmpty) _result["referencedHtmlFiles"] = referencedHtmlFiles;
+    if (errors.isNotEmpty)
+      _result["errors"] = errors.map((_value) => _value.toJson()).toList();
+    if (referencedHtmlFiles.isNotEmpty)
+      _result["referencedHtmlFiles"] = referencedHtmlFiles;
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "errors": errors,
-    "referencedHtmlFiles": referencedHtmlFiles,
-  };
+        "errors": errors,
+        "referencedHtmlFiles": referencedHtmlFiles,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class UnlinkedDartSummaryBuilder extends Object with _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
+class UnlinkedDartSummaryBuilder extends Object
+    with _UnlinkedDartSummaryMixin
+    implements idl.UnlinkedDartSummary {
   List<SummarizedDirectiveBuilder> _directiveSummaries;
   List<SummarizedAnalysisErrorBuilder> _errors;
 
   @override
-  List<SummarizedDirectiveBuilder> get directiveSummaries => _directiveSummaries ??= <SummarizedDirectiveBuilder>[];
+  List<SummarizedDirectiveBuilder> get directiveSummaries =>
+      _directiveSummaries ??= <SummarizedDirectiveBuilder>[];
 
   void set directiveSummaries(List<SummarizedDirectiveBuilder> value) {
     this._directiveSummaries = value;
   }
 
   @override
-  List<SummarizedAnalysisErrorBuilder> get errors => _errors ??= <SummarizedAnalysisErrorBuilder>[];
+  List<SummarizedAnalysisErrorBuilder> get errors =>
+      _errors ??= <SummarizedAnalysisErrorBuilder>[];
 
   void set errors(List<SummarizedAnalysisErrorBuilder> value) {
     this._errors = value;
   }
 
-  UnlinkedDartSummaryBuilder({List<SummarizedDirectiveBuilder> directiveSummaries, List<SummarizedAnalysisErrorBuilder> errors})
-    : _directiveSummaries = directiveSummaries,
-      _errors = errors;
+  UnlinkedDartSummaryBuilder(
+      {List<SummarizedDirectiveBuilder> directiveSummaries,
+      List<SummarizedAnalysisErrorBuilder> errors})
+      : _directiveSummaries = directiveSummaries,
+        _errors = errors;
 
   /**
    * Flush [informative] data recursively.
@@ -523,10 +587,12 @@ class UnlinkedDartSummaryBuilder extends Object with _UnlinkedDartSummaryMixin i
     fb.Offset offset_directiveSummaries;
     fb.Offset offset_errors;
     if (!(_directiveSummaries == null || _directiveSummaries.isEmpty)) {
-      offset_directiveSummaries = fbBuilder.writeList(_directiveSummaries.map((b) => b.finish(fbBuilder)).toList());
+      offset_directiveSummaries = fbBuilder.writeList(
+          _directiveSummaries.map((b) => b.finish(fbBuilder)).toList());
     }
     if (!(_errors == null || _errors.isEmpty)) {
-      offset_errors = fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
+      offset_errors =
+          fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (offset_directiveSummaries != null) {
@@ -544,14 +610,18 @@ idl.UnlinkedDartSummary readUnlinkedDartSummary(List<int> buffer) {
   return const UnlinkedDartSummaryReader().read(rootRef, 0);
 }
 
-class UnlinkedDartSummaryReader extends fb.TableReader<_UnlinkedDartSummaryImpl> {
+class UnlinkedDartSummaryReader
+    extends fb.TableReader<_UnlinkedDartSummaryImpl> {
   const UnlinkedDartSummaryReader();
 
   @override
-  _UnlinkedDartSummaryImpl createObject(fb.BufferContext bc, int offset) => new _UnlinkedDartSummaryImpl(bc, offset);
+  _UnlinkedDartSummaryImpl createObject(fb.BufferContext bc, int offset) =>
+      new _UnlinkedDartSummaryImpl(bc, offset);
 }
 
-class _UnlinkedDartSummaryImpl extends Object with _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
+class _UnlinkedDartSummaryImpl extends Object
+    with _UnlinkedDartSummaryMixin
+    implements idl.UnlinkedDartSummary {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -562,13 +632,17 @@ class _UnlinkedDartSummaryImpl extends Object with _UnlinkedDartSummaryMixin imp
 
   @override
   List<idl.SummarizedDirective> get directiveSummaries {
-    _directiveSummaries ??= const fb.ListReader<idl.SummarizedDirective>(const SummarizedDirectiveReader()).vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedDirective>[]);
+    _directiveSummaries ??= const fb.ListReader<idl.SummarizedDirective>(
+            const SummarizedDirectiveReader())
+        .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedDirective>[]);
     return _directiveSummaries;
   }
 
   @override
   List<idl.SummarizedAnalysisError> get errors {
-    _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(const SummarizedAnalysisErrorReader()).vTableGet(_bc, _bcOffset, 1, const <idl.SummarizedAnalysisError>[]);
+    _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(
+            const SummarizedAnalysisErrorReader())
+        .vTableGet(_bc, _bcOffset, 1, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
 }
@@ -577,22 +651,27 @@ abstract class _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
-    if (directiveSummaries.isNotEmpty) _result["directiveSummaries"] = directiveSummaries.map((_value) => _value.toJson()).toList();
-    if (errors.isNotEmpty) _result["errors"] = errors.map((_value) => _value.toJson()).toList();
+    if (directiveSummaries.isNotEmpty)
+      _result["directiveSummaries"] =
+          directiveSummaries.map((_value) => _value.toJson()).toList();
+    if (errors.isNotEmpty)
+      _result["errors"] = errors.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "directiveSummaries": directiveSummaries,
-    "errors": errors,
-  };
+        "directiveSummaries": directiveSummaries,
+        "errors": errors,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedDirectiveBuilder extends Object with _SummarizedDirectiveMixin implements idl.SummarizedDirective {
+class SummarizedDirectiveBuilder extends Object
+    with _SummarizedDirectiveMixin
+    implements idl.SummarizedDirective {
   bool _isComponent;
   String _selectorStr;
   int _selectorOffset;
@@ -692,49 +771,68 @@ class SummarizedDirectiveBuilder extends Object with _SummarizedDirectiveMixin i
   }
 
   @override
-  List<SummarizedNgContentBuilder> get ngContents => _ngContents ??= <SummarizedNgContentBuilder>[];
+  List<SummarizedNgContentBuilder> get ngContents =>
+      _ngContents ??= <SummarizedNgContentBuilder>[];
 
   void set ngContents(List<SummarizedNgContentBuilder> value) {
     this._ngContents = value;
   }
 
   @override
-  List<SummarizedBindableBuilder> get inputs => _inputs ??= <SummarizedBindableBuilder>[];
+  List<SummarizedBindableBuilder> get inputs =>
+      _inputs ??= <SummarizedBindableBuilder>[];
 
   void set inputs(List<SummarizedBindableBuilder> value) {
     this._inputs = value;
   }
 
   @override
-  List<SummarizedBindableBuilder> get outputs => _outputs ??= <SummarizedBindableBuilder>[];
+  List<SummarizedBindableBuilder> get outputs =>
+      _outputs ??= <SummarizedBindableBuilder>[];
 
   void set outputs(List<SummarizedBindableBuilder> value) {
     this._outputs = value;
   }
 
   @override
-  List<SummarizedDirectiveUseBuilder> get subdirectives => _subdirectives ??= <SummarizedDirectiveUseBuilder>[];
+  List<SummarizedDirectiveUseBuilder> get subdirectives =>
+      _subdirectives ??= <SummarizedDirectiveUseBuilder>[];
 
   void set subdirectives(List<SummarizedDirectiveUseBuilder> value) {
     this._subdirectives = value;
   }
 
-  SummarizedDirectiveBuilder({bool isComponent, String selectorStr, int selectorOffset, String decoratedClassName, String exportAs, int exportAsOffset, String templateUrl, int templateUrlOffset, int templateUrlLength, String templateText, int templateOffset, List<SummarizedNgContentBuilder> ngContents, List<SummarizedBindableBuilder> inputs, List<SummarizedBindableBuilder> outputs, List<SummarizedDirectiveUseBuilder> subdirectives})
-    : _isComponent = isComponent,
-      _selectorStr = selectorStr,
-      _selectorOffset = selectorOffset,
-      _decoratedClassName = decoratedClassName,
-      _exportAs = exportAs,
-      _exportAsOffset = exportAsOffset,
-      _templateUrl = templateUrl,
-      _templateUrlOffset = templateUrlOffset,
-      _templateUrlLength = templateUrlLength,
-      _templateText = templateText,
-      _templateOffset = templateOffset,
-      _ngContents = ngContents,
-      _inputs = inputs,
-      _outputs = outputs,
-      _subdirectives = subdirectives;
+  SummarizedDirectiveBuilder(
+      {bool isComponent,
+      String selectorStr,
+      int selectorOffset,
+      String decoratedClassName,
+      String exportAs,
+      int exportAsOffset,
+      String templateUrl,
+      int templateUrlOffset,
+      int templateUrlLength,
+      String templateText,
+      int templateOffset,
+      List<SummarizedNgContentBuilder> ngContents,
+      List<SummarizedBindableBuilder> inputs,
+      List<SummarizedBindableBuilder> outputs,
+      List<SummarizedDirectiveUseBuilder> subdirectives})
+      : _isComponent = isComponent,
+        _selectorStr = selectorStr,
+        _selectorOffset = selectorOffset,
+        _decoratedClassName = decoratedClassName,
+        _exportAs = exportAs,
+        _exportAsOffset = exportAsOffset,
+        _templateUrl = templateUrl,
+        _templateUrlOffset = templateUrlOffset,
+        _templateUrlLength = templateUrlLength,
+        _templateText = templateText,
+        _templateOffset = templateOffset,
+        _ngContents = ngContents,
+        _inputs = inputs,
+        _outputs = outputs,
+        _subdirectives = subdirectives;
 
   /**
    * Flush [informative] data recursively.
@@ -821,16 +919,20 @@ class SummarizedDirectiveBuilder extends Object with _SummarizedDirectiveMixin i
       offset_templateText = fbBuilder.writeString(_templateText);
     }
     if (!(_ngContents == null || _ngContents.isEmpty)) {
-      offset_ngContents = fbBuilder.writeList(_ngContents.map((b) => b.finish(fbBuilder)).toList());
+      offset_ngContents = fbBuilder
+          .writeList(_ngContents.map((b) => b.finish(fbBuilder)).toList());
     }
     if (!(_inputs == null || _inputs.isEmpty)) {
-      offset_inputs = fbBuilder.writeList(_inputs.map((b) => b.finish(fbBuilder)).toList());
+      offset_inputs =
+          fbBuilder.writeList(_inputs.map((b) => b.finish(fbBuilder)).toList());
     }
     if (!(_outputs == null || _outputs.isEmpty)) {
-      offset_outputs = fbBuilder.writeList(_outputs.map((b) => b.finish(fbBuilder)).toList());
+      offset_outputs = fbBuilder
+          .writeList(_outputs.map((b) => b.finish(fbBuilder)).toList());
     }
     if (!(_subdirectives == null || _subdirectives.isEmpty)) {
-      offset_subdirectives = fbBuilder.writeList(_subdirectives.map((b) => b.finish(fbBuilder)).toList());
+      offset_subdirectives = fbBuilder
+          .writeList(_subdirectives.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (_isComponent == true) {
@@ -882,14 +984,18 @@ class SummarizedDirectiveBuilder extends Object with _SummarizedDirectiveMixin i
   }
 }
 
-class SummarizedDirectiveReader extends fb.TableReader<_SummarizedDirectiveImpl> {
+class SummarizedDirectiveReader
+    extends fb.TableReader<_SummarizedDirectiveImpl> {
   const SummarizedDirectiveReader();
 
   @override
-  _SummarizedDirectiveImpl createObject(fb.BufferContext bc, int offset) => new _SummarizedDirectiveImpl(bc, offset);
+  _SummarizedDirectiveImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedDirectiveImpl(bc, offset);
 }
 
-class _SummarizedDirectiveImpl extends Object with _SummarizedDirectiveMixin implements idl.SummarizedDirective {
+class _SummarizedDirectiveImpl extends Object
+    with _SummarizedDirectiveMixin
+    implements idl.SummarizedDirective {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -931,7 +1037,8 @@ class _SummarizedDirectiveImpl extends Object with _SummarizedDirectiveMixin imp
 
   @override
   String get decoratedClassName {
-    _decoratedClassName ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 3, '');
+    _decoratedClassName ??=
+        const fb.StringReader().vTableGet(_bc, _bcOffset, 3, '');
     return _decoratedClassName;
   }
 
@@ -955,13 +1062,15 @@ class _SummarizedDirectiveImpl extends Object with _SummarizedDirectiveMixin imp
 
   @override
   int get templateUrlOffset {
-    _templateUrlOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 7, 0);
+    _templateUrlOffset ??=
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 7, 0);
     return _templateUrlOffset;
   }
 
   @override
   int get templateUrlLength {
-    _templateUrlLength ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 8, 0);
+    _templateUrlLength ??=
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 8, 0);
     return _templateUrlLength;
   }
 
@@ -973,31 +1082,40 @@ class _SummarizedDirectiveImpl extends Object with _SummarizedDirectiveMixin imp
 
   @override
   int get templateOffset {
-    _templateOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 10, 0);
+    _templateOffset ??=
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 10, 0);
     return _templateOffset;
   }
 
   @override
   List<idl.SummarizedNgContent> get ngContents {
-    _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(const SummarizedNgContentReader()).vTableGet(_bc, _bcOffset, 11, const <idl.SummarizedNgContent>[]);
+    _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(
+            const SummarizedNgContentReader())
+        .vTableGet(_bc, _bcOffset, 11, const <idl.SummarizedNgContent>[]);
     return _ngContents;
   }
 
   @override
   List<idl.SummarizedBindable> get inputs {
-    _inputs ??= const fb.ListReader<idl.SummarizedBindable>(const SummarizedBindableReader()).vTableGet(_bc, _bcOffset, 12, const <idl.SummarizedBindable>[]);
+    _inputs ??= const fb.ListReader<idl.SummarizedBindable>(
+            const SummarizedBindableReader())
+        .vTableGet(_bc, _bcOffset, 12, const <idl.SummarizedBindable>[]);
     return _inputs;
   }
 
   @override
   List<idl.SummarizedBindable> get outputs {
-    _outputs ??= const fb.ListReader<idl.SummarizedBindable>(const SummarizedBindableReader()).vTableGet(_bc, _bcOffset, 13, const <idl.SummarizedBindable>[]);
+    _outputs ??= const fb.ListReader<idl.SummarizedBindable>(
+            const SummarizedBindableReader())
+        .vTableGet(_bc, _bcOffset, 13, const <idl.SummarizedBindable>[]);
     return _outputs;
   }
 
   @override
   List<idl.SummarizedDirectiveUse> get subdirectives {
-    _subdirectives ??= const fb.ListReader<idl.SummarizedDirectiveUse>(const SummarizedDirectiveUseReader()).vTableGet(_bc, _bcOffset, 14, const <idl.SummarizedDirectiveUse>[]);
+    _subdirectives ??= const fb.ListReader<idl.SummarizedDirectiveUse>(
+            const SummarizedDirectiveUseReader())
+        .vTableGet(_bc, _bcOffset, 14, const <idl.SummarizedDirectiveUse>[]);
     return _subdirectives;
   }
 }
@@ -1009,45 +1127,56 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
     if (isComponent != false) _result["isComponent"] = isComponent;
     if (selectorStr != '') _result["selectorStr"] = selectorStr;
     if (selectorOffset != 0) _result["selectorOffset"] = selectorOffset;
-    if (decoratedClassName != '') _result["decoratedClassName"] = decoratedClassName;
+    if (decoratedClassName != '')
+      _result["decoratedClassName"] = decoratedClassName;
     if (exportAs != '') _result["exportAs"] = exportAs;
     if (exportAsOffset != 0) _result["exportAsOffset"] = exportAsOffset;
     if (templateUrl != '') _result["templateUrl"] = templateUrl;
-    if (templateUrlOffset != 0) _result["templateUrlOffset"] = templateUrlOffset;
-    if (templateUrlLength != 0) _result["templateUrlLength"] = templateUrlLength;
+    if (templateUrlOffset != 0)
+      _result["templateUrlOffset"] = templateUrlOffset;
+    if (templateUrlLength != 0)
+      _result["templateUrlLength"] = templateUrlLength;
     if (templateText != '') _result["templateText"] = templateText;
     if (templateOffset != 0) _result["templateOffset"] = templateOffset;
-    if (ngContents.isNotEmpty) _result["ngContents"] = ngContents.map((_value) => _value.toJson()).toList();
-    if (inputs.isNotEmpty) _result["inputs"] = inputs.map((_value) => _value.toJson()).toList();
-    if (outputs.isNotEmpty) _result["outputs"] = outputs.map((_value) => _value.toJson()).toList();
-    if (subdirectives.isNotEmpty) _result["subdirectives"] = subdirectives.map((_value) => _value.toJson()).toList();
+    if (ngContents.isNotEmpty)
+      _result["ngContents"] =
+          ngContents.map((_value) => _value.toJson()).toList();
+    if (inputs.isNotEmpty)
+      _result["inputs"] = inputs.map((_value) => _value.toJson()).toList();
+    if (outputs.isNotEmpty)
+      _result["outputs"] = outputs.map((_value) => _value.toJson()).toList();
+    if (subdirectives.isNotEmpty)
+      _result["subdirectives"] =
+          subdirectives.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "isComponent": isComponent,
-    "selectorStr": selectorStr,
-    "selectorOffset": selectorOffset,
-    "decoratedClassName": decoratedClassName,
-    "exportAs": exportAs,
-    "exportAsOffset": exportAsOffset,
-    "templateUrl": templateUrl,
-    "templateUrlOffset": templateUrlOffset,
-    "templateUrlLength": templateUrlLength,
-    "templateText": templateText,
-    "templateOffset": templateOffset,
-    "ngContents": ngContents,
-    "inputs": inputs,
-    "outputs": outputs,
-    "subdirectives": subdirectives,
-  };
+        "isComponent": isComponent,
+        "selectorStr": selectorStr,
+        "selectorOffset": selectorOffset,
+        "decoratedClassName": decoratedClassName,
+        "exportAs": exportAs,
+        "exportAsOffset": exportAsOffset,
+        "templateUrl": templateUrl,
+        "templateUrlOffset": templateUrlOffset,
+        "templateUrlLength": templateUrlLength,
+        "templateText": templateText,
+        "templateOffset": templateOffset,
+        "ngContents": ngContents,
+        "inputs": inputs,
+        "outputs": outputs,
+        "subdirectives": subdirectives,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedAnalysisErrorBuilder extends Object with _SummarizedAnalysisErrorMixin implements idl.SummarizedAnalysisError {
+class SummarizedAnalysisErrorBuilder extends Object
+    with _SummarizedAnalysisErrorMixin
+    implements idl.SummarizedAnalysisError {
   String _errorCode;
   String _message;
   String _correction;
@@ -1091,18 +1220,22 @@ class SummarizedAnalysisErrorBuilder extends Object with _SummarizedAnalysisErro
     this._length = value;
   }
 
-  SummarizedAnalysisErrorBuilder({String errorCode, String message, String correction, int offset, int length})
-    : _errorCode = errorCode,
-      _message = message,
-      _correction = correction,
-      _offset = offset,
-      _length = length;
+  SummarizedAnalysisErrorBuilder(
+      {String errorCode,
+      String message,
+      String correction,
+      int offset,
+      int length})
+      : _errorCode = errorCode,
+        _message = message,
+        _correction = correction,
+        _offset = offset,
+        _length = length;
 
   /**
    * Flush [informative] data recursively.
    */
-  void flushInformative() {
-  }
+  void flushInformative() {}
 
   /**
    * Accumulate non-[informative] data into [signature].
@@ -1148,14 +1281,18 @@ class SummarizedAnalysisErrorBuilder extends Object with _SummarizedAnalysisErro
   }
 }
 
-class SummarizedAnalysisErrorReader extends fb.TableReader<_SummarizedAnalysisErrorImpl> {
+class SummarizedAnalysisErrorReader
+    extends fb.TableReader<_SummarizedAnalysisErrorImpl> {
   const SummarizedAnalysisErrorReader();
 
   @override
-  _SummarizedAnalysisErrorImpl createObject(fb.BufferContext bc, int offset) => new _SummarizedAnalysisErrorImpl(bc, offset);
+  _SummarizedAnalysisErrorImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedAnalysisErrorImpl(bc, offset);
 }
 
-class _SummarizedAnalysisErrorImpl extends Object with _SummarizedAnalysisErrorMixin implements idl.SummarizedAnalysisError {
+class _SummarizedAnalysisErrorImpl extends Object
+    with _SummarizedAnalysisErrorMixin
+    implements idl.SummarizedAnalysisError {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -1198,7 +1335,8 @@ class _SummarizedAnalysisErrorImpl extends Object with _SummarizedAnalysisErrorM
   }
 }
 
-abstract class _SummarizedAnalysisErrorMixin implements idl.SummarizedAnalysisError {
+abstract class _SummarizedAnalysisErrorMixin
+    implements idl.SummarizedAnalysisError {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
@@ -1212,18 +1350,20 @@ abstract class _SummarizedAnalysisErrorMixin implements idl.SummarizedAnalysisEr
 
   @override
   Map<String, Object> toMap() => {
-    "errorCode": errorCode,
-    "message": message,
-    "correction": correction,
-    "offset": offset,
-    "length": length,
-  };
+        "errorCode": errorCode,
+        "message": message,
+        "correction": correction,
+        "offset": offset,
+        "length": length,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedAnalysisErrorFromPathBuilder extends Object with _SummarizedAnalysisErrorFromPathMixin implements idl.SummarizedAnalysisErrorFromPath {
+class SummarizedAnalysisErrorFromPathBuilder extends Object
+    with _SummarizedAnalysisErrorFromPathMixin
+    implements idl.SummarizedAnalysisErrorFromPath {
   String _path;
   SummarizedAnalysisErrorBuilder _originalError;
 
@@ -1241,9 +1381,10 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object with _SummarizedAnal
     this._originalError = value;
   }
 
-  SummarizedAnalysisErrorFromPathBuilder({String path, SummarizedAnalysisErrorBuilder originalError})
-    : _path = path,
-      _originalError = originalError;
+  SummarizedAnalysisErrorFromPathBuilder(
+      {String path, SummarizedAnalysisErrorBuilder originalError})
+      : _path = path,
+        _originalError = originalError;
 
   /**
    * Flush [informative] data recursively.
@@ -1281,14 +1422,19 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object with _SummarizedAnal
   }
 }
 
-class SummarizedAnalysisErrorFromPathReader extends fb.TableReader<_SummarizedAnalysisErrorFromPathImpl> {
+class SummarizedAnalysisErrorFromPathReader
+    extends fb.TableReader<_SummarizedAnalysisErrorFromPathImpl> {
   const SummarizedAnalysisErrorFromPathReader();
 
   @override
-  _SummarizedAnalysisErrorFromPathImpl createObject(fb.BufferContext bc, int offset) => new _SummarizedAnalysisErrorFromPathImpl(bc, offset);
+  _SummarizedAnalysisErrorFromPathImpl createObject(
+          fb.BufferContext bc, int offset) =>
+      new _SummarizedAnalysisErrorFromPathImpl(bc, offset);
 }
 
-class _SummarizedAnalysisErrorFromPathImpl extends Object with _SummarizedAnalysisErrorFromPathMixin implements idl.SummarizedAnalysisErrorFromPath {
+class _SummarizedAnalysisErrorFromPathImpl extends Object
+    with _SummarizedAnalysisErrorFromPathMixin
+    implements idl.SummarizedAnalysisErrorFromPath {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -1305,31 +1451,36 @@ class _SummarizedAnalysisErrorFromPathImpl extends Object with _SummarizedAnalys
 
   @override
   idl.SummarizedAnalysisError get originalError {
-    _originalError ??= const SummarizedAnalysisErrorReader().vTableGet(_bc, _bcOffset, 1, null);
+    _originalError ??= const SummarizedAnalysisErrorReader()
+        .vTableGet(_bc, _bcOffset, 1, null);
     return _originalError;
   }
 }
 
-abstract class _SummarizedAnalysisErrorFromPathMixin implements idl.SummarizedAnalysisErrorFromPath {
+abstract class _SummarizedAnalysisErrorFromPathMixin
+    implements idl.SummarizedAnalysisErrorFromPath {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
     if (path != '') _result["path"] = path;
-    if (originalError != null) _result["originalError"] = originalError.toJson();
+    if (originalError != null)
+      _result["originalError"] = originalError.toJson();
     return _result;
   }
 
   @override
   Map<String, Object> toMap() => {
-    "path": path,
-    "originalError": originalError,
-  };
+        "path": path,
+        "originalError": originalError,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedBindableBuilder extends Object with _SummarizedBindableMixin implements idl.SummarizedBindable {
+class SummarizedBindableBuilder extends Object
+    with _SummarizedBindableMixin
+    implements idl.SummarizedBindable {
   String _name;
   int _nameOffset;
   String _propName;
@@ -1365,17 +1516,17 @@ class SummarizedBindableBuilder extends Object with _SummarizedBindableMixin imp
     this._propNameOffset = value;
   }
 
-  SummarizedBindableBuilder({String name, int nameOffset, String propName, int propNameOffset})
-    : _name = name,
-      _nameOffset = nameOffset,
-      _propName = propName,
-      _propNameOffset = propNameOffset;
+  SummarizedBindableBuilder(
+      {String name, int nameOffset, String propName, int propNameOffset})
+      : _name = name,
+        _nameOffset = nameOffset,
+        _propName = propName,
+        _propNameOffset = propNameOffset;
 
   /**
    * Flush [informative] data recursively.
    */
-  void flushInformative() {
-  }
+  void flushInformative() {}
 
   /**
    * Accumulate non-[informative] data into [signature].
@@ -1417,10 +1568,13 @@ class SummarizedBindableReader extends fb.TableReader<_SummarizedBindableImpl> {
   const SummarizedBindableReader();
 
   @override
-  _SummarizedBindableImpl createObject(fb.BufferContext bc, int offset) => new _SummarizedBindableImpl(bc, offset);
+  _SummarizedBindableImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedBindableImpl(bc, offset);
 }
 
-class _SummarizedBindableImpl extends Object with _SummarizedBindableMixin implements idl.SummarizedBindable {
+class _SummarizedBindableImpl extends Object
+    with _SummarizedBindableMixin
+    implements idl.SummarizedBindable {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -1469,17 +1623,19 @@ abstract class _SummarizedBindableMixin implements idl.SummarizedBindable {
 
   @override
   Map<String, Object> toMap() => {
-    "name": name,
-    "nameOffset": nameOffset,
-    "propName": propName,
-    "propNameOffset": propNameOffset,
-  };
+        "name": name,
+        "nameOffset": nameOffset,
+        "propName": propName,
+        "propNameOffset": propNameOffset,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUse {
+class SummarizedDirectiveUseBuilder extends Object
+    with _SummarizedDirectiveUseMixin
+    implements idl.SummarizedDirectiveUse {
   String _name;
   String _prefix;
   int _offset;
@@ -1515,17 +1671,17 @@ class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseM
     this._length = value;
   }
 
-  SummarizedDirectiveUseBuilder({String name, String prefix, int offset, int length})
-    : _name = name,
-      _prefix = prefix,
-      _offset = offset,
-      _length = length;
+  SummarizedDirectiveUseBuilder(
+      {String name, String prefix, int offset, int length})
+      : _name = name,
+        _prefix = prefix,
+        _offset = offset,
+        _length = length;
 
   /**
    * Flush [informative] data recursively.
    */
-  void flushInformative() {
-  }
+  void flushInformative() {}
 
   /**
    * Accumulate non-[informative] data into [signature].
@@ -1563,14 +1719,18 @@ class SummarizedDirectiveUseBuilder extends Object with _SummarizedDirectiveUseM
   }
 }
 
-class SummarizedDirectiveUseReader extends fb.TableReader<_SummarizedDirectiveUseImpl> {
+class SummarizedDirectiveUseReader
+    extends fb.TableReader<_SummarizedDirectiveUseImpl> {
   const SummarizedDirectiveUseReader();
 
   @override
-  _SummarizedDirectiveUseImpl createObject(fb.BufferContext bc, int offset) => new _SummarizedDirectiveUseImpl(bc, offset);
+  _SummarizedDirectiveUseImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedDirectiveUseImpl(bc, offset);
 }
 
-class _SummarizedDirectiveUseImpl extends Object with _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUse {
+class _SummarizedDirectiveUseImpl extends Object
+    with _SummarizedDirectiveUseMixin
+    implements idl.SummarizedDirectiveUse {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -1606,7 +1766,8 @@ class _SummarizedDirectiveUseImpl extends Object with _SummarizedDirectiveUseMix
   }
 }
 
-abstract class _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUse {
+abstract class _SummarizedDirectiveUseMixin
+    implements idl.SummarizedDirectiveUse {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
@@ -1619,17 +1780,19 @@ abstract class _SummarizedDirectiveUseMixin implements idl.SummarizedDirectiveUs
 
   @override
   Map<String, Object> toMap() => {
-    "name": name,
-    "prefix": prefix,
-    "offset": offset,
-    "length": length,
-  };
+        "name": name,
+        "prefix": prefix,
+        "offset": offset,
+        "length": length,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedNgContentBuilder extends Object with _SummarizedNgContentMixin implements idl.SummarizedNgContent {
+class SummarizedNgContentBuilder extends Object
+    with _SummarizedNgContentMixin
+    implements idl.SummarizedNgContent {
   int _offset;
   int _length;
   String _selectorStr;
@@ -1666,17 +1829,17 @@ class SummarizedNgContentBuilder extends Object with _SummarizedNgContentMixin i
     this._selectorOffset = value;
   }
 
-  SummarizedNgContentBuilder({int offset, int length, String selectorStr, int selectorOffset})
-    : _offset = offset,
-      _length = length,
-      _selectorStr = selectorStr,
-      _selectorOffset = selectorOffset;
+  SummarizedNgContentBuilder(
+      {int offset, int length, String selectorStr, int selectorOffset})
+      : _offset = offset,
+        _length = length,
+        _selectorStr = selectorStr,
+        _selectorOffset = selectorOffset;
 
   /**
    * Flush [informative] data recursively.
    */
-  void flushInformative() {
-  }
+  void flushInformative() {}
 
   /**
    * Accumulate non-[informative] data into [signature].
@@ -1710,14 +1873,18 @@ class SummarizedNgContentBuilder extends Object with _SummarizedNgContentMixin i
   }
 }
 
-class SummarizedNgContentReader extends fb.TableReader<_SummarizedNgContentImpl> {
+class SummarizedNgContentReader
+    extends fb.TableReader<_SummarizedNgContentImpl> {
   const SummarizedNgContentReader();
 
   @override
-  _SummarizedNgContentImpl createObject(fb.BufferContext bc, int offset) => new _SummarizedNgContentImpl(bc, offset);
+  _SummarizedNgContentImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedNgContentImpl(bc, offset);
 }
 
-class _SummarizedNgContentImpl extends Object with _SummarizedNgContentMixin implements idl.SummarizedNgContent {
+class _SummarizedNgContentImpl extends Object
+    with _SummarizedNgContentMixin
+    implements idl.SummarizedNgContent {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
@@ -1766,13 +1933,12 @@ abstract class _SummarizedNgContentMixin implements idl.SummarizedNgContent {
 
   @override
   Map<String, Object> toMap() => {
-    "offset": offset,
-    "length": length,
-    "selectorStr": selectorStr,
-    "selectorOffset": selectorOffset,
-  };
+        "offset": offset,
+        "length": length,
+        "selectorStr": selectorStr,
+        "selectorOffset": selectorOffset,
+      };
 
   @override
   String toString() => convert.JSON.encode(toJson());
 }
-
