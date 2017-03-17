@@ -9,7 +9,6 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
 import 'package:analysis_server/src/protocol_server.dart' as protocol;
-import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/summary/api_signature.dart';
