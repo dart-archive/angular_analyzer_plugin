@@ -207,16 +207,22 @@ class AngularDriver
     final linker = new ChildDirectiveLinker(this, linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
 
-    Component component = directives.singleWhere((directive) =>
-        directive is Component &&
-        directive.view?.templateUriSource?.fullName == htmlPath);
-    for (final subdirective in component.view.directives) {
-      if (subdirective is Component) {
-        key.addBytes(
-            getContentHash(subdirective.view.templateUriSource.fullName)
-                .toByteList());
+    // Trap case: there may be multiple directives that match this!
+    directives
+        .where((directive) =>
+            directive is Component &&
+            directive.view?.templateUriSource?.fullName == htmlPath)
+        .forEach((AbstractDirective directive) {
+      final Component component = directive;
+      for (final subdirective in component.view.directives) {
+        if (subdirective is Component &&
+            subdirective?.view?.templateUriSource != null) {
+          key.addBytes(
+              getContentHash(subdirective.view.templateUriSource.fullName)
+                  .toByteList());
+        }
       }
-    }
+    });
 
     return key.toHex() + '.ngresolved';
   }
