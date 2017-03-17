@@ -1,6 +1,5 @@
 library angular2.src.analysis.server_plugin.analysis;
 
-import 'package:analysis_server/plugin/analysis/analysis_domain.dart';
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
@@ -9,78 +8,52 @@ import 'package:analyzer/dart/element/element.dart' as engine;
 import 'package:analyzer/src/dart/element/member.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
-import 'package:analyzer/task/general.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
-
-class AnalysisDomainContributor {
-  AnalysisDomain analysisDomain;
-
-  void onResult(ResultChangedEvent event) {
-    if (event.wasComputed) {
-      AnalysisContext context = event.context;
-      Source source = event.target.source;
-      analysisDomain.scheduleNotification(
-          context, source, protocol.AnalysisService.NAVIGATION);
-      analysisDomain.scheduleNotification(
-          context, source, protocol.AnalysisService.OCCURRENCES);
-    }
-  }
-
-  void setAnalysisDomain(AnalysisDomain analysisDomain) {
-    this.analysisDomain = analysisDomain;
-    analysisDomain.onResultChanged(DART_TEMPLATES).listen(onResult);
-    analysisDomain.onResultChanged(HTML_TEMPLATES).listen(onResult);
-  }
-}
 
 class AngularNavigationContributor implements NavigationContributor {
   @override
   void computeNavigation(NavigationCollector collector, AnalysisContext context,
       Source source, int offset, int length) {
-    LineInfo lineInfo = context.computeResult(source, LINE_INFO);
-    // in Dart
-    {
-      List<Source> librarySources = context.getLibrariesContaining(source);
-      for (Source librarySource in librarySources) {
-        LibrarySpecificUnit target =
-            new LibrarySpecificUnit(librarySource, source);
-        // directives
-        {
-          List<AbstractDirective> directives =
-              context.getResult(target, DIRECTIVES_IN_UNIT);
-          for (AbstractDirective template in directives) {
-            _addDirectiveRegions(collector, lineInfo, template);
-          }
-        }
-        // templates
-        {
-          List<Template> templates = context.getResult(target, DART_TEMPLATES);
-          for (Template template in templates) {
-            _addTemplateRegions(collector, lineInfo, template);
-          }
-        }
-        // views
-        {
-          List<View> views = context.getResult(target, VIEWS2);
-          for (View view in views) {
-            _addViewRegions(collector, lineInfo, view);
-          }
-        }
-      }
-    }
+    //LineInfo lineInfo = context.computeResult(source, LINE_INFO);
+    //// in Dart
+    //{
+    //  List<Source> librarySources = context.getLibrariesContaining(source);
+    //  for (Source librarySource in librarySources) {
+    //    // directives
+    //    {
+    //      List<AbstractDirective> directives =
+    //          context.getResult(target, DIRECTIVES_IN_UNIT);
+    //      for (AbstractDirective template in directives) {
+    //        _addDirectiveRegions(collector, lineInfo, template);
+    //      }
+    //    }
+    //    // templates
+    //    {
+    //      List<Template> templates = context.getResult(target, DART_TEMPLATES);
+    //      for (Template template in templates) {
+    //        _addTemplateRegions(collector, lineInfo, template);
+    //      }
+    //    }
+    //    // views
+    //    {
+    //      List<View> views = context.getResult(target, VIEWS2);
+    //      for (View view in views) {
+    //        _addViewRegions(collector, lineInfo, view);
+    //      }
+    //    }
+    //  }
+    //}
     // in HTML
     {
-      List<HtmlTemplate> templates = context.getResult(source, HTML_TEMPLATES);
-      if (templates.isNotEmpty) {
-        HtmlTemplate template = templates.first;
-        _addTemplateRegions(collector, lineInfo, template);
-      }
+      //List<HtmlTemplate> templates = context.getResult(source, HTML_TEMPLATES);
+      //if (templates.isNotEmpty) {
+      //  HtmlTemplate template = templates.first;
+      //  _addTemplateRegions(collector, lineInfo, template);
+      //}
     }
   }
 
-  void _addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
+  void addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
       AbstractDirective directive) {
     for (InputElement input in directive.inputs) {
       engine.PropertyAccessorElement setter = input.setter;
@@ -104,7 +77,7 @@ class AngularNavigationContributor implements NavigationContributor {
     }
   }
 
-  void _addTemplateRegions(
+  void addTemplateRegions(
       NavigationCollector collector, LineInfo lineInfo, Template template) {
     for (ResolvedRange resolvedRange in template.ranges) {
       int offset = resolvedRange.range.offset;
@@ -123,7 +96,7 @@ class AngularNavigationContributor implements NavigationContributor {
     }
   }
 
-  void _addViewRegions(
+  void addViewRegions(
       NavigationCollector collector, LineInfo lineInfo, View view) {
     if (view.templateUriSource != null) {
       collector.addRegion(
@@ -139,28 +112,28 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
   @override
   void computeOccurrences(
       OccurrencesCollector collector, AnalysisContext context, Source source) {
-    List<Source> librarySources = context.getLibrariesContaining(source);
-    for (Source librarySource in librarySources) {
-      // directives
-      {
-        List<AbstractDirective> directives = context.getResult(
-            new LibrarySpecificUnit(librarySource, source), DIRECTIVES_IN_UNIT);
-        for (AbstractDirective directive in directives) {
-          _addDirectiveOccurrences(collector, directive);
-        }
-      }
-      // templates
-      {
-        List<Template> templates = context.getResult(
-            new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
-        for (Template template in templates) {
-          _addTemplateOccurrences(collector, template);
-        }
-      }
-    }
+    //List<Source> librarySources = context.getLibrariesContaining(source);
+    //for (Source librarySource in librarySources) {
+    //  // directives
+    //  {
+    //    List<AbstractDirective> directives = context.getResult(
+    //        new LibrarySpecificUnit(librarySource, source), DIRECTIVES_IN_UNIT);
+    //    for (AbstractDirective directive in directives) {
+    //      _addDirectiveOccurrences(collector, directive);
+    //    }
+    //  }
+    //  // templates
+    //  {
+    //    List<Template> templates = context.getResult(
+    //        new LibrarySpecificUnit(librarySource, source), DART_TEMPLATES);
+    //    for (Template template in templates) {
+    //      _addTemplateOccurrences(collector, template);
+    //    }
+    //  }
+    //}
   }
 
-  void _addDirectiveOccurrences(
+  void addDirectiveOccurrences(
       OccurrencesCollector collector, AbstractDirective directive) {
     Map<engine.PropertyAccessorElement, List<int>> elementsOffsets =
         <engine.PropertyAccessorElement, List<int>>{};
@@ -186,7 +159,7 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
     });
   }
 
-  void _addTemplateOccurrences(
+  void addTemplateOccurrences(
       OccurrencesCollector collector, Template template) {
     Map<AngularElement, List<int>> elementsOffsets =
         <AngularElement, List<int>>{};
