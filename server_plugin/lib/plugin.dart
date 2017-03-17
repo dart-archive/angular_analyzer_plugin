@@ -1,10 +1,8 @@
 library angular2.src.analysis.server_plugin;
 
-import 'package:analysis_server/plugin/analysis/analysis_domain.dart';
-import 'package:analysis_server/plugin/analysis/navigation/navigation.dart';
-import 'package:analysis_server/plugin/analysis/occurrences/occurrences.dart';
+//import 'package:analysis_server/plugin/analysis/navigation/navigation.dart';
+//import 'package:analysis_server/plugin/analysis/occurrences/occurrences.dart';
 import 'package:analysis_server/src/provisional/completion/completion.dart';
-import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:plugin/plugin.dart';
 
@@ -26,8 +24,6 @@ class AngularServerPlugin implements Plugin {
 
   @override
   void registerExtensions(RegisterExtension registerExtension) {
-    //registerExtension(SET_ANALYSIS_DOMAIN_EXTENSION_POINT_ID,
-    //    new AnalysisDomainContributor().setAnalysisDomain);
     //registerExtension(NAVIGATION_CONTRIBUTOR_EXTENSION_POINT_ID,
     //    new AngularNavigationContributor());
     //registerExtension(OCCURRENCES_CONTRIBUTOR_EXTENSION_POINT_ID,
