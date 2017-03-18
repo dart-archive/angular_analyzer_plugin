@@ -326,21 +326,14 @@ abstract class ParseHtmlMixin implements AnalysisTask {
     );
 
     for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
-      ErrorCode errorCode;
-      if (e.message == 'Unopened mustache') {
-        errorCode = AngularWarningCode.UNOPENED_MUSTACHE;
-      } else if (e.message == 'Unclosed mustache') {
-        errorCode = AngularWarningCode.UNTERMINATED_MUSTACHE;
-      } else {
-        errorCode = AngularWarningCode.ANGULAR_PARSER_ERROR;
+      if (e.errorCode is NgAst.NgParserWarningCode) {
+        this.parseErrors.add(new AnalysisError(
+              target.source,
+              e.offset,
+              e.length,
+              e.errorCode,
+            ));
       }
-
-      this.parseErrors.add(new AnalysisError(
-            target.source,
-            e.offset,
-            e.context.length,
-            errorCode,
-          ));
     }
   }
 }
@@ -1595,7 +1588,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
     try {
       template.ast = new HtmlTreeConverter(parser, source, errorListener)
           .convertFromAstList(documentAsts);
-    } catch(e, stacktrace) {
+    } catch (e, stacktrace) {
       print(stacktrace);
     }
 

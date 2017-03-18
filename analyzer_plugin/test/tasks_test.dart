@@ -2320,8 +2320,8 @@ class TextPanel {
     // has errors
     fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
-      AngularWarningCode.ANGULAR_PARSER_ERROR,
-      AngularWarningCode.ANGULAR_PARSER_ERROR,
+      NgParserWarningCode.DANGLING_CLOSE_ELEMENT,
+      NgParserWarningCode.CANNOT_FIND_MATCHING_CLOSE,
     ]);
   }
 
@@ -2548,7 +2548,7 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', template: r"<div> {{text </div>")
+@Component(selector: 'text-panel', template: r"{{text")
 class TextPanel {
   String text = "text";
 }
@@ -2557,8 +2557,9 @@ class TextPanel {
     computeResult(source, DART_ERRORS);
     // has errors
     fillErrorListener(DART_ERRORS);
-    errorListener
-        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
+    errorListener.assertErrorsWithCodes([
+      NgParserWarningCode.AFTER_INTERPOLATION,
+    ]);
   }
 
   void test_textExpression_hasError_UnopenedMustache() {
@@ -2574,7 +2575,8 @@ class TextPanel {
     computeResult(source, DART_ERRORS);
     // has errors
     fillErrorListener(DART_ERRORS);
-    errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
+    errorListener
+        .assertErrorsWithCodes([NgParserWarningCode.BEFORE_INTERPOLATION]);
   }
 
   void test_textExpression_hasError_DoubleOpenedMustache() {
@@ -2591,7 +2593,7 @@ class TextPanel {
     // has errors
     fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
-      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      NgParserWarningCode.AFTER_INTERPOLATION,
       StaticWarningCode.UNDEFINED_IDENTIFIER
     ]);
   }
@@ -2610,11 +2612,11 @@ class TextPanel {
     // has errors
     fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
-      AngularWarningCode.UNTERMINATED_MUSTACHE,
-      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      NgParserWarningCode.AFTER_INTERPOLATION,
+      NgParserWarningCode.AFTER_INTERPOLATION,
       StaticWarningCode.UNDEFINED_IDENTIFIER,
-      AngularWarningCode.UNOPENED_MUSTACHE,
-      AngularWarningCode.UNOPENED_MUSTACHE
+      NgParserWarningCode.BEFORE_INTERPOLATION,
+      NgParserWarningCode.BEFORE_INTERPOLATION,
     ]);
   }
 
