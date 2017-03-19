@@ -343,7 +343,7 @@ class HtmlTreeConverter {
     String origName;
     int origNameOffset;
 
-    // TODO: refactor once a generic DecoratorAst is created
+    // TODO: Max: refactor once a generic DecoratorAst is created
     if (ast is ParsedAttributeAst) {
       origName = ast.name;
       origNameOffset = ast.nameOffset;
@@ -363,23 +363,23 @@ class HtmlTreeConverter {
       propNameOffset = origNameOffset + prefix.length;
     } else if (ast is ParsedEventAst) {
       origName = ast.prefixToken.lexeme +
-          ast.nameToken.lexeme +
+          ast.name +
+          (ast.postfix != null ? '.${ast.postfix}' : '') +
           ast.suffixToken.lexeme;
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
-      if (value == null || value.isEmpty) {
-        errorListener.onError(new AnalysisError(
-            templateSource,
-            origNameOffset,
-            ast.nameToken.length,
-            AngularWarningCode.EMPTY_BINDING,
-            [ast.name]));
+
+      if ((value == null || value.isEmpty) &&
+          !ast.prefixToken.errorSynthetic &&
+          !ast.suffixToken.errorSynthetic) {
+        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
+            origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
       }
       valueOffset = ast.valueOffset;
 
       propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = origNameOffset + prefix.length;
+      propNameOffset = ast.nameToken.offset;
     }
     return new StatementsBoundAttribute(
         propName,
@@ -408,30 +408,39 @@ class HtmlTreeConverter {
       origNameOffset = ast.nameOffset;
 
       value = ast.value;
-      if (value == null) {
+      if (value == null || value.isEmpty) {
         errorListener.onError(new AnalysisError(templateSource, origNameOffset,
             origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
       }
       valueOffset = ast.valueOffset;
 
       propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = origNameOffset + prefix.length;
+      propNameOffset = ast.nameToken.offset;
     }
     if (ast is ParsedPropertyAst) {
       origName = ast.prefixToken.lexeme +
-          ast.nameToken.lexeme +
+          ast.name +
+          (ast.postfix != null ? '.${ast.postfix}' : '') +
+          (ast.unit != null ? '.${ast.unit}' : '') +
           ast.suffixToken.lexeme;
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
-      if (value == null) {
-        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
-            origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+      if ((value == null || value.isEmpty) &&
+          !ast.prefixToken.errorSynthetic &&
+          !ast.suffixToken.errorSynthetic) {
+        errorListener.onError(new AnalysisError(
+          templateSource,
+          origNameOffset,
+          origName.length,
+          AngularWarningCode.EMPTY_BINDING,
+          [origName],
+        ));
       }
       valueOffset = ast.valueOffset;
 
       propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = origNameOffset + prefix.length;
+      propNameOffset = ast.nameToken.offset;
     }
     if (ast is ParsedBananaAst) {
       origName = ast.prefixToken.lexeme +
@@ -440,9 +449,16 @@ class HtmlTreeConverter {
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
-      if (value == null) {
-        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
-            origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+      if ((value == null || value.isEmpty) &&
+          !ast.prefixToken.errorSynthetic &&
+          !ast.suffixToken.errorSynthetic) {
+        errorListener.onError(new AnalysisError(
+          templateSource,
+          origNameOffset,
+          origName.length,
+          AngularWarningCode.EMPTY_BINDING,
+          [origName],
+        ));
       }
       valueOffset = ast.valueOffset;
 
@@ -673,6 +689,9 @@ class EmbeddedDartParser {
       }
       // resolve
       String code = text.substring(exprBegin, exprEnd);
+      if (code.trim().isEmpty) {
+        continue;
+      }
       Expression expression =
           parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
 

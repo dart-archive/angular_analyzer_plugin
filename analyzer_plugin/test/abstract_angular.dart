@@ -19,6 +19,7 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:plugin/manager.dart';
 import 'package:plugin/plugin.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
@@ -321,30 +322,29 @@ class NgFor {
     expect(errorListener.errors.single.length, snippet.length);
   }
 
-/**
- * Assert multiple [errCode] is reported for [code], highlighting the [snippet].
- */
-  void assertMultipleErrorsInCodeAtPositions(
-      String code, Map<ErrorCode, String> errCodesAndSnippet) {
-    Map<ErrorCode, Map<int, String>> expectedErrors = new Map<ErrorCode, Map>();
-    errCodesAndSnippet.forEach((errCode, snippet) {
-      int snippetIndex = code.indexOf(snippet);
-      expect(snippetIndex, greaterThan(-1),
-          reason: 'Error in test: snippet ${snippet} not part of code ${code}');
-      Map currErrorList = expectedErrors.putIfAbsent(errCode, () => new Map());
-      currErrorList.putIfAbsent(snippetIndex, () => snippet);
+  /**
+   * Given an explicit list of [AnalysisError], check to see if errors
+   * occurred during angular analysis.
+   */
+  // TODO: Max: remove debug flag.
+  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors, {bool debug: false}) {
+    var realErrors = errorListener.errors;
+    if (debug) {
+      realErrors.forEach((error) {
+        print(error.errorCode);
+        print(error.isStaticOnly);
+        print(error.source);
+        print(error.offset);
+        print(error.length);
+      });
+    }
+    expectedErrors.forEach((expectedError) {
+      expect(realErrors.contains(expectedError), true,
+          reason: 'Expected error code ${expectedError.errorCode} never occurs at '
+              'location ${expectedError.offset} of length ${expectedError.length}.');
     });
-    errorListener.assertErrorsWithCodes(expectedErrors.keys);
-
-    List<AnalysisError> errors = errorListener.errors;
-    errors.forEach((currErr) {
-      expect(expectedErrors.containsKey(currErr.errorCode), true);
-      expect(
-          expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
-      expect(currErr.length,
-          expectedErrors[currErr.errorCode][currErr.offset].length,
-          verbose: true);
-    });
+    expect(realErrors.length, expectedErrors.length,
+        reason: 'Expected error counts do not  match.');
   }
 }
 

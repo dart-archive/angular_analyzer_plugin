@@ -2557,9 +2557,8 @@ class TextPanel {
     computeResult(source, DART_ERRORS);
     // has errors
     fillErrorListener(DART_ERRORS);
-    errorListener.assertErrorsWithCodes([
-      NgParserWarningCode.AFTER_INTERPOLATION,
-    ]);
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
   }
 
   void test_textExpression_hasError_UnopenedMustache() {
@@ -2575,8 +2574,7 @@ class TextPanel {
     computeResult(source, DART_ERRORS);
     // has errors
     fillErrorListener(DART_ERRORS);
-    errorListener
-        .assertErrorsWithCodes([NgParserWarningCode.BEFORE_INTERPOLATION]);
+    errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
   }
 
   void test_textExpression_hasError_DoubleOpenedMustache() {
@@ -2593,7 +2591,7 @@ class TextPanel {
     // has errors
     fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
-      NgParserWarningCode.AFTER_INTERPOLATION,
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
       StaticWarningCode.UNDEFINED_IDENTIFIER
     ]);
   }
@@ -2612,11 +2610,11 @@ class TextPanel {
     // has errors
     fillErrorListener(DART_ERRORS);
     errorListener.assertErrorsWithCodes([
-      NgParserWarningCode.AFTER_INTERPOLATION,
-      NgParserWarningCode.AFTER_INTERPOLATION,
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
+      AngularWarningCode.UNTERMINATED_MUSTACHE,
       StaticWarningCode.UNDEFINED_IDENTIFIER,
-      NgParserWarningCode.BEFORE_INTERPOLATION,
-      NgParserWarningCode.BEFORE_INTERPOLATION,
+      AngularWarningCode.UNOPENED_MUSTACHE,
+      AngularWarningCode.UNOPENED_MUSTACHE,
     ]);
   }
 

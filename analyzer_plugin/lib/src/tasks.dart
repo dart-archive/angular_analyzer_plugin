@@ -316,6 +316,18 @@ abstract class ParseHtmlMixin implements AnalysisTask {
   List<NgAst.StandaloneTemplateAst> documentAsts;
   final parseErrors = <AnalysisError>[];
 
+  // TODO: Max - ideally remove this mapping and make errors exclusive to be
+  // TODO: generated from either angular_ast or angular_analyzer, but not both.
+  // Need to keep UNTERMINATED_MUSTACHE and UNOPENED_MUSTACHE because
+  // angular_ast currently does not do parsing for values in quotes; avoiding
+  // duplicate/redundant error types.
+  static const errorMap = const {
+    NgAst.NgParserWarningCode.AFTER_INTERPOLATION:
+        AngularWarningCode.UNTERMINATED_MUSTACHE,
+    NgAst.NgParserWarningCode.BEFORE_INTERPOLATION:
+        AngularWarningCode.UNOPENED_MUSTACHE,
+  };
+
   void parse(String content, String sourceUrl) {
     final exceptionHandler = new NgAst.RecoveringExceptionHandler();
     documentAsts = NgAst.parse(
@@ -331,7 +343,7 @@ abstract class ParseHtmlMixin implements AnalysisTask {
               target.source,
               e.offset,
               e.length,
-              e.errorCode,
+              errorMap[e.errorCode] ?? e.errorCode,
             ));
       }
     }
@@ -1584,16 +1596,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         source, errorListener, typeProvider, errorReporter);
     template.view.template = template;
 
-    //TODO: Max: Once done debugging, remove and uncomment duplicate below.
-    try {
-      template.ast = new HtmlTreeConverter(parser, source, errorListener)
-          .convertFromAstList(documentAsts);
-    } catch (e, stacktrace) {
-      print(stacktrace);
-    }
-
-//    template.ast = new HtmlTreeConverter(parser, source, errorListener)
-//        .convertFromAstList(documentAsts);
+    template.ast = new HtmlTreeConverter(parser, source, errorListener)
+        .convertFromAstList(documentAsts);
     _setIgnoredErrors(template, documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));

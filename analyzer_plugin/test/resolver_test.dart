@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/dart/error/syntactic_errors.dart';
 import 'package:analyzer/task/dart.dart';
@@ -9,7 +10,9 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'abstract_angular.dart';
@@ -552,7 +555,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
+        AngularWarningCode.UNOPENED_MUSTACHE, code, '}}');
   }
 
   void test_expression_as_not_allowed() {
@@ -969,7 +972,7 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "invalid.class");
+        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "class.invalid");
   }
 
   void test_expression_classBinding_typeError() {
@@ -1015,8 +1018,12 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "invalid*property");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(
+          htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new AnalysisError(htmlSource, 29, 1, NgParserWarningCode.AFTER_DECORATOR_NEED_WHITESPACE),
+      new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
+    ]);
   }
 
   void test_expression_styleBinding_noUnit_expressionTypeError() {
@@ -1047,8 +1054,12 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "border&radius");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new AnalysisError(htmlSource, 29, 1, NgParserWarningCode.AFTER_DECORATOR_NEED_WHITESPACE),
+      new AnalysisError(htmlSource, 19, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
+      new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
+      ]);
   }
 
   void test_expression_styleBinding_withUnit_invalidUnitName() {
@@ -1063,8 +1074,12 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(htmlSource, 30, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new AnalysisError(htmlSource, 30, 1, NgParserWarningCode.AFTER_DECORATOR_NEED_WHITESPACE),
+      new AnalysisError(htmlSource, 28, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
+      new AnalysisError(htmlSource, 6, 23, NgParserWarningCode.SUFFIX_PROPERTY),
+    ]);
   }
 
   void test_expression_styleBinding_withUnit_typeError() {
@@ -1729,10 +1744,10 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsInCodeAtPositions(code, {
-      ParserErrorCode.UNEXPECTED_TOKEN: '}',
-      StaticTypeWarningCode.UNDEFINED_GETTER: 'length'
-    });
+    assertMultipleErrorsExplicit([
+      new AnalysisError(htmlSource, 14, 1, ParserErrorCode.UNEXPECTED_TOKEN),
+      new AnalysisError(htmlSource, 17, 6, StaticTypeWarningCode.UNDEFINED_GETTER),
+    ]);
   }
 
   void test_inheritedFields() {
