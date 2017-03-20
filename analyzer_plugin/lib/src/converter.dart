@@ -183,7 +183,7 @@ class HtmlTreeConverter {
     }
     if (node is InterpolationAst) {
       int offset = node.sourceSpan.start.offset;
-      String text = "{{" + node.value + "}}";
+      String text = '{{' + node.value + '}}';
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
     }
@@ -291,9 +291,7 @@ class HtmlTreeConverter {
       String fullAstName;
       if (value != null) {
         fullAstName = ast.name +
-            (' ' * (ast.equalSignOffset - ast.nameToken.end)) +
-            ' ' +
-            (' ' * (ast.valueToken.offset - ast.equalSignToken.end)) +
+            (' ' * (ast.valueToken.innerValue.offset - ast.nameToken.end)) +
             (value ?? '');
       } else {
         fullAstName = ast.name + ' ';
@@ -415,7 +413,7 @@ class HtmlTreeConverter {
       valueOffset = ast.valueOffset;
 
       propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = ast.nameToken.offset;
+      propNameOffset = ast.nameToken.offset + (prefix?.length ?? 0);
     }
     if (ast is ParsedPropertyAst) {
       origName = ast.prefixToken.lexeme +

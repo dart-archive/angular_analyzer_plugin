@@ -27,20 +27,26 @@ class ConverterTest extends AbstractAngularTest {
 
   void test_scratch() {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
-class TestPanel {
-  String text; // 1
+@Component(
+    selector: 'name-panel',
+    inputs: const ['aaa', 'bbb', 'ccc'])
+@View(template: r"<div>AAA</div>")
+class NamePanel {
+  int aaa;
+  int bbb;
+  int ccc;
 }
-@Directive(selector: '[titled]', template: '', inputs: 'title')
-class TitleComponent {
-  @Input() String title;
-}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {}
 ''');
     _addHtmlSource(r"""
-<span titled [title]='text'></span>
+<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
 """);
     _resolveSingleTemplate(dartSource);
+    ResolvedRange resolvedRange1 = _findResolvedRange("bbb]=");
+    ResolvedRange resolvedRange2 = _findResolvedRange('ccc=');
+    print(resolvedRange2);
   }
 
   void _addDartSource(String code) {
@@ -65,5 +71,10 @@ $code
     template = outputs[HTML_TEMPLATE];
     ranges = template.ranges;
     fillErrorListener(HTML_TEMPLATE_ERRORS);
+  }
+
+  ResolvedRange _findResolvedRange(String search,
+      [ResolvedRangeCondition condition]) {
+    return getResolvedRangeAtString(htmlCode, ranges, search, condition);
   }
 }

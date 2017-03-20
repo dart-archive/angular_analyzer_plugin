@@ -336,6 +336,7 @@ class NgFor {
         print(error.source);
         print(error.offset);
         print(error.length);
+        print(error.message);
       });
     }
     expectedErrors.forEach((expectedError) {

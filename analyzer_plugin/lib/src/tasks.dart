@@ -330,12 +330,17 @@ abstract class ParseHtmlMixin implements AnalysisTask {
 
   void parse(String content, String sourceUrl) {
     final exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    documentAsts = NgAst.parse(
-      content,
-      sourceUrl: sourceUrl,
-      desugar: false,
-      exceptionHandler: exceptionHandler,
-    );
+    // TODO: Max: Remove try-catch after finished integration.
+    try {
+      documentAsts = NgAst.parse(
+        content,
+        sourceUrl: sourceUrl,
+        desugar: false,
+        exceptionHandler: exceptionHandler,
+      );
+    } catch (e, stack){
+      print(stack);
+    }
 
     for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
       if (e.errorCode is NgAst.NgParserWarningCode) {

@@ -1745,8 +1745,8 @@ class TestPanel {
     _addHtmlSource(code);
     _resolveSingleTemplate(dartSource);
     assertMultipleErrorsExplicit([
-      new AnalysisError(htmlSource, 14, 1, ParserErrorCode.UNEXPECTED_TOKEN),
-      new AnalysisError(htmlSource, 17, 6, StaticTypeWarningCode.UNDEFINED_GETTER),
+      new AnalysisError(htmlSource, 14, 1, ParserErrorCode.UNEXPECTED_TOKEN, ['}']),
+      new AnalysisError(htmlSource, 17, 6, StaticTypeWarningCode.UNDEFINED_GETTER, ['length', 'int']),
     ]);
   }
 
@@ -1824,8 +1824,8 @@ class TestPanel {}
     expect(search.element.boundDirectives, hasLength(1));
     DirectiveBinding boundDirective = search.element.boundDirectives.first;
     expect(boundDirective.outputBindings, hasLength(2));
-    expect(boundDirective.outputBindings[0].boundOutput.name, 'bbb');
-    expect(boundDirective.outputBindings[1].boundOutput.name, 'ccc');
+    expect(boundDirective.outputBindings[0].boundOutput.name, 'ccc');
+    expect(boundDirective.outputBindings[1].boundOutput.name, 'bbb');
   }
 
   void test_twoWayReference() {
