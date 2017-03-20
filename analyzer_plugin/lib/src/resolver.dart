@@ -838,21 +838,12 @@ class NgContentRecorder extends AngularScopeVisitor {
     List<AttributeInfo> selectorAttrs =
         element.attributes.where((a) => a.name == 'select');
 
-    for (NodeInfo child in element.childNodes) {
-      if (!child.isSynthetic) {
-        errorReporter.reportErrorForOffset(
-            AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
-            element.openingSpan.offset,
-            element.openingSpan.length);
-      }
-    }
-
     if (selectorAttrs.length == 0) {
       template.ngContents.add(new NgContent(element.offset, element.length));
       return;
     }
 
-    // We don't actually check if selectors.length > 2, because the html parser
+    // We don't actually check if selectors.length > 2, because the parser
     // reports that.
     try {
       AttributeInfo selectorAttr = selectorAttrs.first;

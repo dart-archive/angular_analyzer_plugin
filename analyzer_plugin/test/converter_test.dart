@@ -27,26 +27,21 @@ class ConverterTest extends AbstractAngularTest {
 
   void test_scratch() {
     _addDartSource(r'''
-@Component(
-    selector: 'name-panel',
-    inputs: const ['aaa', 'bbb', 'ccc'])
-@View(template: r"<div>AAA</div>")
-class NamePanel {
-  int aaa;
-  int bbb;
-  int ccc;
-}
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
-class TestPanel {}
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
 ''');
-    _addHtmlSource(r"""
-<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
-""");
+    String code = r"""
+<div>
+  <ng-content select></ng-content>
+</div>
+    """;
+    _addHtmlSource(code);
+    computeResult(
+        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
     _resolveSingleTemplate(dartSource);
-    ResolvedRange resolvedRange1 = _findResolvedRange("bbb]=");
-    ResolvedRange resolvedRange2 = _findResolvedRange('ccc=');
-    print(resolvedRange2);
+    expect(template.ngContents, hasLength(0));
   }
 
   void _addDartSource(String code) {

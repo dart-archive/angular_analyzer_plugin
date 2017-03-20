@@ -338,7 +338,7 @@ abstract class ParseHtmlMixin implements AnalysisTask {
         desugar: false,
         exceptionHandler: exceptionHandler,
       );
-    } catch (e, stack){
+    } catch (e, stack) {
       print(stack);
     }
 

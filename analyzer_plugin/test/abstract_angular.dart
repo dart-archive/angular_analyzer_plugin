@@ -327,7 +327,8 @@ class NgFor {
    * occurred during angular analysis.
    */
   // TODO: Max: remove debug flag.
-  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors, {bool debug: false}) {
+  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors,
+      {bool debug: false}) {
     var realErrors = errorListener.errors;
     if (debug) {
       realErrors.forEach((error) {
@@ -341,7 +342,8 @@ class NgFor {
     }
     expectedErrors.forEach((expectedError) {
       expect(realErrors.contains(expectedError), true,
-          reason: 'Expected error code ${expectedError.errorCode} never occurs at '
+          reason:
+              'Expected error code ${expectedError.errorCode} never occurs at '
               'location ${expectedError.offset} of length ${expectedError.length}.');
     });
     expect(realErrors.length, expectedErrors.length,

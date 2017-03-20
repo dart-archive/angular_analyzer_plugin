@@ -67,7 +67,6 @@ class HtmlTreeConverter {
     if (node is ElementAst) {
       String localName = node.name;
       List<AttributeInfo> attributes = _convertAttributes(node);
-      bool isTemplate = localName == 'template';
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
       SourceRange openingNameSpan;
@@ -108,7 +107,7 @@ class HtmlTreeConverter {
           closingSpan,
           openingNameSpan,
           closingNameSpan,
-          isTemplate,
+          false,
           attributes,
           findTemplateAttribute(attributes),
           parent);
@@ -150,12 +149,12 @@ class HtmlTreeConverter {
             new SourceRange(openingSpan.offset + '<'.length, localName.length);
         var pnode = node as ParsedEmbeddedContentAst;
         var valueToken = pnode.selectorValueToken;
-        if (pnode.selectorValueToken != null) {
+        if (pnode.selectToken != null) {
           attributes.add(new TextAttribute(
             'select',
-            pnode.identifierToken.offset,
-            valueToken.lexeme,
-            valueToken.offset,
+            pnode.selectToken.offset,
+            valueToken?.innerValue?.lexeme,
+            valueToken?.innerValue?.offset,
             [],
           ));
         }
@@ -175,6 +174,72 @@ class HtmlTreeConverter {
           openingNameSpan, closingNameSpan, false, attributes, null, parent);
       return ngContent;
     }
+    if (node is EmbeddedTemplateAst) {
+      String localName = 'template';
+      List<AttributeInfo> attributes = _convertAttributesForTemplate(node);
+      final closeComponent = node.closeComplement;
+      SourceRange openingSpan;
+      SourceRange openingNameSpan;
+      SourceRange closingSpan;
+      SourceRange closingNameSpan;
+
+      if (node.isSynthetic) {
+        openingSpan = _toSourceRange(closeComponent.beginToken.offset, 0);
+        openingNameSpan = openingSpan;
+      } else {
+        openingSpan = _toSourceRange(
+            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+        openingNameSpan =
+            new SourceRange(openingSpan.offset + '<'.length, localName.length);
+      }
+      // Check for void element cases (has closing complement)
+      if (closeComponent != null) {
+        if (closeComponent.isSynthetic) {
+          closingSpan = _toSourceRange(node.endToken.end, 0);
+          closingNameSpan = closingSpan;
+        } else {
+          closingSpan = _toSourceRange(closeComponent.beginToken.offset,
+              closeComponent.endToken.end - closeComponent.beginToken.offset);
+          closingNameSpan = new SourceRange(
+              closingSpan.offset + '</'.length, localName.length);
+        }
+      }
+//
+//      SourceRange openingNameSpan = openingSpan != null
+//          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
+//          : null;
+//      SourceRange closingNameSpan = closingSpan != null
+//          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
+//          : null;
+      ElementInfo element = new ElementInfo(
+          localName,
+          openingSpan,
+          closingSpan,
+          openingNameSpan,
+          closingNameSpan,
+          true,
+          attributes,
+          findTemplateAttribute(attributes),
+          parent);
+
+      for (AttributeInfo attribute in attributes) {
+        attribute.parent = element;
+      }
+
+      List<NodeInfo> children = _convertChildren(node, element);
+      element.childNodes.addAll(children);
+
+      if (!element.isSynthetic &&
+          element.openingSpanIsClosed &&
+          closingSpan != null &&
+          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
+        element.childNodes.add(new TextInfo(
+            openingSpan.offset + openingSpan.length, '', element, [],
+            synthetic: true));
+      }
+
+      return element;
+    }
     if (node is TextAst) {
       int offset = node.sourceSpan.start.offset;
       String text = node.value;
@@ -190,6 +255,7 @@ class HtmlTreeConverter {
     return null;
   }
 
+  // TODO: Max: Introduce overlapping type and only use single _convertAttributes.
   List<AttributeInfo> _convertAttributes(ElementAst element) {
     List<AttributeInfo> attributes = <AttributeInfo>[];
 
@@ -261,6 +327,70 @@ class HtmlTreeConverter {
 
       element.stars.forEach((star) {
         attributes.add(_convertTemplateAttribute(star));
+      });
+    }
+    return attributes;
+  }
+
+  List<AttributeInfo> _convertAttributesForTemplate(
+      EmbeddedTemplateAst element) {
+    List<AttributeInfo> attributes = <AttributeInfo>[];
+
+    // Atttribute/event/properties/etc. within
+    // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
+    if (element is EmbeddedTemplateAst) {
+      element.attributes.forEach((AttributeAst attribute) {
+        if (attribute.name.startsWith('on-')) {
+          attributes
+              .add(_convertStatementsBoundAttribute(attribute, "on-", null));
+        } else if (attribute.name.startsWith('bind-')) {
+          attributes.add(_convertExpressionBoundAttribute(
+              attribute, "bind-", null, ExpressionBoundType.input));
+        } else if (attribute.name == 'template') {
+          attributes.add(_convertTemplateAttribute(attribute));
+        } else {
+          String value;
+          int valueOffset;
+          ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
+          if (_attr.valueToken != null) {
+            value = _attr.valueToken.innerValue.lexeme;
+            valueOffset = _attr.valueToken.innerValue.offset;
+          }
+          attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
+              valueOffset, dartParser.findMustaches(value, valueOffset)));
+        }
+      });
+
+      element.properties.forEach((property) {
+        if (property.name.startsWith("class")) {
+          attributes.add(_convertExpressionBoundAttribute(
+              property, "[class.", "]", ExpressionBoundType.clazz));
+        } else if (property.name.startsWith("attr")) {
+          attributes.add(_convertExpressionBoundAttribute(
+              property, "[attr.", "]", ExpressionBoundType.attr));
+        } else if (property.name.startsWith("style")) {
+          attributes.add(_convertExpressionBoundAttribute(
+              property, "[style.", "]", ExpressionBoundType.style));
+        } else {
+          attributes.add(_convertExpressionBoundAttribute(
+              property, "[", "]", ExpressionBoundType.input));
+        }
+      });
+
+      element.references.forEach((reference) {
+        String value;
+        int valueOffset;
+        ParsedReferenceAst _attr = reference as ParsedReferenceAst;
+        if (_attr.valueToken != null) {
+          value = _attr.valueToken.innerValue.lexeme;
+          valueOffset = _attr.valueToken.innerValue.offset;
+        }
+        attributes.add(new TextAttribute(
+            _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
+            _attr.prefixToken.offset,
+            value,
+            valueOffset,
+            dartParser.findMustaches(value, valueOffset)));
       });
     }
     return attributes;
