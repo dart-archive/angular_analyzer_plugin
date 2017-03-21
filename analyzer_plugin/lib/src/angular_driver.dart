@@ -299,8 +299,10 @@ class AngularDriver
 
           bool rightErrorType(AnalysisError e) =>
               !view.template.ignoredErrors.contains(e.errorCode.name);
-          String shorten(String filename) =>
-              filename.substring(0, filename.lastIndexOf('.'));
+          String shorten(String filename) {
+            final index = filename.lastIndexOf('.');
+            return index == -1 ? filename : filename.substring(0, index);
+          }
 
           errors.addAll(tplParser.parseErrors.where(rightErrorType));
 

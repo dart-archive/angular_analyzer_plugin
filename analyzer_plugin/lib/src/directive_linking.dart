@@ -133,12 +133,6 @@ class DirectiveLinker {
       }
     }
 
-    for (final dirSum in unlinked.directiveSummaries) {
-      final directive = directives
-          .singleWhere((d) => d.classElement.name == dirSum.decoratedClassName);
-      if (directive is Component) {}
-    }
-
     return directives;
   }
 
