@@ -39,13 +39,12 @@ class AngularDriver
   final FileContentOverlay _contentOverlay;
   StandardHtml standardHtml = null;
   SourceFactory _sourceFactory;
-  final LinkedHashSet<String> _addedFiles = new LinkedHashSet<String>();
-  final LinkedHashSet<String> _dartFiles = new LinkedHashSet<String>();
-  final LinkedHashSet<String> _changedFiles = new LinkedHashSet<String>();
-  final Set<String> _requestedFiles = new HashSet<String>();
-  final Set<String> _filesToAnalyze = new HashSet<String>();
-  final Set<Tuple2<String, String>> _htmlViewsToAnalyze =
-      new HashSet<Tuple2<String, String>>();
+  final _addedFiles = new LinkedHashSet<String>();
+  final _dartFiles = new LinkedHashSet<String>();
+  final _changedFiles = new LinkedHashSet<String>();
+  final _requestedFiles = new HashSet<String>();
+  final _filesToAnalyze = new HashSet<String>();
+  final _htmlViewsToAnalyze = new HashSet<Tuple2<String, String>>();
   final ByteStore byteStore;
 
   AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
@@ -484,9 +483,8 @@ class AngularDriver
         correction: error.correction);
   }
 
-  Source getSource(String path) {
-    return _sourceFactory.resolveUri(null, 'file:' + path);
-  }
+  Source getSource(String path) =>
+      _sourceFactory.resolveUri(null, 'file:' + path);
 
   Future<CompilationUnitElement> getUnit(String path) async {
     return (await dartDriver.getUnitElement(path)).element;
@@ -602,11 +600,11 @@ class AngularDriver
       }
       final dirUseSums = <SummarizedDirectiveUseBuilder>[];
       final ngContents = <SummarizedNgContentBuilder>[];
-      var templateUrl;
-      var templateUrlOffset;
-      var templateUrlLength;
-      var templateText;
-      var templateTextOffset;
+      String templateUrl;
+      int templateUrlOffset;
+      int templateUrlLength;
+      String templateText;
+      int templateTextOffset;
       if (directive is Component && directive.view != null) {
         templateUrl = directive.view?.templateUriSource?.fullName;
         templateUrlOffset = directive.view?.templateUrlRange?.offset;
