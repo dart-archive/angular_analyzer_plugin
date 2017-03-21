@@ -3,7 +3,8 @@ library angular2.src.analysis.analyzer_plugin.tasks;
 import 'dart:collection';
 import 'package:analyzer/error/error.dart';
 
-const List<AngularWarningCode> angularWarningCodeValues = const [
+// used by angularWarningCodeByUniqueName to create a map for fast lookup
+const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.ARGUMENT_SELECTOR_MISSING,
   AngularWarningCode.CANNOT_PARSE_SELECTOR,
   AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
@@ -57,7 +58,7 @@ HashMap<String, AngularWarningCode> _uniqueNameToCodeMap;
 AngularWarningCode angularWarningCodeByUniqueName(String uniqueName) {
   if (_uniqueNameToCodeMap == null) {
     _uniqueNameToCodeMap = new HashMap<String, AngularWarningCode>();
-    for (AngularWarningCode angularCode in angularWarningCodeValues) {
+    for (AngularWarningCode angularCode in _angularWarningCodeValues) {
       _uniqueNameToCodeMap[angularCode.uniqueName] = angularCode;
     }
   }
