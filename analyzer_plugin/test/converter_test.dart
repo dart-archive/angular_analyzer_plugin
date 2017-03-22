@@ -28,20 +28,19 @@ class ConverterTest extends AbstractAngularTest {
   void test_scratch() {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
 class TestPanel {
+  List<String> items = [];
 }
 ''');
-    String code = r"""
-<div>
-  <ng-content select></ng-content>
-</div>
-    """;
-    _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
+    _addHtmlSource(r"""
+    some text and {{^   <div>some html</div>
+""");
     _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    print(template.ast.childNodes);
+    template.ast.childNodes.forEach((e) {
+      print('[${(e as TextInfo).text}]');
+    });
   }
 
   void _addDartSource(String code) {

@@ -34,6 +34,7 @@ class HtmlTreeConverter {
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
   ElementInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
+    // TODO: Max: Refactor or use list format?
     ElementInfo root;
     if (asts != null &&
         asts.length == 1 &&
@@ -60,6 +61,9 @@ class HtmlTreeConverter {
         root.childNodes.add(child);
       }
     }
+    if (asts.isEmpty) {
+      root.childNodes.add(new TextInfo(0, '', root, []));
+    }
     return root;
   }
 
@@ -83,16 +87,17 @@ class HtmlTreeConverter {
             new SourceRange(openingSpan.offset + '<'.length, localName.length);
       }
       // Check for void element cases (has closing complement)
-      if (closeComponent != null) {
-        if (closeComponent.isSynthetic) {
-          closingSpan = _toSourceRange(node.endToken.end, 0);
-          closingNameSpan = closingSpan;
-        } else {
-          closingSpan = _toSourceRange(closeComponent.beginToken.offset,
-              closeComponent.endToken.end - closeComponent.beginToken.offset);
-          closingNameSpan = new SourceRange(
-              closingSpan.offset + '</'.length, localName.length);
-        }
+      // If closeComponent is synthetic, handle it after child nodes are found.
+      if (closeComponent != null && !closeComponent.isSynthetic) {
+//        if (closeComponent.isSynthetic) {
+//          closingSpan = _toSourceRange(node.endToken.end, 0);
+//          closingNameSpan = closingSpan;
+//        } else {
+        closingSpan = _toSourceRange(closeComponent.beginToken.offset,
+            closeComponent.endToken.end - closeComponent.beginToken.offset);
+        closingNameSpan =
+            new SourceRange(closingSpan.offset + '</'.length, localName.length);
+//        }
       }
 //
 //      SourceRange openingNameSpan = openingSpan != null
@@ -490,10 +495,11 @@ class HtmlTreeConverter {
       propName = _removePrefixSuffix(origName, prefix, suffix);
       propNameOffset = origNameOffset + prefix.length;
     } else if (ast is ParsedEventAst) {
-      origName = ast.prefixToken.lexeme +
-          ast.name +
-          (ast.postfix != null ? '.${ast.postfix}' : '') +
-          ast.suffixToken.lexeme;
+      origName =
+          (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
+              ast.name +
+              (ast.postfix != null ? '.${ast.postfix}' : '') +
+              (ast.suffixToken.errorSynthetic ? '' : ast.suffixToken.lexeme);
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
@@ -546,11 +552,12 @@ class HtmlTreeConverter {
       propNameOffset = ast.nameToken.offset + (prefix?.length ?? 0);
     }
     if (ast is ParsedPropertyAst) {
-      origName = ast.prefixToken.lexeme +
-          ast.name +
-          (ast.postfix != null ? '.${ast.postfix}' : '') +
-          (ast.unit != null ? '.${ast.unit}' : '') +
-          ast.suffixToken.lexeme;
+      origName =
+          (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
+              ast.name +
+              (ast.postfix != null ? '.${ast.postfix}' : '') +
+              (ast.unit != null ? '.${ast.unit}' : '') +
+              (ast.suffixToken.errorSynthetic ? '' : ast.suffixToken.lexeme);
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
@@ -571,9 +578,10 @@ class HtmlTreeConverter {
       propNameOffset = ast.nameToken.offset;
     }
     if (ast is ParsedBananaAst) {
-      origName = ast.prefixToken.lexeme +
-          ast.nameToken.lexeme +
-          ast.suffixToken.lexeme;
+      origName =
+          (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
+              ast.nameToken.lexeme +
+              (ast.suffixToken.errorSynthetic ? '' : ast.suffixToken.lexeme);
       origNameOffset = ast.prefixToken.offset;
 
       value = ast.value;
@@ -666,7 +674,7 @@ class EmbeddedDartParser {
     Expression expression;
 
     // suppress errors for this. But still parse it so we can analyze it and stuff
-    if (code == "") {
+    if (code.trim().isEmpty) {
       expression = _parseDartExpressionAtToken(token,
           errorListener: new IgnoringAnalysisErrorListener());
     } else {
@@ -817,9 +825,6 @@ class EmbeddedDartParser {
       }
       // resolve
       String code = text.substring(exprBegin, exprEnd);
-      if (code.trim().isEmpty) {
-        continue;
-      }
       Expression expression =
           parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
 
@@ -833,7 +838,6 @@ class EmbeddedDartParser {
 
       mustaches.add(new Mustache(offset, length, expression));
     }
-
     return mustaches;
   }
 

@@ -800,7 +800,7 @@ class MyComp {
 }
     ''');
 
-    addTestSource('some text and {{^   <div>some html</div>');
+    addTestSource('some text and {{^');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
