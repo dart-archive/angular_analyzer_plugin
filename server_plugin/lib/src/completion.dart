@@ -267,8 +267,6 @@ class TemplateCompleter {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
     for (Template template in templates) {
       AngularAstNode target = findTarget(request.offset, template.ast);
-      //DEBUG SECTION
-      //DEBUG SECTION END
       target.accept(new ReplacementRangeCalculator(request));
       DartSnippetExtractor extractor = new DartSnippetExtractor();
       extractor.offset = request.offset;
