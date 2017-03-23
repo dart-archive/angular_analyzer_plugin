@@ -91,6 +91,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             inputs: inputElements,
             outputs: outputElements,
             selector: selector,
+            elementTags: elementTags,
             isHtml: false);
       }
       if (isDirective) {
