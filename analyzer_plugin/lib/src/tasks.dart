@@ -293,7 +293,7 @@ class AngularParseHtmlTask extends SourceBasedAnalysisTask with ParseHtmlMixin {
             target.source, 0, 0, ScannerErrorCode.UNABLE_GET_CONTENT, [message])
       ];
     } else {
-      parse(content, target.source.uri.path);
+      parse(content, target.toString());
       outputs[ANGULAR_HTML_DOCUMENT] = documentAsts;
       outputs[ANGULAR_HTML_DOCUMENT_ERRORS] = parseErrors;
     }
@@ -330,17 +330,12 @@ abstract class ParseHtmlMixin implements AnalysisTask {
 
   void parse(String content, String sourceUrl) {
     final exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    // TODO: Max: Remove try-catch after finished integration.
-    try {
-      documentAsts = NgAst.parse(
-        content,
-        sourceUrl: sourceUrl,
-        desugar: false,
-        exceptionHandler: exceptionHandler,
-      );
-    } catch (e, stack) {
-      print(stack);
-    }
+    documentAsts = NgAst.parse(
+      content,
+      sourceUrl: sourceUrl,
+      desugar: false,
+      exceptionHandler: exceptionHandler,
+    );
 
     for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
       if (e.errorCode is NgAst.NgParserWarningCode) {
@@ -1575,7 +1570,7 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
           parse(
               (' ' * view.templateOffset) +
                   view.templateText.substring(0, view.templateText.length - 1),
-              source.uri.path);
+              target.toString());
           parseErrors.forEach(errorListener.onError);
           parseErrors.clear();
 
