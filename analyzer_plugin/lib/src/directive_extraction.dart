@@ -508,7 +508,6 @@ class BindingTypeSynthesizer {
       return p.bound == null
           ? typeProvider.dynamicType
           : p.bound.resolveToBound(typeProvider.dynamicType);
->>>>>>> All but two tests passing
     };
 
     var bounds = classElement.typeParameters.map(getBound).toList();
