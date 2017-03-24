@@ -14,6 +14,14 @@ class StandardHtml {
   StandardHtml(this.components, this.events, this.attributes);
 }
 
+class StandardAngular {
+  final ClassElement templateRef;
+  final ClassElement elementRef;
+  final ClassElement queryList;
+
+  StandardAngular({this.templateRef, this.elementRef, this.queryList});
+}
+
 class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, Component> components;
   final Map<String, OutputElement> events;

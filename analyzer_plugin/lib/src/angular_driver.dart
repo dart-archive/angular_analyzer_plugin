@@ -39,6 +39,7 @@ class AngularDriver
   final AnalysisDriver dartDriver;
   final FileContentOverlay _contentOverlay;
   StandardHtml standardHtml = null;
+  StandardAngular standardAngular = null;
   SourceFactory _sourceFactory;
   final _addedFiles = new LinkedHashSet<String>();
   final _dartFiles = new LinkedHashSet<String>();
@@ -147,6 +148,11 @@ class AngularDriver
       return;
     }
 
+    if (standardAngular == null) {
+      getStandardAngular();
+      return;
+    }
+
     if (_changedFiles.isNotEmpty) {
       _changedFiles.clear();
       _filesToAnalyze.addAll(_dartFiles);
@@ -232,6 +238,24 @@ class AngularDriver
     }
 
     return standardHtml;
+  }
+
+  Future<StandardAngular> getStandardAngular() async {
+    if (standardAngular == null) {
+      final source =
+          _sourceFactory.resolveUri(null, "package:angular2/angular2.dart");
+
+      final result = await dartDriver.getResult(source.fullName);
+
+      final namespace = result.unit.element.library.exportNamespace;
+
+      standardAngular = new StandardAngular(
+          queryList: namespace.get("QueryList"),
+          elementRef: namespace.get("ElementRef"),
+          templateRef: namespace.get("TemplateRef"));
+    }
+
+    return standardAngular;
   }
 
   List<AnalysisError> deserializeFromPathErrors(
@@ -341,7 +365,8 @@ class AngularDriver
     final linkErrorListener = new IgnoringErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, dartSource);
 
-    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
+    final linker = new ChildDirectiveLinker(
+        this, await getStandardAngular(), linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
@@ -371,6 +396,7 @@ class AngularDriver
               standardHtml.components.values,
               standardHtml.events,
               standardHtml.attributes,
+              await getStandardAngular(),
               tplErrorListener);
           resolver.resolve(template);
 
@@ -505,7 +531,8 @@ class AngularDriver
     final linkErrorListener = new RecordingErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, source);
 
-    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
+    final linker = new ChildDirectiveLinker(
+        this, await getStandardAngular(), linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
@@ -541,6 +568,7 @@ class AngularDriver
               standardHtml.components.values,
               standardHtml.events,
               standardHtml.attributes,
+              await getStandardAngular(),
               tplErrorListener);
           resolver.resolve(template);
           errors.addAll(tplParser.parseErrors.where(
@@ -678,6 +706,8 @@ class AngularDriver
       final exportAsOffset = directive?.exportAs?.nameOffset;
       final inputs = <SummarizedBindableBuilder>[];
       final outputs = <SummarizedBindableBuilder>[];
+      final contentChildFields = <SummarizedContentChildFieldBuilder>[];
+      final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
       for (final input in directive.inputs) {
         final name = input.name;
         final nameOffset = input.nameOffset;
@@ -699,6 +729,22 @@ class AngularDriver
           ..nameOffset = nameOffset
           ..propName = propName
           ..propNameOffset = propNameOffset);
+      }
+      for (final childField in directive.contentChildFields) {
+        contentChildFields.add(new SummarizedContentChildFieldBuilder()
+          ..fieldName = childField.fieldName
+          ..nameOffset = childField.nameRange.offset
+          ..nameLength = childField.nameRange.length
+          ..typeOffset = childField.typeRange.offset
+          ..typeLength = childField.typeRange.length);
+      }
+      for (final childrenField in directive.contentChildrenFields) {
+        contentChildrenFields.add(new SummarizedContentChildFieldBuilder()
+          ..fieldName = childrenField.fieldName
+          ..nameOffset = childrenField.nameRange.offset
+          ..nameLength = childrenField.nameRange.length
+          ..typeOffset = childrenField.typeRange.offset
+          ..typeLength = childrenField.typeRange.length);
       }
       final dirUseSums = <SummarizedDirectiveUseBuilder>[];
       final ngContents = <SummarizedNgContentBuilder>[];
@@ -740,7 +786,9 @@ class AngularDriver
         ..ngContents = ngContents
         ..inputs = inputs
         ..outputs = outputs
-        ..subdirectives = dirUseSums);
+        ..subdirectives = dirUseSums
+        ..contentChildFields = contentChildFields
+        ..contentChildrenFields = contentChildrenFields);
     }
 
     return dirSums;
