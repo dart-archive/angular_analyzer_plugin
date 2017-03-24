@@ -1340,6 +1340,124 @@ class MyComponent {
         code,
         "@Output()");
   }
+
+  Future test_hasViewChildDirective() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.first;
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(1));
+    final child = childFields.first;
+    expect(child.fieldName, equals("contentChild"));
+    expect(child.range.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(child.range.length, equals("ContentChildComp".length));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  Future test_hasViewChildrenDirective() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  QueryList<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(children.range.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.range.length, equals("ContentChildComp".length));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  Future test_hasViewChildChildrenNoRangeNotRecorded() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren()
+  QueryList<ContentChildComp> contentChildren;
+  @ContentChild()
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(0));
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(0));
+    // validate
+    errorListener.assertErrorsWithCodes([
+      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS,
+      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS
+    ]);
+  }
+
+  Future test_hasViewChildChildrenSetter() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp) // 1
+  void set contentChild(ContentChildComp contentChild) => null;
+  @ContentChildren(ContentChildComp) // 2
+  void set contentChildren(QueryList<ContentChildComp> contentChildren) => null;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.first;
+
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(1));
+    final child = childFields.first;
+    expect(child.fieldName, equals("contentChild"));
+    expect(child.range.offset, equals(code.indexOf("ContentChildComp) // 1")));
+    expect(child.range.length, equals("ContentChildComp".length));
+
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.range.offset, equals(code.indexOf("ContentChildComp) // 2")));
+    expect(children.range.length, equals("ContentChildComp".length));
+
+    errorListener.assertNoErrors();
+  }
 }
 
 @reflectiveTest
@@ -1740,6 +1858,124 @@ class MyComponent {}
             unorderedEquals(['OtherComponent', 'MyDirective']));
       }
     }
+  }
+
+  Future test_hasViewChildDirective() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getViews(source);
+    Component component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first, new isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType child = childs.first;
+
+    expect(child.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  Future test_hasViewChildrenDirective() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  QueryList<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getViews(source);
+    Component component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(children.range.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.range.length, equals("ContentChildComp".length));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  Future test_hasViewChildChildrenNoRangeNotRecorded() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren()
+  QueryList<ContentChildComp> contentChildren;
+  @ContentChild()
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getViews(source);
+    Component component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(0));
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(0));
+    // validate
+    errorListener.assertErrorsWithCodes([
+      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS,
+      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS
+    ]);
+  }
+
+  Future test_hasViewChildChildrenSetter() async {
+    final code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp) // 1
+  void set contentChild(ContentChildComp contentChild) => null;
+  @ContentChildren(ContentChildComp) // 2
+  void set contentChildren(QueryList<ContentChildComp> contentChildren) => null;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    Source source = newSource('/test.dart', code);
+    await getViews(source);
+    Component component = directives.first;
+
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(1));
+    final child = childFields.first;
+    expect(child.fieldName, equals("contentChild"));
+    expect(child.range.offset, equals(code.indexOf("ContentChildComp) // 1")));
+    expect(child.range.length, equals("ContentChildComp".length));
+
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.range.offset, equals(code.indexOf("ContentChildComp) // 2")));
+    expect(children.range.length, equals("ContentChildComp".length));
+
+    errorListener.assertNoErrors();
   }
 }
 
@@ -2313,6 +2549,24 @@ class ChildComponent {}
     View childView = childViews.first;
     expect(childView.component, isNotNull);
     expect(childView.component.ngContents, hasLength(1));
+  }
+
+  Future test_constantExpressionTemplateVarDoesntCrash() async {
+    Source source = newSource(
+        '/test.dart',
+        r'''
+import '/angular2/angular2.dart';
+
+const String tplText = "we don't analyze this";
+
+@Component(selector: 'aaa', template: tplText)
+class ComponentA {
+}
+''');
+    await getDirectives(source);
+    expect(templates, hasLength(0));
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
   }
 
   static Template _getDartTemplateByClassName(

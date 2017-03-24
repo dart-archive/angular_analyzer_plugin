@@ -177,6 +177,14 @@ class ChildDirectiveLinker {
           }
         }
       }
+
+      for (final childField in directive.contentChildFields) {
+        final member =
+            directive.classElement.lookUpSetter(childField.fieldName, library);
+        final type = member.variable.type;
+        final annotation = member.metadata.singleWhere(
+            (annotation) => annotation.element.name == "ContentChild");
+      }
     }
   }
 

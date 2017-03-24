@@ -27,12 +27,25 @@ abstract class AbstractDirective {
   final Selector selector;
   final List<ElementNameSelector> elementTags;
 
+  /**
+   * Which fields have been marked `@ContentChild`, and the range of the type
+   * argument. The element model contains the rest. This should be stored in the
+   * summary, so that at link time we can report errors discovered in the model
+   * against the range we saw it the AST.
+   */
+  List<ContentChildField> contentChildrenFields;
+  List<ContentChildField> contentChildFields;
+  final List<AbstractQueriedChildType> contentChilds = [];
+  final List<AbstractQueriedChildType> contentChildren = [];
+
   AbstractDirective(this.classElement,
       {this.exportAs,
       this.inputs,
       this.outputs,
       this.selector,
-      this.elementTags});
+      this.elementTags,
+      this.contentChildFields,
+      this.contentChildrenFields});
 
   /**
    * The source that contains this directive.
@@ -112,6 +125,29 @@ class AngularElementImpl implements AngularElement {
   String toString() => name;
 }
 
+abstract class AbstractQueriedChildType {}
+
+class TemplateRefQueriedChildType extends AbstractQueriedChildType {}
+
+class ElementRefQueriedChildType extends AbstractQueriedChildType {}
+
+class LetBoundQueriedChildType extends AbstractQueriedChildType {
+  final String letBoundName;
+  LetBoundQueriedChildType(this.letBoundName);
+}
+
+class DirectiveQueriedChildType extends AbstractQueriedChildType {
+  final AbstractDirective directive;
+  DirectiveQueriedChildType(this.directive);
+}
+
+class ContentChildField {
+  final String fieldName;
+  final SourceRange range;
+
+  ContentChildField(this.fieldName, this.range);
+}
+
 /**
  * The model of an Angular component.
  */
@@ -129,14 +165,18 @@ class Component extends AbstractDirective {
       List<OutputElement> outputs,
       Selector selector,
       List<ElementNameSelector> elementTags,
-      List<NgContent> ngContents})
+      List<NgContent> ngContents,
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
       : ngContents = ngContents ?? [],
         super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 }
 
 /**
@@ -160,13 +200,17 @@ class Directive extends AbstractDirective {
       List<InputElement> inputs,
       List<OutputElement> outputs,
       Selector selector,
-      List<ElementNameSelector> elementTags})
+      List<ElementNameSelector> elementTags,
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
       : super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 }
 
 /**

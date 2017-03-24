@@ -83,6 +83,9 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
         _parseMemberInputsAndOutputs(
             classDeclaration, inputElements, outputElements);
       }
+      final contentChilds = <ContentChildField>[];
+      final contentChildrens = <ContentChildField>[];
+      _parseContentChilds(classDeclaration, contentChilds, contentChildrens);
       List<ElementNameSelector> elementTags = <ElementNameSelector>[];
       selector.recordElementNameSelectors(elementTags);
       if (isComponent) {
@@ -91,7 +94,9 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             inputs: inputElements,
             outputs: outputElements,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            contentChildFields: contentChilds,
+            contentChildrenFields: contentChildrens);
       }
       if (isDirective) {
         return new Directive(_currentClassElement,
@@ -99,7 +104,9 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             inputs: inputElements,
             outputs: outputElements,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            contentChildFields: contentChilds,
+            contentChildrenFields: contentChildrens);
       }
     }
     return null;
@@ -367,6 +374,48 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
       for (ast.Annotation annotation in member.metadata) {
         _parseMemberInputOrOutput(
             member, annotation, inputElements, outputElements);
+      }
+    }
+  }
+
+  /**
+   * Find all fields labeled with @ContentChild and the ranges of the type
+   * argument. We will use this to create an unlinked summary which can, at link
+   * time, check for errors and highlight the correct range. This is all we need
+   * from the AST itself, so all we should do here.
+   */
+  _parseContentChilds(
+      ast.ClassDeclaration node,
+      List<ContentChildField> contentChilds,
+      List<ContentChildField> contentChildrens) {
+    for (ast.ClassMember member in node.members) {
+      for (ast.Annotation annotation in member.metadata) {
+        List<ContentChildField> targetList;
+        if (isAngularAnnotation(annotation, 'ContentChild')) {
+          targetList = contentChilds;
+        } else if (isAngularAnnotation(annotation, 'ContentChildren')) {
+          targetList = contentChildrens;
+        } else {
+          continue;
+        }
+
+        final annotationArgs = annotation.arguments.arguments;
+        if (annotationArgs.length == 0) {
+          // no need to report an error, dart does that already
+          continue;
+        }
+
+        final offset = annotationArgs[0].offset;
+        final length = annotationArgs[0].length;
+
+        String name;
+        if (member is ast.FieldDeclaration) {
+          name = member.fields.variables[0].name.toString();
+        } else if (member is ast.MethodDeclaration) {
+          name = member.name.toString();
+        }
+        targetList
+            .add(new ContentChildField(name, new SourceRange(offset, length)));
       }
     }
   }

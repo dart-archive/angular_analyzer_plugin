@@ -236,6 +236,21 @@ class Output {
   final String bindingPropertyName;
   const Output([this.bindingPropertyName]);
 }
+
+class ContentChild {
+    const ContentChild(dynamic /* Type | String */ _selector,
+              {dynamic read: null})
+          : super(_selector, descendants: true, first: true, read: read);
+}
+
+class ContentChildren {
+    const ContentChildren(dynamic /* Type | String */ _selector,
+              {dynamic read: null})
+          : super(_selector, descendants: true, first: true, read: read);
+}
+
+class QueryList<T> extends Iterable<T> {}
+
 ''');
     newSource(
         '/angular2/src/core/async.dart',
