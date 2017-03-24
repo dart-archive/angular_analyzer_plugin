@@ -3102,9 +3102,879 @@ class MyTag {
     errorListener.assertNoErrors();
   }
 
+  Future
+      test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildElementRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+  @ContentChild(ElementRef)
+  ElementRef foo;
+}
+''');
+    String code = r"""
+<transclude-some><div></div></transclude-some>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeNone {
+  @ContentChild(TemplateRef)
+  TemplateRef foo;
+}
+''');
+    String code = r"""
+<transclude-none><template></template></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild(TemplateRef)
+  TemplateRef foo;
+}
+''');
+    String code = r"""
+<transclude-none><template></template></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildDirective() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone, ContentChildComponent])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild(ContentChildComponent)
+  ContentChildComponent foo;
+}
+@Component(selector: 'content-child-comp', template: '')
+class ContentChildComponent {
+}
+''');
+    String code = r"""
+<transclude-none><content-child-comp></content-child-comp></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundElementRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild('contentChild')
+  ElementRef foo;
+  @ContentChild('contentChild')
+  dynamic fooDynamicShouldBeOk;
+  @ContentChild('contentChild')
+  Object fooObjectShouldBeOk;
+}
+''');
+    String code = r"""
+<transclude-none><div #contentChild></div></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild('contentChild')
+  TemplateRef foo;
+  @ContentChild('contentChild')
+  dynamic fooDynamicShouldBeOk;
+  @ContentChild('contentChild')
+  Object fooObjectShouldBeOk;
+}
+''');
+    String code = r"""
+<transclude-none><template #contentChild></template></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundDirective() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone, ContentChildDirective])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild('contentChild')
+  ContentChildDirective foo;
+  @ContentChild('contentChild')
+  dynamic fooDynamicShouldBeOk;
+  @ContentChild('contentChild')
+  Object fooObjectShouldBeOk;
+  @ContentChild('contentChild')
+  Superclass fooSuperclassShouldBeOk;
+}
+@Directive(selector: '[content-child]', exportAs: 'contentChild')
+class ContentChildDirective extends Superclass {
+}
+
+class Superclass {}
+''');
+    String code = r"""
+<transclude-none><div content-child #contentChild="contentChild"></div></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundComponent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone, ContentChildComponent])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild('contentChild')
+  ContentChildComponent foo;
+  @ContentChild('contentChild')
+  dynamic fooDynamicShouldBeOk;
+  @ContentChild('contentChild')
+  Object fooObjectShouldBeOk;
+  @ContentChild('contentChild')
+  Superclass fooSuperclassShouldBeOk;
+}
+@Component(selector: 'content-child-comp', template: '')
+class ContentChildComponent extends Superclass {
+}
+
+class Superclass {}
+''');
+    String code = r"""
+<transclude-none><content-child-comp #contentChild></content-child-comp></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildElementRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+  @ContentChild(ElementRef)
+  ElementRef foo;
+}
+''');
+    String code = r"""
+<transclude-some><template></template></transclude-some>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "<template></template>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-some')
+@View(template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeNone {
+  @ContentChild(TemplateRef)
+  TemplateRef foo;
+}
+''');
+    String code = r"""
+<transclude-some><div></div></transclude-some>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsNoChildElementRefMatch() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild(ElementRef)
+  ElementRef foo;
+}
+''');
+    String code = r"""
+<transclude-none><template></template></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "<template></template>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsNoContentChildTemplateRefMatch() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild(TemplateRef)
+  TemplateRef foo;
+}
+''');
+    String code = r"""
+<transclude-none><div></div></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentNoTransclusionsNoContentChildDirectiveMatch() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone, ContentChildComponent])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+  @ContentChild(ContentChildComponent)
+  ContentChildComponent foo;
+}
+@Component(selector: 'content-child-comp', template: '')
+class ContentChildComponent {
+}
+''');
+    String code = r"""
+<transclude-none><div></div></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentMatchingHigherComponentsIsStillNotTranscludedError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone, TranscludeAllWithContentChild])
+class TestPanel {
+}
+@Component(selector: 'transclude-none')
+@View(template: '')
+class TranscludeNone {
+}
+@Component(selector: 'transclude-all-with-content-child')
+@View(template: '<ng-content></ng-content>')
+class TranscludeAllWithContentChild {
+  @ContentChild("contentChildOfHigherComponent")
+  ElementRef foo;
+}
+''');
+    String code = r"""
+<transclude-all-with-content-child>
+  <transclude-none>
+    <div #contentChildOfHigherComponent></div>
+  </transclude-none>
+</transclude-all-with-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "<div #contentChildOfHigherComponent></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_templateNotElementRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  ElementRef foo;
+}
+''');
+    String code = r"""
+<has-content-child><template #contentChild></template></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<template #contentChild></template>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_componentNotElementRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeComponent])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  ElementRef foo;
+}
+@Component(selector: 'some-component', template: '')
+class SomeComponent {
+}
+''');
+    String code = r"""
+<has-content-child><some-component #contentChild></some-component></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<some-component #contentChild></some-component>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  ElementRef foo;
+}
+@Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
+class SomeDirective {
+}
+''');
+    String code = r"""
+<has-content-child><div some-directive #contentChild="theDirective"></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div some-directive #contentChild=\"theDirective\"></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_elementNotTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  TemplateRef foo;
+}
+''');
+    String code = r"""
+<has-content-child><div #contentChild></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div #contentChild></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_componentNotTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeComponent])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  TemplateRef foo;
+}
+@Component(selector: 'some-component', template: '')
+class SomeComponent {
+}
+''');
+    String code = r"""
+<has-content-child><some-component #contentChild></some-component></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<some-component #contentChild></some-component>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_directiveNotTemplateRef() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  TemplateRef foo;
+}
+@Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
+class SomeDirective {
+}
+''');
+    String code = r"""
+<has-content-child><div some-directive #contentChild></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div some-directive #contentChild></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_elementNotComponent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeComponent foo;
+}
+@Component(selector: 'some-component', template: '')
+class SomeComponent {
+}
+''');
+    String code = r"""
+<has-content-child><div #contentChild></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div #contentChild></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_templateNotComponent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeComponent foo;
+}
+@Component(selector: 'some-component', template: '')
+class SomeComponent {
+}
+''');
+    String code = r"""
+<has-content-child><template #contentChild></template></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<template #contentChild></template>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_wrongComponent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeOtherComponent])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeComponent foo;
+}
+@Component(selector: 'some-component', template: '')
+class SomeComponent {
+}
+@Component(selector: 'some-other-component', template: '')
+class SomeOtherComponent {
+}
+''');
+    String code = r"""
+<has-content-child><some-other-component #contentChild></some-other-component></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<some-other-component #contentChild></some-other-component>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_elementNotDirective() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeDirective foo;
+}
+@Directive(selector: '[some-directive]')
+class SomeDirective {
+}
+''');
+    String code = r"""
+<has-content-child><div #contentChild></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div #contentChild></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_element_directiveNotExported() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeDirective foo;
+}
+@Directive(selector: '[some-directive]')
+class SomeDirective {
+}
+''');
+    String code = r"""
+<has-content-child><div some-directive #contentChild></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div some-directive #contentChild></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_templateNotDirective() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeDirective foo;
+}
+@Directive(selector: '[some-directive]')
+class SomeDirective {
+}
+''');
+    String code = r"""
+<has-content-child><template #contentChild></template></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<template #contentChild></template>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_wrongDirective() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeOtherDirective])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  SomeDirective foo;
+}
+@Directive(selector: '[some-directive]', exportAs: 'right')
+class SomeDirective {
+}
+@Directive(selector: '[some-other-directive]', exportAs: 'wrong')
+class SomeOtherDirective {
+}
+''');
+    String code = r"""
+<has-content-child><div some-other-directive #contentChild="wrong"></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div some-other-directive #contentChild=\"wrong\"></div>");
+  }
+
+  Future
+      test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef_deeplyNested() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  ElementRef foo;
+}
+@Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
+class SomeDirective {
+}
+''');
+    String code = r"""
+<has-content-child>
+  <div>
+    <span>
+      <div>
+        <div some-directive #contentChild="theDirective"></div>
+      </div>
+    </span>
+  </div>
+</has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div some-directive #contentChild=\"theDirective\"></div>");
+  }
+
+  Future test_resolveTemplate_provideDuplicateContentChildError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChildElementRef])
+class TestPanel {
+}
+@Component(selector: 'has-content-child-element-ref')
+@View(template: '')
+class HasContentChildElementRef {
+  @ContentChild(ElementRef)
+  ElementRef theElement;
+}
+''');
+    String code = r"""
+<has-content-child-element-ref>
+  <div first></div>
+  <div second></div>
+</has-content-child-element-ref>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES,
+        code,
+        "<div second></div>");
+  }
+
+  Future test_resolveTemplate_provideDuplicateContentChildrenOk() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChildrenElementRef])
+class TestPanel {
+}
+@Component(selector: 'has-content-children-element-ref')
+@View(template: '')
+class HasContentChildrenElementRef {
+  @ContentChildren(ElementRef)
+  QueryList<ElementRef> theElement;
+}
+''');
+    String code = r"""
+<has-content-children-element-ref>
+  <div first></div>
+  <div second></div>
+</has-content-children-element-ref>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future test_resolveTemplate_provideDuplicateContentChildNestedOk() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChildElementRef])
+class TestPanel {
+}
+@Component(selector: 'has-content-child-element-ref')
+@View(template: '')
+class HasContentChildElementRef {
+  @ContentChild(ElementRef)
+  ElementRef theElement;
+}
+''');
+    String code = r"""
+<has-content-child-element-ref>
+  <div first>
+    <div second></div>
+  </div>
+</has-content-child-element-ref>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideDuplicateContentChildSiblingsError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChildTemplateRef])
+class TestPanel {
+}
+@Component(selector: 'has-content-child-template-ref')
+@View(template: '<ng-content></ng-content>')
+class HasContentChildTemplateRef {
+  @ContentChild(TemplateRef)
+  TemplateRef theTemplate;
+}
+''');
+    String code = r"""
+<has-content-child-template-ref>
+  <div>
+    <template first></template>
+  </div>
+  <div>
+    <template second></template>
+  </div>
+</has-content-child-template-ref>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES,
+        code,
+        "<template second></template>");
+  }
+
   void _addDartSource(String code) {
     dartCode = '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 $code
 ''';
     dartSource = newSource('/test_panel.dart', dartCode);

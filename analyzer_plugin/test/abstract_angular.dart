@@ -121,7 +121,9 @@ class AbstractAngularTest {
     resourceProvider = new MemoryResourceProvider();
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
-    final packageMap = new Map<String, List<Folder>>();
+    final packageMap = <String, List<Folder>>{
+      "angular2": [resourceProvider.getFolder("/angular2")]
+    };
     PackageMapUriResolver packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
     SourceFactory sf = new SourceFactory([
@@ -245,6 +247,29 @@ class Attribute {
   final String attributeName;
   const Attribute(this.attributeName);
 }
+
+class ContentChild extends Query {
+  const ContentChild(dynamic /* Type | String */ selector,
+              {dynamic read: null}) : super(selector);
+}
+
+class ContentChildren extends Query {
+  const ContentChildren(dynamic /* Type | String */ selector,
+              {dynamic read: null}) : super(selector);
+}
+
+class Query extends DependencyMetadata {
+  const DependencyMetadata(dynamic selector) : super(selector);
+}
+
+class DependencyMetadata {
+  final dynamic /* Type | String */ selector;
+  const DependencyMetadata(this.selector);
+}
+
+class TemplateRef {}
+class ElementRef {}
+class QueryList<T> implements Iterable<T> {}
 ''');
     newSource(
         '/angular2/src/core/async.dart',
