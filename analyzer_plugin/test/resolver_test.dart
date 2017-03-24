@@ -1833,8 +1833,8 @@ class TestPanel {}
     expect(search.element.boundDirectives, hasLength(1));
     DirectiveBinding boundDirective = search.element.boundDirectives.first;
     expect(boundDirective.outputBindings, hasLength(2));
-    expect(boundDirective.outputBindings[0].boundOutput.name, 'ccc');
-    expect(boundDirective.outputBindings[1].boundOutput.name, 'bbb');
+    expect(boundDirective.outputBindings[0].boundOutput.name, 'bbb');
+    expect(boundDirective.outputBindings[1].boundOutput.name, 'ccc');
   }
 
   void test_twoWayReference() {

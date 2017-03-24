@@ -334,6 +334,7 @@ abstract class ParseHtmlMixin implements AnalysisTask {
       content,
       sourceUrl: sourceUrl,
       desugar: false,
+      parseExpressions: false,
       exceptionHandler: exceptionHandler,
     );
 

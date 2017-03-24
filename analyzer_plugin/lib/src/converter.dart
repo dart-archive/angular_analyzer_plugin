@@ -71,6 +71,7 @@ class HtmlTreeConverter {
     if (node is ElementAst) {
       String localName = node.name;
       List<AttributeInfo> attributes = _convertAttributes(node);
+      attributes.sort((a,b)=>a.offset.compareTo(b.offset));
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
       SourceRange openingNameSpan;
