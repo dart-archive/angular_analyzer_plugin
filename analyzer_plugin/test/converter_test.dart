@@ -1,5 +1,4 @@
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';

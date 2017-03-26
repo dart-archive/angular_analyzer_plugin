@@ -19,7 +19,6 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:plugin/manager.dart';
 import 'package:plugin/plugin.dart';
-import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';

@@ -12,7 +12,6 @@ import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'abstract_angular.dart';

@@ -76,19 +76,8 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
   }
 
   test_perform() {
-    //TODO: Max: revert back once DOCTYPE is implement
-//    String code = r'''
-//<!DOCTYPE html>
-//<html>
-//  <head>
-//    <title> test page </title>
-//  </head>
-//  <body>
-//    <h1 myAttr='my value'>Test</h1>
-//  </body>
-//</html>
-//    ''';
     String code = r'''
+<!DOCTYPE html>
 <html>
   <head>
     <title> test page </title>
@@ -108,7 +97,7 @@ class AngularParseHtmlTaskTest extends AbstractAngularTest {
       expect(asts, isNotNull);
       expect(asts.isEmpty, false);
       // verify that attributes are not lower-cased
-      ElementAst element = asts[0].childNodes[3].childNodes[1];
+      ElementAst element = asts[1].childNodes[3].childNodes[1];
       expect(element.attributes.length, 1);
       expect(element.attributes[0].name, 'myAttr');
       expect(element.attributes[0].value, 'my value');
