@@ -13,6 +13,7 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/summary/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
@@ -32,7 +33,8 @@ class AngularDriver
     implements
         AnalysisDriverGeneric,
         FileDirectiveProvider,
-        DirectiveLinkerEnablement {
+        DirectiveLinkerEnablement,
+        FileHasher {
   final AnalysisServer server;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
@@ -46,11 +48,17 @@ class AngularDriver
   final _filesToAnalyze = new HashSet<String>();
   final _htmlViewsToAnalyze = new HashSet<Tuple2<String, String>>();
   final ByteStore byteStore;
+  FileTracker _fileTracker;
 
   AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
       SourceFactory sourceFactory, this._contentOverlay) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
+    _fileTracker = new FileTracker(this);
+  }
+
+  ApiSignature getUnitElementHash(String path) {
+    return dartDriver.getUnitKeyByPath(path);
   }
 
   bool get hasFilesToAnalyze =>
@@ -72,7 +80,23 @@ class AngularDriver
 
   void fileChanged(String path) {
     if (_ownsFile(path)) {
-      _changedFiles.add(path);
+      if (path.endsWith('.html')) {
+        for (final dartContext
+            in _fileTracker.getDartPathsReferencingHtml(path)) {
+          _htmlViewsToAnalyze.add(new Tuple2(path, dartContext));
+        }
+        for (final path in _fileTracker.getHtmlPathsReferencingHtml(path)) {
+          for (final dartContext
+              in _fileTracker.getDartPathsReferencingHtml(path)) {
+            _htmlViewsToAnalyze.add(new Tuple2(path, dartContext));
+          }
+        }
+        for (final path in _fileTracker.getDartPathsAffectedByHtml(path)) {
+          _filesToAnalyze.add(path);
+        }
+      } else {
+        _changedFiles.add(path);
+      }
     }
     _scheduler.notify(this);
   }
@@ -422,11 +446,14 @@ class AngularDriver
     errors.addAll(linkErrorListener.errors);
 
     final List<String> htmlViews = [];
+    final List<String> usesDart = [];
 
+    bool hasDartTemplate = false;
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
         if ((view?.templateText ?? '') != '') {
+          hasDartTemplate = true;
           final tplErrorListener = new RecordingErrorListener();
           final errorReporter = new ErrorReporter(tplErrorListener, source);
           final template = new Template(view);
@@ -459,8 +486,16 @@ class AngularDriver
               .add(new Tuple2(view.templateUriSource.fullName, path));
           htmlViews.add(view.templateUriSource.fullName);
         }
+
+        for (AbstractDirective subDirective in view.directives) {
+          usesDart.add(subDirective.classElement.source.fullName);
+        }
       }
     }
+
+    _fileTracker.setDartHasTemplate(path, hasDartTemplate);
+    _fileTracker.setDartHtmlTemplates(path, htmlViews);
+    _fileTracker.setDartImports(path, usesDart);
 
     final summary = new LinkedDartSummaryBuilder()
       ..errors = summarizeErrors(errors)
