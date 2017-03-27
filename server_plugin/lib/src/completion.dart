@@ -61,6 +61,9 @@ class DartSnippetExtractor extends AngularAstVisitor {
   AstNode dartSnippet = null;
   int offset;
 
+  @override
+  visitDocumentInfo(DocumentInfo document) {}
+
   // don't recurse, findTarget already did that
   @override
   visitElementInfo(ElementInfo element) {}
@@ -126,6 +129,8 @@ class LocalVariablesExtractor extends AngularAstVisitor {
 
   // don't recurse, findTarget already did that
   @override
+  visitDocumentInfo(DocumentInfo document) {}
+  @override
   visitElementInfo(ElementInfo element) {}
   @override
   visitTextAttr(TextAttribute attr) {}
@@ -150,6 +155,9 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   CompletionRequestImpl request;
 
   ReplacementRangeCalculator(this.request);
+
+  @override
+  visitDocumentInfo(DocumentInfo document) {}
 
   // don't recurse, findTarget already did that
   @override

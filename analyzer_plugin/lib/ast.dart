@@ -16,6 +16,12 @@ abstract class AngularAstNode {
 }
 
 abstract class AngularAstVisitor {
+  void visitDocumentInfo(DocumentInfo document) {
+    for (AngularAstNode child in document.childNodes) {
+      child.accept(this);
+    }
+  }
+
   void visitMustache(Mustache mustache) {}
 
   void visitTextAttr(TextAttribute textAttr) => _visitAllChildren(textAttr);
@@ -285,6 +291,36 @@ class TextInfo extends NodeInfo {
   int get length => text.length;
 
   void accept(AngularAstVisitor visitor) => visitor.visitTextInfo(this);
+}
+
+/**
+ * A wrapper for a given HTML document or
+ * dart-angular inline HTML template.
+ */
+class DocumentInfo extends ElementInfo {
+  factory DocumentInfo() = DocumentInfo._;
+
+  DocumentInfo._()
+      : super(
+          '',
+          new SourceRange(0, 0),
+          new SourceRange(0, 0),
+          new SourceRange(0, 0),
+          new SourceRange(0, 0),
+          false,
+          [],
+          null,
+          null,
+        );
+
+  @override
+  bool get isSynthetic => false;
+
+  @override
+  List<AngularAstNode> get children => childNodes;
+
+  @override
+  void accept(AngularAstVisitor visitor) => visitor.visitDocumentInfo(this);
 }
 
 /**

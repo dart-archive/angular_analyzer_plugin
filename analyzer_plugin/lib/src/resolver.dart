@@ -246,6 +246,11 @@ class _DartReferencesRecorder extends RecursiveAstVisitor {
 class AngularScopeVisitor extends AngularAstVisitor {
   bool visitingRoot = true;
 
+  void visitDocumentInfo(DocumentInfo document) {
+    visitingRoot = false;
+    visitElementInScope(document);
+  }
+
   void visitElementInfo(ElementInfo element) {
     var isRoot = visitingRoot;
     visitingRoot = false;
@@ -674,6 +679,14 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
   bool visitingRoot = true;
 
   List<ElementInfo> results = [];
+
+  @override
+  void visitDocumentInfo(DocumentInfo document) {
+    visitingRoot = false;
+    for (NodeInfo child in document.childNodes) {
+      child.accept(this);
+    }
+  }
 
   @override
   void visitElementInfo(ElementInfo element) {

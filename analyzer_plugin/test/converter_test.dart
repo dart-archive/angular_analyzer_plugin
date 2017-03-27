@@ -3,6 +3,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
+import 'package:analyzer/task/dart.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 
 import 'abstract_angular.dart';
@@ -25,21 +26,22 @@ class ConverterTest extends AbstractAngularTest {
   List<ResolvedRange> ranges;
 
   void test_scratch() {
-    _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
-class TestPanel {
-  List<String> items = [];
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
 }
-''');
-    _addHtmlSource(r"""
-    some text and {{^   <div>some html</div>
-""");
-    _resolveSingleTemplate(dartSource);
-    print(template.ast.childNodes);
-    template.ast.childNodes.forEach((e) {
-      print('[${(e as TextInfo).text}]');
-    });
+''';
+    Source source = newSource('/test.dart', code);
+    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
+    computeResult(target, VIEWS2);
+    computeResult(target, ANGULAR_ASTS_ERRORS);
+    print(outputs);
+    //expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
   }
 
   void _addDartSource(String code) {

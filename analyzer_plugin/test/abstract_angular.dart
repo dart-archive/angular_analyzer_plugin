@@ -326,19 +326,8 @@ class NgFor {
    * occurred during angular analysis.
    */
   // TODO: Max: remove debug flag.
-  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors,
-      {bool debug: false}) {
+  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors) {
     var realErrors = errorListener.errors;
-    if (debug) {
-      realErrors.forEach((error) {
-        print(error.errorCode);
-        print(error.isStaticOnly);
-        print(error.source);
-        print(error.offset);
-        print(error.length);
-        print(error.message);
-      });
-    }
     expectedErrors.forEach((expectedError) {
       expect(realErrors.contains(expectedError), true,
           reason:

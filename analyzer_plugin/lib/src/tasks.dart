@@ -1806,7 +1806,6 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
           .map((e) => new FromFilePrefixedError(view.source, e))
           .toList();
     }
-
     outputs[HTML_TEMPLATE] = view.template;
     outputs[HTML_TEMPLATE_ERRORS] = errorList;
   }
