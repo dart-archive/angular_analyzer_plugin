@@ -215,37 +215,8 @@ class AngularDriver
         errorCode, error.message, error.correction);
   }
 
-  Future<String> getHtmlKey(String htmlPath, String dartPath) async {
-    final key = getContentHash(htmlPath);
-    key.addBytes(dartDriver.getUnitKeyByPath(dartPath).toByteList());
-    final directives = (await getDirectives(dartPath)).directives;
-    final unit = (await dartDriver.getUnitElement(dartPath)).element;
-    if (unit == null) return null;
-
-    final linkErrorListener = new IgnoringErrorListener();
-    final linkErrorReporter =
-        new ErrorReporter(linkErrorListener, getSource(dartPath));
-
-    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
-    await linker.linkDirectives(directives, unit.library);
-
-    // Trap case: there may be multiple directives that match this!
-    directives
-        .where((directive) =>
-            directive is Component &&
-            directive.view?.templateUriSource?.fullName == htmlPath)
-        .forEach((AbstractDirective directive) {
-      final Component component = directive;
-      for (final subdirective in component.view.directives) {
-        if (subdirective is Component &&
-            subdirective?.view?.templateUriSource != null) {
-          key.addBytes(
-              getContentHash(subdirective.view.templateUriSource.fullName)
-                  .toByteList());
-        }
-      }
-    });
-
+  String getHtmlKey(String htmlPath, String dartPath) {
+    final key = _fileTracker.getHtmlSignature(htmlPath, dartPath);
     return key.toHex() + '.ngresolved';
   }
 
@@ -263,7 +234,7 @@ class AngularDriver
   }
 
   Future<DirectivesResult> resolveHtml(String htmlPath, String dartPath) async {
-    final key = await getHtmlKey(htmlPath, dartPath);
+    final key = getHtmlKey(htmlPath, dartPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
