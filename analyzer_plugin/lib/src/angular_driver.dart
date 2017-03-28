@@ -49,6 +49,7 @@ class AngularDriver
   final _htmlViewsToAnalyze = new HashSet<Tuple2<String, String>>();
   final ByteStore byteStore;
   FileTracker _fileTracker;
+  final lastSignatures = <String, String>{};
 
   AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
       SourceFactory sourceFactory, this._contentOverlay) {
@@ -372,7 +373,9 @@ class AngularDriver
   Future pushDartOccurrences(String path) async {}
 
   Future pushDartErrors(String path) async {
-    final errors = (await resolveDart(path)).errors;
+    final result = (await resolveDart(path));
+    if (result == null) return;
+    final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
@@ -384,6 +387,12 @@ class AngularDriver
       {bool withDirectives: false}) async {
     final key =
         dartDriver.getResolvedUnitKeyByPath(path).toHex() + '.ngresolved';
+
+    if (lastSignatures[path] == key) {
+      return null;
+    }
+
+    lastSignatures[path] = key;
 
     if (!withDirectives) {
       final List<int> bytes = byteStore.get(key);
