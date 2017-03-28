@@ -13,6 +13,7 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/summary/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
@@ -32,7 +33,8 @@ class AngularDriver
     implements
         AnalysisDriverGeneric,
         FileDirectiveProvider,
-        DirectiveLinkerEnablement {
+        DirectiveLinkerEnablement,
+        FileHasher {
   final AnalysisServer server;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
@@ -46,11 +48,18 @@ class AngularDriver
   final _filesToAnalyze = new HashSet<String>();
   final _htmlViewsToAnalyze = new HashSet<Tuple2<String, String>>();
   final ByteStore byteStore;
+  FileTracker _fileTracker;
+  final lastSignatures = <String, String>{};
 
   AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
       SourceFactory sourceFactory, this._contentOverlay) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
+    _fileTracker = new FileTracker(this);
+  }
+
+  ApiSignature getUnitElementHash(String path) {
+    return dartDriver.getUnitKeyByPath(path);
   }
 
   bool get hasFilesToAnalyze =>
@@ -72,7 +81,23 @@ class AngularDriver
 
   void fileChanged(String path) {
     if (_ownsFile(path)) {
-      _changedFiles.add(path);
+      if (path.endsWith('.html')) {
+        for (final dartContext
+            in _fileTracker.getDartPathsReferencingHtml(path)) {
+          _htmlViewsToAnalyze.add(new Tuple2(path, dartContext));
+        }
+        for (final path in _fileTracker.getHtmlPathsReferencingHtml(path)) {
+          for (final dartContext
+              in _fileTracker.getDartPathsReferencingHtml(path)) {
+            _htmlViewsToAnalyze.add(new Tuple2(path, dartContext));
+          }
+        }
+        for (final path in _fileTracker.getDartPathsAffectedByHtml(path)) {
+          _filesToAnalyze.add(path);
+        }
+      } else {
+        _changedFiles.add(path);
+      }
     }
     _scheduler.notify(this);
   }
@@ -191,37 +216,8 @@ class AngularDriver
         errorCode, error.message, error.correction);
   }
 
-  Future<String> getHtmlKey(String htmlPath, String dartPath) async {
-    final key = getContentHash(htmlPath);
-    key.addBytes(dartDriver.getUnitKeyByPath(dartPath).toByteList());
-    final directives = (await getDirectives(dartPath)).directives;
-    final unit = (await dartDriver.getUnitElement(dartPath)).element;
-    if (unit == null) return null;
-
-    final linkErrorListener = new IgnoringErrorListener();
-    final linkErrorReporter =
-        new ErrorReporter(linkErrorListener, getSource(dartPath));
-
-    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
-    await linker.linkDirectives(directives, unit.library);
-
-    // Trap case: there may be multiple directives that match this!
-    directives
-        .where((directive) =>
-            directive is Component &&
-            directive.view?.templateUriSource?.fullName == htmlPath)
-        .forEach((AbstractDirective directive) {
-      final Component component = directive;
-      for (final subdirective in component.view.directives) {
-        if (subdirective is Component &&
-            subdirective?.view?.templateUriSource != null) {
-          key.addBytes(
-              getContentHash(subdirective.view.templateUriSource.fullName)
-                  .toByteList());
-        }
-      }
-    });
-
+  String getHtmlKey(String htmlPath, String dartPath) {
+    final key = _fileTracker.getHtmlSignature(htmlPath, dartPath);
     return key.toHex() + '.ngresolved';
   }
 
@@ -239,7 +235,7 @@ class AngularDriver
   }
 
   Future<DirectivesResult> resolveHtml(String htmlPath, String dartPath) async {
-    final key = await getHtmlKey(htmlPath, dartPath);
+    final key = getHtmlKey(htmlPath, dartPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
@@ -377,7 +373,9 @@ class AngularDriver
   Future pushDartOccurrences(String path) async {}
 
   Future pushDartErrors(String path) async {
-    final errors = (await resolveDart(path)).errors;
+    final result = await resolveDart(path);
+    if (result == null) return;
+    final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));
     final serverErrors = protocol.doAnalysisError_listFromEngine(
         dartDriver.analysisOptions, lineInfo, errors);
@@ -388,7 +386,13 @@ class AngularDriver
   Future<DirectivesResult> resolveDart(String path,
       {bool withDirectives: false}) async {
     final key =
-        dartDriver.getResolvedUnitKeyByPath(path).toHex() + '.ngresolved';
+        (await dartDriver.getUnitElementSignature(path)) + '.ngresolved';
+
+    if (lastSignatures[path] == key) {
+      return null;
+    }
+
+    lastSignatures[path] = key;
 
     if (!withDirectives) {
       final List<int> bytes = byteStore.get(key);
@@ -398,6 +402,10 @@ class AngularDriver
         for (final htmlView in summary.referencedHtmlFiles) {
           _htmlViewsToAnalyze.add(new Tuple2(htmlView, path));
         }
+
+        _fileTracker.setDartHasTemplate(path, summary.hasDartTemplates);
+        _fileTracker.setDartHtmlTemplates(path, summary.referencedHtmlFiles);
+        _fileTracker.setDartImports(path, summary.referencedDartFiles);
 
         return new DirectivesResult(
             [], deserializeErrors(getSource(path), summary.errors));
@@ -422,11 +430,14 @@ class AngularDriver
     errors.addAll(linkErrorListener.errors);
 
     final List<String> htmlViews = [];
+    final List<String> usesDart = [];
 
+    bool hasDartTemplate = false;
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
         if ((view?.templateText ?? '') != '') {
+          hasDartTemplate = true;
           final tplErrorListener = new RecordingErrorListener();
           final errorReporter = new ErrorReporter(tplErrorListener, source);
           final template = new Template(view);
@@ -459,12 +470,22 @@ class AngularDriver
               .add(new Tuple2(view.templateUriSource.fullName, path));
           htmlViews.add(view.templateUriSource.fullName);
         }
+
+        for (AbstractDirective subDirective in view.directives) {
+          usesDart.add(subDirective.classElement.source.fullName);
+        }
       }
     }
 
+    _fileTracker.setDartHasTemplate(path, hasDartTemplate);
+    _fileTracker.setDartHtmlTemplates(path, htmlViews);
+    _fileTracker.setDartImports(path, usesDart);
+
     final summary = new LinkedDartSummaryBuilder()
       ..errors = summarizeErrors(errors)
-      ..referencedHtmlFiles = htmlViews;
+      ..referencedHtmlFiles = htmlViews
+      ..referencedDartFiles = usesDart
+      ..hasDartTemplates = hasDartTemplate;
     final List<int> newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
     return new DirectivesResult(directives, errors);

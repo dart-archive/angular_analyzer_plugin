@@ -42,6 +42,12 @@ abstract class LinkedDartSummary extends base.SummaryClass {
 
   @Id(1)
   List<String> get referencedHtmlFiles;
+
+  @Id(2)
+  List<String> get referencedDartFiles;
+
+  @Id(3)
+  bool get hasDartTemplates;
 }
 
 @TopLevel('APUD')
