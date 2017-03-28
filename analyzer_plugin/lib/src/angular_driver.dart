@@ -373,7 +373,7 @@ class AngularDriver
   Future pushDartOccurrences(String path) async {}
 
   Future pushDartErrors(String path) async {
-    final result = (await resolveDart(path));
+    final result = await resolveDart(path);
     if (result == null) return;
     final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));

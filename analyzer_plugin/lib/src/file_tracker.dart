@@ -22,10 +22,10 @@ class FileTracker {
   }
 
   void setDartHasTemplate(String dartPath, bool hasTemplate) {
-    if (!hasTemplate) {
-      _dartFilesWithDartTemplates.remove(dartPath);
-    } else {
+    if (hasTemplate) {
       _dartFilesWithDartTemplates.add(dartPath);
+    } else {
+      _dartFilesWithDartTemplates.remove(dartPath);
     }
   }
 
