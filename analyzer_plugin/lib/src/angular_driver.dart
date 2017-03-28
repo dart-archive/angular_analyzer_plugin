@@ -386,7 +386,7 @@ class AngularDriver
   Future<DirectivesResult> resolveDart(String path,
       {bool withDirectives: false}) async {
     final key =
-        dartDriver.getResolvedUnitKeyByPath(path).toHex() + '.ngresolved';
+        (await dartDriver.getUnitElementSignature(path)) + '.ngresolved';
 
     if (lastSignatures[path] == key) {
       return null;
