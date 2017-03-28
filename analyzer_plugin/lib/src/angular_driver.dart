@@ -394,6 +394,10 @@ class AngularDriver
           _htmlViewsToAnalyze.add(new Tuple2(htmlView, path));
         }
 
+        _fileTracker.setDartHasTemplate(path, summary.hasDartTemplates);
+        _fileTracker.setDartHtmlTemplates(path, summary.referencedHtmlFiles);
+        _fileTracker.setDartImports(path, summary.referencedDartFiles);
+
         return new DirectivesResult(
             [], deserializeErrors(getSource(path), summary.errors));
       }
@@ -470,7 +474,9 @@ class AngularDriver
 
     final summary = new LinkedDartSummaryBuilder()
       ..errors = summarizeErrors(errors)
-      ..referencedHtmlFiles = htmlViews;
+      ..referencedHtmlFiles = htmlViews
+      ..referencedDartFiles = usesDart
+      ..hasDartTemplates = hasDartTemplate;
     final List<int> newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
     return new DirectivesResult(directives, errors);

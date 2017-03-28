@@ -24,6 +24,10 @@ table LinkedDartSummary {
   errors:[SummarizedAnalysisError] (id: 0);
 
   referencedHtmlFiles:[string] (id: 1);
+
+  referencedDartFiles:[string] (id: 2);
+
+  hasDartTemplates:bool (id: 3);
 }
 
 table UnlinkedDartSummary {

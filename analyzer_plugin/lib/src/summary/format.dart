@@ -68,11 +68,11 @@ class PackageBundleBuilder extends Object
 
 idl.PackageBundle readPackageBundle(List<int> buffer) {
   fb.BufferContext rootRef = new fb.BufferContext.fromBytes(buffer);
-  return const PackageBundleReader().read(rootRef, 0);
+  return const _PackageBundleReader().read(rootRef, 0);
 }
 
-class PackageBundleReader extends fb.TableReader<_PackageBundleImpl> {
-  const PackageBundleReader();
+class _PackageBundleReader extends fb.TableReader<_PackageBundleImpl> {
+  const _PackageBundleReader();
 
   @override
   _PackageBundleImpl createObject(fb.BufferContext bc, int offset) =>
@@ -92,7 +92,7 @@ class _PackageBundleImpl extends Object
   @override
   List<idl.UnlinkedDartSummary> get unlinkedDartSummary {
     _unlinkedDartSummary ??= const fb.ListReader<idl.UnlinkedDartSummary>(
-            const UnlinkedDartSummaryReader())
+            const _UnlinkedDartSummaryReader())
         .vTableGet(_bc, _bcOffset, 0, const <idl.UnlinkedDartSummary>[]);
     return _unlinkedDartSummary;
   }
@@ -204,11 +204,11 @@ class LinkedHtmlSummaryBuilder extends Object
 
 idl.LinkedHtmlSummary readLinkedHtmlSummary(List<int> buffer) {
   fb.BufferContext rootRef = new fb.BufferContext.fromBytes(buffer);
-  return const LinkedHtmlSummaryReader().read(rootRef, 0);
+  return const _LinkedHtmlSummaryReader().read(rootRef, 0);
 }
 
-class LinkedHtmlSummaryReader extends fb.TableReader<_LinkedHtmlSummaryImpl> {
-  const LinkedHtmlSummaryReader();
+class _LinkedHtmlSummaryReader extends fb.TableReader<_LinkedHtmlSummaryImpl> {
+  const _LinkedHtmlSummaryReader();
 
   @override
   _LinkedHtmlSummaryImpl createObject(fb.BufferContext bc, int offset) =>
@@ -229,7 +229,7 @@ class _LinkedHtmlSummaryImpl extends Object
   @override
   List<idl.SummarizedAnalysisError> get errors {
     _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(
-            const SummarizedAnalysisErrorReader())
+            const _SummarizedAnalysisErrorReader())
         .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
@@ -238,7 +238,7 @@ class _LinkedHtmlSummaryImpl extends Object
   List<idl.SummarizedAnalysisErrorFromPath> get errorsFromPath {
     _errorsFromPath ??=
         const fb.ListReader<idl.SummarizedAnalysisErrorFromPath>(
-                const SummarizedAnalysisErrorFromPathReader())
+                const _SummarizedAnalysisErrorFromPathReader())
             .vTableGet(_bc, _bcOffset, 1,
                 const <idl.SummarizedAnalysisErrorFromPath>[]);
     return _errorsFromPath;
@@ -325,12 +325,12 @@ class UnlinkedHtmlSummaryBuilder extends Object
 
 idl.UnlinkedHtmlSummary readUnlinkedHtmlSummary(List<int> buffer) {
   fb.BufferContext rootRef = new fb.BufferContext.fromBytes(buffer);
-  return const UnlinkedHtmlSummaryReader().read(rootRef, 0);
+  return const _UnlinkedHtmlSummaryReader().read(rootRef, 0);
 }
 
-class UnlinkedHtmlSummaryReader
+class _UnlinkedHtmlSummaryReader
     extends fb.TableReader<_UnlinkedHtmlSummaryImpl> {
-  const UnlinkedHtmlSummaryReader();
+  const _UnlinkedHtmlSummaryReader();
 
   @override
   _UnlinkedHtmlSummaryImpl createObject(fb.BufferContext bc, int offset) =>
@@ -350,7 +350,7 @@ class _UnlinkedHtmlSummaryImpl extends Object
   @override
   List<idl.SummarizedNgContent> get ngContents {
     _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(
-            const SummarizedNgContentReader())
+            const _SummarizedNgContentReader())
         .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedNgContent>[]);
     return _ngContents;
   }
@@ -380,6 +380,8 @@ class LinkedDartSummaryBuilder extends Object
     implements idl.LinkedDartSummary {
   List<SummarizedAnalysisErrorBuilder> _errors;
   List<String> _referencedHtmlFiles;
+  List<String> _referencedDartFiles;
+  bool _hasDartTemplates;
 
   @override
   List<SummarizedAnalysisErrorBuilder> get errors =>
@@ -396,11 +398,29 @@ class LinkedDartSummaryBuilder extends Object
     this._referencedHtmlFiles = value;
   }
 
+  @override
+  List<String> get referencedDartFiles => _referencedDartFiles ??= <String>[];
+
+  void set referencedDartFiles(List<String> value) {
+    this._referencedDartFiles = value;
+  }
+
+  @override
+  bool get hasDartTemplates => _hasDartTemplates ??= false;
+
+  void set hasDartTemplates(bool value) {
+    this._hasDartTemplates = value;
+  }
+
   LinkedDartSummaryBuilder(
       {List<SummarizedAnalysisErrorBuilder> errors,
-      List<String> referencedHtmlFiles})
+      List<String> referencedHtmlFiles,
+      List<String> referencedDartFiles,
+      bool hasDartTemplates})
       : _errors = errors,
-        _referencedHtmlFiles = referencedHtmlFiles;
+        _referencedHtmlFiles = referencedHtmlFiles,
+        _referencedDartFiles = referencedDartFiles,
+        _hasDartTemplates = hasDartTemplates;
 
   /**
    * Flush [informative] data recursively.
@@ -429,6 +449,15 @@ class LinkedDartSummaryBuilder extends Object
         signature.addString(x);
       }
     }
+    if (this._referencedDartFiles == null) {
+      signature.addInt(0);
+    } else {
+      signature.addInt(this._referencedDartFiles.length);
+      for (var x in this._referencedDartFiles) {
+        signature.addString(x);
+      }
+    }
+    signature.addBool(this._hasDartTemplates == true);
   }
 
   List<int> toBuffer() {
@@ -439,6 +468,7 @@ class LinkedDartSummaryBuilder extends Object
   fb.Offset finish(fb.Builder fbBuilder) {
     fb.Offset offset_errors;
     fb.Offset offset_referencedHtmlFiles;
+    fb.Offset offset_referencedDartFiles;
     if (!(_errors == null || _errors.isEmpty)) {
       offset_errors =
           fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
@@ -447,6 +477,10 @@ class LinkedDartSummaryBuilder extends Object
       offset_referencedHtmlFiles = fbBuilder.writeList(
           _referencedHtmlFiles.map((b) => fbBuilder.writeString(b)).toList());
     }
+    if (!(_referencedDartFiles == null || _referencedDartFiles.isEmpty)) {
+      offset_referencedDartFiles = fbBuilder.writeList(
+          _referencedDartFiles.map((b) => fbBuilder.writeString(b)).toList());
+    }
     fbBuilder.startTable();
     if (offset_errors != null) {
       fbBuilder.addOffset(0, offset_errors);
@@ -454,17 +488,23 @@ class LinkedDartSummaryBuilder extends Object
     if (offset_referencedHtmlFiles != null) {
       fbBuilder.addOffset(1, offset_referencedHtmlFiles);
     }
+    if (offset_referencedDartFiles != null) {
+      fbBuilder.addOffset(2, offset_referencedDartFiles);
+    }
+    if (_hasDartTemplates == true) {
+      fbBuilder.addBool(3, true);
+    }
     return fbBuilder.endTable();
   }
 }
 
 idl.LinkedDartSummary readLinkedDartSummary(List<int> buffer) {
   fb.BufferContext rootRef = new fb.BufferContext.fromBytes(buffer);
-  return const LinkedDartSummaryReader().read(rootRef, 0);
+  return const _LinkedDartSummaryReader().read(rootRef, 0);
 }
 
-class LinkedDartSummaryReader extends fb.TableReader<_LinkedDartSummaryImpl> {
-  const LinkedDartSummaryReader();
+class _LinkedDartSummaryReader extends fb.TableReader<_LinkedDartSummaryImpl> {
+  const _LinkedDartSummaryReader();
 
   @override
   _LinkedDartSummaryImpl createObject(fb.BufferContext bc, int offset) =>
@@ -481,11 +521,13 @@ class _LinkedDartSummaryImpl extends Object
 
   List<idl.SummarizedAnalysisError> _errors;
   List<String> _referencedHtmlFiles;
+  List<String> _referencedDartFiles;
+  bool _hasDartTemplates;
 
   @override
   List<idl.SummarizedAnalysisError> get errors {
     _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(
-            const SummarizedAnalysisErrorReader())
+            const _SummarizedAnalysisErrorReader())
         .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
@@ -497,6 +539,21 @@ class _LinkedDartSummaryImpl extends Object
             .vTableGet(_bc, _bcOffset, 1, const <String>[]);
     return _referencedHtmlFiles;
   }
+
+  @override
+  List<String> get referencedDartFiles {
+    _referencedDartFiles ??=
+        const fb.ListReader<String>(const fb.StringReader())
+            .vTableGet(_bc, _bcOffset, 2, const <String>[]);
+    return _referencedDartFiles;
+  }
+
+  @override
+  bool get hasDartTemplates {
+    _hasDartTemplates ??=
+        const fb.BoolReader().vTableGet(_bc, _bcOffset, 3, false);
+    return _hasDartTemplates;
+  }
 }
 
 abstract class _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
@@ -507,6 +564,10 @@ abstract class _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
       _result["errors"] = errors.map((_value) => _value.toJson()).toList();
     if (referencedHtmlFiles.isNotEmpty)
       _result["referencedHtmlFiles"] = referencedHtmlFiles;
+    if (referencedDartFiles.isNotEmpty)
+      _result["referencedDartFiles"] = referencedDartFiles;
+    if (hasDartTemplates != false)
+      _result["hasDartTemplates"] = hasDartTemplates;
     return _result;
   }
 
@@ -514,6 +575,8 @@ abstract class _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
   Map<String, Object> toMap() => {
         "errors": errors,
         "referencedHtmlFiles": referencedHtmlFiles,
+        "referencedDartFiles": referencedDartFiles,
+        "hasDartTemplates": hasDartTemplates,
       };
 
   @override
@@ -607,12 +670,12 @@ class UnlinkedDartSummaryBuilder extends Object
 
 idl.UnlinkedDartSummary readUnlinkedDartSummary(List<int> buffer) {
   fb.BufferContext rootRef = new fb.BufferContext.fromBytes(buffer);
-  return const UnlinkedDartSummaryReader().read(rootRef, 0);
+  return const _UnlinkedDartSummaryReader().read(rootRef, 0);
 }
 
-class UnlinkedDartSummaryReader
+class _UnlinkedDartSummaryReader
     extends fb.TableReader<_UnlinkedDartSummaryImpl> {
-  const UnlinkedDartSummaryReader();
+  const _UnlinkedDartSummaryReader();
 
   @override
   _UnlinkedDartSummaryImpl createObject(fb.BufferContext bc, int offset) =>
@@ -633,7 +696,7 @@ class _UnlinkedDartSummaryImpl extends Object
   @override
   List<idl.SummarizedDirective> get directiveSummaries {
     _directiveSummaries ??= const fb.ListReader<idl.SummarizedDirective>(
-            const SummarizedDirectiveReader())
+            const _SummarizedDirectiveReader())
         .vTableGet(_bc, _bcOffset, 0, const <idl.SummarizedDirective>[]);
     return _directiveSummaries;
   }
@@ -641,7 +704,7 @@ class _UnlinkedDartSummaryImpl extends Object
   @override
   List<idl.SummarizedAnalysisError> get errors {
     _errors ??= const fb.ListReader<idl.SummarizedAnalysisError>(
-            const SummarizedAnalysisErrorReader())
+            const _SummarizedAnalysisErrorReader())
         .vTableGet(_bc, _bcOffset, 1, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
@@ -984,9 +1047,9 @@ class SummarizedDirectiveBuilder extends Object
   }
 }
 
-class SummarizedDirectiveReader
+class _SummarizedDirectiveReader
     extends fb.TableReader<_SummarizedDirectiveImpl> {
-  const SummarizedDirectiveReader();
+  const _SummarizedDirectiveReader();
 
   @override
   _SummarizedDirectiveImpl createObject(fb.BufferContext bc, int offset) =>
@@ -1090,7 +1153,7 @@ class _SummarizedDirectiveImpl extends Object
   @override
   List<idl.SummarizedNgContent> get ngContents {
     _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(
-            const SummarizedNgContentReader())
+            const _SummarizedNgContentReader())
         .vTableGet(_bc, _bcOffset, 11, const <idl.SummarizedNgContent>[]);
     return _ngContents;
   }
@@ -1098,7 +1161,7 @@ class _SummarizedDirectiveImpl extends Object
   @override
   List<idl.SummarizedBindable> get inputs {
     _inputs ??= const fb.ListReader<idl.SummarizedBindable>(
-            const SummarizedBindableReader())
+            const _SummarizedBindableReader())
         .vTableGet(_bc, _bcOffset, 12, const <idl.SummarizedBindable>[]);
     return _inputs;
   }
@@ -1106,7 +1169,7 @@ class _SummarizedDirectiveImpl extends Object
   @override
   List<idl.SummarizedBindable> get outputs {
     _outputs ??= const fb.ListReader<idl.SummarizedBindable>(
-            const SummarizedBindableReader())
+            const _SummarizedBindableReader())
         .vTableGet(_bc, _bcOffset, 13, const <idl.SummarizedBindable>[]);
     return _outputs;
   }
@@ -1114,7 +1177,7 @@ class _SummarizedDirectiveImpl extends Object
   @override
   List<idl.SummarizedDirectiveUse> get subdirectives {
     _subdirectives ??= const fb.ListReader<idl.SummarizedDirectiveUse>(
-            const SummarizedDirectiveUseReader())
+            const _SummarizedDirectiveUseReader())
         .vTableGet(_bc, _bcOffset, 14, const <idl.SummarizedDirectiveUse>[]);
     return _subdirectives;
   }
@@ -1281,9 +1344,9 @@ class SummarizedAnalysisErrorBuilder extends Object
   }
 }
 
-class SummarizedAnalysisErrorReader
+class _SummarizedAnalysisErrorReader
     extends fb.TableReader<_SummarizedAnalysisErrorImpl> {
-  const SummarizedAnalysisErrorReader();
+  const _SummarizedAnalysisErrorReader();
 
   @override
   _SummarizedAnalysisErrorImpl createObject(fb.BufferContext bc, int offset) =>
@@ -1422,9 +1485,9 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object
   }
 }
 
-class SummarizedAnalysisErrorFromPathReader
+class _SummarizedAnalysisErrorFromPathReader
     extends fb.TableReader<_SummarizedAnalysisErrorFromPathImpl> {
-  const SummarizedAnalysisErrorFromPathReader();
+  const _SummarizedAnalysisErrorFromPathReader();
 
   @override
   _SummarizedAnalysisErrorFromPathImpl createObject(
@@ -1451,7 +1514,7 @@ class _SummarizedAnalysisErrorFromPathImpl extends Object
 
   @override
   idl.SummarizedAnalysisError get originalError {
-    _originalError ??= const SummarizedAnalysisErrorReader()
+    _originalError ??= const _SummarizedAnalysisErrorReader()
         .vTableGet(_bc, _bcOffset, 1, null);
     return _originalError;
   }
@@ -1564,8 +1627,9 @@ class SummarizedBindableBuilder extends Object
   }
 }
 
-class SummarizedBindableReader extends fb.TableReader<_SummarizedBindableImpl> {
-  const SummarizedBindableReader();
+class _SummarizedBindableReader
+    extends fb.TableReader<_SummarizedBindableImpl> {
+  const _SummarizedBindableReader();
 
   @override
   _SummarizedBindableImpl createObject(fb.BufferContext bc, int offset) =>
@@ -1719,9 +1783,9 @@ class SummarizedDirectiveUseBuilder extends Object
   }
 }
 
-class SummarizedDirectiveUseReader
+class _SummarizedDirectiveUseReader
     extends fb.TableReader<_SummarizedDirectiveUseImpl> {
-  const SummarizedDirectiveUseReader();
+  const _SummarizedDirectiveUseReader();
 
   @override
   _SummarizedDirectiveUseImpl createObject(fb.BufferContext bc, int offset) =>
@@ -1873,9 +1937,9 @@ class SummarizedNgContentBuilder extends Object
   }
 }
 
-class SummarizedNgContentReader
+class _SummarizedNgContentReader
     extends fb.TableReader<_SummarizedNgContentImpl> {
-  const SummarizedNgContentReader();
+  const _SummarizedNgContentReader();
 
   @override
   _SummarizedNgContentImpl createObject(fb.BufferContext bc, int offset) =>
