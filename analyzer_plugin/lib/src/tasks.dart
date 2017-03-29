@@ -330,13 +330,19 @@ abstract class ParseHtmlMixin implements AnalysisTask {
 
   void parse(String content, String sourceUrl) {
     final exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    documentAsts = NgAst.parse(
-      content,
-      sourceUrl: sourceUrl,
-      desugar: false,
-      parseExpressions: false,
-      exceptionHandler: exceptionHandler,
-    );
+    // TODO: Remove after fuzz tester resolved.
+    try {
+      documentAsts = NgAst.parse(
+        content,
+        sourceUrl: sourceUrl,
+        desugar: false,
+        parseExpressions: false,
+        exceptionHandler: exceptionHandler,
+      );
+    } catch (e, stack) {
+      print(stack);
+      rethrow;
+    }
 
     for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
       if (e.errorCode is NgAst.NgParserWarningCode) {
@@ -1568,9 +1574,11 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
             return;
           }
 
+          var substringEnd = view.templateText.length - 1;
           parse(
               (' ' * view.templateOffset) +
-                  view.templateText.substring(0, view.templateText.length - 1),
+                  view.templateText
+                      .substring(0, (substringEnd < 0 ? 0 : substringEnd)),
               target.toString());
           parseErrors.forEach(errorListener.onError);
           parseErrors.clear();
@@ -1597,8 +1605,13 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         source, errorListener, typeProvider, errorReporter);
     template.view.template = template;
 
-    template.ast = new HtmlTreeConverter(parser, source, errorListener)
-        .convertFromAstList(documentAsts);
+    // TODO: Remove try-catch after fuzz tester.
+    try {
+      template.ast = new HtmlTreeConverter(parser, source, errorListener)
+          .convertFromAstList(documentAsts);
+    } catch (e, stack) {
+      rethrow;
+    }
     _setIgnoredErrors(template, documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
@@ -1779,6 +1792,7 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
     Map<String, OutputElement> htmlEvents = getRequiredInput(HTML_EVENTS_INPUT);
     Map<String, InputElement> htmlAttributes =
         getRequiredInput(HTML_ATTRIBUTES_INPUT);
+    var errorList = <AnalysisError>[];
     //
     // Resolve.
     //
@@ -1787,15 +1801,15 @@ class ResolveHtmlTemplateTask extends AnalysisTask {
       new TemplateResolver(typeProvider, htmlComponents, htmlEvents,
               htmlAttributes, errorListener)
           .resolve(view.template);
+      //
+      // Record outputs.
+      //
+      errorList = (<AnalysisError>[]
+            ..addAll(errorListener.errors)
+            ..addAll(inputs[ANGULAR_ASTS_ERRORS_INPUT] ?? []))
+          .where((e) => !view.template.ignoredErrors.contains(e.errorCode.name))
+          .toList();
     }
-    //
-    // Record outputs.
-    //
-    List<AnalysisError> errorList = (<AnalysisError>[]
-          ..addAll(errorListener.errors)
-          ..addAll(inputs[ANGULAR_ASTS_ERRORS_INPUT] ?? []))
-        .where((e) => !view.template.ignoredErrors.contains(e.errorCode.name))
-        .toList();
 
     String shorten(String filename) =>
         filename.substring(0, filename.lastIndexOf('.'));

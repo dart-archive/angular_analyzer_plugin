@@ -26,22 +26,52 @@ class ConverterTest extends AbstractAngularTest {
   List<ResolvedRange> ranges;
 
   void test_scratch() {
-    String code = r'''
-import '/angular2/angular2.dart';
-
-@Component(selector: 'my-aaa',
-    template: """
-<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
-<unresolved-tag attr='value'></unresolved-tag>""")
+    _addDartSource(r'''
+@Component(
+    externalselector: 'my-aaa',
+    templateUrl: 'test_panel.html',
+    directives: const [CounterComponent, NgIf, NgFor, NgForm, NgModel])
 class ComponentA {
+  List<String> items;
+  String header;
 }
-''';
-    Source source = newSource('/test.dart', code);
-    LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    computeResult(target, VIEWS2);
-    computeResult(target, ANGULAR_ASTS_ERRORS);
-    print(outputs);
-    //expect(task, new isInstanceOf<ResolveDartTemplatesTask>());
+
+@Component(
+    selector: 'my-counter',
+    inputs: const ['count'],
+    outputs: const ['resetEvent: reset'],
+    template: '{{count}} <button (click)="increment()" [value2/angular2.dart';
+
+    @Component(
+    selector: 'my-aaa',
+    templateUrl: 'test_panel.html',
+    directives: const [CounterComponent, NgIf, NgFor, NgForm, NgModel])class ComponentA {
+  List<String> items;
+  String header;
+}
+
+@Component(
+    selector: 'my-counter',
+    inputs: const ['count'],
+    outputs: const ['resetEvent: reset'],
+    template: '{{count}} <but]="\'add\'"></button>')
+class CounterComponent {
+  int count;
+  @Input() int maxCount;
+  EventEmitter<String> resetEvent;
+  @Output() EventEmitter<
+''');
+    _addHtmlSource(r"""
+(click)=t'h1.hidden = !h1.hidden; counter.resedt()'  <my-counter
+        }
+        ]),
+        });
+        {
+        \'\'\');
+'090cedb3f2833a3f260b    (ien = !h1.hidden; countncremented)
+""");
+    _resolveSingleTemplate(dartSource);
+    var template = outputs[HTML_TEMPLATE];
   }
 
   void _addDartSource(String code) {
