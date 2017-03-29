@@ -325,7 +325,6 @@ class NgFor {
    * Given an explicit list of [AnalysisError], check to see if errors
    * occurred during angular analysis.
    */
-  // TODO: Max: remove debug flag.
   void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors) {
     var realErrors = errorListener.errors;
     expectedErrors.forEach((expectedError) {

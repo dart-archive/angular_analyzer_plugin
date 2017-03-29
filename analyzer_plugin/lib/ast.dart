@@ -362,7 +362,6 @@ class ElementInfo extends NodeInfo implements HasDirectives {
     }
   }
 
-  // TODO: Max: Handle synthetic detection.
   @override
   bool get isSynthetic => openingSpan == null;
   bool get openingSpanIsClosed => isSynthetic

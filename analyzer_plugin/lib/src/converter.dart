@@ -190,13 +190,7 @@ class HtmlTreeConverter {
               closingSpan.offset + '</'.length, localName.length);
         }
       }
-//
-//      SourceRange openingNameSpan = openingSpan != null
-//          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
-//          : null;
-//      SourceRange closingNameSpan = closingSpan != null
-//          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
-//          : null;
+
       ElementInfo element = new ElementInfo(
           localName,
           openingSpan,
@@ -241,14 +235,13 @@ class HtmlTreeConverter {
     return null;
   }
 
-  // TODO: Max: Introduce overlapping type and only use single _convertAttributes.
   List<AttributeInfo> _convertAttributes(ElementAst element) {
     List<AttributeInfo> attributes = <AttributeInfo>[];
 
     // Atttribute/event/properties/etc. within
     // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
     if (element is ElementAst) {
-      element.attributes.forEach((AttributeAst attribute) {
+      for (AttributeAst attribute in element.attributes) {
         if (attribute.name.startsWith('on-')) {
           attributes
               .add(_convertStatementsBoundAttribute(attribute, "on-", null));
@@ -268,7 +261,8 @@ class HtmlTreeConverter {
           attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
               valueOffset, dartParser.findMustaches(value, valueOffset)));
         }
-      });
+      }
+      ;
 
       element.events.forEach((event) {
         attributes.add(_convertStatementsBoundAttribute(event, "(", ")"));
@@ -279,7 +273,7 @@ class HtmlTreeConverter {
             banana, "[(", ")]", ExpressionBoundType.twoWay));
       });
 
-      element.properties.forEach((property) {
+      for (PropertyAst property in element.properties) {
         if (property.name.startsWith("class")) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[class.", "]", ExpressionBoundType.clazz));
@@ -293,9 +287,10 @@ class HtmlTreeConverter {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[", "]", ExpressionBoundType.input));
         }
-      });
+      }
+      ;
 
-      element.references.forEach((reference) {
+      for (ReferenceAst reference in element.references) {
         String value;
         int valueOffset;
         ParsedReferenceAst _attr = reference as ParsedReferenceAst;
@@ -309,7 +304,8 @@ class HtmlTreeConverter {
             value,
             valueOffset,
             dartParser.findMustaches(value, valueOffset)));
-      });
+      }
+      ;
 
       element.stars.forEach((star) {
         attributes.add(_convertTemplateAttribute(star));
@@ -325,7 +321,7 @@ class HtmlTreeConverter {
     // Atttribute/event/properties/etc. within
     // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
     if (element is EmbeddedTemplateAst) {
-      element.attributes.forEach((AttributeAst attribute) {
+      for (AttributeAst attribute in element.attributes) {
         if (attribute.name.startsWith('on-')) {
           attributes
               .add(_convertStatementsBoundAttribute(attribute, "on-", null));
@@ -337,7 +333,7 @@ class HtmlTreeConverter {
         } else {
           String value;
           int valueOffset;
-          ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
+          var _attr = attribute as ParsedAttributeAst;
           if (_attr.valueToken != null) {
             value = _attr.valueToken.innerValue.lexeme;
             valueOffset = _attr.valueToken.innerValue.offset;
@@ -345,9 +341,10 @@ class HtmlTreeConverter {
           attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
               valueOffset, dartParser.findMustaches(value, valueOffset)));
         }
-      });
+      }
+      ;
 
-      element.properties.forEach((property) {
+      for (PropertyAst property in element.properties) {
         if (property.name.startsWith("class")) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[class.", "]", ExpressionBoundType.clazz));
@@ -361,12 +358,13 @@ class HtmlTreeConverter {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[", "]", ExpressionBoundType.input));
         }
-      });
+      }
+      ;
 
-      element.references.forEach((reference) {
+      for (ReferenceAst reference in element.references) {
         String value;
         int valueOffset;
-        ParsedReferenceAst _attr = reference as ParsedReferenceAst;
+        var _attr = reference as ParsedReferenceAst;
         if (_attr.valueToken != null) {
           value = _attr.valueToken.innerValue.lexeme;
           valueOffset = _attr.valueToken.innerValue.offset;
@@ -377,7 +375,8 @@ class HtmlTreeConverter {
             value,
             valueOffset,
             dartParser.findMustaches(value, valueOffset)));
-      });
+      }
+      ;
     }
     return attributes;
   }
@@ -457,7 +456,6 @@ class HtmlTreeConverter {
     String origName;
     int origNameOffset;
 
-    // TODO: Max: refactor once a generic DecoratorAst is created
     if (ast is ParsedAttributeAst) {
       origName = ast.name;
       origNameOffset = ast.nameOffset;
@@ -517,7 +515,6 @@ class HtmlTreeConverter {
     String origName;
     int origNameOffset;
 
-    // TODO: Refactor once DecoratorAst is introduced
     if (ast is ParsedAttributeAst) {
       origName = ast.name;
       origNameOffset = ast.nameOffset;
@@ -612,7 +609,6 @@ class HtmlTreeConverter {
   }
 
   TemplateAttribute findTemplateAttribute(List<AttributeInfo> attributes) {
-    // TODO report errors when there are two or when its already a <template>
     for (AttributeInfo attribute in attributes) {
       if (attribute is TemplateAttribute) {
         return attribute;
