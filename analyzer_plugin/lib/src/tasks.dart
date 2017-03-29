@@ -330,19 +330,13 @@ abstract class ParseHtmlMixin implements AnalysisTask {
 
   void parse(String content, String sourceUrl) {
     final exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    // TODO: Remove after fuzz tester resolved.
-    try {
-      documentAsts = NgAst.parse(
-        content,
-        sourceUrl: sourceUrl,
-        desugar: false,
-        parseExpressions: false,
-        exceptionHandler: exceptionHandler,
-      );
-    } catch (e, stack) {
-      print(stack);
-      rethrow;
-    }
+    documentAsts = NgAst.parse(
+      content,
+      sourceUrl: sourceUrl,
+      desugar: false,
+      parseExpressions: false,
+      exceptionHandler: exceptionHandler,
+    );
 
     for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
       if (e.errorCode is NgAst.NgParserWarningCode) {
@@ -1605,13 +1599,8 @@ class GetAstsForTemplatesInUnitTask extends SourceBasedAnalysisTask
         source, errorListener, typeProvider, errorReporter);
     template.view.template = template;
 
-    // TODO: Remove try-catch after fuzz tester.
-    try {
-      template.ast = new HtmlTreeConverter(parser, source, errorListener)
-          .convertFromAstList(documentAsts);
-    } catch (e, stack) {
-      rethrow;
-    }
+    template.ast = new HtmlTreeConverter(parser, source, errorListener)
+        .convertFromAstList(documentAsts);
     _setIgnoredErrors(template, documentAsts);
 
     template.ast.accept(new NgContentRecorder(template, errorReporter));
