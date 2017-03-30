@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/dart/element/element.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
@@ -205,7 +206,7 @@ class ChildDirectiveLinker {
           .getUnlinkedDirectives(type.source.fullName);
 
       if (type is ClassElement) {
-        final directive = matchDirective(type, fileDirectives);
+        final directive = await matchDirective(type);
 
         if (directive != null) {
           directives.add(await withNgContent(directive));
@@ -218,12 +219,19 @@ class ChildDirectiveLinker {
         }
         return;
       } else if (type is PropertyAccessorElement) {
+        (type as PropertyAccessorElementImpl).variable.computeConstantValue();
         final values = type.variable.constantValue?.toListValue();
         if (values != null) {
           await _addDirectivesAndElementTagsForDartObject(
               directives, fileDirectives, values, reference);
           return;
         }
+
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+            reference.range.offset,
+            reference.range.length,
+            [type.variable.constantValue.toString()]);
       }
     }
 
@@ -233,8 +241,9 @@ class ChildDirectiveLinker {
         reference.range.length);
   }
 
-  AbstractDirective matchDirective(
-      ClassElement clazz, List<AbstractDirective> fileDirectives) {
+  Future<AbstractDirective> matchDirective(ClassElement clazz) async {
+    final fileDirectives = await _fileDirectiveProvider
+        .getUnlinkedDirectives(clazz.source.fullName);
     final options =
         fileDirectives.where((d) => d.classElement.name == clazz.name);
 
@@ -258,7 +267,7 @@ class ChildDirectiveLinker {
     for (DartObject listItem in values) {
       final typeValue = listItem.toTypeValue();
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
-        final directive = matchDirective(typeValue.element, fileDirectives);
+        final directive = await matchDirective(typeValue.element);
         if (directive != null) {
           directives.add(await withNgContent(directive));
         } else {
