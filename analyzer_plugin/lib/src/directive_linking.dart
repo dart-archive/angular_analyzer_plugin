@@ -219,7 +219,7 @@ class ChildDirectiveLinker {
         }
         return;
       } else if (type is PropertyAccessorElement) {
-        (type as PropertyAccessorElementImpl).variable.computeConstantValue();
+        type.variable.computeConstantValue();
         final values = type.variable.constantValue?.toListValue();
         if (values != null) {
           await _addDirectivesAndElementTagsForDartObject(
@@ -232,6 +232,8 @@ class ChildDirectiveLinker {
             reference.range.offset,
             reference.range.length,
             [type.variable.constantValue.toString()]);
+
+        return;
       }
     }
 

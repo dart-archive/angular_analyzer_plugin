@@ -1491,7 +1491,7 @@ class MyComponent {}
     Source source = newSource('/test.dart', code);
     await getViews(source);
     errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
+        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
   }
 
   Future test_hasError_ComponentAnnotationMissing() async {
