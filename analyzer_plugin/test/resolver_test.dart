@@ -1021,7 +1021,7 @@ class TestPanel {
       new AnalysisError(
           htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
       new AnalysisError(htmlSource, 29, 1,
-          NgParserWarningCode.AFTER_DECORATOR_NEED_WHITESPACE),
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
       new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
     ]);
   }
@@ -1058,7 +1058,7 @@ class TestPanel {
       new AnalysisError(
           htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
       new AnalysisError(htmlSource, 29, 1,
-          NgParserWarningCode.AFTER_DECORATOR_NEED_WHITESPACE),
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
       new AnalysisError(
           htmlSource, 19, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
       new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
@@ -1081,7 +1081,7 @@ class TestPanel {
       new AnalysisError(
           htmlSource, 30, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
       new AnalysisError(htmlSource, 30, 1,
-          NgParserWarningCode.AFTER_DECORATOR_NEED_WHITESPACE),
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
       new AnalysisError(
           htmlSource, 28, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
       new AnalysisError(htmlSource, 6, 23, NgParserWarningCode.SUFFIX_PROPERTY),

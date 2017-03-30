@@ -322,9 +322,9 @@ abstract class ParseHtmlMixin implements AnalysisTask {
   // angular_ast currently does not do parsing for values in quotes; avoiding
   // duplicate/redundant error types.
   static const errorMap = const {
-    NgAst.NgParserWarningCode.AFTER_INTERPOLATION:
+    NgAst.NgParserWarningCode.UNTERMINATED_MUSTACHE:
         AngularWarningCode.UNTERMINATED_MUSTACHE,
-    NgAst.NgParserWarningCode.BEFORE_INTERPOLATION:
+    NgAst.NgParserWarningCode.UNOPENED_MUSTACHE:
         AngularWarningCode.UNOPENED_MUSTACHE,
   };
 
