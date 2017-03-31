@@ -168,7 +168,11 @@ class AngularDriver
   Future<StandardHtml> getStandardHtml() async {
     if (standardHtml == null) {
       final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
-      final result = await dartDriver.getResult(source.fullName);
+
+      // The dart2js analysis doesn't work right, _force_ dartium analysis.
+      final result = await dartDriver
+          .getResult(source.fullName.replaceAll('dart2js', 'dartium'));
+
       final components = <String, Component>{};
       final events = <String, OutputElement>{};
       final attributes = <String, InputElement>{};
