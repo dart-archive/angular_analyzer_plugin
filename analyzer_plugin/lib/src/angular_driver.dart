@@ -169,9 +169,7 @@ class AngularDriver
     if (standardHtml == null) {
       final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
 
-      // The dart2js analysis doesn't work right, _force_ dartium analysis.
-      final result = await dartDriver
-          .getResult(source.fullName.replaceAll('dart2js', 'dartium'));
+      final result = await dartDriver.getResult(source.fullName);
 
       final components = <String, Component>{};
       final events = <String, OutputElement>{};
