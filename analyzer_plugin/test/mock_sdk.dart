@@ -369,9 +369,12 @@ class HtmlElement extends Element {
   set hidden(bool value) => null;
 }
 
+dynamic JS(a, b, c, d) {}
+
 class AnchorElement extends HtmlElement {
   factory AnchorElement({String href}) {
-    var e = document.createElement("a");
+    AnchorElement e = JS('returns:AnchorElement;creates:AnchorElement;new:true',
+        '#.createElement(#)', document, "a");
     if (href != null) e.href = href;
     return e;
   }

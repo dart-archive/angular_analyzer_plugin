@@ -84,6 +84,19 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         Component component = _buildComponent(tag, tagOffset);
         components[tag] = component;
       }
+    } else if (node.methodName.name == 'JS' &&
+        argumentList != null &&
+        argumentList.arguments.length == 4) {
+      final documentArgument = argumentList.arguments[2];
+      final tagArgument = argumentList.arguments[3];
+      if (documentArgument is ast.SimpleIdentifier &&
+          documentArgument.name == 'document' &&
+          tagArgument is ast.SimpleStringLiteral) {
+        String tag = tagArgument.value;
+        int tagOffset = tagArgument.contentsOffset;
+        Component component = _buildComponent(tag, tagOffset);
+        components[tag] = component;
+      }
     }
   }
 
