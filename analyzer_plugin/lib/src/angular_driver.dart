@@ -471,7 +471,7 @@ class AngularDriver
           htmlViews.add(view.templateUriSource.fullName);
         }
 
-        for (AbstractDirective subDirective in view.directives) {
+        for (AbstractDirective subDirective in (view?.directives ?? [])) {
           usesDart.add(subDirective.classElement.source.fullName);
         }
       }

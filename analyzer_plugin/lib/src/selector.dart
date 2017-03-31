@@ -18,6 +18,11 @@ class AndSelector extends Selector {
 
   @override
   SelectorMatch match(ElementView element, Template template) {
+    // Invalid selector case, should NOT match all.
+    if (selectors.length == 0) {
+      return SelectorMatch.NoMatch;
+    }
+
     SelectorMatch onSuccess = SelectorMatch.NonTagMatch;
     for (Selector selector in selectors) {
       SelectorMatch theMatch = selector.match(element, null);
