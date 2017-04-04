@@ -618,6 +618,7 @@ class HtmlTreeConverter {
   }
 
   String _removePrefixSuffix(String value, String prefix, String suffix) {
+    if (value.length <= prefix.length) return '';
     value = value.substring(prefix.length);
     if (suffix != null && value.endsWith(suffix)) {
       return value.substring(0, value.length - suffix.length);
