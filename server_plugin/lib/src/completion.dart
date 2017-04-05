@@ -91,8 +91,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   visitMustache(Mustache mustache) {
-    if (offsetContained(
-        offset, mustache.expression.offset, mustache.expression.length)) {
+    if (offsetContained(offset, mustache.exprBegin,
+            mustache.exprEnd - mustache.exprBegin)) {
       dartSnippet = mustache.expression;
     }
   }

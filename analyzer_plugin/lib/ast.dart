@@ -191,13 +191,21 @@ class Mustache extends AngularAstNode {
   Expression expression;
   final int offset;
   final int length;
+  final int exprBegin;
+  final int exprEnd;
 
   Map<String, LocalVariable> localVariables =
       new HashMap<String, LocalVariable>();
 
   List<AngularAstNode> get children => const <AngularAstNode>[];
 
-  Mustache(this.offset, this.length, this.expression);
+  Mustache(
+    this.offset,
+    this.length,
+    this.expression,
+    this.exprBegin,
+    this.exprEnd,
+  );
 
   void accept(AngularAstVisitor visitor) => visitor.visitMustache(this);
 }

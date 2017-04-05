@@ -814,7 +814,13 @@ class EmbeddedDartParser {
         length = end + 2 - begin;
       }
 
-      mustaches.add(new Mustache(offset, length, expression));
+      mustaches.add(new Mustache(
+        offset,
+        length,
+        expression,
+        fileOffset + exprBegin,
+        fileOffset + exprEnd,
+      ));
     }
     return mustaches;
   }

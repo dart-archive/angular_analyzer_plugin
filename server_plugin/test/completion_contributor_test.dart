@@ -464,7 +464,7 @@ class MyComp {
 }
     ''');
 
-    addTestSource('html file {{^}} with mustache');
+    addTestSource('html file {{ ^ }} with mustache');
     LibrarySpecificUnit target =
         new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
