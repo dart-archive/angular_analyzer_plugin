@@ -1776,6 +1776,25 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
+  test_completeTextAttribute_expect_no_suggestion_in_value() async {
+    Source dartSource = newSource(
+        '/completionTest.dart',
+        '''
+      import '/angular2/angular2.dart';
+      @Component(templateUrl: 'completionTest.html', selector: 'a',
+        directives: const [MyChildComponent1, MyChildComponent2])
+        class MyComp{}
+      ''');
+    addTestSource('<div blah="^"></div>');
+    LibrarySpecificUnit target =
+    new LibrarySpecificUnit(dartSource, dartSource);
+    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(suggestions.length, 0);
+  }
+
   test_completeHtmlSelectorTag__in_middle_of_unclosed_tag() async {
     Source dartSource = newSource(
         '/completionTest.dart',

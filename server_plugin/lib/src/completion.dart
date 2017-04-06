@@ -91,8 +91,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   visitMustache(Mustache mustache) {
-    if (offsetContained(offset, mustache.exprBegin,
-            mustache.exprEnd - mustache.exprBegin)) {
+    if (offsetContained(
+        offset, mustache.exprBegin, mustache.exprEnd - mustache.exprBegin)) {
       dartSnippet = mustache.expression;
     }
   }
@@ -365,7 +365,10 @@ class TemplateCompleter {
             standardHtmlAttributes, target.parent.boundStandardInputs);
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs);
-      } else if (target is TextAttribute) {
+      } else if (target is TextAttribute &&
+          target.nameOffset != null &&
+          offsetContained(
+              request.offset, target.nameOffset, target.name.length)) {
         suggestInputs(target.parent.boundDirectives, suggestions,
             standardHtmlAttributes, target.parent.boundStandardInputs);
         suggestOutputs(target.parent.boundDirectives, suggestions,
