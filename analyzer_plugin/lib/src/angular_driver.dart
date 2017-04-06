@@ -64,7 +64,10 @@ class AngularDriver
   }
 
   bool get hasFilesToAnalyze =>
-      _filesToAnalyze.isNotEmpty || _htmlViewsToAnalyze.isNotEmpty;
+      _filesToAnalyze.isNotEmpty ||
+      _htmlViewsToAnalyze.isNotEmpty ||
+      _requestedDartFiles.isNotEmpty ||
+      _requestedHtmlFiles.isNotEmpty;
 
   bool _ownsFile(String path) {
     return path.endsWith('.dart') || path.endsWith('.html');
@@ -157,14 +160,10 @@ class AngularDriver
 
     if (_requestedDartFiles.isNotEmpty) {
       final path = _requestedDartFiles.keys.first;
-      try {
-        final result = await resolveDart(path);
-        _requestedDartFiles[path]
-            .forEach((completer) => completer.complete(result.errors));
-        _requestedFiles.remove(path);
-      } catch (e) {
-        e;
-      }
+      final result = await resolveDart(path);
+      _requestedDartFiles[path]
+          .forEach((completer) => completer.complete(result.errors));
+      _requestedFiles.remove(path);
       return;
     }
 
