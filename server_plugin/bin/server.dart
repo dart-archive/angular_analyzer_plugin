@@ -20,6 +20,7 @@ void main(List<String> args) {
   ];
   final server = starter.start(args);
 
+  final angularDrivers = <AngularDriver>[];
   ContextBuilder.onCreateAnalysisDriver = (analysisDriver,
       scheduler,
       logger,
@@ -31,6 +32,7 @@ void main(List<String> args) {
       analysisOptions) {
     final AngularDriver driver = new AngularDriver(server, analysisDriver,
         scheduler, byteStore, sourceFactory, contentOverlay);
+    angularDrivers.add(driver);
     server.onFileAdded.listen((String path) {
       if (server.contextManager.getContextFolderFor(path).path == driverPath) {
         // only the owning driver "adds" the path
@@ -44,5 +46,13 @@ void main(List<String> args) {
       // all drivers get change notification
       driver.fileChanged(path);
     });
+  };
+
+  server.onResultErrorSupplementor = (path, errors) {
+    for (final driver in angularDrivers) {
+      driver
+          .requestDartErrors(path)
+          .then((angularErrors) => errors.addAll(angularErrors));
+    }
   };
 }

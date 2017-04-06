@@ -44,7 +44,8 @@ class AngularDriver
   final _addedFiles = new LinkedHashSet<String>();
   final _dartFiles = new LinkedHashSet<String>();
   final _changedFiles = new LinkedHashSet<String>();
-  final _requestedFiles = new HashSet<String>();
+  final _requestedDartFiles = new Map<String, List<Completer>>();
+  final _requestedHtmlFiles = new Map<String, List<Completer>>();
   final _filesToAnalyze = new HashSet<String>();
   final _htmlViewsToAnalyze = new HashSet<Tuple2<String, String>>();
   final ByteStore byteStore;
@@ -102,15 +103,34 @@ class AngularDriver
     _scheduler.notify(this);
   }
 
+  Future<List<AnalysisError>> requestDartErrors(String path) {
+    var completer = new Completer<List<AnalysisError>>();
+    _requestedDartFiles
+        .putIfAbsent(path, () => <Completer<List<AnalysisError>>>[])
+        .add(completer);
+    _scheduler.notify(this);
+    return completer.future;
+  }
+
+  Future<List<AnalysisError>> requestHtmlErrors(String path) {
+    var completer = new Completer<List<AnalysisError>>();
+    _requestedHtmlFiles
+        .putIfAbsent(path, () => <Completer<List<AnalysisError>>>[])
+        .add(completer);
+    _scheduler.notify(this);
+    return completer.future;
+  }
+
   AnalysisDriverPriority get workPriority {
     if (standardHtml == null) {
       return AnalysisDriverPriority.interactive;
     }
-
-    if (_requestedFiles.isNotEmpty) {
+    if (_requestedDartFiles.isNotEmpty) {
       return AnalysisDriverPriority.interactive;
     }
-    // tasks here?
+    if (_requestedHtmlFiles.isNotEmpty) {
+      return AnalysisDriverPriority.interactive;
+    }
     if (_filesToAnalyze.isNotEmpty) {
       return AnalysisDriverPriority.general;
     }
@@ -135,12 +155,12 @@ class AngularDriver
       return;
     }
 
-    if (_requestedFiles.isNotEmpty) {
-      final path = _requestedFiles.first;
+    if (_requestedDartFiles.isNotEmpty) {
+      final path = _requestedDartFiles.keys.first;
       try {
-        pushDartErrors(path);
-        pushDartNavigation(path);
-        pushDartOccurrences(path);
+        final result = await resolveDart(path);
+        _requestedDartFiles[path]
+            .forEach((completer) => completer.complete(result.errors));
         _requestedFiles.remove(path);
       } catch (e) {
         e;
