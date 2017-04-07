@@ -1787,7 +1787,7 @@ class OtherComp {
       ''');
     addTestSource('<div blah="^"></div>');
     LibrarySpecificUnit target =
-    new LibrarySpecificUnit(dartSource, dartSource);
+        new LibrarySpecificUnit(dartSource, dartSource);
     computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();

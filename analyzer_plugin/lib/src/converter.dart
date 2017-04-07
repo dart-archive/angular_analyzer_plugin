@@ -31,6 +31,15 @@ class HtmlTreeConverter {
   final Source templateSource;
   final AnalysisErrorListener errorListener;
 
+  // Following Angular2 Logic:
+  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
+  static const attrToPropMap = const {
+    'class': 'className',
+    'innerHtml': 'innerHTML',
+    'readonly': 'readOnly',
+    'tabindex': 'tabIndex',
+  };
+
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
   DocumentInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
@@ -274,13 +283,15 @@ class HtmlTreeConverter {
       });
 
       for (PropertyAst property in element.properties) {
-        if (property.name.startsWith("class")) {
+        if (property.name.startsWith("class") && property.postfix != null) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[class.", "]", ExpressionBoundType.clazz));
-        } else if (property.name.startsWith("attr")) {
+        } else if (property.name.startsWith("attr") &&
+            property.postfix != null) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[attr.", "]", ExpressionBoundType.attr));
-        } else if (property.name.startsWith("style")) {
+        } else if (property.name.startsWith("style") &&
+            property.postfix != null) {
           attributes.add(_convertExpressionBoundAttribute(
               property, "[style.", "]", ExpressionBoundType.style));
         } else {
@@ -579,6 +590,8 @@ class HtmlTreeConverter {
       propName = _removePrefixSuffix(origName, prefix, suffix);
       propNameOffset = origNameOffset + prefix.length;
     }
+
+    propName = attrToPropMap[propName] ?? propName;
 
     return new ExpressionBoundAttribute(
         propName,
