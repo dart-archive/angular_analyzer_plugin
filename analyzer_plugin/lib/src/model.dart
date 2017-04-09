@@ -117,14 +117,23 @@ class AngularElementImpl implements AngularElement {
  */
 class Component extends AbstractDirective {
   View view;
+  final bool isHtml;
+
+  /**
+    * List of <ng-content> selectors in this component's view
+    */
+  List<NgContent> ngContents = <NgContent>[];
 
   Component(dart.ClassElement classElement,
       {AngularElement exportAs,
       List<InputElement> inputs,
       List<OutputElement> outputs,
       Selector selector,
-      List<ElementNameSelector> elementTags})
-      : super(classElement,
+      List<ElementNameSelector> elementTags,
+      this.isHtml,
+      List<NgContent> ngContents})
+      : ngContents = ngContents ?? [],
+        super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
@@ -300,11 +309,6 @@ class Template {
   ElementInfo _ast;
 
   /**
-    * List of <ng-content> selectors in this template.
-    */
-  final List<NgContent> ngContents = <NgContent>[];
-
-  /**
    * The errors that are ignored in this template
    */
   final Set<String> ignoredErrors = new HashSet<String>();
@@ -349,6 +353,7 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
+  final List<DirectiveReference> directiveReferences;
   final Map<String, List<AbstractDirective>> elementTagsInfo =
       <String, List<AbstractDirective>>{};
   final String templateText;
@@ -369,7 +374,8 @@ class View implements AnalysisTarget {
       this.templateOffset: 0,
       this.templateUriSource,
       this.templateUrlRange,
-      this.annotation}) {
+      this.annotation,
+      this.directiveReferences}) {
     // stability/error-recovery: @Component can be missing
     component?.view = this;
   }
@@ -392,4 +398,12 @@ class View implements AnalysisTarget {
       'classElement=$classElement, '
       'component=$component, '
       'directives=$directives)';
+}
+
+class DirectiveReference {
+  String name;
+  String prefix;
+  SourceRange range;
+
+  DirectiveReference(this.name, this.prefix, this.range);
 }

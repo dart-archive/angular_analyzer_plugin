@@ -1,0 +1,121 @@
+// Copyright (c) 2015, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+//
+// This file has been automatically generated.  Please do not edit it manually.
+// To regenerate the file, use the script "pkg/analyzer/tool/generate_files".
+
+
+table PackageBundle {
+  unlinkedDartSummary:[UnlinkedDartSummary] (id: 0);
+}
+
+table LinkedHtmlSummary {
+  errors:[SummarizedAnalysisError] (id: 0);
+
+  errorsFromPath:[SummarizedAnalysisErrorFromPath] (id: 1);
+}
+
+table UnlinkedHtmlSummary {
+  ngContents:[SummarizedNgContent] (id: 0);
+}
+
+table LinkedDartSummary {
+  errors:[SummarizedAnalysisError] (id: 0);
+
+  referencedHtmlFiles:[string] (id: 1);
+
+  referencedDartFiles:[string] (id: 2);
+
+  hasDartTemplates:bool (id: 3);
+}
+
+table UnlinkedDartSummary {
+  directiveSummaries:[SummarizedDirective] (id: 0);
+
+  errors:[SummarizedAnalysisError] (id: 1);
+}
+
+table SummarizedDirective {
+  isComponent:bool (id: 0);
+
+  selectorStr:string (id: 1);
+
+  selectorOffset:uint (id: 2);
+
+  decoratedClassName:string (id: 3);
+
+  exportAs:string (id: 4);
+
+  exportAsOffset:uint (id: 5);
+
+  templateUrl:string (id: 6);
+
+  templateUrlOffset:uint (id: 7);
+
+  templateUrlLength:uint (id: 8);
+
+  templateText:string (id: 9);
+
+  templateOffset:uint (id: 10);
+
+  ngContents:[SummarizedNgContent] (id: 11);
+
+  inputs:[SummarizedBindable] (id: 12);
+
+  outputs:[SummarizedBindable] (id: 13);
+
+  subdirectives:[SummarizedDirectiveUse] (id: 14);
+}
+
+table SummarizedAnalysisError {
+  errorCode:string (id: 0);
+
+  message:string (id: 1);
+
+  correction:string (id: 2);
+
+  offset:uint (id: 3);
+
+  length:uint (id: 4);
+}
+
+table SummarizedAnalysisErrorFromPath {
+  path:string (id: 0);
+
+  originalError:SummarizedAnalysisError (id: 1);
+}
+
+table SummarizedBindable {
+  name:string (id: 0);
+
+  nameOffset:uint (id: 1);
+
+  propName:string (id: 2);
+
+  propNameOffset:uint (id: 3);
+}
+
+table SummarizedDirectiveUse {
+  name:string (id: 0);
+
+  prefix:string (id: 1);
+
+  offset:uint (id: 2);
+
+  length:uint (id: 3);
+}
+
+table SummarizedNgContent {
+  offset:uint (id: 0);
+
+  length:uint (id: 1);
+
+  selectorStr:string (id: 2);
+
+  selectorOffset:uint (id: 3);
+}
+
+root_type PackageBundle;
+
+file_identifier "APdl";

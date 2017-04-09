@@ -12,14 +12,11 @@ import 'package:analysis_server/src/services/completion/dart/type_member_contrib
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/task/dart.dart';
-import 'package:analyzer/task/model.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 
 import 'package:analysis_server/src/protocol_server.dart'
@@ -113,7 +110,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
       AnalysisErrorListener analysisErrorListener =
           new IgnoringAnalysisErrorListener();
       EmbeddedDartParser dartParser =
-          new EmbeddedDartParser(null, analysisErrorListener, null, null);
+          new EmbeddedDartParser(null, analysisErrorListener, null);
       dartSnippet = dartParser.parseDartExpression(offset, '', false);
     }
   }
@@ -219,20 +216,9 @@ class AngularDartCompletionContributor extends CompletionContributor {
       return [];
     }
 
-    List<Template> templates = request.context.computeResult(
-        new LibrarySpecificUnit(request.source, request.source),
-        DART_TEMPLATES);
-    List<OutputElement> standardHtmlEvents = request.context
-        .computeResult(
-            AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
-        .values;
-    List<InputElement> standardHtmlAttributes = request.context
-        .computeResult(
-            AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES)
-        .values;
-
-    return new TemplateCompleter().computeSuggestions(
-        request, templates, standardHtmlEvents, standardHtmlAttributes);
+    //return new TemplateCompleter().computeSuggestions(
+    //    request, templates, standardHtmlEvents, standardHtmlAttributes);
+    return [];
   }
 }
 
@@ -245,19 +231,8 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request) async {
     if (request.source.shortName.endsWith('.html')) {
-      List<Template> templates =
-          request.context.computeResult(request.source, HTML_TEMPLATES);
-      List<OutputElement> standardHtmlEvents = request.context
-          .computeResult(
-              AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_EVENTS)
-          .values;
-      List<InputElement> standardHtmlAttributes = request.context
-          .computeResult(
-              AnalysisContextTarget.request, STANDARD_HTML_ELEMENT_ATTRIBUTES)
-          .values;
-
-      return new TemplateCompleter().computeSuggestions(
-          request, templates, standardHtmlEvents, standardHtmlAttributes);
+      //return new TemplateCompleter().computeSuggestions(
+      //    request, templates, standardHtmlEvents, standardHtmlAttributes);
     }
 
     return [];
@@ -394,7 +369,7 @@ class TemplateCompleter {
         continue;
       }
 
-      for (NgContent ngContent in template.ngContents) {
+      for (NgContent ngContent in component.ngContents) {
         if (ngContent.selector == null) {
           continue;
         }

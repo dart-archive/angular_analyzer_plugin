@@ -5,7 +5,7 @@ echo done
 echo
 
 echo Updating the sdk with depot_tools
-#gclient sync
+gclient sync
 echo done
 echo
 

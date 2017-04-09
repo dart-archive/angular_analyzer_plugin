@@ -1,5 +1,5 @@
 name: angular_analyzer_plugin
-version: 0.0.2
+version: 0.0.7
 description: Dart analyzer plugin for Angular 2
 environment:
   sdk: '>=1.21.0-dev.1.0'
