@@ -23,7 +23,7 @@ cat deps/.packages | grep 'quiver_hashcode' >> .packages
 cat deps/.packages | grep 'test_reflective_loader' >> .packages
 cat deps/.packages | grep 'tuple' >> .packages
 cat deps/.packages | grep 'typed_mock' >> .packages
-cat deps/.packages | grep 'unit_test' >> .packages
+cat deps/.packages | grep 'unittest' >> .packages
 cat deps/.packages | grep 'non_sdk_deps' >> .packages
 echo done
 echo

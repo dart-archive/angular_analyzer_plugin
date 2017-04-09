@@ -240,7 +240,6 @@ class AngularWarningCode extends ErrorCode {
    * identifier
    * https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
    */
-  // TODO: Max: Potentially deprecated with usage of angular_ast.
   static const AngularWarningCode INVALID_CSS_PROPERTY_NAME =
       const AngularWarningCode('INVALID_CSS_PROPERTY_NAME',
           'The css property {0} is not a valid css identifier');

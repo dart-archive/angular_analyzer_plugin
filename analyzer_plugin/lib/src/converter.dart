@@ -79,23 +79,12 @@ class HtmlTreeConverter {
       // Check for void element cases (has closing complement)
       // If closeComponent is synthetic, handle it after child nodes are found.
       if (closeComponent != null && !closeComponent.isSynthetic) {
-//        if (closeComponent.isSynthetic) {
-//          closingSpan = _toSourceRange(node.endToken.end, 0);
-//          closingNameSpan = closingSpan;
-//        } else {
         closingSpan = _toSourceRange(closeComponent.beginToken.offset,
             closeComponent.endToken.end - closeComponent.beginToken.offset);
         closingNameSpan =
             new SourceRange(closingSpan.offset + '</'.length, localName.length);
-//        }
       }
-//
-//      SourceRange openingNameSpan = openingSpan != null
-//          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
-//          : null;
-//      SourceRange closingNameSpan = closingSpan != null
-//          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
-//          : null;
+
       ElementInfo element = new ElementInfo(
           localName,
           openingSpan,
