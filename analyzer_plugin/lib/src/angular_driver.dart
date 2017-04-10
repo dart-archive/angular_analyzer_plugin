@@ -160,17 +160,15 @@ class AngularDriver
 
     if (_requestedDartFiles.isNotEmpty) {
       final path = _requestedDartFiles.keys.first;
+      final completers = _requestedDartFiles.remove(path);
       // Note: We can't use await here, or the dart analysis becomes a future in
       // a queue that won't be completed until the scheduler schedules the dart
       // driver, which doesn't happen because its waiting for us.
       resolveDart(path, onlyIfChangedSignature: false).then((result) {
-        _requestedDartFiles
-            .remove(path)
+        completers
             .forEach((completer) => completer.complete(result?.errors ?? []));
       }, onError: (e) {
-        _requestedDartFiles
-            .remove(path)
-            .forEach((completer) => completer.completeError(e));
+        completers.forEach((completer) => completer.completeError(e));
       });
 
       return;
