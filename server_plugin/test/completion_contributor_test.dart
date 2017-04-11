@@ -1,9 +1,6 @@
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
-import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
@@ -11,8 +8,8 @@ import 'completion_contributor_test_util.dart';
 
 main() {
   groupSep = ' | ';
-  defineReflectiveTests(DartCompletionContributorTest);
-  defineReflectiveTests(HtmlCompletionContributorTest);
+  //defineReflectiveTests(DartCompletionContributorTest);
+  //defineReflectiveTests(HtmlCompletionContributorTest);
 }
 
 @reflectiveTest
@@ -454,7 +451,7 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   }
 
   test_completeMemberInMustache() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -465,9 +462,9 @@ class MyComp {
     ''');
 
     addTestSource('html file {{^}} with mustache');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -478,7 +475,7 @@ class MyComp {
   }
 
   test_completeDotMemberInMustache() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -489,9 +486,9 @@ class MyComp {
     ''');
 
     addTestSource('html file {{text.^}} with mustache');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -500,7 +497,7 @@ class MyComp {
   }
 
   test_completeDotMemberAlreadyStartedInMustache() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -511,9 +508,9 @@ class MyComp {
     ''');
 
     addTestSource('html file {{text.le^}} with mustache');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 'le'.length);
@@ -522,7 +519,7 @@ class MyComp {
   }
 
   test_completeDotMemberInNgFor() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -533,9 +530,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item of text.^"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -544,7 +541,7 @@ class MyComp {
   }
 
   test_completeMemberInNgFor() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -555,9 +552,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item of ^"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -568,7 +565,7 @@ class MyComp {
   }
 
   test_noCompleteMemberInNgForRightAfterLet() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -579,9 +576,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let^ item of [text]"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -590,7 +587,7 @@ class MyComp {
   }
 
   test_noCompleteMemberInNgForInLet() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -601,9 +598,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="l^et item of [text]"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -612,7 +609,7 @@ class MyComp {
   }
 
   test_noCompleteMemberInNgForAfterLettedName() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -623,9 +620,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item^ of [text]"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -634,7 +631,7 @@ class MyComp {
   }
 
   test_noCompleteMemberInNgForInLettedName() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -645,9 +642,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let i^tem of [text]"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -656,7 +653,7 @@ class MyComp {
   }
 
   test_noCompleteMemberInNgFor_forLettedName() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -667,9 +664,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let ^"></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -678,7 +675,7 @@ class MyComp {
   }
 
   test_completeNgForItem() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -689,9 +686,9 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item of items">{{^}}</div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -700,7 +697,7 @@ class MyComp {
   }
 
   test_completeHashVar() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -710,9 +707,9 @@ class MyComp {
     ''');
 
     addTestSource('<button #buttonEl>button</button> {{^}}');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -721,7 +718,7 @@ class MyComp {
   }
 
   test_completeNgVars_notAfterDot() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -733,9 +730,9 @@ class MyComp {
 
     addTestSource(
         '<button #buttonEl>button</button><div *ngFor="item of items">{{hashCode.^}}</div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -745,7 +742,7 @@ class MyComp {
   }
 
   test_findCompletionTarget_afterUnclosedDom() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -756,9 +753,9 @@ class MyComp {
     ''');
 
     addTestSource('<input /> {{^}}');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -767,7 +764,7 @@ class MyComp {
   }
 
   test_completeStatements() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -778,9 +775,9 @@ class MyComp {
     ''');
 
     addTestSource('<button (click)="^"></button>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -790,7 +787,7 @@ class MyComp {
   }
 
   test_completeUnclosedMustache() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -801,9 +798,9 @@ class MyComp {
     ''');
 
     addTestSource('some text and {{^   <div>some html</div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -812,7 +809,7 @@ class MyComp {
   }
 
   test_completeEmptyExpressionDoesntIncludeVoid() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -823,9 +820,9 @@ class MyComp {
     ''');
 
     addTestSource('{{^}}');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -834,7 +831,7 @@ class MyComp {
   }
 
   test_completeInMiddleOfExpressionDoesntIncludeVoid() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -846,9 +843,9 @@ class MyComp {
     ''');
 
     addTestSource('{{takesArg(^)}}');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -857,7 +854,7 @@ class MyComp {
   }
 
   test_completeInputOutput() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -873,9 +870,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag ^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -888,7 +885,7 @@ class OtherComp {
   }
 
   test_completeInputOutput_at_incompleteTag_with_newTag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -904,9 +901,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag ^<div></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -919,7 +916,7 @@ class OtherComp {
   }
 
   test_completeInputStarted_at_incompleteTag_with_newTag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -935,9 +932,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^<div></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -949,7 +946,7 @@ class OtherComp {
   }
 
   test_completeOutputStarted_at_incompleteTag_with_newTag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -965,9 +962,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^<div></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -980,7 +977,7 @@ class OtherComp {
   }
 
   test_completeInputOutput_at_incompleteTag_with_EOF() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -996,9 +993,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag ^');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1011,7 +1008,7 @@ class OtherComp {
   }
 
   test_completeInputStarted_at_incompleteTag_with_EOF() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1027,9 +1024,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1041,7 +1038,7 @@ class OtherComp {
   }
 
   test_completeOutputStarted_at_incompleteTag_with_EOF() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1057,9 +1054,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1072,7 +1069,7 @@ class OtherComp {
   }
 
   test_completeInputNotSuggestedTwice() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1088,9 +1085,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [name]="\'bob\'" ^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1102,7 +1099,7 @@ class OtherComp {
   }
 
   test_completeStandardInputNotSuggestedTwice() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1118,9 +1115,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [hidden]="true" ^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1133,7 +1130,7 @@ class OtherComp {
   }
 
   test_completeInputSuggestsItself() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1149,9 +1146,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [name^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '[name'.length);
@@ -1160,7 +1157,7 @@ class OtherComp {
   }
 
   test_completeStandardInputSuggestsItself() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1176,9 +1173,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [hidden^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '[hidden'.length);
@@ -1187,7 +1184,7 @@ class OtherComp {
   }
 
   test_completeOutputNotSuggestedTwice() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1203,9 +1200,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (nameEvent)="" ^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1218,7 +1215,7 @@ class OtherComp {
   }
 
   test_completeOutputSuggestsItself() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1234,9 +1231,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (nameEvent^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '(nameEvent'.length);
@@ -1245,7 +1242,7 @@ class OtherComp {
   }
 
   test_completeStdOutputNotSuggestedTwice() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1261,9 +1258,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (click)="" ^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1275,7 +1272,7 @@ class OtherComp {
   }
 
   test_completeStdOutputSuggestsItself() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1291,9 +1288,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (click^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '(click'.length);
@@ -1303,7 +1300,7 @@ class OtherComp {
   }
 
   test_completeInputOutputNotSuggestedAfterTwoWay() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1320,9 +1317,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [(name)]="name" ^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1332,7 +1329,7 @@ class OtherComp {
   }
 
   test_completeInputStarted() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1348,9 +1345,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1362,7 +1359,7 @@ class OtherComp {
   }
 
   test_completeOutputStarted() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1378,9 +1375,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1392,7 +1389,7 @@ class OtherComp {
   }
 
   test_completeInputReplacing() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1408,9 +1405,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^input]="4"></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1422,7 +1419,7 @@ class OtherComp {
   }
 
   test_completeOutputReplacing() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1438,9 +1435,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^output)="4"></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1452,7 +1449,7 @@ class OtherComp {
   }
 
   test_noCompleteInOutputInCloseTag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1468,9 +1465,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag></my-tag ^>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1482,7 +1479,7 @@ class OtherComp {
   }
 
   test_noCompleteEmptyTagContents() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1498,9 +1495,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag>^</my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1512,7 +1509,7 @@ class OtherComp {
   }
 
   test_noCompleteInOutputsOnTagNameCompletion() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1528,9 +1525,9 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag^></my-tag>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, 0);
@@ -1542,7 +1539,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_beginning() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1555,9 +1552,9 @@ class OtherComp {
       class MyChildComponent2
       ''');
     addTestSource('<^<div></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1568,7 +1565,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_beginning_with_partial() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1581,9 +1578,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('<my^<div></div>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '<my'.length);
@@ -1594,7 +1591,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_middle() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1607,9 +1604,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div><^</div></div>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1620,7 +1617,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_middle_of_text() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1633,9 +1630,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div> some text<^</div></div>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1646,7 +1643,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_middle_with_partial() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1659,9 +1656,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div><my^</div></div>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '<my'.length);
@@ -1672,7 +1669,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_end() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1685,9 +1682,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div></div></div><^''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1698,7 +1695,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_end_with_partial() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1712,9 +1709,9 @@ class OtherComp {
       ''');
     addTestSource('''<div><div></div></div>
     <my^''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '<my'.length);
@@ -1725,7 +1722,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_on_empty_document() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1738,9 +1735,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('^');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1751,7 +1748,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag_at_end_after_close() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1764,9 +1761,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('<div><div></div></div>^');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1777,7 +1774,7 @@ class OtherComp {
   }
 
   test_completeHtmlSelectorTag__in_middle_of_unclosed_tag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1790,9 +1787,9 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('<div>some text<^');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
@@ -1803,7 +1800,7 @@ class OtherComp {
   }
 
   test_completeTransclusionSuggestion() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1817,9 +1814,9 @@ class MyComp{}
 class ContainerComponent{}
       ''');
     addTestSource('<container>^</container>');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1830,7 +1827,7 @@ class ContainerComponent{}
   }
 
   test_completeTransclusionSuggestionInWhitespace() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1847,9 +1844,9 @@ class ContainerComponent{}
 <container>
   ^
 </container>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1860,7 +1857,7 @@ class ContainerComponent{}
   }
 
   test_completeTransclusionSuggestionStarted() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1877,9 +1874,9 @@ class ContainerComponent{}
 <container>
   <^
 </container>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     //expect(replacementOffset, completionOffset - 1);
@@ -1890,7 +1887,7 @@ class ContainerComponent{}
   }
 
   test_completeTransclusionSuggestionStartedTagName() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1907,9 +1904,9 @@ class ContainerComponent{}
 <container>
   <tag^
 </container>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     //expect(replacementOffset, completionOffset - 4);
@@ -1920,7 +1917,7 @@ class ContainerComponent{}
   }
 
   test_completeTransclusionSuggestionAfterTag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1938,9 +1935,9 @@ class ContainerComponent{}
   <blah></blah>
   ^
 </container>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
@@ -1951,7 +1948,7 @@ class ContainerComponent{}
   }
 
   test_completeTransclusionSuggestionBeforeTag() async {
-    Source dartSource = newSource(
+    newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1969,9 +1966,9 @@ class ContainerComponent{}
   ^
   <blah></blah>
 </container>''');
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    //LibrarySpecificUnit target =
+    //    new LibrarySpecificUnit(dartSource, dartSource);
+    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
     await computeSuggestions();
     expect(replacementOffset, completionOffset);

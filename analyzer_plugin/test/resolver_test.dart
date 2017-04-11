@@ -1,13 +1,13 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 
+import 'dart:async';
+
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/dart/error/syntactic_errors.dart';
-import 'package:analyzer/task/dart.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
@@ -44,7 +44,7 @@ class TemplateResolverTest extends AbstractAngularTest {
   Template template;
   List<ResolvedRange> ranges;
 
-  void test_attribute_mixedCase() {
+  Future test_attribute_mixedCase() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -54,11 +54,11 @@ class TestPanel {
     _addHtmlSource(r"""
 <svg viewBox='0, 0, 24 24'></svg>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(0));
   }
 
-  void test_attributeInterpolation() {
+  Future test_attributeInterpolation() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -70,13 +70,13 @@ class TestPanel {
     _addHtmlSource(r"""
 <span title='Hello {{aaa}} and {{bbb}}!'></span>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2));
     _assertElement('aaa}}').dart.getter.at('aaa; // 1');
     _assertElement('bbb}}').dart.getter.at('bbb; // 2');
   }
 
-  void test_expression_eventBinding() {
+  Future test_expression_eventBinding() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -89,7 +89,7 @@ class TestPanel {
     _addHtmlSource(r"""
 <div (click)='handleClick($event)'></div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(3));
     _assertElement('click)').output.inCoreHtml;
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
@@ -103,7 +103,7 @@ class TestPanel {
     expect(search.element.boundStandardOutputs.first.boundOutput.name, 'click');
   }
 
-  void test_expression_nativeEventBindingOnComponent() {
+  Future test_expression_nativeEventBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -120,12 +120,12 @@ class SomeComponent {
     _addHtmlSource(r"""
 <some-comp (click)='handleClick($event)'></some-comp>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement('click').output.inCoreHtml;
   }
 
-  void test_expression_eventBinding_on() {
+  Future test_expression_eventBinding_on() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -138,13 +138,13 @@ class TestPanel {
     _addHtmlSource(r"""
 <div on-click='handleClick()'></div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2));
     _assertElement('click=').output.inCoreHtml;
     _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
-  void test_expression_inputBinding_valid() {
+  Future test_expression_inputBinding_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -159,7 +159,7 @@ class TitleComponent {
     _addHtmlSource(r"""
 <span titled [title]='text'></span>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
 
     errorListener.assertNoErrors();
     ElementSearch search = new ElementSearch((e) => e.localName == "span");
@@ -172,7 +172,7 @@ class TitleComponent {
     expect(boundDirective.inputBindings.first.boundInput.name, 'title');
   }
 
-  void test_expression_nativeGlobalAttrBindingOnComponent() {
+  Future test_expression_nativeGlobalAttrBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -189,12 +189,12 @@ class SomeComponent {
     _addHtmlSource(r"""
 <some-comp [hidden]='false'></some-comp>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement('hidden').input.inCoreHtml;
   }
 
-  void test_expression_inputBinding_typeError() {
+  Future test_expression_inputBinding_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -210,12 +210,12 @@ class TitleComponent {
 <title-comp [title]='text'></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
   }
 
-  void test_expression_inputBinding_noValue() {
+  Future test_expression_inputBinding_noValue() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -231,12 +231,12 @@ class TitleComponent {
 <title-comp [title]></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.EMPTY_BINDING, code, "[title]");
   }
 
-  void test_expression_inputBinding_empty() {
+  Future test_expression_inputBinding_empty() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -252,12 +252,12 @@ class TitleComponent {
 <title-comp [title]=""></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.EMPTY_BINDING, code, "[title]");
   }
 
-  void test_expression_inputBinding_boundToNothing() {
+  Future test_expression_inputBinding_boundToNothing() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -268,12 +268,12 @@ class TestPanel {
 <span [title]='text'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NONEXIST_INPUT_BOUND, code, "title");
   }
 
-  void test_expression_twoWayBinding_valid() {
+  Future test_expression_twoWayBinding_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -289,7 +289,7 @@ class TitleComponent {
     _addHtmlSource(r"""
 <span titled [(title)]='text'></span>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     ElementSearch search = new ElementSearch((e) => e.localName == "span");
     template.ast.accept(search);
@@ -303,7 +303,7 @@ class TitleComponent {
     expect(boundDirective.outputBindings.first.boundOutput.name, 'titleChange');
   }
 
-  void test_expression_twoWayBinding_noAttr_emptyBinding() {
+  Future test_expression_twoWayBinding_noAttr_emptyBinding() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -320,12 +320,12 @@ class TitleComponent {
 <span titled [(twoWay)]></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.EMPTY_BINDING, code, "[(twoWay)]");
   }
 
-  void test_expression_twoWayBinding_inputTypeError() {
+  Future test_expression_twoWayBinding_inputTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -342,12 +342,12 @@ class TitleComponent {
 <title-comp [(title)]='text'></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
   }
 
-  void test_expression_twoWayBinding_outputTypeError() {
+  Future test_expression_twoWayBinding_outputTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -364,12 +364,12 @@ class TitleComponent {
 <title-comp [(title)]='text'></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "text");
   }
 
-  void test_expression_outputBinding_noValue() {
+  Future test_expression_outputBinding_noValue() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -385,12 +385,12 @@ class TitleComponent {
 <title-comp (title)></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.EMPTY_BINDING, code, "(title)");
   }
 
-  void test_expression_twoWayBinding_notAssignableError() {
+  Future test_expression_twoWayBinding_notAssignableError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -407,14 +407,14 @@ class TitleComponent {
 <title-comp [(title)]="text.toUpperCase()"></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
         code,
         "text.toUpperCase()");
   }
 
-  void test_expression_twoWayBinding_noInputToBind() {
+  Future test_expression_twoWayBinding_noInputToBind() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -430,12 +430,12 @@ class TitleComponent {
 <title-comp [(noInput)]="text"></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NONEXIST_INPUT_BOUND, code, "noInput");
   }
 
-  void test_expression_twoWayBinding_noOutputToBind() {
+  Future test_expression_twoWayBinding_noOutputToBind() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -451,12 +451,12 @@ class TitleComponent {
 <title-comp [(inputOnly)]="text"></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "inputOnly");
   }
 
-  void test_expression_inputBinding_bind() {
+  Future test_expression_inputBinding_bind() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -467,12 +467,12 @@ class TestPanel {
     _addHtmlSource(r"""
 <span bind-title='text'></span>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
     _assertElement("text'>").dart.getter.at('text; // 1');
   }
 
-  void test_expression_outputBinding_boundToNothing() {
+  Future test_expression_outputBinding_boundToNothing() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -483,12 +483,12 @@ class TestPanel {
 <span (title)='text'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "title");
   }
 
-  void test_expression_outputBinding_typeError() {
+  Future test_expression_outputBinding_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [TitleComponent], templateUrl: 'test_panel.html')
@@ -504,12 +504,12 @@ class TitleComponent {
 <title-comp (output)='takeString($event)'></title-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r"$event");
   }
 
-  void test_expression_inputBinding_noEvent() {
+  Future test_expression_inputBinding_noEvent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -520,12 +520,12 @@ class TestPanel {
 </h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
   }
 
-  void test_expression_mustache_noEvent() {
+  Future test_expression_mustache_noEvent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -535,12 +535,12 @@ class TestPanel {
 <h1>{{$event}}</h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, r"$event");
   }
 
-  void test_expression_mustache_closeOpen_githubBug198() {
+  Future test_expression_mustache_closeOpen_githubBug198() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -550,12 +550,12 @@ class TestPanel {
     }}{{''}}
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
   }
 
-  void test_expression_as_not_allowed() {
+  Future test_expression_as_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -566,12 +566,12 @@ class TestPanel {
 <h1>{{str as String}}</h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "str as String");
   }
 
-  void test_expression_nested_as_not_allowed() {
+  Future test_expression_nested_as_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -582,12 +582,12 @@ class TestPanel {
 <h1>{{(str.isEmpty as String).isEmpty}}</h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(AngularWarningCode.DISALLOWED_EXPRESSION, code,
         "str.isEmpty as String");
   }
 
-  void test_expression_typed_list_not_allowed() {
+  Future test_expression_typed_list_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -598,12 +598,12 @@ class TestPanel {
 <h1 [hidden]="<String>[].isEmpty"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "<String>[]");
   }
 
-  void test_expression_setter_not_allowed() {
+  Future test_expression_setter_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -614,12 +614,12 @@ class TestPanel {
 <h1 [hidden]="str = 'hey'"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = 'hey'");
   }
 
-  void test_expression_assignment_not_allowed() {
+  Future test_expression_assignment_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -630,12 +630,12 @@ class TestPanel {
 <h1 #h1 [hidden]="h1 = 4"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
   }
 
-  void test_statements_assignment_not_allowed() {
+  Future test_statements_assignment_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -646,12 +646,12 @@ class TestPanel {
 <h1 #h1 (click)="h1 = 4"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
   }
 
-  void test_expression_invocation_of_erroneous_assignment_no_crash() {
+  Future test_expression_invocation_of_erroneous_assignment_no_crash() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -663,12 +663,12 @@ class TestPanel {
 {{str = (f)()}}
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = (f)()");
   }
 
-  void test_statements_setter_allowed() {
+  Future test_statements_setter_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -679,11 +679,11 @@ class TestPanel {
 <h1 #h1 (click)="str = 'hey'"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_is_not_allowed() {
+  Future test_expression_is_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -694,12 +694,12 @@ class TestPanel {
 <h1 [hidden]="str is int"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "str is int");
   }
 
-  void test_expression_typed_map_not_allowed() {
+  Future test_expression_typed_map_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -710,12 +710,12 @@ class TestPanel {
 <h1 [hidden]="<String, String>{}.keys.isEmpty"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "<String, String>{}");
   }
 
-  void test_expression_func_not_allowed() {
+  Future test_expression_func_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -726,12 +726,12 @@ class TestPanel {
 <h1 [hidden]="(){}"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "(){}");
   }
 
-  void test_expression_func2_not_allowed() {
+  Future test_expression_func2_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -742,12 +742,12 @@ class TestPanel {
 <h1 [hidden]="()=>x"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>x");
   }
 
-  void test_expression_symbol_not_allowed() {
+  Future test_expression_symbol_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -758,12 +758,12 @@ class TestPanel {
 <h1 [hidden]="#symbol"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
   }
 
-  void test_expression_symbol_invoked_noCrash() {
+  Future test_expression_symbol_invoked_noCrash() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -774,12 +774,12 @@ class TestPanel {
 <h1 [hidden]="#symbol()"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
   }
 
-  void test_expression_await_not_allowed() {
+  Future test_expression_await_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -790,7 +790,7 @@ class TestPanel {
 <h1 [hidden]="await str"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     //This actually gets parsed as an identifier, which is OK. Still fails!
     errorListener.assertErrorsWithCodes([
       StaticWarningCode.UNDEFINED_IDENTIFIER,
@@ -798,7 +798,7 @@ class TestPanel {
     ]);
   }
 
-  void test_expression_throw_not_allowed() {
+  Future test_expression_throw_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -809,12 +809,12 @@ class TestPanel {
 <h1 [hidden]="throw str"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "throw str");
   }
 
-  void test_expression_cascade_not_allowed() {
+  Future test_expression_cascade_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -825,12 +825,12 @@ class TestPanel {
 <h1 [hidden]="str..x"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "str..x");
   }
 
-  void test_expression_new_not_allowed() {
+  Future test_expression_new_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -841,12 +841,12 @@ class TestPanel {
 <h1 [hidden]="new String().isEmpty"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "new String()");
   }
 
-  void test_expression_named_args_not_allowed() {
+  Future test_expression_named_args_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -857,12 +857,12 @@ class TestPanel {
 <h1 [hidden]="callMe(arg: 'bob')"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "arg: 'bob'");
   }
 
-  void test_expression_rethrow_not_allowed() {
+  Future test_expression_rethrow_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -873,12 +873,12 @@ class TestPanel {
 <h1 [hidden]="rethrow"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "rethrow");
   }
 
-  void test_expression_super_not_allowed() {
+  Future test_expression_super_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -889,12 +889,12 @@ class TestPanel {
 <h1 [hidden]="super.x"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "super");
   }
 
-  void test_expression_this_not_allowed() {
+  Future test_expression_this_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -905,12 +905,12 @@ class TestPanel {
 <h1 [hidden]="this"></h1>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "this");
   }
 
-  void test_expression_attrBinding_valid() {
+  Future test_expression_attrBinding_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -921,11 +921,11 @@ class TestPanel {
 <span [attr.aria-title]='text'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_attrBinding_expressionTypeError() {
+  Future test_expression_attrBinding_expressionTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -936,12 +936,12 @@ class TestPanel {
 <span [attr.aria]='pixels.length'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticTypeWarningCode.UNDEFINED_GETTER, code, "length");
   }
 
-  void test_expression_classBinding_valid() {
+  Future test_expression_classBinding_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -952,11 +952,11 @@ class TestPanel {
 <span [class.my-class]='text == null'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_classBinding_invalidClassName() {
+  Future test_expression_classBinding_invalidClassName() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -967,12 +967,12 @@ class TestPanel {
 <span [class.invalid.class]='title == null'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INVALID_HTML_CLASSNAME, code, "invalid.class");
   }
 
-  void test_expression_classBinding_typeError() {
+  Future test_expression_classBinding_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -983,12 +983,12 @@ class TestPanel {
 <span [class.aria]='notBoolean'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.CLASS_BINDING_NOT_BOOLEAN, code, "notBoolean");
   }
 
-  void test_expression_styleBinding_noUnit_valid() {
+  Future test_expression_styleBinding_noUnit_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -999,11 +999,11 @@ class TestPanel {
 <span [style.background-color]='text'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_styleBinding_noUnit_invalidCssProperty() {
+  Future test_expression_styleBinding_noUnit_invalidCssProperty() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1014,12 +1014,12 @@ class TestPanel {
 <span [style.invalid*property]='text'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "invalid*property");
   }
 
-  void test_expression_styleBinding_noUnit_expressionTypeError() {
+  Future test_expression_styleBinding_noUnit_expressionTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1030,12 +1030,12 @@ class TestPanel {
 <span [style.background-color]='noLength.length'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticTypeWarningCode.UNDEFINED_GETTER, code, "length");
   }
 
-  void test_expression_styleBinding_withUnit_invalidPropertyName() {
+  Future test_expression_styleBinding_withUnit_invalidPropertyName() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1046,12 +1046,12 @@ class TestPanel {
 <span [style.border&radius.px]='pixels'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "border&radius");
   }
 
-  void test_expression_styleBinding_withUnit_invalidUnitName() {
+  Future test_expression_styleBinding_withUnit_invalidUnitName() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1062,12 +1062,12 @@ class TestPanel {
 <span [style.border-radius.p|x]='pixels'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
   }
 
-  void test_expression_styleBinding_withUnit_typeError() {
+  Future test_expression_styleBinding_withUnit_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1078,12 +1078,12 @@ class TestPanel {
 <span [style.border-radius.px]='notNumber'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
   }
 
-  void test_expression_detect_eof_post_semicolon_in_moustache() {
+  Future test_expression_detect_eof_post_semicolon_in_moustache() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1095,12 +1095,12 @@ class TestPanel {
 <p>{{name; bad portion}}</p>
  """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TRAILING_EXPRESSION, code, "; bad portion");
   }
 
-  void test_expression_detect_eof_ellipsis_in_moustache() {
+  Future test_expression_detect_eof_ellipsis_in_moustache() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1111,12 +1111,12 @@ class TestPanel {
 <p>{{name...}}</p>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TRAILING_EXPRESSION, code, "...");
   }
 
-  void test_expression_detect_eof_post_semicolon_in_property_binding() {
+  Future test_expression_detect_eof_post_semicolon_in_property_binding() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1129,12 +1129,12 @@ class TestPanel {
 <div [class.selected]="a == b; bad portion"></div>
  """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TRAILING_EXPRESSION, code, "; bad portion");
   }
 
-  void test_expression_detect_eof_ellipsis_in_property_binding() {
+  Future test_expression_detect_eof_ellipsis_in_property_binding() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1146,12 +1146,12 @@ class TestPanel {
 <div [class.selected]="a==b..."></div>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TRAILING_EXPRESSION, code, "...");
   }
 
-  void test_expression_inputAndOutputBinding_genericDirective_ok() {
+  Future test_expression_inputAndOutputBinding_genericDirective_ok() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1171,11 +1171,12 @@ class GenericComponent<T> {
 <generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_inputAndOutputBinding_genericDirectiveChild_ok() {
+  Future
+      test_expression_inputAndOutputBinding_genericDirectiveChild_ok() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1198,11 +1199,12 @@ class GenericComponent<T> extends Generic<T> {
 <generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_inputAndOutputBinding_extendGenericUnbounded_ok() {
+  Future
+      test_expression_inputAndOutputBinding_extendGenericUnbounded_ok() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1225,11 +1227,12 @@ class GenericComponent<T> extends Generic {
 <generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_inputAndOutputBinding_genericDirective_chain_ok() {
+  Future
+      test_expression_inputAndOutputBinding_genericDirective_chain_ok() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1249,11 +1252,12 @@ class GenericComponent<T extends E, E> {
 <generic-comp (output)='$event.length' [input]="string" [(twoWay)]="string"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_inputAndOutputBinding_genericDirective_nested_ok() {
+  Future
+      test_expression_inputAndOutputBinding_genericDirective_nested_ok() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1273,11 +1277,12 @@ class GenericComponent<T> {
 <generic-comp (output)='$event[0].length' [input]="stringList" [(twoWay)]="stringList"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_inputBinding_genericDirective_lowerBoundTypeError() {
+  Future
+      test_expression_inputBinding_genericDirective_lowerBoundTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1293,12 +1298,13 @@ class GenericComponent<T extends String> {
 <generic-comp [string]="notString"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notString");
   }
 
-  void test_expression_input_genericDirective_lowerBoundChainTypeError() {
+  Future
+      test_expression_input_genericDirective_lowerBoundChainTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1314,12 +1320,13 @@ class GenericComponent<T extends O, O extends String> {
 <generic-comp [string]="notString"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notString");
   }
 
-  void test_expression_input_genericDirective_lowerBoundNestedTypeError() {
+  Future
+      test_expression_input_genericDirective_lowerBoundNestedTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1335,12 +1342,13 @@ class GenericComponent<T extends String> {
 <generic-comp [stringList]="notStringList"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notStringList");
   }
 
-  void test_expression_outputBinding_genericDirective_lowerBoundTypeError() {
+  Future
+      test_expression_outputBinding_genericDirective_lowerBoundTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1356,12 +1364,13 @@ class GenericComponent<T extends String> {
 <generic-comp (string)="takeInt($event)"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r"$event");
   }
 
-  void test_expression_twoWayBinding_genericDirective_lowerBoundTypeError() {
+  Future
+      test_expression_twoWayBinding_genericDirective_lowerBoundTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
     directives: const [GenericComponent], templateUrl: 'test_panel.html')
@@ -1378,12 +1387,12 @@ class GenericComponent<T extends String> {
 <generic-comp [(string)]="anInt"></generic-comp>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, code, "anInt");
   }
 
-  void test_expression_pipe_in_moustache() {
+  Future test_expression_pipe_in_moustache() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1394,11 +1403,11 @@ class TestPanel {
 <p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (2 | pipe3:4:2))}}</p>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_pipe_in_moustache_with_error() {
+  Future test_expression_pipe_in_moustache_with_error() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -1409,12 +1418,12 @@ class TestPanel {
 <p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (error1 | pipe3:4:2))}}</p>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, "error1");
   }
 
-  void test_expression_pipe_in_input_binding() {
+  Future test_expression_pipe_in_input_binding() async {
     _addDartSource(r'''
 @Component(
     selector: 'name-panel',
@@ -1431,11 +1440,11 @@ class TestPanel {
     _addHtmlSource(r"""
 <name-panel [value]='value | pipe1'></name-panel>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_expression_pipe_in_ngFor() {
+  Future test_expression_pipe_in_ngFor() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -1448,11 +1457,12 @@ class TestPanel {
   {{operator.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_single_statement_without_semicolon() {
+  Future
+      test_statement_eventBinding_single_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1465,12 +1475,12 @@ class TestPanel {
     _addHtmlSource(r"""
 <div (click)='handleClick($event)'></div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_single_statement_with_semicolon() {
+  Future test_statement_eventBinding_single_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1483,12 +1493,13 @@ class TestPanel {
     _addHtmlSource(r"""
 <div (click)='handleClick($event);'></div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_return_statement_without_semicolon() {
+  Future
+      test_statement_eventBinding_return_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1500,14 +1511,14 @@ class TestPanel {
 ''');
     String code = r"""<h2 (click)='return 5'></h2>""";
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
         code,
         "return 5");
   }
 
-  void test_statement_eventBinding_return_statement_with_semicolon() {
+  Future test_statement_eventBinding_return_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1519,14 +1530,14 @@ class TestPanel {
 ''');
     String code = r"""<h2 (click)='return 5;'></h2>""";
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
         code,
         "return 5");
   }
 
-  void test_statement_eventBinding_if_statement_without_semicolon() {
+  Future test_statement_eventBinding_if_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1538,14 +1549,14 @@ class TestPanel {
 ''');
     String code = r"""<h2 (click)='if(true){}'></h2>""";
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
         code,
         "if(true){}");
   }
 
-  void test_statement_eventBinding_if_statement_with_semicolon() {
+  Future test_statement_eventBinding_if_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1557,14 +1568,14 @@ class TestPanel {
 ''');
     String code = r"""<h2 (click)='if(true){};'></h2>""";
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
         code,
         "if(true){}");
   }
 
-  void test_statement_eventBinding_double_statement() {
+  Future test_statement_eventBinding_double_statement() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1577,12 +1588,12 @@ class TestPanel {
     _addHtmlSource(r"""
 <div (click)='handleClick($event); 5+5;'></div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
   }
 
-  void test_statement_eventBinding_error_on_second_statement() {
+  Future test_statement_eventBinding_error_on_second_statement() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1596,12 +1607,12 @@ class TestPanel {
 <div (click)='handleClick($event); unknownFunction()'></div>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction");
   }
 
-  void test_statement_eventBinding_error_on_assignment_statement() {
+  Future test_statement_eventBinding_error_on_assignment_statement() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1615,14 +1626,14 @@ class TestPanel {
 <div (click)='handleClick($event); String s;'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
         code,
         "String s");
   }
 
-  void test_statement_eventBinding_typeError() {
+  Future test_statement_eventBinding_typeError() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1636,12 +1647,12 @@ class TestPanel {
 <div (click)='handleClick($event); 1 + "asdf";'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '"asdf"');
   }
 
-  void test_statement_eventBinding_all_semicolons() {
+  Future test_statement_eventBinding_all_semicolons() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1655,11 +1666,11 @@ class TestPanel {
 <div (click)=';;;;;;;;;;;;;'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_single_variable() {
+  Future test_statement_eventBinding_single_variable() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1674,11 +1685,12 @@ class TestPanel {
 <div (click)='handleClick;'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_statement_eventBinding_unexpected_closing_brackets_at_end() {
+  Future
+      test_statement_eventBinding_unexpected_closing_brackets_at_end() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1692,11 +1704,12 @@ class TestPanel {
 <div (click)='handleClick($event);}}}}'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}}}');
   }
 
-  void test_statement_eventBinding_unexpected_closing_brackets_at_start() {
+  Future
+      test_statement_eventBinding_unexpected_closing_brackets_at_start() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1710,11 +1723,12 @@ class TestPanel {
 <div (click)='}}handleClick($event)'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}');
   }
 
-  void test_statement_eventBinding_typechecking_after_unexpected_bracket() {
+  Future
+      test_statement_eventBinding_typechecking_after_unexpected_bracket() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -1728,14 +1742,14 @@ class TestPanel {
 <div (click)='}1.length'></div>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertMultipleErrorsInCodeAtPositions(code, {
       ParserErrorCode.UNEXPECTED_TOKEN: '}',
       StaticTypeWarningCode.UNDEFINED_GETTER: 'length'
     });
   }
 
-  void test_inheritedFields() {
+  Future test_inheritedFields() async {
     _addDartSource(r'''
 class BaseComponent {
   String text; // 1
@@ -1753,13 +1767,13 @@ class TestPanel extends BaseComponent {
   Hello {{text}}!
 </div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(1));
     _assertElement("text}}").dart.getter.at('text; // 1');
     errorListener.assertNoErrors();
   }
 
-  void test_inputReference() {
+  Future test_inputReference() async {
     _addDartSource(r'''
 @Component(
     selector: 'name-panel',
@@ -1777,12 +1791,12 @@ class TestPanel {}
     _addHtmlSource(r"""
 <name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement("bbb]=").input.at("bbb', ");
     _assertElement("ccc=").input.at("ccc']");
   }
 
-  void test_outputReference() {
+  Future test_outputReference() async {
     _addDartSource(r'''
 @Component(selector: 'name-panel',
     template: r"<div>AAA</div>")
@@ -1798,7 +1812,7 @@ class TestPanel {}
     _addHtmlSource(r"""
 <name-panel aaa='1' (bbb)='2' on-ccc='3'></name-panel>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement("bbb)=").output.at("bbb;");
     _assertElement("ccc=").output.at("ccc;");
     ElementSearch search =
@@ -1813,7 +1827,7 @@ class TestPanel {}
     expect(boundDirective.outputBindings[1].boundOutput.name, 'ccc');
   }
 
-  void test_twoWayReference() {
+  Future test_twoWayReference() async {
     _addDartSource(r'''
 @Component(
     selector: 'name-panel',
@@ -1831,11 +1845,11 @@ class TestPanel {
     _addHtmlSource(r"""
 <name-panel [(value)]='value'></name-panel>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement("value)]").input.at("value;");
   }
 
-  void test_localVariable_camelCaseName() {
+  Future test_localVariable_camelCaseName() async {
     _addDartSource(r'''
 import 'dart:html';
 
@@ -1850,12 +1864,12 @@ class TestPanel {
   <div #myTargetElement></div>
 </h1>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("myTargetElement)").local.at("myTargetElement>");
   }
 
-  void test_localVariable_exportAs() {
+  Future test_localVariable_exportAs() async {
     _addDartSource(r'''
 @Directive(selector: '[myDirective]', exportAs: 'exportedValue')
 class MyDirective {
@@ -1871,7 +1885,7 @@ class TestPanel {}
   {{value.aaa}}
 </div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement("myDirective #").selector.at("myDirective]");
     _assertElement("value=").local.declaration.type('MyDirective');
     _assertElement("exportedValue'>").angular.at("exportedValue')");
@@ -1879,7 +1893,7 @@ class TestPanel {}
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
   }
 
-  void test_erroroneousTemplate_starHash_noCrash() {
+  Future test_erroroneousTemplate_starHash_noCrash() async {
     _addDartSource(r'''
 import 'dart:html';
 
@@ -1894,11 +1908,11 @@ class TestPanel {
   <div *#myTargetElement></div>
 </h1>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     // no assertion. Just don't crash.
   }
 
-  void test_localVariable_exportAs_notFound() {
+  Future test_localVariable_exportAs_notFound() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -1912,14 +1926,14 @@ class TestPanel {}
 </div>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
         code,
         "noSuchExportedValue");
   }
 
-  void test_localVariable_scope_forwardReference() {
+  Future test_localVariable_scope_forwardReference() async {
     _addDartSource(r'''
 import 'dart:html';
 
@@ -1943,12 +1957,12 @@ class TestPanel {}
   <bbb #handle></bbb>
 </div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("handle'>").local.at("handle></bbb>").type('ComponentB');
   }
 
-  void test_ngContent() {
+  Future test_ngContent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -1957,11 +1971,11 @@ class TestPanel {}
     _addHtmlSource(r"""
 <ng-content></ng-content>>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_ngFor_iterableElementType() {
+  Future test_ngFor_iterableElementType() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -1979,13 +1993,13 @@ class MyIterable<T> extends BaseIterable<T> {
   {{item.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("item.").local.at('item of').type('String');
     _assertElement("length}}").dart.getter;
   }
 
-  void test_ngFor_operatorLocalVariable() {
+  Future test_ngFor_operatorLocalVariable() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -1998,7 +2012,7 @@ class TestPanel {
   {{operator.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     expect(template.ranges, hasLength(7));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
@@ -2017,7 +2031,7 @@ class TestPanel {
     expect(boundDirective.inputBindings.first.boundInput.name, 'ngForOf');
   }
 
-  void test_ngFor_operatorLocalVariableVarKeyword() {
+  Future test_ngFor_operatorLocalVariableVarKeyword() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2030,7 +2044,7 @@ class TestPanel {
   {{operator.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     expect(template.ranges, hasLength(7));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
@@ -2039,7 +2053,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  void test_ngFor_star() {
+  Future test_ngFor_star() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2048,13 +2062,14 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""
-<li *ngFor='let item of items; let i = index'>
+<li *ngFor='let item of items; let i = index; let e = even; let o = odd; let f = first; let l = last;'>
   {{i}} {{item.length}}
+  {{o}} {{e}} {{f}} {{l}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    expect(template.ranges, hasLength(10));
+    expect(template.ranges, hasLength(22));
     _assertElement("ngFor=").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
     _assertSelectorElement("of items")
@@ -2070,9 +2085,17 @@ class TestPanel {
     _assertElement("i}}").local.at('i = index');
     _assertElement("item.").local.at('item of');
     _assertElement("length}}").dart.getter;
+    _assertElement("e = even").local.declaration.type('bool');
+    _assertElement("e}}").local.at('e = even');
+    _assertElement("o = odd").local.declaration.type('bool');
+    _assertElement("o}}").local.at('o = odd');
+    _assertElement("f = first").local.declaration.type('bool');
+    _assertElement("f}}").local.at('f = first');
+    _assertElement("l = last").local.declaration.type('bool');
+    _assertElement("l}}").local.at('l = last');
   }
 
-  void test_ngFor_noStarError() {
+  Future test_ngFor_noStarError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2085,14 +2108,14 @@ class TestPanel {
 </li>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
         code,
         "ngFor");
   }
 
-  void test_ngFor_star_itemHiddenInElement() {
+  Future test_ngFor_star_itemHiddenInElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2104,12 +2127,12 @@ class TestPanel {
 <h1 *ngFor='let item of items' [hidden]='item == null'>
 </h1>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("item == null").local.at('item of items');
   }
 
-  void test_ngFor_templateAttribute() {
+  Future test_ngFor_templateAttribute() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2122,7 +2145,7 @@ class TestPanel {
   {{i}} {{item.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("ngFor let").selector.inFileName('ng_for.dart');
     _assertElement("item of").local.declaration.type('String');
@@ -2141,7 +2164,7 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
-  void test_ngFor_templateAttribute2() {
+  Future test_ngFor_templateAttribute2() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2154,7 +2177,7 @@ class TestPanel {
   {{i}} {{item.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("ngFor:").selector.inFileName('ng_for.dart');
     _assertElement("item, of").local.declaration.type('String');
@@ -2173,7 +2196,7 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
-  void test_ngFor_templateElement() {
+  Future test_ngFor_templateElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2186,7 +2209,7 @@ class TestPanel {
   <li>{{i}} {{item.length}}</li>
 </template>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("ngFor let").selector.inFileName('ng_for.dart');
     _assertElement("item [").local.declaration.type('String');
@@ -2205,7 +2228,7 @@ class TestPanel {
     _assertElement("length}}").dart.getter;
   }
 
-  void test_ngFor_templateElementVar() {
+  Future test_ngFor_templateElementVar() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2218,7 +2241,7 @@ class TestPanel {
   <li>{{i}} {{item.length}}</li>
 </template>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement("item [").local.declaration.type('String');
     _assertElement("i='index").local.declaration.type('int');
@@ -2226,7 +2249,7 @@ class TestPanel {
     _assertElement("item.").local.at('item [');
   }
 
-  void test_ngFor_variousKinds_useLowerIdentifier() {
+  Future test_ngFor_variousKinds_useLowerIdentifier() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2246,11 +2269,11 @@ class TestPanel {
 </li>
 <div #lowerEl></div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_ngFor_hash_instead_of_let() {
+  Future test_ngFor_hash_instead_of_let() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2263,12 +2286,12 @@ class TestPanel {
 </li>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, code, "#");
   }
 
-  void test_ngForSugar_dartExpression() {
+  Future test_ngForSugar_dartExpression() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgFor])
@@ -2285,11 +2308,11 @@ class TestPanel {
   {{item2.length}}
 </li>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_ngIf_star() {
+  Future test_ngIf_star() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgIf])
@@ -2300,7 +2323,7 @@ class TestPanel {
     _addHtmlSource(r"""
 <span *ngIf='text.length != 0'></span>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertSelectorElement("ngIf=").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf=").input.inFileName('ng_if.dart');
@@ -2308,7 +2331,7 @@ class TestPanel {
     _assertElement("length != 0").dart.getter;
   }
 
-  void test_ngIf_noStarError() {
+  Future test_ngIf_noStarError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgIf])
@@ -2320,14 +2343,14 @@ class TestPanel {
 <span ngIf='text.length != 0'></span>
 """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
         code,
         "ngIf");
   }
 
-  void test_ngIf_templateAttribute() {
+  Future test_ngIf_templateAttribute() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgIf])
@@ -2338,7 +2361,7 @@ class TestPanel {
     _addHtmlSource(r"""
 <span template='ngIf text.length != 0'></span>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertSelectorElement("ngIf text").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf text").input.inFileName('ng_if.dart');
@@ -2346,7 +2369,7 @@ class TestPanel {
     _assertElement("length != 0").dart.getter;
   }
 
-  void test_ngIf_templateElement() {
+  Future test_ngIf_templateElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NgIf])
@@ -2357,14 +2380,14 @@ class TestPanel {
     _addHtmlSource(r"""
 <template [ngIf]='text.length != 0'></template>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertSelectorElement("ngIf]").selector.inFileName('ng_if.dart');
     _assertInputElement("ngIf]").input.inFileName('ng_if.dart');
     _assertElement("text.").dart.getter.at('text; // 1');
     _assertElement("length != 0").dart.getter;
   }
 
-  void test_standardHtmlComponent() {
+  Future test_standardHtmlComponent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2376,7 +2399,7 @@ class TestPanel {
 <input #inputEl M
        (change)='inputChange(inputEl.value, inputEl.validationMessage)'>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement('input #').selector.inCoreHtml.at('input");');
     _assertElement('inputEl M').local.at('inputEl M');
     _assertElement('inputChange(inputEl').dart.method.at('inputChange(Str');
@@ -2389,7 +2412,7 @@ class TestPanel {
     expect(ranges, hasLength(8));
   }
 
-  void test_standardHtmlComponentUsingRef() {
+  Future test_standardHtmlComponentUsingRef() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2401,7 +2424,7 @@ class TestPanel {
 <input ref-inputEl M
        (change)='inputChange(inputEl.value, inputEl.validationMessage)'>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement('input ref').selector.inCoreHtml.at('input");');
     _assertElement('inputEl M').local.at('inputEl M');
     _assertElement('inputChange(inputEl').dart.method.at('inputChange(Str');
@@ -2414,7 +2437,7 @@ class TestPanel {
     expect(ranges, hasLength(8));
   }
 
-  void test_template_attribute_withoutValue() {
+  Future test_template_attribute_withoutValue() async {
     _addDartSource(r'''
 @Directive(selector: '[deferred-content]')
 class DeferredContentDirective {}
@@ -2428,12 +2451,12 @@ class TestPanel {}
     _addHtmlSource(r"""
 <div *deferred-content>Deferred content</div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement('deferred-content>').selector.at("deferred-content]')");
     errorListener.assertNoErrors();
   }
 
-  void test_textInterpolation() {
+  Future test_textInterpolation() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2447,14 +2470,14 @@ class TestPanel {
   Hello {{aaa}} and {{bbb}}!
 </div>
 """);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2));
     _assertElement('aaa}}').dart.getter.at('aaa; // 1');
     _assertElement('bbb}}').dart.getter.at('bbb; // 2');
   }
 
   // see https://github.com/dart-lang/html/issues/44
-  void test_catchPkgHtmlGithubBug44() {
+  Future test_catchPkgHtmlGithubBug44() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2464,12 +2487,12 @@ class TestPanel {
 }
 ''');
     _addHtmlSource(r"""<button attr<="value"></button>""");
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
 
     // no assertion...this throws in the github bug
   }
 
-  void test_angleBracketInMustacheNoCrash_githubBug204() {
+  Future test_angleBracketInMustacheNoCrash_githubBug204() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -2483,7 +2506,7 @@ class TestPanel {
 {{<}}
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertErrorsWithCodes([
       HtmlErrorCode.PARSE_ERROR,
       ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
@@ -2494,7 +2517,7 @@ class TestPanel {
     ]);
   }
 
-  void test_resolveTemplateWithNgContentTracksSelectors() {
+  Future test_resolveTemplateWithNgContentTracksSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2507,13 +2530,11 @@ class TestPanel {
 </div>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(1));
+    await _resolveSingleTemplate(dartSource);
+    expect(template.view.component.ngContents, hasLength(1));
   }
 
-  void test_resolveTemplateWithNgContent_noSelectorIsNull() {
+  Future test_resolveTemplateWithNgContent_noSelectorIsNull() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2526,14 +2547,12 @@ class TestPanel {
 </div>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(1));
-    expect(template.ngContents.first.selector, isNull);
+    await _resolveSingleTemplate(dartSource);
+    expect(template.view.component.ngContents, hasLength(1));
+    expect(template.view.component.ngContents.first.selector, isNull);
   }
 
-  void test_resolveTemplateWithNgContent_selectorParseError() {
+  Future test_resolveTemplateWithNgContent_selectorParseError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2546,15 +2565,13 @@ class TestPanel {
 </div>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    await _resolveSingleTemplate(dartSource);
+    expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
   }
 
-  void test_resolveTemplateWithNgContent_emptySelectorError() {
+  Future test_resolveTemplateWithNgContent_emptySelectorError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2567,15 +2584,13 @@ class TestPanel {
 </div>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    await _resolveSingleTemplate(dartSource);
+    expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "\"\"");
   }
 
-  void test_resolveTemplateWithNgContent_noValueError() {
+  Future test_resolveTemplateWithNgContent_noValueError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2588,15 +2603,13 @@ class TestPanel {
 </div>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
-    expect(template.ngContents, hasLength(0));
+    await _resolveSingleTemplate(dartSource);
+    expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "select");
   }
 
-  void test_resolveTemplateWithNgContent_hasContentsError() {
+  Future test_resolveTemplateWithNgContent_hasContentsError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html')
@@ -2609,14 +2622,12 @@ class TestPanel {
 </div>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY, code, "<ng-content>");
   }
 
-  void test_resolveTemplate_provideContentWhereInvalid() {
+  Future test_resolveTemplate_provideContentWhereInvalid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NoTransclude])
@@ -2631,14 +2642,12 @@ class NoTransclude {
 <no-transclude>doesn't belong</no-transclude>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "doesn't belong");
   }
 
-  void test_resolveTemplate_provideContentNgSelectAll() {
+  Future test_resolveTemplate_provideContentNgSelectAll() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeAll])
@@ -2653,13 +2662,11 @@ class TranscludeAll {
 <transclude-all>belongs</transclude-all>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolveTemplate_provideContentEmptyTextAlwaysOK() {
+  Future test_resolveTemplate_provideContentEmptyTextAlwaysOK() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [NoTransclude])
@@ -2675,13 +2682,11 @@ class NoTransclude {
 </no-transclude>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolvedTag_complexSelector() {
+  Future test_resolvedTag_complexSelector() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -2698,11 +2703,11 @@ class MyTag {
 <my-tag my-prop></my-tag>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolveTemplate_provideContentNgSelectAllWithSelectors() {
+  Future test_resolveTemplate_provideContentNgSelectAllWithSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeAll])
@@ -2717,13 +2722,11 @@ class TranscludeAll {
 <transclude-all>belongs</transclude-all>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolveTemplate_provideContentNotMatchingSelectors() {
+  Future test_resolveTemplate_provideContentNotMatchingSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
@@ -2738,14 +2741,12 @@ class TranscludeSome {
 <transclude-some><div></div></transclude-some>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
   }
 
-  void test_resolveTemplate_provideTextInfosDontMatchSelectors() {
+  Future test_resolveTemplate_provideTextInfosDontMatchSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
@@ -2760,14 +2761,12 @@ class TranscludeSome {
 <transclude-some>doesn't belong</transclude-some>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "doesn't belong");
   }
 
-  void test_resolveTemplate_provideContentMatchingSelectors() {
+  Future test_resolveTemplate_provideContentMatchingSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
@@ -2782,13 +2781,11 @@ class TranscludeSome {
 <transclude-some><div transclude-me></div></transclude-some>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolveTemplate_provideContentMatchingSelectorsKnowsTag() {
+  Future test_resolveTemplate_provideContentMatchingSelectorsKnowsTag() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
@@ -2803,13 +2800,12 @@ class TranscludeSome {
 <transclude-some><transclude-me></transclude-me></transclude-some>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolveTemplate_provideContentMatchingSelectorsAndAllKnowsTag() {
+  Future
+      test_resolveTemplate_provideContentMatchingSelectorsAndAllKnowsTag() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html',
@@ -2828,13 +2824,57 @@ class TranscludeAllAndKnowsTag {
 </transclude-all-and-knows-tag>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
   }
 
-  void test_resolveTemplate_provideContentMatchingSelectorsReportsUnknownTag() {
+  Future
+      test_resolveTemplate_noDashesAroundTranscludedContent_stillError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeAllAndKnowsTag])
+class TestPanel {
+}
+@Component(selector: 'nodashes')
+@View(template: '')
+class TranscludeAllAndKnowsTag {
+}
+''');
+    String code = r"""
+<nodashes>shouldn't be allowed</nodashes>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "shouldn't be allowed");
+  }
+
+  Future
+      test_resolveTemplate_noDashesAroundTranscludedContent_stillMatchesTag() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [TranscludeAllAndKnowsTag])
+class TestPanel {
+}
+@Component(selector: 'nodashes')
+@View(template: '<ng-content select="custom-tag"></ng-content>')
+class TranscludeAllAndKnowsTag {
+}
+''');
+    String code = r"""
+<nodashes>
+  <custom-tag></custom-tag>
+</nodashes>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      test_resolveTemplate_provideContentMatchingSelectorsReportsUnknownTag() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
@@ -2849,14 +2889,12 @@ class TranscludeSome {
 <transclude-some><unknown-tag transclude-me></unknown-tag></transclude-some>
     """;
     _addHtmlSource(code);
-    computeResult(
-        new LibrarySpecificUnit(dartSource, dartSource), ANGULAR_ASTS);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNRESOLVED_TAG, code, "unknown-tag");
   }
 
-  void test_unResolvedTag_evenThoughMatchedComplexSelector() {
+  Future test_unResolvedTag_evenThoughMatchedComplexSelector() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -2873,7 +2911,7 @@ class MyTag {
 <my-tag my-prop></my-tag>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement("my-prop")
         .selector
         .inFileName("test_panel.dart")
@@ -2882,7 +2920,7 @@ class MyTag {
         AngularWarningCode.UNRESOLVED_TAG, code, "my-tag");
   }
 
-  void test_resolvedTag_evenThoughAlsoMatchesNonTagMatch() {
+  Future test_resolvedTag_evenThoughAlsoMatchesNonTagMatch() async {
     _addDartSource(r'''
 import 'dart:html';
 @Component(selector: 'test-panel')
@@ -2899,7 +2937,7 @@ class MyTag {
 <my-tag red-herring unrelated></my-tag>
     """;
     _addHtmlSource(code);
-    _resolveSingleTemplate(dartSource);
+    await _resolveSingleTemplate(dartSource);
     _assertElement("my-tag")
         .selector
         .inFileName("test_panel.dart")
@@ -2923,8 +2961,8 @@ $code
   ElementAssert _assertElement(String atString,
       [ResolvedRangeCondition condition]) {
     ResolvedRange resolvedRange = _findResolvedRange(atString, condition);
-    return new ElementAssert(context, dartCode, dartSource, htmlCode,
-        htmlSource, resolvedRange.element, resolvedRange.range.offset);
+    return new ElementAssert(dartCode, dartSource, htmlCode, htmlSource,
+        resolvedRange.element, resolvedRange.range.offset);
   }
 
   ElementAssert _assertInputElement(String atString) {
@@ -2948,15 +2986,20 @@ $code
    * Compute all the views declared in the given [dartSource], and resolve the
    * external template of the last one.
    */
-  void _resolveSingleTemplate(Source dartSource) {
-    directives = computeLibraryDirectives(dartSource);
-    List<View> views = computeLibraryViews(dartSource);
-    View view = views.last;
-    // resolve this View
-    computeResult(view, HTML_TEMPLATE);
-    template = outputs[HTML_TEMPLATE];
+  Future _resolveSingleTemplate(Source dartSource) async {
+    final result = await angularDriver.resolveDart(dartSource.fullName);
+    final finder = (AbstractDirective d) =>
+        d is Component && d.view.templateUriSource != null;
+    fillErrorListener(result.errors);
+    final directive = result.directives.singleWhere(finder);
+    final htmlPath = (directive as Component).view.templateUriSource.fullName;
+    final result2 =
+        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
+    fillErrorListener(result2.errors);
+    final view = (result2.directives.singleWhere(finder) as Component).view;
+
+    template = view.template;
     ranges = template.ranges;
-    fillErrorListener(HTML_TEMPLATE_ERRORS);
   }
 
   static bool _isInputElement(ResolvedRange region) {

@@ -18,6 +18,11 @@ class AndSelector extends Selector {
 
   @override
   SelectorMatch match(ElementView element, Template template) {
+    // Invalid selector case, should NOT match all.
+    if (selectors.length == 0) {
+      return SelectorMatch.NoMatch;
+    }
+
     SelectorMatch onSuccess = SelectorMatch.NonTagMatch;
     for (Selector selector in selectors) {
       SelectorMatch theMatch = selector.match(element, null);
@@ -42,6 +47,11 @@ class AndSelector extends Selector {
       context = selector.refineTagSuggestions(context);
     }
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    selectors.forEach(
+        (selector) => selector.recordElementNameSelectors(recordingList));
   }
 }
 
@@ -115,6 +125,10 @@ class AttributeSelector extends Selector {
     }
     return context;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
 }
 
 /**
@@ -146,6 +160,10 @@ class AttributeValueRegexSelector extends Selector {
   List<HtmlTagForSelector> refineTagSuggestions(
       List<HtmlTagForSelector> context) {
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
   }
 }
 
@@ -195,6 +213,10 @@ class ClassSelector extends Selector {
     }
     return context;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
 }
 
 /**
@@ -236,6 +258,10 @@ class ElementNameSelector extends Selector {
       tag.name = nameElement.name;
     }
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    recordingList.add(this);
   }
 }
 
@@ -286,6 +312,11 @@ class OrSelector extends Selector {
 
     return response;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    selectors.forEach(
+        (selector) => selector.recordElementNameSelectors(recordingList));
+  }
 }
 
 /**
@@ -309,6 +340,10 @@ class NotSelector extends Selector {
   List<HtmlTagForSelector> refineTagSuggestions(
       List<HtmlTagForSelector> context) {
     return context;
+  }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
   }
 }
 
@@ -342,12 +377,19 @@ class ContainsSelector extends Selector {
       List<HtmlTagForSelector> context) {
     return context;
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
 }
 
 /**
  * The base class for all Angular selectors.
  */
 abstract class Selector {
+  String originalString;
+  int offset;
+
   /**
    * Check whether the given [element] matches this selector.
    * If yes, then record resolved ranges into [template].
@@ -372,6 +414,8 @@ abstract class Selector {
     ];
     return refineTagSuggestions(tags).where((t) => t.isValid);
   }
+
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList);
 }
 
 enum _SelectorRegexMatch {
@@ -553,6 +597,8 @@ class SelectorParser {
       _unexpected(
           currentMatchStr, fileOffset + (currentMatch?.start ?? lastOffset));
     }
+    selector.originalString = str;
+    selector.offset = fileOffset;
     return selector;
   }
 

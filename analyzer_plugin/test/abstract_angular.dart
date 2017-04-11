@@ -1,27 +1,32 @@
 library angular2.src.analysis.analyzer_plugin.src.angular_base;
 
-import 'package:analyzer/file_system/file_system.dart';
+import 'package:analyzer/file_system/file_system.dart' as fs;
+import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
-import 'package:analyzer/src/context/context.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/src/generated/engine.dart' show AnalysisEngine;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/src/task/driver.dart';
-import 'package:analyzer/src/task/manager.dart';
-import 'package:analyzer/task/dart.dart';
-import 'package:analyzer/task/model.dart';
-import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/tasks.dart';
-import 'package:plugin/manager.dart';
-import 'package:plugin/plugin.dart';
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
+
+import 'package:analysis_server/src/analysis_server.dart';
+import 'package:analysis_server/src/plugin/notification_manager.dart';
+import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart'
+    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
+import 'package:analyzer/src/dart/analysis/file_state.dart';
+import 'package:analyzer/src/generated/engine.dart';
+
+import 'package:analyzer/file_system/file_system.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart';
+import 'package:analyzer/src/generated/source_io.dart';
 
 void assertComponentReference(
     ResolvedRange resolvedRange, Component component) {
@@ -93,70 +98,54 @@ class AbstractAngularTest {
   MemoryResourceProvider resourceProvider;
 
   DartSdk sdk;
-  AnalysisContextImpl context;
+  AngularDriver angularDriver;
+  AnalysisDriver dartDriver;
 
-  TaskManager taskManager;
-  AnalysisDriver analysisDriver;
-
-  AnalysisTask task;
-  Map<ResultDescriptor<dynamic>, dynamic> outputs;
   GatheringErrorListener errorListener;
 
-  List<AbstractDirective> computeLibraryDirectives(Source dartSource) {
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, DIRECTIVES_IN_UNIT);
-    return outputs[DIRECTIVES_IN_UNIT];
-  }
-
-  List<View> computeLibraryViews(Source dartSource) {
-    LibrarySpecificUnit target =
-        new LibrarySpecificUnit(dartSource, dartSource);
-    computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
-    return outputs[VIEWS_WITH_HTML_TEMPLATES2];
-  }
-
-  void computeResult(AnalysisTarget target, ResultDescriptor result) {
-    task = analysisDriver.computeResult(target, result);
-    if (task != null) {
-      expect(task.caughtException, isNull);
-      outputs = task.outputs;
-    }
-  }
-
-  /**
-   * Fill [errorListener] with [result] errors in the current [task].
-   */
-  void fillErrorListener(ResultDescriptor<List<AnalysisError>> result) {
-    List<AnalysisError> errors = task.outputs[result];
-    expect(errors, isNotNull, reason: result.name);
-    errorListener = new GatheringErrorListener();
-    errorListener.addAll(errors);
-  }
-
   Source newSource(String path, [String content = '']) {
-    File file = resourceProvider.newFile(path, content);
-    return file.createSource();
+    fs.File file = resourceProvider.newFile(path, content);
+    final source = file.createSource();
+    angularDriver.addFile(path);
+    dartDriver.addFile(path);
+    return source;
   }
 
   void setUp() {
-    AnalysisEngine.instance.partitionManager.clearCache();
+    PerformanceLog logger = new PerformanceLog(new StringBuffer());
+    var byteStore = new MemoryByteStore();
+
+    AnalysisDriverScheduler scheduler = new AnalysisDriverScheduler(logger);
+    scheduler.start();
     resourceProvider = new MemoryResourceProvider();
-    sdk = new MockSdk();
-    taskManager = new TaskManager();
-    errorListener = new GatheringErrorListener();
-    new ExtensionManager().processPlugins(<Plugin>[]
-      ..addAll(AnalysisEngine.instance.requiredPlugins)
-      ..add(new AngularAnalyzerPlugin()));
-    _addAngularSources();
-    // prepare AnalysisContext
-    context = new AnalysisContextImpl();
-    context.sourceFactory = new SourceFactory(<UriResolver>[
+
+    sdk = new MockSdk(resourceProvider: resourceProvider);
+    final packageMap = new Map<String, List<Folder>>();
+    PackageMapUriResolver packageResolver =
+        new PackageMapUriResolver(resourceProvider, packageMap);
+    SourceFactory sf = new SourceFactory([
       new DartUriResolver(sdk),
+      packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
-    // configure AnalysisDriver
-    analysisDriver = context.driver;
+    dartDriver = new AnalysisDriver(
+        scheduler,
+        logger,
+        resourceProvider,
+        byteStore,
+        new FileContentOverlay(),
+        "test",
+        sf,
+        new AnalysisOptionsImpl());
+    angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
+        scheduler, byteStore, sf, new FileContentOverlay());
+
+    errorListener = new GatheringErrorListener();
+    _addAngularSources();
+  }
+
+  void fillErrorListener(List<AnalysisError> errors) {
+    errorListener.addAll(errors);
   }
 
   void _addAngularSources() {
@@ -474,4 +463,11 @@ class GatheringErrorListener implements AnalysisErrorListener {
   void onError(AnalysisError error) {
     errors.add(error);
   }
+}
+
+class MockAnalysisServer extends TypedMock implements AnalysisServer {
+  NotificationManager notificationManager = new MockNotificationManager();
+}
+
+class MockNotificationManager extends TypedMock implements NotificationManager {
 }

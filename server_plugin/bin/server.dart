@@ -3,18 +3,46 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:analysis_server/starter.dart';
-import 'package:angular_analyzer_plugin/plugin.dart';
-import 'package:angular_analyzer_server_plugin/plugin.dart';
+
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:analyzer/src/context/builder.dart';
+//import 'package:angular_analyzer_server_plugin/plugin.dart';
 import 'package:plugin/plugin.dart';
 
 /**
  * Create and run an analysis server with Angular plugins.
  */
 void main(List<String> args) {
-  ServerStarter starter = new ServerStarter();
+  final starter = new ServerStarter();
   starter.userDefinedPlugins = <Plugin>[
-    new AngularAnalyzerPlugin(),
-    new AngularServerPlugin()
+    //new AngularAnalyzerPlugin(),
+    //new AngularServerPlugin()
   ];
-  starter.start(args);
+  final server = starter.start(args);
+
+  ContextBuilder.onCreateAnalysisDriver = (analysisDriver,
+      scheduler,
+      logger,
+      resourceProvider,
+      byteStore,
+      contentOverlay,
+      driverPath,
+      sourceFactory,
+      analysisOptions) {
+    final AngularDriver driver = new AngularDriver(server, analysisDriver,
+        scheduler, byteStore, sourceFactory, contentOverlay);
+    server.onFileAdded.listen((String path) {
+      if (server.contextManager.getContextFolderFor(path).path == driverPath) {
+        // only the owning driver "adds" the path
+        driver.addFile(path);
+      } else {
+        // but the addition of a file is a "change" to all the other drivers
+        driver.fileChanged(path);
+      }
+    });
+    server.onFileChanged.listen((String path) {
+      // all drivers get change notification
+      driver.fileChanged(path);
+    });
+  };
 }
