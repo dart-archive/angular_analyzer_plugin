@@ -5,6 +5,7 @@ import 'package:analysis_server/src/provisional/completion/dart/completion_dart.
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_target.dart';
 import 'package:analysis_server/src/services/search/search_engine.dart';
+import 'package:analysis_server/src/ide_options.dart';
 import 'package:analyzer/src/generated/engine.dart' show AnalysisContext;
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -160,6 +161,9 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
   bool get includeIdentifiers {
     return opType.includeIdentifiers;
   }
+
+  @override
+  IdeOptions get ideOptions => null;
 
   /**
    * We have to return non null or much code will view this as an isolated part

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'package:analysis_server/src/analysis_server.dart';
+import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
@@ -57,6 +58,8 @@ class AngularDriver
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
   }
+
+  ContextRoot get contextRoot => dartDriver.contextRoot;
 
   ApiSignature getUnitElementHash(String path) {
     return dartDriver.getUnitKeyByPath(path);
@@ -387,8 +390,17 @@ class AngularDriver
 
   Future<DirectivesResult> resolveDart(String path,
       {bool withDirectives: false}) async {
-    final key =
-        (await dartDriver.getUnitElementSignature(path)) + '.ngresolved';
+    final baseKey = await dartDriver.getUnitElementSignature(path);
+
+    // This happens when the path is..."hidden by a generated file"..whch I
+    // don't understand, but, can protect against. Should not be analyzed.
+    // TODO detect this on file add rather than on file analyze.
+    if (baseKey == null) {
+      _dartFiles.remove(path);
+      return null;
+    }
+
+    final key = baseKey + '.ngresolved';
 
     if (lastSignatures[path] == key) {
       return null;

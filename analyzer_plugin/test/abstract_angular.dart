@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.angular_base;
 
 import 'package:analyzer/file_system/file_system.dart' as fs;
+import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -128,13 +129,16 @@ class AbstractAngularTest {
       packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
+    var testPath = resourceProvider.convertPath('/test');
+    var contextRoot = new ContextRoot(testPath, []);
+
     dartDriver = new AnalysisDriver(
         scheduler,
         logger,
         resourceProvider,
         byteStore,
         new FileContentOverlay(),
-        "test",
+        contextRoot,
         sf,
         new AnalysisOptionsImpl());
     angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
