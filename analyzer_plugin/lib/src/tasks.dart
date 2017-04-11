@@ -5,15 +5,9 @@ import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/engine.dart';
-import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
-import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
-import 'package:html/dom.dart' as html;
-import 'package:html/parser.dart' as html;
-import 'package:source_span/source_span.dart';
 
 class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
   bool offsetsAreValid = true;
@@ -217,24 +211,4 @@ class AnnotationProcessorMixin {
     }
     return false;
   }
-}
-
-List<AnalysisError> filterParserErrors(
-    AngularHtmlParser parser, String content, Source source) {
-  List<AnalysisError> errors = <AnalysisError>[];
-  List<html.ParseError> parseErrors = parser.errors;
-
-  for (html.ParseError parseError in parseErrors) {
-    //Append error codes that are useful to this analyzer
-    if (parseError.errorCode == 'eof-in-tag-name') {
-      SourceSpan span = parseError.span;
-      errors.add(new AnalysisError(
-          source,
-          span.start.offset,
-          span.length,
-          HtmlErrorCode.PARSE_ERROR,
-          [parseError.errorCode, content.substring(span.start.offset)]));
-    }
-  }
-  return errors;
 }

@@ -6,16 +6,8 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'tasks.dart';
-import 'package:analyzer/src/generated/constant.dart';
-import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
-import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:html/dom.dart' as html;
-import 'package:html/parser.dart' as html;
-import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
-import 'package:source_span/source_span.dart';
-import 'package:analyzer/src/error/codes.dart';
+import 'package:angular_ast/angular_ast.dart' as NgAst;
 
 class ViewExtractor extends AnnotationProcessorMixin {
   AnalysisContext context;
@@ -197,55 +189,64 @@ class ViewExtractor extends AnnotationProcessorMixin {
 }
 
 class TemplateParser {
-  html.Document document;
+  static const errorMap = const {
+    NgAst.NgParserWarningCode.UNTERMINATED_MUSTACHE:
+        AngularWarningCode.UNTERMINATED_MUSTACHE,
+    NgAst.NgParserWarningCode.UNOPENED_MUSTACHE:
+        AngularWarningCode.UNOPENED_MUSTACHE,
+  };
+
+  List<NgAst.TemplateAst> document;
   final List<AnalysisError> parseErrors = <AnalysisError>[];
 
   void parse(String content, Source source, {int offset = 0}) {
     if (offset != null) {
       content = ' ' * offset + content;
     }
-    AngularHtmlParser parser = new AngularHtmlParser(content,
-        generateSpans: true, lowercaseAttrName: false);
-    parser.compatMode = 'quirks';
-    document = parser.parse();
+    var exceptionHandler = new NgAst.RecoveringExceptionHandler();
+    document = NgAst.parse(
+      content,
+      sourceUrl: source.toString(),
+      desugar: false,
+      parseExpressions: false,
+      exceptionHandler: exceptionHandler,
+    );
 
-    List<html.ParseError> htmlErrors = parser.errors;
-
-    for (html.ParseError parseError in htmlErrors) {
-      if (parseError.errorCode == 'expected-doctype-but-got-start-tag' ||
-          parseError.errorCode == 'expected-doctype-but-got-chars' ||
-          parseError.errorCode == 'expected-doctype-but-got-eof') {
-        continue;
+    for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
+      if (e.errorCode is NgAst.NgParserWarningCode) {
+        this.parseErrors.add(new AnalysisError(
+              source,
+              e.offset,
+              e.length,
+              errorMap[e.errorCode] ?? e.errorCode,
+            ));
       }
-
-      SourceSpan span = parseError.span;
-      // html parser lib isn't nice enough to send this error all the time
-      // see github #47 for dart-lang/html
-      if (span == null) continue;
-
-      this.parseErrors.add(new AnalysisError(source, span.start.offset,
-          span.length, HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));
     }
   }
 }
 
-setIgnoredErrors(Template template, html.Document document) {
-  if (document == null || document.nodes.length == 0) {
+setIgnoredErrors(Template template, List<NgAst.TemplateAst> asts) {
+  if (asts == null || asts.length == 0) {
     return;
   }
-  html.Node firstNode = document.nodes[0];
-  if (firstNode is html.Comment) {
-    String text = firstNode.text.trim();
-    if (text.startsWith("@ngIgnoreErrors")) {
-      text = text.substring("@ngIgnoreErrors".length);
-      // Per spec: optional color
-      if (text.startsWith(":")) {
-        text = text.substring(1);
+  for (NgAst.TemplateAst ast in asts) {
+    if (ast is NgAst.TextAst && ast.value.trim().isEmpty) {
+      continue;
+    } else if (ast is NgAst.CommentAst) {
+      String text = ast.value.trim();
+      if (text.startsWith("@ngIgnoreErrors")) {
+        text = text.substring("@ngIgnoreErrors".length);
+        // Per spec: optional color
+        if (text.startsWith(":")) {
+          text = text.substring(1);
+        }
+        // Per spec: optional commas
+        String delim = text.indexOf(',') == -1 ? ' ' : ',';
+        template.ignoredErrors.addAll(new HashSet.from(
+            text.split(delim).map((c) => c.trim().toUpperCase())));
       }
-      // Per spec: optional commas
-      String delim = text.indexOf(',') == -1 ? ' ' : ',';
-      template.ignoredErrors.addAll(new HashSet.from(
-          text.split(delim).map((c) => c.trim().toUpperCase())));
+    } else {
+      return;
     }
   }
 }
