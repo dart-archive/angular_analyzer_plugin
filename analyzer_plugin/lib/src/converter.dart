@@ -949,7 +949,7 @@ class EmbeddedDartParser {
   }
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
-      token is KeywordToken && token.keyword.isPseudoKeyword;
+      token is KeywordToken && token.keyword.isBuiltInOrPseudo;
 
   static bool _tokenMatchesIdentifier(Token token) =>
       token.type == TokenType.IDENTIFIER ||

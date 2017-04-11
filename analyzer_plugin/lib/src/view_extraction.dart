@@ -191,9 +191,9 @@ class ViewExtractor extends AnnotationProcessorMixin {
 class TemplateParser {
   static const errorMap = const {
     NgAst.NgParserWarningCode.UNTERMINATED_MUSTACHE:
-    AngularWarningCode.UNTERMINATED_MUSTACHE,
+        AngularWarningCode.UNTERMINATED_MUSTACHE,
     NgAst.NgParserWarningCode.UNOPENED_MUSTACHE:
-    AngularWarningCode.UNOPENED_MUSTACHE,
+        AngularWarningCode.UNOPENED_MUSTACHE,
   };
 
   List<NgAst.TemplateAst> document;
@@ -204,7 +204,8 @@ class TemplateParser {
       content = ' ' * offset + content;
     }
     var exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    document = NgAst.parse(content,
+    document = NgAst.parse(
+      content,
       sourceUrl: source.toString(),
       desugar: false,
       parseExpressions: false,
@@ -214,11 +215,11 @@ class TemplateParser {
     for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
       if (e.errorCode is NgAst.NgParserWarningCode) {
         this.parseErrors.add(new AnalysisError(
-          source,
-          e.offset,
-          e.length,
-          errorMap[e.errorCode] ?? e.errorCode,
-        ));
+              source,
+              e.offset,
+              e.length,
+              errorMap[e.errorCode] ?? e.errorCode,
+            ));
       }
     }
   }
