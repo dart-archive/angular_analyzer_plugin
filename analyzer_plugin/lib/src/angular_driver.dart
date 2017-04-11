@@ -106,6 +106,16 @@ class AngularDriver
     _scheduler.notify(this);
   }
 
+  Future<List<AnalysisError>> requestErrors(String path) {
+    if (path.endsWith(".dart")) {
+      return requestDartErrors(path);
+    } else if (path.endsWith(".html")) {
+      return requestHtmlErrors(path);
+    } else {
+      return new Future.value([]);
+    }
+  }
+
   Future<List<AnalysisError>> requestDartErrors(String path) {
     var completer = new Completer<List<AnalysisError>>();
     _requestedDartFiles
@@ -165,6 +175,24 @@ class AngularDriver
       // a queue that won't be completed until the scheduler schedules the dart
       // driver, which doesn't happen because its waiting for us.
       resolveDart(path, onlyIfChangedSignature: false).then((result) {
+        completers
+            .forEach((completer) => completer.complete(result?.errors ?? []));
+      }, onError: (e) {
+        completers.forEach((completer) => completer.completeError(e));
+      });
+
+      return;
+    }
+
+    if (_requestedHtmlFiles.isNotEmpty) {
+      final path = _requestedHtmlFiles.keys.first;
+      final completers = _requestedHtmlFiles.remove(path);
+      // Note: We can't use await here, or the dart analysis becomes a future in
+      // a queue that won't be completed until the scheduler schedules the dart
+      // driver, which doesn't happen because its waiting for us.
+      // ALSO assume .dart and .html paths correlate, otherwise we'd have to
+      // wait for all dart analysis to complete.
+      resolveHtml(path, path.replaceAll(".html", ".dart")).then((result) {
         completers
             .forEach((completer) => completer.complete(result?.errors ?? []));
       }, onError: (e) {

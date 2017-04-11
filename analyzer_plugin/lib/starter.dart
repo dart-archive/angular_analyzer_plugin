@@ -1,15 +1,17 @@
 import 'package:analysis_server/src/analysis_server.dart';
+import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
 
 class Starter {
-  final angularDrivers = <AngularDriver>[];
+  final angularDrivers = <String, AngularDriver>{};
   AnalysisServer server;
 
   void start(AnalysisServer server) {
     this.server = server;
     ContextBuilder.onCreateAnalysisDriver = onCreateAnalysisDriver;
     server.onResultErrorSupplementor = sumErrors;
+    server.onNoAnalysisResult = sendHtmlResult;
   }
 
   void onCreateAnalysisDriver(
@@ -24,7 +26,7 @@ class Starter {
       analysisOptions) {
     final AngularDriver driver = new AngularDriver(server, analysisDriver,
         scheduler, byteStore, sourceFactory, contentOverlay);
-    angularDrivers.add(driver);
+    angularDrivers[driverPath] = driver;
     server.onFileAdded.listen((String path) {
       if (server.contextManager.getContextFolderFor(path).path == driverPath) {
         // only the owning driver "adds" the path
@@ -41,10 +43,27 @@ class Starter {
   }
 
   Future sumErrors(String path, List<AnalysisError> errors) async {
-    for (final driver in angularDrivers) {
+    for (final driver in angularDrivers.values) {
       final angularErrors = await driver.requestDartErrors(path);
       errors.addAll(angularErrors);
     }
     return null;
+  }
+
+  Future sendHtmlResult(String path, Function sendFn) async {
+    for (final driverPath in angularDrivers.keys) {
+      if (server.contextManager.getContextFolderFor(path).path == driverPath) {
+        final driver = angularDrivers[driverPath];
+        // only the owning driver "adds" the path
+        final angularErrors = await driver.requestHtmlErrors(path);
+        sendFn(
+            driver.dartDriver.analysisOptions,
+            new LineInfo.fromContent(driver.getFileContent(path)),
+            angularErrors);
+        return;
+      }
+    }
+
+    send(null, null, null);
   }
 }
