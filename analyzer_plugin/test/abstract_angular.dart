@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.angular_base;
 
 import 'package:analyzer/file_system/file_system.dart' as fs;
+import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -128,13 +129,16 @@ class AbstractAngularTest {
       packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
+    var testPath = resourceProvider.convertPath('/test');
+    var contextRoot = new ContextRoot(testPath, []);
+
     dartDriver = new AnalysisDriver(
         scheduler,
         logger,
         resourceProvider,
         byteStore,
         new FileContentOverlay(),
-        "test",
+        contextRoot,
         sf,
         new AnalysisOptionsImpl());
     angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
@@ -310,30 +314,20 @@ class NgFor {
     expect(errorListener.errors.single.length, snippet.length);
   }
 
-/**
- * Assert multiple [errCode] is reported for [code], highlighting the [snippet].
- */
-  void assertMultipleErrorsInCodeAtPositions(
-      String code, Map<ErrorCode, String> errCodesAndSnippet) {
-    Map<ErrorCode, Map<int, String>> expectedErrors = new Map<ErrorCode, Map>();
-    errCodesAndSnippet.forEach((errCode, snippet) {
-      int snippetIndex = code.indexOf(snippet);
-      expect(snippetIndex, greaterThan(-1),
-          reason: 'Error in test: snippet ${snippet} not part of code ${code}');
-      Map currErrorList = expectedErrors.putIfAbsent(errCode, () => new Map());
-      currErrorList.putIfAbsent(snippetIndex, () => snippet);
+  /**
+   * Given an explicit list of [AnalysisError], check to see if errors
+   * occurred during angular analysis.
+   */
+  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors) {
+    var realErrors = errorListener.errors;
+    expectedErrors.forEach((expectedError) {
+      expect(realErrors.contains(expectedError), true,
+          reason:
+              'Expected error code ${expectedError.errorCode} never occurs at '
+              'location ${expectedError.offset} of length ${expectedError.length}.');
     });
-    errorListener.assertErrorsWithCodes(expectedErrors.keys);
-
-    List<AnalysisError> errors = errorListener.errors;
-    errors.forEach((currErr) {
-      expect(expectedErrors.containsKey(currErr.errorCode), true);
-      expect(
-          expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
-      expect(currErr.length,
-          expectedErrors[currErr.errorCode][currErr.offset].length,
-          verbose: true);
-    });
+    expect(realErrors.length, expectedErrors.length,
+        reason: 'Expected error counts do not  match.');
   }
 }
 

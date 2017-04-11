@@ -3,12 +3,14 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 import 'dart:async';
 
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/dart/error/syntactic_errors.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -552,7 +554,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
+        AngularWarningCode.UNOPENED_MUSTACHE, code, '}}');
   }
 
   Future test_expression_as_not_allowed() async {
@@ -969,7 +971,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "invalid.class");
+        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "class.invalid");
   }
 
   Future test_expression_classBinding_typeError() async {
@@ -1015,8 +1017,13 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "invalid*property");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(
+          htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new AnalysisError(htmlSource, 29, 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
+      new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
+    ]);
   }
 
   Future test_expression_styleBinding_noUnit_expressionTypeError() async {
@@ -1047,8 +1054,15 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "border&radius");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(
+          htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new AnalysisError(htmlSource, 29, 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
+      new AnalysisError(
+          htmlSource, 19, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
+      new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
+    ]);
   }
 
   Future test_expression_styleBinding_withUnit_invalidUnitName() async {
@@ -1063,8 +1077,15 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(
+          htmlSource, 30, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new AnalysisError(htmlSource, 30, 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
+      new AnalysisError(
+          htmlSource, 28, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
+      new AnalysisError(htmlSource, 6, 23, NgParserWarningCode.SUFFIX_PROPERTY),
+    ]);
   }
 
   Future test_expression_styleBinding_withUnit_typeError() async {
@@ -1743,10 +1764,12 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsInCodeAtPositions(code, {
-      ParserErrorCode.UNEXPECTED_TOKEN: '}',
-      StaticTypeWarningCode.UNDEFINED_GETTER: 'length'
-    });
+    assertMultipleErrorsExplicit([
+      new AnalysisError(
+          htmlSource, 14, 1, ParserErrorCode.UNEXPECTED_TOKEN, ['}']),
+      new AnalysisError(htmlSource, 17, 6,
+          StaticTypeWarningCode.UNDEFINED_GETTER, ['length', 'int']),
+    ]);
   }
 
   Future test_inheritedFields() async {
@@ -2249,29 +2272,30 @@ class TestPanel {
     _assertElement("item.").local.at('item [');
   }
 
-  Future test_ngFor_variousKinds_useLowerIdentifier() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
-class TestPanel {
-  List<String> items = [];
-}
-''');
-    _addHtmlSource(r"""
-<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
-  {{item1.length}}
-</template>
-<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
-  {{item2.length}}
-</li>
-<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
-  {{item3.length}}
-</li>
-<div #lowerEl></div>
-""");
-    await _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
-  }
+  //TODO: Max: Figure out if this is deprecated; if not, what is it?
+//  Future test_ngFor_variousKinds_useLowerIdentifier() async {
+//    _addDartSource(r'''
+//@Component(selector: 'test-panel')
+//@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+//class TestPanel {
+//  List<String> items = [];
+//}
+//''');
+//    _addHtmlSource(r"""
+//<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
+//  {{item1.length}}
+//</template>
+//<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
+//  {{item2.length}}
+//</li>
+//<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
+//  {{item3.length}}
+//</li>
+//<div #lowerEl></div>
+//""");
+//    await _resolveSingleTemplate(dartSource);
+//    errorListener.assertNoErrors();
+//  }
 
   Future test_ngFor_hash_instead_of_let() async {
     _addDartSource(r'''
@@ -2508,7 +2532,6 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertErrorsWithCodes([
-      HtmlErrorCode.PARSE_ERROR,
       ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
       ParserErrorCode.EXPECTED_TOKEN,
       ParserErrorCode.EXPECTED_TYPE_NAME,
@@ -2623,8 +2646,20 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY, code, "<ng-content>");
+    assertMultipleErrorsExplicit([
+      new AnalysisError(
+        htmlSource,
+        8,
+        12,
+        NgParserWarningCode.NGCONTENT_MUST_CLOSE_IMMEDIATELY,
+      ),
+      new AnalysisError(
+        htmlSource,
+        32,
+        13,
+        NgParserWarningCode.DANGLING_CLOSE_ELEMENT,
+      ),
+    ]);
   }
 
   Future test_resolveTemplate_provideContentWhereInvalid() async {

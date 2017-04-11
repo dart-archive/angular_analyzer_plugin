@@ -40,7 +40,6 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
   AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
-  AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
 ];
@@ -371,16 +370,6 @@ class AngularWarningCode extends ErrorCode {
           'CONTENT_NOT_TRANSCLUDED',
           "The content does not match any transclusion selectors of the" +
               " surrounding component");
-
-  /**
-   * An error code indicating that an <ng-content> tag had content, which is not
-   * allowed.
-   */
-  static const AngularWarningCode NG_CONTENT_MUST_BE_EMPTY =
-      const AngularWarningCode(
-          'NG_CONTENT_MUST_BE_EMPTY',
-          "Nothing is allowed inside an <ng-content> tag, as it will be" +
-              " replaced");
 
   /**
    * Initialize a newly created error code to have the given [name].
