@@ -387,8 +387,17 @@ class AngularDriver
 
   Future<DirectivesResult> resolveDart(String path,
       {bool withDirectives: false}) async {
-    final key =
-        (await dartDriver.getUnitElementSignature(path)) + '.ngresolved';
+    final baseKey = await dartDriver.getUnitElementSignature(path);
+
+    // This happens when the path is..."hidden by a generated file"..whch I
+    // don't understand, but, can protect against. Should not be analyzed.
+    // TODO detect this on file add rather than on file analyze.
+    if (baseKey == null) {
+      _dartFiles.remove(path);
+      return null;
+    }
+
+    final key = baseKey + '.ngresolved';
 
     if (lastSignatures[path] == key) {
       return null;
