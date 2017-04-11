@@ -2315,6 +2315,55 @@ class ChildComponent {}
     expect(childView.component.ngContents, hasLength(1));
   }
 
+  Future test_attributes() async {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  MyComponent(@Attribute("my-attr") String foo);
+}
+''';
+    Source source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.single;
+    List<AngularElement> attributes = component.attributes;
+    expect(attributes, hasLength(1));
+    {
+      AngularElement attribute = attributes[0];
+      expect(attribute.name, 'my-attr');
+      // TODO better offsets here. But its really not that critical
+      expect(attribute.nameOffset, code.indexOf("foo"));
+      expect(attribute.nameLength, "foo".length);
+    }
+    errorListener.assertNoErrors();
+  }
+
+  Future test_attributeNotString() async {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  MyComponent(@Attribute("my-attr") int foo);
+}
+''';
+    Source source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.single;
+    List<AngularElement> attributes = component.attributes;
+    expect(attributes, hasLength(1));
+    {
+      AngularElement attribute = attributes[0];
+      expect(attribute.name, 'my-attr');
+      // TODO better offsets here. But its really not that critical
+      expect(attribute.nameOffset, code.indexOf("foo"));
+      expect(attribute.nameLength, "foo".length);
+    }
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING, code, 'foo');
+  }
+
   static Template _getDartTemplateByClassName(
       List<Template> templates, String className) {
     return templates.firstWhere(

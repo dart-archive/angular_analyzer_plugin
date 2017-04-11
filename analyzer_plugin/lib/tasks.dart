@@ -43,6 +43,7 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
+  AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING
 ];
 
 /**
@@ -381,6 +382,14 @@ class AngularWarningCode extends ErrorCode {
           'NG_CONTENT_MUST_BE_EMPTY',
           "Nothing is allowed inside an <ng-content> tag, as it will be" +
               " replaced");
+
+  /**
+   * An error code indicating that a constructor parameter was marked with
+   * @Attribute, but the argument wasn't of type string.
+   */
+  static const AngularWarningCode ATTRIBUTE_PARAMETER_MUST_BE_STRING =
+      const AngularWarningCode('ATTRIBUTE_PARAMETER_MUST_BE_STRING',
+          "Parameters marked with @Attribute must be of type String");
 
   /**
    * Initialize a newly created error code to have the given [name].
