@@ -196,7 +196,7 @@ class TemplateParser {
         AngularWarningCode.UNOPENED_MUSTACHE,
   };
 
-  List<NgAst.TemplateAst> document;
+  List<NgAst.TemplateAst> rawAst;
   final List<AnalysisError> parseErrors = <AnalysisError>[];
 
   void parse(String content, Source source, {int offset = 0}) {
@@ -204,7 +204,7 @@ class TemplateParser {
       content = ' ' * offset + content;
     }
     var exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    document = NgAst.parse(
+    rawAst = NgAst.parse(
       content,
       sourceUrl: source.toString(),
       desugar: false,

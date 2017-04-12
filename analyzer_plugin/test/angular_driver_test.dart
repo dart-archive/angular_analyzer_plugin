@@ -53,7 +53,7 @@ class AngularParseHtmlTest extends AbstractAngularTest {
     expect(tplParser.parseErrors, isEmpty);
     // HTML_DOCUMENT
     {
-      var asts = tplParser.document;
+      var asts = tplParser.rawAst;
       expect(asts, isNotNull);
       // verify that attributes are not lower-cased
       ElementAst element = asts[1].childNodes[3].childNodes[1];
@@ -74,7 +74,7 @@ class AngularParseHtmlTest extends AbstractAngularTest {
     tplParser.parse(code, source);
     // validate Document
     {
-      List<StandaloneTemplateAst> asts = tplParser.document;
+      List<StandaloneTemplateAst> asts = tplParser.rawAst;
       expect(asts, isNotNull);
       expect(asts.length, 4);
       expect((asts[0] as ElementAst).name, 'div');
@@ -95,7 +95,7 @@ class AngularParseHtmlTest extends AbstractAngularTest {
     tplParser.parse(code, source);
     // quick validate Document
     {
-      List<StandaloneTemplateAst> asts = tplParser.document;
+      List<StandaloneTemplateAst> asts = tplParser.rawAst;
       expect(asts, isNotNull);
       expect(asts.length, 5);
       expect((asts[0] as ElementAst).name, 'div');

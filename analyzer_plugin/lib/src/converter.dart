@@ -14,6 +14,8 @@ import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 
+import 'package:meta/meta.dart';
+
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
   final Source templateSource;
@@ -44,7 +46,10 @@ class HtmlTreeConverter {
     return root;
   }
 
-  NodeInfo convert(StandaloneTemplateAst node, {ElementInfo parent}) {
+  NodeInfo convert(
+    StandaloneTemplateAst node, {
+    @required ElementInfo parent,
+  }) {
     if (node is ElementAst) {
       String localName = node.name;
       List<AttributeInfo> attributes = _convertAttributes(node);
@@ -61,8 +66,9 @@ class HtmlTreeConverter {
       } else {
         openingSpan = _toSourceRange(
             node.beginToken.offset, node.endToken.end - node.beginToken.offset);
-        openingNameSpan =
-            new SourceRange(openingSpan.offset + '<'.length, localName.length);
+        openingNameSpan = new SourceRange(
+            (node as ParsedElementAst).identifierToken.offset,
+            (node as ParsedElementAst).identifierToken.lexeme.length);
       }
       // Check for void element cases (has closing complement)
       // If closeComponent is synthetic, handle it after child nodes are found.
@@ -226,79 +232,76 @@ class HtmlTreeConverter {
 
     // Atttribute/event/properties/etc. within
     // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
-    if (element is ElementAst) {
-      for (AttributeAst attribute in element.attributes) {
-        if (attribute.name.startsWith('on-')) {
-          attributes
-              .add(_convertStatementsBoundAttribute(attribute, "on-", null));
-        } else if (attribute.name.startsWith('bind-')) {
-          attributes.add(_convertExpressionBoundAttribute(
-              attribute, "bind-", null, ExpressionBoundType.input));
-        } else if (attribute.name == 'template') {
-          attributes.add(_convertTemplateAttribute(attribute));
-        } else {
-          String value;
-          int valueOffset;
-          ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
-          if (_attr.valueToken != null) {
-            value = _attr.valueToken.innerValue.lexeme;
-            valueOffset = _attr.valueToken.innerValue.offset;
-          }
-          attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
-              valueOffset, dartParser.findMustaches(value, valueOffset)));
-        }
-      }
-      ;
-
-      element.events.forEach((event) {
-        attributes.add(_convertStatementsBoundAttribute(event, "(", ")"));
-      });
-
-      element.bananas.forEach((banana) {
+    for (AttributeAst attribute in element.attributes) {
+      if (attribute.name.startsWith('on-')) {
+        attributes
+            .add(_convertStatementsBoundAttribute(attribute, "on-", null));
+      } else if (attribute.name.startsWith('bind-')) {
         attributes.add(_convertExpressionBoundAttribute(
-            banana, "[(", ")]", ExpressionBoundType.twoWay));
-      });
-
-      for (PropertyAst property in element.properties) {
-        if (property.name.startsWith("class") && property.postfix != null) {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[class.", "]", ExpressionBoundType.clazz));
-        } else if (property.name.startsWith("attr") &&
-            property.postfix != null) {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[attr.", "]", ExpressionBoundType.attr));
-        } else if (property.name.startsWith("style") &&
-            property.postfix != null) {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[style.", "]", ExpressionBoundType.style));
-        } else {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[", "]", ExpressionBoundType.input));
-        }
-      }
-      ;
-
-      for (ReferenceAst reference in element.references) {
+            attribute, "bind-", null, ExpressionBoundType.input));
+      } else if (attribute.name == 'template') {
+        attributes.add(_convertTemplateAttribute(attribute));
+      } else {
         String value;
         int valueOffset;
-        ParsedReferenceAst _attr = reference as ParsedReferenceAst;
+        ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
         if (_attr.valueToken != null) {
           value = _attr.valueToken.innerValue.lexeme;
           valueOffset = _attr.valueToken.innerValue.offset;
         }
-        attributes.add(new TextAttribute(
-            _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
-            _attr.prefixToken.offset,
-            value,
-            valueOffset,
-            dartParser.findMustaches(value, valueOffset)));
+        attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
+            valueOffset, dartParser.findMustaches(value, valueOffset)));
       }
-      ;
-
-      element.stars.forEach((star) {
-        attributes.add(_convertTemplateAttribute(star));
-      });
     }
+    ;
+
+    element.events.forEach((event) {
+      attributes.add(_convertStatementsBoundAttribute(event, "(", ")"));
+    });
+
+    element.bananas.forEach((banana) {
+      attributes.add(_convertExpressionBoundAttribute(
+          banana, "[(", ")]", ExpressionBoundType.twoWay));
+    });
+
+    for (PropertyAst property in element.properties) {
+      if (property.name.startsWith("class") && property.postfix != null) {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[class.", "]", ExpressionBoundType.clazz));
+      } else if (property.name.startsWith("attr") && property.postfix != null) {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[attr.", "]", ExpressionBoundType.attr));
+      } else if (property.name.startsWith("style") &&
+          property.postfix != null) {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[style.", "]", ExpressionBoundType.style));
+      } else {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[", "]", ExpressionBoundType.input));
+      }
+    }
+    ;
+
+    for (ReferenceAst reference in element.references) {
+      String value;
+      int valueOffset;
+      ParsedReferenceAst _attr = reference as ParsedReferenceAst;
+      if (_attr.valueToken != null) {
+        value = _attr.valueToken.innerValue.lexeme;
+        valueOffset = _attr.valueToken.innerValue.offset;
+      }
+      attributes.add(new TextAttribute(
+          _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
+          _attr.prefixToken.offset,
+          value,
+          valueOffset,
+          dartParser.findMustaches(value, valueOffset)));
+    }
+    ;
+
+    element.stars.forEach((star) {
+      attributes.add(_convertTemplateAttribute(star));
+    });
     return attributes;
   }
 
@@ -308,64 +311,62 @@ class HtmlTreeConverter {
 
     // Atttribute/event/properties/etc. within
     // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
-    if (element is EmbeddedTemplateAst) {
-      for (AttributeAst attribute in element.attributes) {
-        if (attribute.name.startsWith('on-')) {
-          attributes
-              .add(_convertStatementsBoundAttribute(attribute, "on-", null));
-        } else if (attribute.name.startsWith('bind-')) {
-          attributes.add(_convertExpressionBoundAttribute(
-              attribute, "bind-", null, ExpressionBoundType.input));
-        } else if (attribute.name == 'template') {
-          attributes.add(_convertTemplateAttribute(attribute));
-        } else {
-          String value;
-          int valueOffset;
-          var _attr = attribute as ParsedAttributeAst;
-          if (_attr.valueToken != null) {
-            value = _attr.valueToken.innerValue.lexeme;
-            valueOffset = _attr.valueToken.innerValue.offset;
-          }
-          attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
-              valueOffset, dartParser.findMustaches(value, valueOffset)));
-        }
-      }
-      ;
-
-      for (PropertyAst property in element.properties) {
-        if (property.name.startsWith("class")) {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[class.", "]", ExpressionBoundType.clazz));
-        } else if (property.name.startsWith("attr")) {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[attr.", "]", ExpressionBoundType.attr));
-        } else if (property.name.startsWith("style")) {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[style.", "]", ExpressionBoundType.style));
-        } else {
-          attributes.add(_convertExpressionBoundAttribute(
-              property, "[", "]", ExpressionBoundType.input));
-        }
-      }
-      ;
-
-      for (ReferenceAst reference in element.references) {
+    for (AttributeAst attribute in element.attributes) {
+      if (attribute.name.startsWith('on-')) {
+        attributes
+            .add(_convertStatementsBoundAttribute(attribute, "on-", null));
+      } else if (attribute.name.startsWith('bind-')) {
+        attributes.add(_convertExpressionBoundAttribute(
+            attribute, "bind-", null, ExpressionBoundType.input));
+      } else if (attribute.name == 'template') {
+        attributes.add(_convertTemplateAttribute(attribute));
+      } else {
         String value;
         int valueOffset;
-        var _attr = reference as ParsedReferenceAst;
+        var _attr = attribute as ParsedAttributeAst;
         if (_attr.valueToken != null) {
           value = _attr.valueToken.innerValue.lexeme;
           valueOffset = _attr.valueToken.innerValue.offset;
         }
-        attributes.add(new TextAttribute(
-            _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
-            _attr.prefixToken.offset,
-            value,
-            valueOffset,
-            dartParser.findMustaches(value, valueOffset)));
+        attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
+            valueOffset, dartParser.findMustaches(value, valueOffset)));
       }
-      ;
     }
+    ;
+
+    for (PropertyAst property in element.properties) {
+      if (property.name.startsWith("class")) {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[class.", "]", ExpressionBoundType.clazz));
+      } else if (property.name.startsWith("attr")) {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[attr.", "]", ExpressionBoundType.attr));
+      } else if (property.name.startsWith("style")) {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[style.", "]", ExpressionBoundType.style));
+      } else {
+        attributes.add(_convertExpressionBoundAttribute(
+            property, "[", "]", ExpressionBoundType.input));
+      }
+    }
+    ;
+
+    for (ReferenceAst reference in element.references) {
+      String value;
+      int valueOffset;
+      var _attr = reference as ParsedReferenceAst;
+      if (_attr.valueToken != null) {
+        value = _attr.valueToken.innerValue.lexeme;
+        valueOffset = _attr.valueToken.innerValue.offset;
+      }
+      attributes.add(new TextAttribute(
+          _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
+          _attr.prefixToken.offset,
+          value,
+          valueOffset,
+          dartParser.findMustaches(value, valueOffset)));
+    }
+    ;
     return attributes;
   }
 

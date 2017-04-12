@@ -307,8 +307,9 @@ class TemplateCompleter {
             }
           }
           // Directly within closing tag; suggest nothing. Ex: '</div^>'
-          else
+          else {
             continue;
+          }
         }
         if (!offsetContained(request.offset, target.openingNameSpan.offset,
             target.openingNameSpan.length)) {
