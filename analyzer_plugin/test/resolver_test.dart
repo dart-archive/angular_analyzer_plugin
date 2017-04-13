@@ -2272,7 +2272,6 @@ class TestPanel {
     _assertElement("item.").local.at('item [');
   }
 
-  //TODO: Max: Figure out if this is deprecated; if not, what is it?
 //  Future test_ngFor_variousKinds_useLowerIdentifier() async {
 //    _addDartSource(r'''
 //@Component(selector: 'test-panel')
