@@ -13,6 +13,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:typed_mock/typed_mock.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
@@ -314,20 +315,36 @@ class NgFor {
     expect(errorListener.errors.single.length, snippet.length);
   }
 
-  /**
-   * Given an explicit list of [AnalysisError], check to see if errors
-   * occurred during angular analysis.
+  /** For [expectedErrors], it is a List of Tuple4 (1 per error):
+   *    code segment where offset begins,
+   *    length of the error highlight,
+   *    errorCode,
+   *    and optional error args - pass empty list if not needed.
    */
-  void assertMultipleErrorsExplicit(List<AnalysisError> expectedErrors) {
+  void assertMultipleErrorsExplicit(
+    Source source,
+    String code,
+    List<Tuple4<String, int, ErrorCode, List<Object>>> expectedErrors,
+  ) {
     var realErrors = errorListener.errors;
-    expectedErrors.forEach((expectedError) {
-      expect(realErrors.contains(expectedError), true,
-          reason:
-              'Expected error code ${expectedError.errorCode} never occurs at '
-              'location ${expectedError.offset} of length ${expectedError.length}.');
-    });
-    expect(realErrors.length, expectedErrors.length,
-        reason: 'Expected error counts do not  match.');
+    for (Tuple4 expectedError in expectedErrors) {
+      var offset = code.indexOf(expectedError.item1);
+      var currentExpectedError = new AnalysisError(
+        source,
+        offset,
+        expectedError.item2,
+        expectedError.item3,
+        expectedError.item4,
+      );
+      expect(
+        realErrors.contains(currentExpectedError),
+        true,
+        reason: 'Expected error code ${expectedError.item3} never occurs at '
+            'location ${offset} of length ${expectedError.item2}.',
+      );
+      expect(realErrors.length, expectedErrors.length,
+          reason: 'Expected error counts do not  match.');
+    }
   }
 }
 

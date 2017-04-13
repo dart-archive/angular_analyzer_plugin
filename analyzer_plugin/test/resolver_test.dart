@@ -3,7 +3,6 @@ library angular2.src.analysis.analyzer_plugin.src.resolver_test;
 import 'dart:async';
 
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/dart/error/syntactic_errors.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
@@ -12,6 +11,7 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'abstract_angular.dart';
@@ -1017,12 +1017,11 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsExplicit([
-      new AnalysisError(
-          htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
-      new AnalysisError(htmlSource, 29, 1,
-          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
-      new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4(']', 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new Tuple4(']', 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
+      new Tuple4('[', 14, NgParserWarningCode.SUFFIX_PROPERTY, []),
     ]);
   }
 
@@ -1054,14 +1053,13 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsExplicit([
-      new AnalysisError(
-          htmlSource, 29, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
-      new AnalysisError(htmlSource, 29, 1,
-          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
-      new AnalysisError(
-          htmlSource, 19, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
-      new AnalysisError(htmlSource, 6, 14, NgParserWarningCode.SUFFIX_PROPERTY),
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4(
+          "]='pixels'", 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new Tuple4("]='pixels'", 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
+      new Tuple4('&radius', 1, NgParserWarningCode.UNEXPECTED_TOKEN, []),
+      new Tuple4('[style', 14, NgParserWarningCode.SUFFIX_PROPERTY, []),
     ]);
   }
 
@@ -1077,14 +1075,13 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsExplicit([
-      new AnalysisError(
-          htmlSource, 30, 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
-      new AnalysisError(htmlSource, 30, 1,
-          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR),
-      new AnalysisError(
-          htmlSource, 28, 1, NgParserWarningCode.UNEXPECTED_TOKEN),
-      new AnalysisError(htmlSource, 6, 23, NgParserWarningCode.SUFFIX_PROPERTY),
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4(
+          "]='pixels'", 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new Tuple4("]='pixels'", 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
+      new Tuple4('|x', 1, NgParserWarningCode.UNEXPECTED_TOKEN, []),
+      new Tuple4('[style', 23, NgParserWarningCode.SUFFIX_PROPERTY, []),
     ]);
   }
 
@@ -1764,11 +1761,10 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsExplicit([
-      new AnalysisError(
-          htmlSource, 14, 1, ParserErrorCode.UNEXPECTED_TOKEN, ['}']),
-      new AnalysisError(htmlSource, 17, 6,
-          StaticTypeWarningCode.UNDEFINED_GETTER, ['length', 'int']),
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4('}1', 1, ParserErrorCode.UNEXPECTED_TOKEN, ['}']),
+      new Tuple4('length', 6, StaticTypeWarningCode.UNDEFINED_GETTER,
+          ['length', 'int']),
     ]);
   }
 
@@ -2645,19 +2641,11 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsExplicit([
-      new AnalysisError(
-        htmlSource,
-        8,
-        12,
-        NgParserWarningCode.NGCONTENT_MUST_CLOSE_IMMEDIATELY,
-      ),
-      new AnalysisError(
-        htmlSource,
-        32,
-        13,
-        NgParserWarningCode.DANGLING_CLOSE_ELEMENT,
-      ),
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4('<ng-content', 12,
+          NgParserWarningCode.NGCONTENT_MUST_CLOSE_IMMEDIATELY, []),
+      new Tuple4(
+          '</ng-content>', 13, NgParserWarningCode.DANGLING_CLOSE_ELEMENT, []),
     ]);
   }
 
