@@ -2328,31 +2328,30 @@ class ChildComponent {}
 @reflectiveTest
 class ResolveHtmlTemplatesTest extends AbstractAngularTest {
   List<Template> templates;
-  Future getDirectives(Source dartSource) async {
-    final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder = (AbstractDirective d) =>
-        d is Component && d.view.templateUriSource != null;
-    fillErrorListener(result.errors);
-    final directives = result.directives.where(finder);
-    final htmlPath =
-        (directives.first as Component).view.templateUriSource.fullName;
-    final result2 =
-        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
+  Future getDirectives(Source htmlSource, List<Source> dartSources) async {
+    for (final dartSource in dartSources) {
+      final result = await angularDriver.resolveDart(dartSource.fullName);
+      fillErrorListener(result.errors);
+    }
+    final result2 = await angularDriver.resolveHtml(htmlSource.fullName);
     fillErrorListener(result2.errors);
     templates = result2.directives
-        .where(finder)
         .map((d) => d is Component ? d.view?.template : null)
         .where((d) => d != null);
   }
 
   Future test_multipleViewsWithTemplate() async {
-    String dartCode = r'''
+    String dartCodeOne = r'''
 import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panelA', templateUrl: 'text_panel.html')
 class TextPanelA {
   String text; // A
 }
+''';
+
+    String dartCodeTwo = r'''
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panelB', templateUrl: 'text_panel.html')
 class TextPanelB {
@@ -2364,23 +2363,24 @@ class TextPanelB {
   {{text}}
 </div>
 """;
-    Source dartSource = newSource('/test.dart', dartCode);
-    newSource('/text_panel.html', htmlCode);
-    await getDirectives(dartSource);
+    Source dartSourceOne = newSource('/test1.dart', dartCodeOne);
+    Source dartSourceTwo = newSource('/test2.dart', dartCodeTwo);
+    Source htmlSource = newSource('/text_panel.html', htmlCode);
+    await getDirectives(htmlSource, [dartSourceOne, dartSourceTwo]);
     expect(templates, hasLength(2));
     // validate templates
     bool hasTextPanelA = false;
     bool hasTextPanelB = false;
     for (HtmlTemplate template in templates) {
       String viewClassName = template.view.classElement.name;
-      String textTargetPattern;
+      int textLocation;
       if (viewClassName == 'TextPanelA') {
         hasTextPanelA = true;
-        textTargetPattern = 'text; // A';
+        textLocation = dartCodeOne.indexOf('text; // A');
       }
       if (viewClassName == 'TextPanelB') {
         hasTextPanelB = true;
-        textTargetPattern = 'text; // B';
+        textLocation = dartCodeTwo.indexOf('text; // B');
       }
       expect(template.ranges, hasLength(1));
       {
@@ -2388,7 +2388,7 @@ class TextPanelB {
             getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
         PropertyAccessorElement element = assertGetter(resolvedRange);
         expect(element.name, 'text');
-        expect(element.nameOffset, dartCode.indexOf(textTargetPattern));
+        expect(element.nameOffset, textLocation);
       }
     }
     expect(hasTextPanelA, isTrue);
@@ -2399,20 +2399,14 @@ class TextPanelB {
 @reflectiveTest
 class ResolveHtmlTemplateTest extends AbstractAngularTest {
   List<View> views;
-  Future getDirectives(Source dartSource) async {
+  Future getDirectives(Source htmlSource, Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder = (AbstractDirective d) =>
-        d is Component && d.view.templateUriSource != null;
     fillErrorListener(result.errors);
-    final directive = result.directives.singleWhere(finder);
-    final htmlPath = (directive as Component).view.templateUriSource.fullName;
-    final ngResult =
-        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
-    fillErrorListener(ngResult.errors);
-    views = ngResult.directives
-        .where(finder)
+    final result2 = await angularDriver.resolveHtml(htmlSource.fullName);
+    fillErrorListener(result2.errors);
+    views = result2.directives
         .map((d) => d is Component ? d.view : null)
-        .where((d) => d != null);
+        .where((v) => v != null);
   }
 
   Future test_suppressError_UnresolvedTagHtmlTemplate() async {
@@ -2425,13 +2419,13 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''');
-    newSource(
+    Source htmlSource = newSource(
         '/test.html',
         '''
 <!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
 <unresolved-tag attr='value'></unresolved-tag>""")
 ''');
-    await getDirectives(dartSource);
+    await getDirectives(htmlSource, dartSource);
     errorListener.assertNoErrors();
   }
 
@@ -2444,8 +2438,9 @@ class ComponentA {
 }
 ''';
     Source dartSource = newSource('/weird.dart', code);
-    newSource('/test.html', "<unresolved-tag></unresolved-tag>");
-    await getDirectives(dartSource);
+    Soruce htmlSource =
+        newSource('/test.html', "<unresolved-tag></unresolved-tag>");
+    await getDirectives(htmlSource, dartSource);
     final errors = errorListener.errors;
     expect(errors, hasLength(1));
     expect(errors.first, new isInstanceOf<FromFilePrefixedError>());
@@ -2468,9 +2463,9 @@ class TextPanel {
 </div>
 """;
     Source dartSource = newSource('/test.dart', dartCode);
-    newSource('/text_panel.html', htmlCode);
+    Source htmlSource = newSource('/text_panel.html', htmlCode);
     // compute
-    await getDirectives(dartSource);
+    await getDirectives(htmlSource, dartSource);
     expect(views, hasLength(1));
     {
       View view = getViewByClassName(views, 'TextPanel');
@@ -2507,10 +2502,10 @@ import '/angular2/angular2.dart';
     directives: const [])
 class ChildComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    Source dartSource = newSource('/test.dart', code);
     newSource('/child_file.dart', childCode);
-    newSource('/test.html', '');
-    await getDirectives(source);
+    Source htmlSource = newSource('/test.html', '');
+    await getDirectives(htmlSource, dartSource);
 
     List<AbstractDirective> childDirectives = views.first.directives;
     expect(childDirectives, hasLength(1));

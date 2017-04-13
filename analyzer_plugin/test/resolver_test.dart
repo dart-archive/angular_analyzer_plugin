@@ -2993,8 +2993,7 @@ $code
     fillErrorListener(result.errors);
     final directive = result.directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
-    final result2 =
-        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
+    final result2 = await angularDriver.resolveHtml(htmlPath);
     fillErrorListener(result2.errors);
     final view = (result2.directives.singleWhere(finder) as Component).view;
 
