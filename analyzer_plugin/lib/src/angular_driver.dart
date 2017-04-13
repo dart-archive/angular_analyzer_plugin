@@ -441,6 +441,8 @@ class AngularDriver
 
     final linker = new ChildDirectiveLinker(this, linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
+    final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
+    directives.forEach(attrValidator.validate);
     errors.addAll(linkErrorListener.errors);
 
     final List<String> htmlViews = [];

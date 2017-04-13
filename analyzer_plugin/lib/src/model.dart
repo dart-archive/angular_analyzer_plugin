@@ -26,6 +26,7 @@ abstract class AbstractDirective {
   final List<OutputElement> outputs;
   final Selector selector;
   final List<ElementNameSelector> elementTags;
+  final List<AngularElement> attributes = <AngularElement>[];
 
   AbstractDirective(this.classElement,
       {this.exportAs,
@@ -44,7 +45,8 @@ abstract class AbstractDirective {
     return '$runtimeType(${classElement.displayName} '
         'selector=$selector '
         'inputs=$inputs '
-        'outputs=$outputs)';
+        'outputs=$outputs '
+        'attributes=$attributes)';
   }
 }
 

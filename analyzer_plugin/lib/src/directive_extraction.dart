@@ -443,6 +443,44 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
   }
 }
 
+class AttributeAnnotationValidator {
+  final ErrorReporter errorReporter;
+
+  AttributeAnnotationValidator(this.errorReporter);
+
+  void validate(AbstractDirective directive) {
+    ClassElement classElement = directive.classElement;
+    for (final constructor in classElement.constructors) {
+      for (final parameter in constructor.parameters) {
+        for (final annotation in parameter.metadata) {
+          if (annotation.element?.enclosingElement?.name != "Attribute") {
+            continue;
+          }
+
+          final attributeName = annotation
+              .computeConstantValue()
+              ?.getField("attributeName")
+              ?.toStringValue();
+          if (attributeName == null) {
+            continue;
+            // TODO do we ever need to report an error here, or will DAS?
+          }
+
+          if (parameter.type.name != "String") {
+            errorReporter.reportErrorForOffset(
+                AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
+                parameter.nameOffset,
+                parameter.name.length);
+          }
+
+          directive.attributes.add(new AngularElementImpl(attributeName,
+              parameter.nameOffset, parameter.nameLength, parameter.source));
+        }
+      }
+    }
+  }
+}
+
 class BindingTypeSynthesizer {
   final InterfaceType _instantiatedClassType;
   final TypeProvider _typeProvider;
