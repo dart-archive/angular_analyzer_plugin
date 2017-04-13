@@ -47,13 +47,15 @@ abstract class AbstractDartCompletionContributorTest
   Future computeSuggestions([int times = 200]) async {
     context.analysisPriorityOrder = [testSource];
     CompletionRequestImpl baseRequest = new CompletionRequestImpl(
-        null,
-        context,
-        null,
-        searchEngine,
-        testSource,
-        completionOffset,
-        new CompletionPerformance());
+      null,
+      context,
+      null,
+      searchEngine,
+      testSource,
+      completionOffset,
+      new CompletionPerformance(),
+      null,
+    );
 
     // Build the request
     Completer<DartCompletionRequest> requestCompleter =
@@ -100,13 +102,15 @@ abstract class AbstractCompletionContributorTest
   Future computeSuggestions([int times = 200]) async {
     context.analysisPriorityOrder = [testSource];
     CompletionRequestImpl request = new CompletionRequestImpl(
-        null,
-        context,
-        null,
-        searchEngine,
-        testSource,
-        completionOffset,
-        new CompletionPerformance());
+      null,
+      context,
+      null,
+      searchEngine,
+      testSource,
+      completionOffset,
+      new CompletionPerformance(),
+      null,
+    );
 
     // Build the request
     Completer<CompletionRequest> requestCompleter =
