@@ -103,16 +103,6 @@ class AngularDriver
     _scheduler.notify(this);
   }
 
-  Future<List<AnalysisError>> requestErrors(String path) {
-    if (path.endsWith(".dart")) {
-      return requestDartErrors(path);
-    } else if (path.endsWith(".html")) {
-      return requestHtmlErrors(path);
-    } else {
-      return new Future.value([]);
-    }
-  }
-
   Future<List<AnalysisError>> requestDartErrors(String path) {
     var completer = new Completer<List<AnalysisError>>();
     _requestedDartFiles
@@ -189,7 +179,19 @@ class AngularDriver
       // driver, which doesn't happen because its waiting for us.
       // ALSO assume .dart and .html paths correlate, otherwise we'd have to
       // wait for all dart analysis to complete.
-      resolveHtml(path, path.replaceAll(".html", ".dart")).then((result) {
+      Future resolvedHtml;
+
+      // Try resolving HTML using the existing dart/html relationships which may
+      // be already known. However, if we don't see any relationships, try using
+      // the .dart equivalent. Better than no result -- the real one WILL come.
+      if (_fileTracker.getDartPathsReferencingHtml(path) == 0) {
+        resolvedHtml = resolveHtmlFrom(path, path.replaceAll(".html", ".dart"));
+      } else {
+        resolvedHtml = resolveHtml(path);
+      }
+
+      // After whichever resolution is complete, push errors.
+      resolvedHtml.then((result) {
         completers
             .forEach((completer) => completer.complete(result?.errors ?? []));
       }, onError: (e) {
