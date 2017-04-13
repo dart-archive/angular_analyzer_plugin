@@ -43,7 +43,8 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
-  AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING
+  AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
+  AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID
 ];
 
 /**
@@ -390,6 +391,17 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode ATTRIBUTE_PARAMETER_MUST_BE_STRING =
       const AngularWarningCode('ATTRIBUTE_PARAMETER_MUST_BE_STRING',
           "Parameters marked with @Attribute must be of type String");
+
+  /**
+   * An error code indicating that an input binding was used in string form, ie,
+   * `x="y"` rather than `[x]="y"`, where input x is not a string input.
+   */
+  static const AngularWarningCode STRING_STYLE_INPUT_BINDING_INVALID =
+      const AngularWarningCode(
+          'STRING_STYLE_INPUT_BINDING_INVALID',
+          "Input {0} is not a string input, but is not bound with [bracket] "
+          "syntax. This binds the String attribute value directly, resulting "
+          "in a type error.");
 
   /**
    * Initialize a newly created error code to have the given [name].
