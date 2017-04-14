@@ -206,12 +206,13 @@ class TitleComponent {
 }
 ''');
     var code = r"""
-<title-comp title='anything can go here'></title-comp>
+<title-comp title='anything can go here' id="some id"></title-comp>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
     _assertElement('title=').input.inFileName('/test_panel.dart').at('title;');
+    _assertElement('id=').input.inCoreHtml;
   }
 
   Future test_expression_inputBinding_typeError() async {
@@ -255,6 +256,22 @@ class TitleComponent {
         AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
         code,
         "titleInput");
+  }
+
+  Future test_expression_inputBinding_global_asString_typeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+<div hidden="string binding"></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID, code, "hidden");
   }
 
   Future test_expression_inputBinding_noValue() async {
@@ -1831,12 +1848,13 @@ class NamePanel {
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
-<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
+<name-panel aaa='1' [bbb]='2' bind-ccc='3' id="someid"></name-panel>
 """);
     await _resolveSingleTemplate(dartSource);
     _assertElement("aaa=").input.at("aaa', ");
     _assertElement("bbb]=").input.at("bbb', ");
     _assertElement("ccc=").input.at("ccc']");
+    _assertElement("id=").input.inCoreHtml;
   }
 
   Future test_outputReference() async {

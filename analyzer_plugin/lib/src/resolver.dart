@@ -1105,8 +1105,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
           SourceRange range =
               new SourceRange(attribute.nameOffset, attribute.name.length);
           template.addRange(range, input);
-          directiveBinding.inputBindings
-              .add(new InputBinding(input, attribute));
+          // TODO save this as an input binding
         }
       }
 
@@ -1121,13 +1120,20 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
     InputElement standardHtmlAttribute = standardHtmlAttributes[attribute.name];
     if (standardHtmlAttribute != null) {
-      _typecheckMatchingInput(attribute, standardHtmlAttribute);
+      var inputType = standardHtmlAttribute.setterType;
+      if (!typeProvider.stringType.isAssignableTo(inputType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.nameOffset,
+            attribute.name.length,
+            AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+            [attribute.name]));
+      }
 
       SourceRange range =
           new SourceRange(attribute.nameOffset, attribute.name.length);
       template.addRange(range, standardHtmlAttribute);
-      attribute.parent.boundStandardInputs
-          .add(new InputBinding(standardHtmlAttribute, attribute));
+      // TODO save this as an input binding
     }
 
     // visit mustaches inside
