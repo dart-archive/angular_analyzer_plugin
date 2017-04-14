@@ -12,10 +12,15 @@ class FileTracker {
 
   FileTracker(this._fileHasher);
 
-  _RelationshipTracker _dartToDart = new _RelationshipTracker();
-  _RelationshipTracker _dartToHtml = new _RelationshipTracker();
+  final _dartToDart = new _RelationshipTracker();
+  final _dartToHtml = new _RelationshipTracker();
 
-  Set<String> _dartFilesWithDartTemplates = new HashSet<String>();
+  final _dartFilesWithDartTemplates = new HashSet<String>();
+  final _htmlHashes = <String, ApiSignature>{};
+
+  void htmlChanged(String path) {
+    _htmlHashes[path] = _fileHasher.getContentHash(path);
+  }
 
   void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) {
     return _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
@@ -85,12 +90,16 @@ class FileTracker {
 
   ApiSignature getHtmlSignature(String htmlPath, String dartPath) {
     final signature = new ApiSignature();
-    signature.addBytes(_fileHasher.getContentHash(htmlPath).toByteList());
+    signature.addBytes(_htmlHashes[htmlPath].toByteList());
     signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
     for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
-      signature.addBytes(_fileHasher.getContentHash(subHtmlPath).toByteList());
+      signature.addBytes(_htmlHashes[subHtmlPath].toByteList());
     }
     return signature;
+  }
+
+  String getHtmlContentHash(String htmlPath) {
+    return _htmlHashes[htmlPath].toHex() + '.ngunlinked';
   }
 }
 
