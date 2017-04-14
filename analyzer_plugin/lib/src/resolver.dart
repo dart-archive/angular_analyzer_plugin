@@ -1105,7 +1105,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
           SourceRange range =
               new SourceRange(attribute.nameOffset, attribute.name.length);
           template.addRange(range, input);
-          // TODO save this as an input binding
+          directiveBinding.inputBindings
+              .add(new InputBinding(input, attribute));
         }
       }
 
@@ -1133,7 +1134,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       SourceRange range =
           new SourceRange(attribute.nameOffset, attribute.name.length);
       template.addRange(range, standardHtmlAttribute);
-      // TODO save this as an input binding
+      attribute.parent.boundStandardInputs
+          .add(new InputBinding(standardHtmlAttribute, attribute));
     }
 
     // visit mustaches inside
