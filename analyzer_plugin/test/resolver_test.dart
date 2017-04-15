@@ -971,7 +971,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "class.invalid");
+        AngularWarningCode.INVALID_HTML_CLASSNAME, code, "invalid.class");
   }
 
   Future test_expression_classBinding_typeError() async {

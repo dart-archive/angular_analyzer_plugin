@@ -52,7 +52,14 @@ class HtmlTreeConverter {
   }) {
     if (node is ElementAst) {
       String localName = node.name;
-      List<AttributeInfo> attributes = _convertAttributes(node);
+      List<AttributeInfo> attributes = _convertAttributes(
+        attributes: node.attributes,
+        bananas: node.bananas,
+        events: node.events,
+        properties: node.properties,
+        references: node.references,
+        stars: node.stars,
+      );
       attributes.sort((a, b) => a.offset.compareTo(b.offset));
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
@@ -154,7 +161,12 @@ class HtmlTreeConverter {
     }
     if (node is EmbeddedTemplateAst) {
       String localName = 'template';
-      List<AttributeInfo> attributes = _convertAttributesForTemplate(node);
+      List<AttributeInfo> attributes = _convertAttributes(
+        attributes: node.attributes,
+        events: node.events,
+        properties: node.properties,
+        references: node.references,
+      );
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
       SourceRange openingNameSpan;
@@ -227,148 +239,170 @@ class HtmlTreeConverter {
     return null;
   }
 
-  List<AttributeInfo> _convertAttributes(ElementAst element) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
+  List<AttributeInfo> _convertAttributes({
+    List<ParsedAttributeAst> attributes: const [],
+    List<ParsedBananaAst> bananas: const [],
+    List<ParsedEventAst> events: const [],
+    List<ParsedPropertyAst> properties: const [],
+    List<ParsedReferenceAst> references: const [],
+    List<ParsedStarAst> stars: const [],
+  }) {
+    List<AttributeInfo> returnAttributes = <AttributeInfo>[];
 
-    // Atttribute/event/properties/etc. within
-    // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
-    for (AttributeAst attribute in element.attributes) {
-      if (attribute.name.startsWith('on-')) {
-        attributes
-            .add(_convertStatementsBoundAttribute(attribute, "on-", null));
-      } else if (attribute.name.startsWith('bind-')) {
-        attributes.add(_convertExpressionBoundAttribute(
-            attribute, "bind-", null, ExpressionBoundType.input));
-      } else if (attribute.name == 'template') {
-        attributes.add(_convertTemplateAttribute(attribute));
+    for (ParsedAttributeAst attribute in attributes) {
+      if (attribute.name == 'template') {
+        returnAttributes.add(_convertTemplateAttribute(attribute));
       } else {
         String value;
         int valueOffset;
-        ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
-        if (_attr.valueToken != null) {
-          value = _attr.valueToken.innerValue.lexeme;
-          valueOffset = _attr.valueToken.innerValue.offset;
+        if (attribute.valueToken != null) {
+          value = attribute.valueToken.innerValue.lexeme;
+          valueOffset = attribute.valueToken.innerValue.offset;
         }
-        attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
-            valueOffset, dartParser.findMustaches(value, valueOffset)));
+        returnAttributes.add(new TextAttribute(
+          attribute.name,
+          attribute.nameOffset,
+          value,
+          valueOffset,
+          dartParser.findMustaches(value, valueOffset),
+        ));
       }
     }
-    ;
 
-    element.events.forEach((event) {
-      attributes.add(_convertStatementsBoundAttribute(event, "(", ")"));
+    bananas.forEach((banana) {
+      returnAttributes.add(_convertExpressionBoundAttribute(banana));
     });
 
-    element.bananas.forEach((banana) {
-      attributes.add(_convertExpressionBoundAttribute(
-          banana, "[(", ")]", ExpressionBoundType.twoWay));
+    events.forEach((event) {
+      returnAttributes.add(_convertStatementsBoundAttribute(event));
     });
 
-    for (PropertyAst property in element.properties) {
-      if (property.name.startsWith("class") && property.postfix != null) {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[class.", "]", ExpressionBoundType.clazz));
-      } else if (property.name.startsWith("attr") && property.postfix != null) {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[attr.", "]", ExpressionBoundType.attr));
-      } else if (property.name.startsWith("style") &&
-          property.postfix != null) {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[style.", "]", ExpressionBoundType.style));
-      } else {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[", "]", ExpressionBoundType.input));
-      }
-    }
-    ;
+    properties.forEach((property) {
+      returnAttributes.add(_convertExpressionBoundAttribute(property));
+    });
 
-    for (ReferenceAst reference in element.references) {
+    for (ParsedReferenceAst reference in references) {
       String value;
       int valueOffset;
-      ParsedReferenceAst _attr = reference as ParsedReferenceAst;
-      if (_attr.valueToken != null) {
-        value = _attr.valueToken.innerValue.lexeme;
-        valueOffset = _attr.valueToken.innerValue.offset;
+      if (reference.valueToken != null) {
+        value = reference.valueToken.innerValue.lexeme;
+        valueOffset = reference.valueToken.innerValue.offset;
       }
-      attributes.add(new TextAttribute(
-          _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
-          _attr.prefixToken.offset,
+      returnAttributes.add(new TextAttribute(
+          reference.prefixToken.lexeme + reference.nameToken.lexeme,
+          reference.prefixToken.offset,
           value,
           valueOffset,
           dartParser.findMustaches(value, valueOffset)));
     }
-    ;
 
-    element.stars.forEach((star) {
-      attributes.add(_convertTemplateAttribute(star));
+    stars.forEach((star) {
+      returnAttributes.add(_convertTemplateAttribute(star));
     });
-    return attributes;
+
+    return returnAttributes;
   }
 
-  List<AttributeInfo> _convertAttributesForTemplate(
-      EmbeddedTemplateAst element) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-
-    // Atttribute/event/properties/etc. within
-    // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
-    for (AttributeAst attribute in element.attributes) {
-      if (attribute.name.startsWith('on-')) {
-        attributes
-            .add(_convertStatementsBoundAttribute(attribute, "on-", null));
-      } else if (attribute.name.startsWith('bind-')) {
-        attributes.add(_convertExpressionBoundAttribute(
-            attribute, "bind-", null, ExpressionBoundType.input));
-      } else if (attribute.name == 'template') {
-        attributes.add(_convertTemplateAttribute(attribute));
-      } else {
-        String value;
-        int valueOffset;
-        var _attr = attribute as ParsedAttributeAst;
-        if (_attr.valueToken != null) {
-          value = _attr.valueToken.innerValue.lexeme;
-          valueOffset = _attr.valueToken.innerValue.offset;
-        }
-        attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
-            valueOffset, dartParser.findMustaches(value, valueOffset)));
-      }
-    }
-    ;
-
-    for (PropertyAst property in element.properties) {
-      if (property.name.startsWith("class")) {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[class.", "]", ExpressionBoundType.clazz));
-      } else if (property.name.startsWith("attr")) {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[attr.", "]", ExpressionBoundType.attr));
-      } else if (property.name.startsWith("style")) {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[style.", "]", ExpressionBoundType.style));
-      } else {
-        attributes.add(_convertExpressionBoundAttribute(
-            property, "[", "]", ExpressionBoundType.input));
-      }
-    }
-    ;
-
-    for (ReferenceAst reference in element.references) {
-      String value;
-      int valueOffset;
-      var _attr = reference as ParsedReferenceAst;
-      if (_attr.valueToken != null) {
-        value = _attr.valueToken.innerValue.lexeme;
-        valueOffset = _attr.valueToken.innerValue.offset;
-      }
-      attributes.add(new TextAttribute(
-          _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
-          _attr.prefixToken.offset,
-          value,
-          valueOffset,
-          dartParser.findMustaches(value, valueOffset)));
-    }
-    ;
-    return attributes;
-  }
+//  List<AttributeInfo> _convertAttributesForElementAst(ElementAst element) {
+//    List<AttributeInfo> attributes = <AttributeInfo>[];
+//
+//    // Atttribute/event/properties/etc. within
+//    // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
+//    for (AttributeAst attribute in element.attributes) {
+//      if (attribute.name == 'template') {
+//        attributes.add(_convertTemplateAttribute(attribute));
+//      } else {
+//        String value;
+//        int valueOffset;
+//        ParsedAttributeAst _attr = attribute as ParsedAttributeAst;
+//        if (_attr.valueToken != null) {
+//          value = _attr.valueToken.innerValue.lexeme;
+//          valueOffset = _attr.valueToken.innerValue.offset;
+//        }
+//        attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
+//            valueOffset, dartParser.findMustaches(value, valueOffset)));
+//      }
+//    }
+//
+//    element.events.forEach((event) {
+//      attributes.add(_convertStatementsBoundAttribute(event));
+//    });
+//
+//    element.bananas.forEach((banana) {
+//      attributes.add(_convertExpressionBoundAttribute(banana));
+//    });
+//
+//    for (PropertyAst property in element.properties) {
+//      attributes.add(_convertExpressionBoundAttribute(property));
+//    }
+//
+//    for (ReferenceAst reference in element.references) {
+//      String value;
+//      int valueOffset;
+//      ParsedReferenceAst _attr = reference as ParsedReferenceAst;
+//      if (_attr.valueToken != null) {
+//        value = _attr.valueToken.innerValue.lexeme;
+//        valueOffset = _attr.valueToken.innerValue.offset;
+//      }
+//      attributes.add(new TextAttribute(
+//          _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
+//          _attr.prefixToken.offset,
+//          value,
+//          valueOffset,
+//          dartParser.findMustaches(value, valueOffset)));
+//    }
+//
+//    element.stars.forEach((star) {
+//      attributes.add(_convertTemplateAttribute(star));
+//    });
+//    return attributes;
+//  }
+//
+//  List<AttributeInfo> _convertAttributesForTemplateAst(
+//      EmbeddedTemplateAst element) {
+//    List<AttributeInfo> attributes = <AttributeInfo>[];
+//
+//    // Atttribute/event/properties/etc. within
+//    // [ElementAst] cannot be synthetic as long as Desugaring never occurs.
+//    for (AttributeAst attribute in element.attributes) {
+//      // TODO: Max: probably report an error when trying to pass
+//      // TODO: template attribute into templateAst.
+//      if (attribute.name == 'template') {
+//        attributes.add(_convertTemplateAttribute(attribute));
+//      } else {
+//        String value;
+//        int valueOffset;
+//        var _attr = attribute as ParsedAttributeAst;
+//        if (_attr.valueToken != null) {
+//          value = _attr.valueToken.innerValue.lexeme;
+//          valueOffset = _attr.valueToken.innerValue.offset;
+//        }
+//        attributes.add(new TextAttribute(_attr.name, _attr.nameOffset, value,
+//            valueOffset, dartParser.findMustaches(value, valueOffset)));
+//      }
+//    }
+//
+//    for (PropertyAst property in element.properties) {
+//      attributes.add(_convertExpressionBoundAttribute(property));
+//    }
+//
+//    for (ReferenceAst reference in element.references) {
+//      String value;
+//      int valueOffset;
+//      var _attr = reference as ParsedReferenceAst;
+//      if (_attr.valueToken != null) {
+//        value = _attr.valueToken.innerValue.lexeme;
+//        valueOffset = _attr.valueToken.innerValue.offset;
+//      }
+//      attributes.add(new TextAttribute(
+//          _attr.prefixToken.lexeme + _attr.nameToken.lexeme,
+//          _attr.prefixToken.offset,
+//          value,
+//          valueOffset,
+//          dartParser.findMustaches(value, valueOffset)));
+//    }
+//    return attributes;
+//  }
 
   TemplateAttribute _convertTemplateAttribute(TemplateAst ast) {
     String name;
@@ -435,54 +469,28 @@ class HtmlTreeConverter {
   }
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
-      TemplateAst ast, String prefix, String suffix) {
-    String propName;
-    int propNameOffset;
+      ParsedEventAst ast) {
+    var origName =
+        (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
+            ast.name +
+            (ast.postfix != null ? '.${ast.postfix}' : '') +
+            ((ast.suffixToken == null || ast.suffixToken.errorSynthetic)
+                ? ''
+                : ast.suffixToken.lexeme);
+    var origNameOffset = ast.prefixToken.offset;
 
-    String value;
-    int valueOffset;
-
-    String origName;
-    int origNameOffset;
-
-    if (ast is ParsedAttributeAst) {
-      origName = ast.name;
-      origNameOffset = ast.nameOffset;
-
-      value = ast.value;
-      if (value == null || value.isEmpty) {
-        errorListener.onError(new AnalysisError(
-            templateSource,
-            origNameOffset,
-            ast.nameToken.length,
-            AngularWarningCode.EMPTY_BINDING,
-            [ast.name]));
-      }
-      valueOffset = ast.valueOffset;
-
-      propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = origNameOffset + prefix.length;
-    } else if (ast is ParsedEventAst) {
-      origName =
-          (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
-              ast.name +
-              (ast.postfix != null ? '.${ast.postfix}' : '') +
-              (ast.suffixToken.errorSynthetic ? '' : ast.suffixToken.lexeme);
-      origNameOffset = ast.prefixToken.offset;
-
-      value = ast.value;
-
-      if ((value == null || value.isEmpty) &&
-          !ast.prefixToken.errorSynthetic &&
-          !ast.suffixToken.errorSynthetic) {
-        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
-            origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
-      }
-      valueOffset = ast.valueOffset;
-
-      propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = ast.nameToken.offset;
+    var value = ast.value;
+    if ((value == null || value.isEmpty) &&
+        !ast.prefixToken.errorSynthetic &&
+        !ast.suffixToken.errorSynthetic) {
+      errorListener.onError(new AnalysisError(templateSource, origNameOffset,
+          origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
     }
+    var valueOffset = ast.valueOffset;
+
+    var propName = ast.nameToken.lexeme;
+    var propNameOffset = ast.nameToken.offset;
+
     return new StatementsBoundAttribute(
         propName,
         propNameOffset,
@@ -493,81 +501,58 @@ class HtmlTreeConverter {
         dartParser.parseDartStatements(valueOffset, value));
   }
 
-  ExpressionBoundAttribute _convertExpressionBoundAttribute(TemplateAst ast,
-      String prefix, String suffix, ExpressionBoundType bound) {
-    String propName;
-    int propNameOffset;
+  ExpressionBoundAttribute _convertExpressionBoundAttribute(TemplateAst ast) {
+    // Default starting.
+    ExpressionBoundType bound = ExpressionBoundType.input;
 
-    String value;
-    int valueOffset;
+    var parsed = ast as ParsedDecoratorAst;
+    var origName =
+        (parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme) +
+            parsed.nameToken.lexeme +
+            ((parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
+                ? ''
+                : parsed.suffixToken.lexeme);
+    var origNameOffset = parsed.prefixToken.offset;
 
-    String origName;
-    int origNameOffset;
+    var propName = parsed.nameToken.lexeme;
+    var propNameOffset = parsed.nameToken.offset;
 
-    if (ast is ParsedAttributeAst) {
-      origName = ast.name;
-      origNameOffset = ast.nameOffset;
-
-      value = ast.value;
-      if (value == null || value.isEmpty) {
-        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
-            origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
-      }
-      valueOffset = ast.valueOffset;
-
-      propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = ast.nameToken.offset + (prefix?.length ?? 0);
-    }
     if (ast is ParsedPropertyAst) {
-      origName =
-          (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
-              ast.name +
-              (ast.postfix != null ? '.${ast.postfix}' : '') +
-              (ast.unit != null ? '.${ast.unit}' : '') +
-              (ast.suffixToken.errorSynthetic ? '' : ast.suffixToken.lexeme);
-      origNameOffset = ast.prefixToken.offset;
-
-      value = ast.value;
-      if ((value == null || value.isEmpty) &&
-          !ast.prefixToken.errorSynthetic &&
-          !ast.suffixToken.errorSynthetic) {
-        errorListener.onError(new AnalysisError(
-          templateSource,
-          origNameOffset,
-          origName.length,
-          AngularWarningCode.EMPTY_BINDING,
-          [origName],
-        ));
+      var name = ast.name;
+      if (ast.postfix != null) {
+        bool replacePropName = false;
+        if (name == 'class') {
+          bound = ExpressionBoundType.clazz;
+          replacePropName = true;
+        } else if (name == 'attr') {
+          bound = ExpressionBoundType.attr;
+          replacePropName = true;
+        } else if (name == 'style') {
+          bound = ExpressionBoundType.style;
+          replacePropName = true;
+        }
+        if (replacePropName) {
+          propName = ast.postfix + (ast.unit == null ? '' : '.${ast.unit}');
+          propNameOffset = parsed.nameToken.offset + name.length + '.'.length;
+        }
       }
-      valueOffset = ast.valueOffset;
-
-      propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = ast.nameToken.offset;
+    } else {
+      bound = ExpressionBoundType.twoWay;
     }
-    if (ast is ParsedBananaAst) {
-      origName =
-          (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
-              ast.nameToken.lexeme +
-              (ast.suffixToken.errorSynthetic ? '' : ast.suffixToken.lexeme);
-      origNameOffset = ast.prefixToken.offset;
 
-      value = ast.value;
-      if ((value == null || value.isEmpty) &&
-          !ast.prefixToken.errorSynthetic &&
-          !ast.suffixToken.errorSynthetic) {
-        errorListener.onError(new AnalysisError(
-          templateSource,
-          origNameOffset,
-          origName.length,
-          AngularWarningCode.EMPTY_BINDING,
-          [origName],
-        ));
-      }
-      valueOffset = ast.valueOffset;
-
-      propName = _removePrefixSuffix(origName, prefix, suffix);
-      propNameOffset = origNameOffset + prefix.length;
+    var value = parsed.valueToken?.innerValue?.lexeme;
+    if ((value == null || value.isEmpty) &&
+        !parsed.prefixToken.errorSynthetic &&
+        !parsed.suffixToken.errorSynthetic) {
+      errorListener.onError(new AnalysisError(
+        templateSource,
+        origNameOffset,
+        origName.length,
+        AngularWarningCode.EMPTY_BINDING,
+        [origName],
+      ));
     }
+    var valueOffset = parsed.valueToken?.innerValue?.offset;
 
     propName = attrToPropMap[propName] ?? propName;
 
@@ -606,15 +591,6 @@ class HtmlTreeConverter {
       }
     }
     return null;
-  }
-
-  String _removePrefixSuffix(String value, String prefix, String suffix) {
-    if (value.length <= prefix.length) return '';
-    value = value.substring(prefix.length);
-    if (suffix != null && value.endsWith(suffix)) {
-      return value.substring(0, value.length - suffix.length);
-    }
-    return value;
   }
 
   SourceRange _toSourceRange(int offset, int length) {
