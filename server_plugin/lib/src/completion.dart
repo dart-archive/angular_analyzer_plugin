@@ -298,16 +298,15 @@ class TemplateCompleter {
         if (target.closingSpan != null &&
             offsetContained(request.offset, target.closingSpan.offset,
                 target.closingSpan.length)) {
-          // In closing tag, but could be directly after it; ex: '</div>^'.
           if (request.offset ==
               (target.closingSpan.offset + target.closingSpan.length)) {
+            // In closing tag, but could be directly after it; ex: '</div>^'.
             suggestHtmlTags(template, suggestions);
             if (target.parent != null || target.parent is! DocumentInfo) {
               suggestTransclusions(target.parent, suggestions);
             }
-          }
-          // Directly within closing tag; suggest nothing. Ex: '</div^>'
-          else {
+          } else {
+            // Directly within closing tag; suggest nothing. Ex: '</div^>'
             continue;
           }
         }

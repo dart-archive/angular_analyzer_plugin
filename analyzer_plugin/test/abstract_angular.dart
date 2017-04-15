@@ -329,6 +329,7 @@ class NgFor {
     var realErrors = errorListener.errors;
     for (Tuple4 expectedError in expectedErrors) {
       var offset = code.indexOf(expectedError.item1);
+      assert(offset != -1);
       var currentExpectedError = new AnalysisError(
         source,
         offset,
