@@ -269,17 +269,11 @@ class HtmlTreeConverter {
       }
     }
 
-    bananas.forEach((banana) {
-      returnAttributes.add(_convertExpressionBoundAttribute(banana));
-    });
-
-    events.forEach((event) {
-      returnAttributes.add(_convertStatementsBoundAttribute(event));
-    });
-
-    properties.forEach((property) {
-      returnAttributes.add(_convertExpressionBoundAttribute(property));
-    });
+    bananas.map(_convertExpressionBoundAttribute).forEach(returnAttributes.add);
+    events.map(_convertStatementsBoundAttribute).forEach(returnAttributes.add);
+    properties
+        .map(_convertExpressionBoundAttribute)
+        .forEach(returnAttributes.add);
 
     for (ParsedReferenceAst reference in references) {
       String value;
@@ -296,9 +290,7 @@ class HtmlTreeConverter {
           dartParser.findMustaches(value, valueOffset)));
     }
 
-    stars.forEach((star) {
-      returnAttributes.add(_convertTemplateAttribute(star));
-    });
+    stars.map(_convertTemplateAttribute).forEach(returnAttributes.add);
 
     return returnAttributes;
   }
@@ -369,13 +361,13 @@ class HtmlTreeConverter {
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
       ParsedEventAst ast) {
-    var origName =
-        (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme) +
-            ast.name +
-            (ast.postfix != null ? '.${ast.postfix}' : '') +
-            ((ast.suffixToken == null || ast.suffixToken.errorSynthetic)
-                ? ''
-                : ast.suffixToken.lexeme);
+    var prefixComponent =
+        (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme);
+    var suffixComponent =
+        ((ast.suffixToken == null) || ast.suffixToken.errorSynthetic)
+            ? ''
+            : ast.suffixToken.lexeme;
+    var origName = prefixComponent + ast.name + suffixComponent;
     var origNameOffset = ast.prefixToken.offset;
 
     var value = ast.value;
