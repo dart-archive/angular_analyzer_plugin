@@ -103,6 +103,7 @@ Class field decorators for directives and components | Validation | Auto-Complet
 `@Input("name") myProperty;` | :white_check_mark: | :no_pedestrians: | :x: | :x:
 `@Output() myEvent = new EventEmitter();` | :white_check_mark: Subtype of `Stream<T>` required, streamed type determines `$event` type | :no_pedestrians: | :x: | :x:
 `@Output("name") myEvent = new EventEmitter();` | :white_check_mark: | :no_pedestrians: | :x: | :x:
+`@Attribute("name") String ctorArg` | :white_check_mark: | :x: | :x: | :x:
 `@HostBinding('[class.valid]') isValid;` | :x: | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `@HostListener('click', ['$event']) onClick(e) {...}` | :x: | :x: | :x: | :x:
 `@ContentChild(myPredicate) myChildComponent;` | :x: | :no_pedestrians: | :x: | :x:
