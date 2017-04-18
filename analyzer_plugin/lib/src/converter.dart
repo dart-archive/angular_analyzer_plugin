@@ -305,7 +305,7 @@ class HtmlTreeConverter {
     String origName;
     int origNameOffset;
 
-    List<AttributeInfo> virtualAttributes;
+    var virtualAttributes = [];
 
     if (ast is ParsedStarAst) {
       value = ast.value;
@@ -339,8 +339,13 @@ class HtmlTreeConverter {
       name = origName;
       nameOffset = origNameOffset;
 
-      virtualAttributes =
-          dartParser.parseTemplateVirtualAttributes(valueOffset, value);
+      if (value == null || value.isEmpty) {
+        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
+            origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+      } else {
+        virtualAttributes =
+            dartParser.parseTemplateVirtualAttributes(valueOffset, value);
+      }
     }
 
     TemplateAttribute templateAttribute = new TemplateAttribute(
