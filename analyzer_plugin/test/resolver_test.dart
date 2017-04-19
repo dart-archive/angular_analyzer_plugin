@@ -215,6 +215,31 @@ class TitleComponent {
     _assertElement('id=').input.inCoreHtml;
   }
 
+  Future test_expression_inputBinding_asString_fromDynamic() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  bool _title;
+  @Input()
+  set title(value) {
+    _title = value == "" ? true : false;
+  }
+  bool get title => _title;
+}
+''');
+    var code = r"""
+<title-comp title='anything can go here'></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('title=').input.inFileName('/test_panel.dart').at('title(');
+  }
+
   Future test_expression_inputBinding_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
