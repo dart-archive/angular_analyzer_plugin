@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'package:analysis_server/src/analysis_server.dart';
-import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
@@ -58,8 +57,6 @@ class AngularDriver
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
   }
-
-  ContextRoot get contextRoot => dartDriver.contextRoot;
 
   ApiSignature getUnitElementHash(String path) {
     return dartDriver.getUnitKeyByPath(path);
