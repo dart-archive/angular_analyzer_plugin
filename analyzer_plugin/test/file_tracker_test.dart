@@ -279,16 +279,10 @@ class FileTrackerTest {
     expectedSignature.addBytes(fooHtmlSignature.toByteList());
     expectedSignature.addBytes(fooDartElementSignature.toByteList());
     expectedSignature.addBytes(barHtmlSignature.toByteList());
+    expectedSignature.addBytes(fooTestDartElementSignature.toByteList());
 
-    expect(_fileTracker.getHtmlSignature("foo.html", "foo.dart").toHex(),
+    expect(_fileTracker.getHtmlSignature("foo.html").toHex(),
         equals(expectedSignature.toHex()));
-
-    ApiSignature expectedTestSignature = new ApiSignature();
-    expectedTestSignature.addBytes(fooHtmlSignature.toByteList());
-    expectedTestSignature.addBytes(fooTestDartElementSignature.toByteList());
-
-    expect(_fileTracker.getHtmlSignature("foo.html", "foo_test.dart").toHex(),
-        equals(expectedTestSignature.toHex()));
   }
 }
 
