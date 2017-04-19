@@ -184,7 +184,7 @@ class AngularDriver
       // Try resolving HTML using the existing dart/html relationships which may
       // be already known. However, if we don't see any relationships, try using
       // the .dart equivalent. Better than no result -- the real one WILL come.
-      if (_fileTracker.getDartPathsReferencingHtml(path) == 0) {
+      if (_fileTracker.getDartPathsReferencingHtml(path).isEmpty) {
         resolvedHtml = resolveHtmlFrom(path, path.replaceAll(".html", ".dart"));
       } else {
         resolvedHtml = resolveHtml(path);
