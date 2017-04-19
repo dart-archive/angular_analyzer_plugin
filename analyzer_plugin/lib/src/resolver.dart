@@ -1211,7 +1211,11 @@ class SingleScopeResolver extends AngularScopeVisitor {
     if (dotpos != -1) {
       cssPropertyName = attribute.name.substring(0, dotpos);
       var cssUnitName = attribute.name.substring(dotpos + '.'.length);
-      if (!_isCssIdentifier(cssUnitName)) {
+      var validUnitName =
+          (cssPropertyName == 'width' || cssPropertyName == 'height') &&
+              cssUnitName == '%';
+      validUnitName = validUnitName || _isCssIdentifier(cssUnitName);
+      if (!validUnitName) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.nameOffset + dotpos + 1,

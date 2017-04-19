@@ -1126,6 +1126,52 @@ class TestPanel {
         AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
   }
 
+  Future test_expression_styleBinding_withUnit_heightPercent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int percentage; // 1
+}
+''');
+    var code = r"""
+<span [style.height.%]='percentage'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future test_expression_styleBinding_withUnit_widthPercent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int percentage; // 1
+}
+''');
+    var code = r"""
+<span [style.width.%]='percentage'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future test_expression_styleBinding_withUnit_nonWidthOrHeightPercent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int percentage; // 1
+}
+''');
+    var code = r"""
+<span [style.something.%]='percentage'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "%");
+  }
+
   Future test_expression_styleBinding_withUnit_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
