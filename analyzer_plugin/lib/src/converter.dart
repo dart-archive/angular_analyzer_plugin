@@ -158,7 +158,7 @@ class HtmlTreeConverter {
     String value = valueOffset == null ? null : element.attributes[origName];
     String name;
     int nameOffset;
-    List<AttributeInfo> virtualAttributes;
+    var virtualAttributes = [];
     if (starSugar) {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
@@ -167,8 +167,13 @@ class HtmlTreeConverter {
     } else {
       name = origName;
       nameOffset = origNameOffset;
-      virtualAttributes =
-          dartParser.parseTemplateVirtualAttributes(valueOffset, value);
+      if (value == null || value.isEmpty) {
+        errorListener.onError(new AnalysisError(templateSource, origNameOffset,
+            origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+      } else {
+        virtualAttributes =
+            dartParser.parseTemplateVirtualAttributes(valueOffset, value);
+      }
     }
 
     TemplateAttribute templateAttribute = new TemplateAttribute(
