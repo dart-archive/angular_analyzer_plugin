@@ -498,9 +498,8 @@ class BindingTypeSynthesizer {
           thisType: true);
     }
 
-    if (setter != null && setter.variable != null) {
-      var type = setter.variable.type;
-      return type;
+    if (setter != null && setter.type.parameters.length == 1) {
+      return setter.type.parameters[0].type;
     }
 
     return null;
