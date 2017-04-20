@@ -915,6 +915,39 @@ class SingleScopeResolver extends AngularScopeVisitor {
   AnalysisErrorListener errorListener;
   ErrorReporter errorReporter;
 
+  static var styleWithPercent = new Set<String>.from([
+    'border-bottom-left-radius',
+    'border-bottom-right-radius',
+    'border-image-slice',
+    'border-image-width',
+    'border-radius',
+    'border-top-left-radius',
+    'border-top-right-radius',
+    'bottom',
+    'font-size',
+    'height',
+    'left',
+    'line-height',
+    'margin',
+    'margin-bottom',
+    'margin-left',
+    'margin-right',
+    'margin-top',
+    'max-height',
+    'max-width',
+    'min-height',
+    'min-width',
+    'padding',
+    'padding-bottom',
+    'padding-left',
+    'padding-right',
+    'padding-top',
+    'right',
+    'text-indent',
+    'top',
+    'width',
+  ]);
+
   /**
    * The full map of names to local variables in the current context
    */
@@ -1212,8 +1245,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       cssPropertyName = attribute.name.substring(0, dotpos);
       var cssUnitName = attribute.name.substring(dotpos + '.'.length);
       var validUnitName =
-          (cssPropertyName == 'width' || cssPropertyName == 'height') &&
-              cssUnitName == '%';
+          styleWithPercent.contains(cssPropertyName) && cssUnitName == '%';
       validUnitName = validUnitName || _isCssIdentifier(cssUnitName);
       if (!validUnitName) {
         errorListener.onError(new AnalysisError(
