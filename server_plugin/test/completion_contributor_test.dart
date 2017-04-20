@@ -7,7 +7,6 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'completion_contributor_test_util.dart';
 
 main() {
-  groupSep = ' | ';
   //defineReflectiveTests(DartCompletionContributorTest);
   //defineReflectiveTests(HtmlCompletionContributorTest);
 }

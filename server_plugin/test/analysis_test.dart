@@ -25,10 +25,11 @@ import 'package:unittest/unittest.dart';
 import 'mock_sdk.dart';
 
 main() {
-  groupSep = ' | ';
-  //defineReflectiveTests(AngularNavigationContributorTest);
-  //defineReflectiveTests(AngularOccurrencesContributorTest);
-  defineReflectiveTests(EmptyTest);
+  defineReflectiveSuite(() {
+    //defineReflectiveTests(AngularNavigationContributorTest);
+    //defineReflectiveTests(AngularOccurrencesContributorTest);
+    defineReflectiveTests(EmptyTest);
+  });
 }
 
 @reflectiveTest
