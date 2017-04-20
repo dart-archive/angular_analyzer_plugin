@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.angular_base;
 
 import 'package:analyzer/file_system/file_system.dart' as fs;
+import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -12,6 +13,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:typed_mock/typed_mock.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
@@ -128,13 +130,16 @@ class AbstractAngularTest {
       packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
+    var testPath = resourceProvider.convertPath('/test');
+    var contextRoot = new ContextRoot(testPath, []);
+
     dartDriver = new AnalysisDriver(
         scheduler,
         logger,
         resourceProvider,
         byteStore,
         new FileContentOverlay(),
-        "test",
+        contextRoot,
         sf,
         new AnalysisOptionsImpl());
     angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
@@ -310,30 +315,37 @@ class NgFor {
     expect(errorListener.errors.single.length, snippet.length);
   }
 
-/**
- * Assert multiple [errCode] is reported for [code], highlighting the [snippet].
- */
-  void assertMultipleErrorsInCodeAtPositions(
-      String code, Map<ErrorCode, String> errCodesAndSnippet) {
-    Map<ErrorCode, Map<int, String>> expectedErrors = new Map<ErrorCode, Map>();
-    errCodesAndSnippet.forEach((errCode, snippet) {
-      int snippetIndex = code.indexOf(snippet);
-      expect(snippetIndex, greaterThan(-1),
-          reason: 'Error in test: snippet ${snippet} not part of code ${code}');
-      Map currErrorList = expectedErrors.putIfAbsent(errCode, () => new Map());
-      currErrorList.putIfAbsent(snippetIndex, () => snippet);
-    });
-    errorListener.assertErrorsWithCodes(expectedErrors.keys);
-
-    List<AnalysisError> errors = errorListener.errors;
-    errors.forEach((currErr) {
-      expect(expectedErrors.containsKey(currErr.errorCode), true);
+  /** For [expectedErrors], it is a List of Tuple4 (1 per error):
+   *    code segment where offset begins,
+   *    length of the error highlight,
+   *    errorCode,
+   *    and optional error args - pass empty list if not needed.
+   */
+  void assertMultipleErrorsExplicit(
+    Source source,
+    String code,
+    List<Tuple4<String, int, ErrorCode, List<Object>>> expectedErrors,
+  ) {
+    var realErrors = errorListener.errors;
+    for (Tuple4 expectedError in expectedErrors) {
+      var offset = code.indexOf(expectedError.item1);
+      assert(offset != -1);
+      var currentExpectedError = new AnalysisError(
+        source,
+        offset,
+        expectedError.item2,
+        expectedError.item3,
+        expectedError.item4,
+      );
       expect(
-          expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
-      expect(currErr.length,
-          expectedErrors[currErr.errorCode][currErr.offset].length,
-          verbose: true);
-    });
+        realErrors.contains(currentExpectedError),
+        true,
+        reason: 'Expected error code ${expectedError.item3} never occurs at '
+            'location ${offset} of length ${expectedError.item2}.',
+      );
+      expect(realErrors.length, expectedErrors.length,
+          reason: 'Expected error counts do not  match.');
+    }
   }
 }
 

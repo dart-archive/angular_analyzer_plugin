@@ -8,6 +8,7 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -15,7 +16,6 @@ import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
 import 'package:angular_analyzer_plugin/src/directive_linking.dart';
-import 'package:html/dom.dart' as html;
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
@@ -53,11 +53,13 @@ class AngularParseHtmlTest extends AbstractAngularTest {
     expect(tplParser.parseErrors, isEmpty);
     // HTML_DOCUMENT
     {
-      html.Document document = tplParser.document;
-      expect(document, isNotNull);
+      var asts = tplParser.rawAst;
+      expect(asts, isNotNull);
       // verify that attributes are not lower-cased
-      html.Element element = document.body.getElementsByTagName('h1').single;
-      expect(element.attributes['myAttr'], 'my value');
+      ElementAst element = asts[1].childNodes[3].childNodes[1];
+      expect(element.attributes.length, 1);
+      expect(element.attributes[0].name, 'myAttr');
+      expect(element.attributes[0].value, 'my value');
     }
   }
 
@@ -72,20 +74,11 @@ class AngularParseHtmlTest extends AbstractAngularTest {
     tplParser.parse(code, source);
     // validate Document
     {
-      html.Document document = tplParser.document;
-      expect(document, isNotNull);
-      // artificial <html>
-      expect(document.nodes, hasLength(1));
-      html.Element htmlElement = document.nodes[0];
-      expect(htmlElement.localName, 'html');
-      // artificial <body>
-      expect(htmlElement.nodes, hasLength(2));
-      html.Element bodyElement = htmlElement.nodes[1];
-      expect(bodyElement.localName, 'body');
-      // actual nodes
-      expect(bodyElement.nodes, hasLength(4));
-      expect((bodyElement.nodes[0] as html.Element).localName, 'div');
-      expect((bodyElement.nodes[2] as html.Element).localName, 'span');
+      List<StandaloneTemplateAst> asts = tplParser.rawAst;
+      expect(asts, isNotNull);
+      expect(asts.length, 4);
+      expect((asts[0] as ElementAst).name, 'div');
+      expect((asts[2] as ElementAst).name, 'span');
     }
     // it's OK to don't have DOCTYPE
     expect(tplParser.parseErrors, isEmpty);
@@ -102,14 +95,12 @@ class AngularParseHtmlTest extends AbstractAngularTest {
     tplParser.parse(code, source);
     // quick validate Document
     {
-      html.Document document = tplParser.document;
-      expect(document, isNotNull);
-      html.Element htmlElement = document.nodes[0];
-      html.Element bodyElement = htmlElement.nodes[1];
-      expect(bodyElement.nodes, hasLength(5));
-      expect((bodyElement.nodes[0] as html.Element).localName, 'div');
-      expect((bodyElement.nodes[2] as html.Element).localName, 'span');
-      expect((bodyElement.nodes[4] as html.Element).localName, 'di');
+      List<StandaloneTemplateAst> asts = tplParser.rawAst;
+      expect(asts, isNotNull);
+      expect(asts.length, 5);
+      expect((asts[0] as ElementAst).name, 'div');
+      expect((asts[2] as ElementAst).name, 'span');
+      expect((asts[4] as ElementAst).name, 'di');
     }
   }
 }
@@ -1973,7 +1964,10 @@ class TextPanel {
     Source source = newSource('/test.dart', code);
     await getDirectives(source);
     // has errors
-    errorListener.assertErrorsWithCodes([HtmlErrorCode.PARSE_ERROR]);
+    errorListener.assertErrorsWithCodes([
+      NgParserWarningCode.DANGLING_CLOSE_ELEMENT,
+      NgParserWarningCode.CANNOT_FIND_MATCHING_CLOSE,
+    ]);
   }
 
   Future test_input_OK_event() async {
@@ -2170,7 +2164,7 @@ class TextPanel {
     String code = r'''
 import '/angular2/angular2.dart';
 
-@Component(selector: 'text-panel', template: r"<div> {{text </div>")
+@Component(selector: 'text-panel', template: r"{{text")
 class TextPanel {
   String text = "text";
 }
@@ -2188,6 +2182,7 @@ import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panel', template: r"<div> text}} </div>")
 class TextPanel {
+  String text;
 }
 ''';
     Source source = newSource('/test.dart', code);
@@ -2229,7 +2224,7 @@ class TextPanel {
       AngularWarningCode.UNTERMINATED_MUSTACHE,
       StaticWarningCode.UNDEFINED_IDENTIFIER,
       AngularWarningCode.UNOPENED_MUSTACHE,
-      AngularWarningCode.UNOPENED_MUSTACHE
+      AngularWarningCode.UNOPENED_MUSTACHE,
     ]);
   }
 
@@ -2279,7 +2274,7 @@ class TextPanel {
     errorListener.assertNoErrors();
   }
 
-  Future test_resolveGetChildDirectivesNgContentSelectors() async {
+  Future test_resolveGetChildDirectivesNgContentSelectors_in_template() async {
     String code = r'''
 import '/angular2/angular2.dart';
 import 'child_file.dart';

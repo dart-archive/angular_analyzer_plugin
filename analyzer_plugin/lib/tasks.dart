@@ -2,6 +2,7 @@ library angular2.src.analysis.analyzer_plugin.tasks;
 
 import 'dart:collection';
 import 'package:analyzer/error/error.dart';
+import 'package:angular_ast/angular_ast.dart';
 
 // used by angularWarningCodeByUniqueName to create a map for fast lookup
 const List<AngularWarningCode> _angularWarningCodeValues = const [
@@ -40,26 +41,28 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
   AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
-  AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
 ];
 
 /**
  * The lazy initialized map from [AngularWarningCode.uniqueName] to the
- * [AngularWarningCode] instance.
+ * [ErrorCode] instance.
  */
-HashMap<String, AngularWarningCode> _uniqueNameToCodeMap;
+HashMap<String, ErrorCode> _uniqueNameToCodeMap;
 
 /**
  * Return the [AngularWarningCode] with the given [uniqueName], or `null` if not
  * found.
  */
-AngularWarningCode angularWarningCodeByUniqueName(String uniqueName) {
+ErrorCode angularWarningCodeByUniqueName(String uniqueName) {
   if (_uniqueNameToCodeMap == null) {
     _uniqueNameToCodeMap = new HashMap<String, AngularWarningCode>();
     for (AngularWarningCode angularCode in _angularWarningCodeValues) {
       _uniqueNameToCodeMap[angularCode.uniqueName] = angularCode;
+    }
+    for (NgParserWarningCode angularAstCode in angularAstWarningCodes) {
+      _uniqueNameToCodeMap[angularAstCode.uniqueName] = angularAstCode;
     }
   }
   return _uniqueNameToCodeMap[uniqueName];
@@ -371,16 +374,6 @@ class AngularWarningCode extends ErrorCode {
           'CONTENT_NOT_TRANSCLUDED',
           "The content does not match any transclusion selectors of the" +
               " surrounding component");
-
-  /**
-   * An error code indicating that an <ng-content> tag had content, which is not
-   * allowed.
-   */
-  static const AngularWarningCode NG_CONTENT_MUST_BE_EMPTY =
-      const AngularWarningCode(
-          'NG_CONTENT_MUST_BE_EMPTY',
-          "Nothing is allowed inside an <ng-content> tag, as it will be" +
-              " replaced");
 
   /**
    * Initialize a newly created error code to have the given [name].
