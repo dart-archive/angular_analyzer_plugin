@@ -26,6 +26,7 @@ import 'mock_sdk.dart';
 
 main() {
   defineReflectiveSuite(() {
+    // TODO get these working again in the latest SDK
     //defineReflectiveTests(AngularNavigationContributorTest);
     //defineReflectiveTests(AngularOccurrencesContributorTest);
     defineReflectiveTests(EmptyTest);
