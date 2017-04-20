@@ -5,8 +5,9 @@ import 'package:unittest/unittest.dart';
 import 'package:typed_mock/typed_mock.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(FileTrackerTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(FileTrackerTest);
+  });
 }
 
 @reflectiveTest

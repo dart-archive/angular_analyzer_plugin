@@ -25,7 +25,6 @@ import 'package:angular_analyzer_plugin/src/summary/idl.dart';
 import 'package:angular_analyzer_plugin/src/summary/format.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/src/generated/engine.dart';
-import 'package:tuple/tuple.dart';
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:crypto/crypto.dart';
 

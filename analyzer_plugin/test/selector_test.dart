@@ -8,17 +8,18 @@ import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(AndSelectorTest);
-  defineReflectiveTests(AttributeSelectorTest);
-  defineReflectiveTests(ClassSelectorTest);
-  defineReflectiveTests(ElementNameSelectorTest);
-  defineReflectiveTests(OrSelectorTest);
-  defineReflectiveTests(NotSelectorTest);
-  defineReflectiveTests(AttributeValueRegexSelectorTest);
-  defineReflectiveTests(SelectorParserTest);
-  defineReflectiveTests(SuggestTagsTest);
-  defineReflectiveTests(HtmlTagForSelectorTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(AndSelectorTest);
+    defineReflectiveTests(AttributeSelectorTest);
+    defineReflectiveTests(ClassSelectorTest);
+    defineReflectiveTests(ElementNameSelectorTest);
+    defineReflectiveTests(OrSelectorTest);
+    defineReflectiveTests(NotSelectorTest);
+    defineReflectiveTests(AttributeValueRegexSelectorTest);
+    defineReflectiveTests(SelectorParserTest);
+    defineReflectiveTests(SuggestTagsTest);
+    defineReflectiveTests(HtmlTagForSelectorTest);
+  });
 }
 
 @reflectiveTest

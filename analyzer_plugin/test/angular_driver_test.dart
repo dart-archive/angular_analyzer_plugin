@@ -22,14 +22,15 @@ import 'package:unittest/unittest.dart';
 import 'abstract_angular.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(AngularParseHtmlTest);
-  defineReflectiveTests(BuildStandardHtmlComponentsTest);
-  defineReflectiveTests(BuildUnitDirectivesTest);
-  defineReflectiveTests(BuildUnitViewsTest);
-  defineReflectiveTests(ResolveDartTemplatesTest);
-  defineReflectiveTests(ResolveHtmlTemplatesTest);
-  defineReflectiveTests(ResolveHtmlTemplateTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(AngularParseHtmlTest);
+    defineReflectiveTests(BuildStandardHtmlComponentsTest);
+    defineReflectiveTests(BuildUnitDirectivesTest);
+    defineReflectiveTests(BuildUnitViewsTest);
+    defineReflectiveTests(ResolveDartTemplatesTest);
+    defineReflectiveTests(ResolveHtmlTemplatesTest);
+    defineReflectiveTests(ResolveHtmlTemplateTest);
+  });
 }
 
 @reflectiveTest
@@ -2487,7 +2488,7 @@ class ComponentA {
 }
 ''';
     Source dartSource = newSource('/weird.dart', code);
-    Soruce htmlSource =
+    Source htmlSource =
         newSource('/test.html', "<unresolved-tag></unresolved-tag>");
     await getDirectives(htmlSource, dartSource);
     final errors = errorListener.errors;

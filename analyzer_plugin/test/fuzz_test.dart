@@ -9,8 +9,9 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'abstract_angular.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(FuzzTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(FuzzTest);
+  });
 }
 
 @reflectiveTest
@@ -589,7 +590,7 @@ class CounterComponent {
         if (directive is Component &&
             directive.view?.templateUriSource?.fullName == '/test.html') {
           try {
-            await angularDriver.resolveHtml('/test.html', '/test.dart');
+            await angularDriver.resolveHtml('/test.html');
           } catch (e, stacktrace) {
             print("ResolveHtml failed\n$reason\n$e\n$stacktrace");
           }
