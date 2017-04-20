@@ -16,8 +16,9 @@ import 'abstract_angular.dart';
 import 'element_assert.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(TemplateResolverTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(TemplateResolverTest);
+  });
 }
 
 void assertPropertyElement(AngularElement element,

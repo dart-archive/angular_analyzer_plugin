@@ -4,6 +4,6 @@ description: What we need that the sdk doesn't provide
 dependencies:
   tuple: '^1.0.1'
 dev_dependencies:
-  test_reflective_loader: '^0.0.3'
+  test_reflective_loader: '^0.1.0'
   typed_mock: '^0.0.4'
   unittest: '^0.11.0'
