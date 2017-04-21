@@ -204,6 +204,8 @@ abstract class NodeInfo extends AngularAstNode {
 }
 
 /**
+<<<<<<< HEAD
+=======
  * An AngularAstNode which has directives, such as [ElementInfo] and
  * [TemplateAttribute]. Contains an array of [DirectiveBinding]s because those
  * contain more info than just the bound directive.
@@ -266,6 +268,7 @@ class OutputBinding {
 }
 
 /**
+>>>>>>> origin/master
  * A text node in an HTML tree.
  */
 class TextInfo extends NodeInfo {
