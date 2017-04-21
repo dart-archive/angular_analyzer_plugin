@@ -12,7 +12,7 @@ echo
 cd ..
 
 echo Copying and transforming sdk .packages to be useful to this repo
-cat deps/sdk/.packages | grep -v '^test' | grep -v '^typed_mock' | grep -v '^unittest' | sed 's/:/:deps\/sdk\//' > .packages
+cat deps/sdk/.packages | grep -v '^typed_mock' | grep -v '^unittest' | grep -v '^test_reflective_loader' | sed 's/:/:deps\/sdk\//' > .packages
 echo done
 echo
 

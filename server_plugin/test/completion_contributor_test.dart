@@ -7,7 +7,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'completion_contributor_test_util.dart';
 
 main() {
-  groupSep = ' | ';
+  // TODO: get these working again on the latest SDK
   //defineReflectiveTests(DartCompletionContributorTest);
   //defineReflectiveTests(HtmlCompletionContributorTest);
 }

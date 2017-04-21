@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:analyzer/error/error.dart';
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -64,6 +67,6 @@ class Starter {
       }
     }
 
-    send(null, null, null);
+    sendFn(null, null, null);
   }
 }

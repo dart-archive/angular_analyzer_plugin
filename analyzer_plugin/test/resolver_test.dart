@@ -18,8 +18,9 @@ import 'abstract_angular.dart';
 import 'element_assert.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(TemplateResolverTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(TemplateResolverTest);
+  });
 }
 
 void assertPropertyElement(AngularElement element,
@@ -285,21 +286,22 @@ class TitleComponent {
         "titleInput");
   }
 
-  Future test_expression_inputBinding_global_asString_typeError() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [], templateUrl: 'test_panel.html')
-class TestPanel {
-}
-''');
-    var code = r"""
-<div hidden="string binding"></div>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID, code, "hidden");
-  }
+// DISABLED for #280 until we better know how to validate this case
+//  Future test_expression_inputBinding_global_asString_typeError() async {
+//    _addDartSource(r'''
+//@Component(selector: 'test-panel',
+//    directives: const [], templateUrl: 'test_panel.html')
+//class TestPanel {
+//}
+//''');
+//    var code = r"""
+//<div hidden="string binding"></div>
+//""";
+//    _addHtmlSource(code);
+//    await _resolveSingleTemplate(dartSource);
+//    assertErrorInCodeAtPosition(
+//        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID, code, "hidden");
+//  }
 
   Future test_expression_inputBinding_noValue() async {
     _addDartSource(r'''

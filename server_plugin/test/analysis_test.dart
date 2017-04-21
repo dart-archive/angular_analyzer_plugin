@@ -25,10 +25,12 @@ import 'package:unittest/unittest.dart';
 import 'mock_sdk.dart';
 
 main() {
-  groupSep = ' | ';
-  //defineReflectiveTests(AngularNavigationContributorTest);
-  //defineReflectiveTests(AngularOccurrencesContributorTest);
-  defineReflectiveTests(EmptyTest);
+  defineReflectiveSuite(() {
+    // TODO get these working again in the latest SDK
+    //defineReflectiveTests(AngularNavigationContributorTest);
+    //defineReflectiveTests(AngularOccurrencesContributorTest);
+    defineReflectiveTests(EmptyTest);
+  });
 }
 
 @reflectiveTest
