@@ -1085,6 +1085,67 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
   }
 
+  /**
+   * Resolve input-bound values of [attributes] as strings, if they match. Note,
+   * this does not report an error un unmatched attributes, but it will report
+   * the range, and ensure that input bindings are string-assingable.
+   */
+  void visitTextAttr(TextAttribute attribute) {
+    for (DirectiveBinding directiveBinding
+        in attribute.parent.boundDirectives) {
+      for (InputElement input in directiveBinding.boundDirective.inputs) {
+        if (input.name == attribute.name) {
+          var inputType = input.setterType;
+
+          if (!typeProvider.stringType.isAssignableTo(inputType)) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+                [input.name]));
+          }
+
+          SourceRange range =
+              new SourceRange(attribute.nameOffset, attribute.name.length);
+          template.addRange(range, input);
+          directiveBinding.inputBindings
+              .add(new InputBinding(input, attribute));
+        }
+      }
+
+      for (AngularElement elem in directiveBinding.boundDirective.attributes) {
+        if (elem.name == attribute.name) {
+          SourceRange range =
+              new SourceRange(attribute.nameOffset, attribute.name.length);
+          template.addRange(range, elem);
+        }
+      }
+    }
+
+    InputElement standardHtmlAttribute = standardHtmlAttributes[attribute.name];
+    if (standardHtmlAttribute != null) {
+      var inputType = standardHtmlAttribute.setterType;
+      if (!typeProvider.stringType.isAssignableTo(inputType)) {
+        errorListener.onError(new AnalysisError(
+            templateSource,
+            attribute.nameOffset,
+            attribute.name.length,
+            AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+            [attribute.name]));
+      }
+
+      SourceRange range =
+          new SourceRange(attribute.nameOffset, attribute.name.length);
+      template.addRange(range, standardHtmlAttribute);
+      attribute.parent.boundStandardInputs
+          .add(new InputBinding(standardHtmlAttribute, attribute));
+    }
+
+    // visit mustaches inside
+    super.visitTextAttr(attribute);
+  }
+
   void _typecheckMatchingInput(
       ExpressionBoundAttribute attr, InputElement input) {
     // half-complete-code case: ensure the expression is actually there

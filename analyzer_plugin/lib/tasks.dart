@@ -43,6 +43,8 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
+  AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
+  AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID
 ];
 
 /**
@@ -374,6 +376,35 @@ class AngularWarningCode extends ErrorCode {
           'CONTENT_NOT_TRANSCLUDED',
           "The content does not match any transclusion selectors of the" +
               " surrounding component");
+
+  /**
+   * An error code indicating that an <ng-content> tag had content, which is not
+   * allowed.
+   */
+  static const AngularWarningCode NG_CONTENT_MUST_BE_EMPTY =
+      const AngularWarningCode(
+          'NG_CONTENT_MUST_BE_EMPTY',
+          "Nothing is allowed inside an <ng-content> tag, as it will be" +
+              " replaced");
+
+  /**
+   * An error code indicating that a constructor parameter was marked with
+   * @Attribute, but the argument wasn't of type string.
+   */
+  static const AngularWarningCode ATTRIBUTE_PARAMETER_MUST_BE_STRING =
+      const AngularWarningCode('ATTRIBUTE_PARAMETER_MUST_BE_STRING',
+          "Parameters marked with @Attribute must be of type String");
+
+  /**
+   * An error code indicating that an input binding was used in string form, ie,
+   * `x="y"` rather than `[x]="y"`, where input x is not a string input.
+   */
+  static const AngularWarningCode STRING_STYLE_INPUT_BINDING_INVALID =
+      const AngularWarningCode(
+          'STRING_STYLE_INPUT_BINDING_INVALID',
+          "Input {0} is not a string input, but is not bound with [bracket] "
+          "syntax. This binds the String attribute value directly, resulting "
+          "in a type error.");
 
   /**
    * Initialize a newly created error code to have the given [name].
