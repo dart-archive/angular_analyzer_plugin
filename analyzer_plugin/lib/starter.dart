@@ -5,6 +5,13 @@ import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
+import 'package:analysis_server/plugin/protocol/protocol.dart'
+    show Request, CompletionGetSuggestionsParams;
+import 'package:analysis_server/src/provisional/completion/completion_core.dart';
+import 'package:analysis_server/src/services/completion/completion_core.dart';
+import 'package:analysis_server/src/services/completion/completion_performance.dart';
+import 'package:angular_analyzer_server_plugin/src/completion.dart';
+import 'package:analyzer/src/source/source_resource.dart';
 
 class Starter {
   final angularDrivers = <String, AngularDriver>{};
@@ -15,6 +22,7 @@ class Starter {
     ContextBuilder.onCreateAnalysisDriver = onCreateAnalysisDriver;
     server.onResultErrorSupplementor = sumErrors;
     server.onNoAnalysisResult = sendHtmlResult;
+    server.onAngularCompletion = sendAngularCompletions;
   }
 
   void onCreateAnalysisDriver(
@@ -68,5 +76,46 @@ class Starter {
     }
 
     sendFn(null, null, null);
+  }
+
+  Future sendAngularCompletions(Request request, CompletionGetSuggestionsParams params, CompletionPerformance performance) async {
+    var filePath = (request.toJson()['params'] as Map)['file'];
+    var source = new FileSource(server.resourceProvider.getFile(filePath), filePath);
+//    var filePath = request.source.toString();
+    if (server.contextManager.isInAnalysisRoot(filePath)) {
+      for (final driverPath in angularDrivers.keys) {
+        if (server.contextManager
+            .getContextFolderFor(filePath)
+            .path == driverPath) {
+          final driver = angularDrivers[driverPath];
+          var template = await driver.getTemplateForHtml(filePath);
+          if (template != null) {
+            CompletionRequestImpl completionRequest = new CompletionRequestImpl(
+                null,
+                null,
+                server.resourceProvider,
+                server.searchEngine,
+                source,
+                params.offset,
+                performance,
+                server.ideOptions);
+            var completer = new TemplateCompleter();
+            var templates = [template];
+            var suggestions = await completer.computeSuggestions(
+                completionRequest,
+                templates,
+                driver.standardHtml.events.values,
+                driver.standardHtml.attributes.values,
+            );
+            var asdf = 5;
+          }
+          // var try1 = await driver.getHtmlNgContent(filePath);
+          var xx = 'hello';
+        }
+      }
+    }
+    var a = 5;
+    var b = 2;
+    var c = a + b;
   }
 }

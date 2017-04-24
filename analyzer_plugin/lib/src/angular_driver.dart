@@ -285,11 +285,11 @@ class AngularDriver
             source.exists() ? source.contents.data : "")(getSource(path));
   }
 
-  Future<DirectivesResult> resolveHtml(String htmlPath) async {
+  Future<DirectivesResult> resolveHtml(String htmlPath, {bool ignoreCache: false,}) async {
     final key = getHtmlKey(htmlPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
     final List<int> bytes = byteStore.get(key);
-    if (bytes != null) {
+    if (!ignoreCache && bytes != null) {
       final summary = new LinkedHtmlSummary.fromBuffer(bytes);
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
@@ -319,6 +319,26 @@ class AngularDriver
     byteStore.put(key, newBytes);
 
     return result;
+  }
+
+  Future<Template> getTemplateForHtml(String htmlPath) async {
+    var dartPaths = _fileTracker.getDartPathsReferencingHtml(htmlPath);
+    for (final dartContext in dartPaths) {
+      var directivesResults = await resolveHtml(htmlPath, ignoreCache: true);
+      var directives = directivesResults.directives;
+      if (directives == null){
+        continue;
+      }
+      for (var directive in directives) {
+        if (directive is Component) {
+          var view = directive.view;
+          if (view.templateUriSource?.fullName == htmlPath){
+            return view.template;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   Future<DirectivesResult> resolveHtmlFrom(
