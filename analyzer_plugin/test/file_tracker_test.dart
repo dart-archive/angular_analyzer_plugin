@@ -285,6 +285,22 @@ class FileTrackerTest {
     expect(_fileTracker.getHtmlSignature("foo.html").toHex(),
         equals(expectedSignature.toHex()));
   }
+
+  void test_minimallyRehashesHtml() {
+    ApiSignature fooHtmlSignature = new ApiSignature();
+    fooHtmlSignature.addInt(1);
+    when(_fileHasher.getContentHash("foo.html")).thenReturn(fooHtmlSignature);
+
+    for (var i = 0; i < 3; ++i) {
+      _fileTracker.getHtmlContentHash("foo.html");
+      verify(_fileHasher.getContentHash("foo.html")).once();
+    }
+
+    for (var i = 0; i < 3; ++i) {
+      _fileTracker.rehashHtmlContents("foo.html");
+      verify(_fileHasher.getContentHash("foo.html")).times(2);
+    }
+  }
 }
 
 class _FileHasherMock extends TypedMock implements FileHasher {}

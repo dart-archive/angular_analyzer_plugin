@@ -85,6 +85,8 @@ class AngularDriver
   void fileChanged(String path) {
     if (_ownsFile(path)) {
       if (path.endsWith('.html')) {
+        _fileTracker.rehashHtmlContents(path);
+
         _htmlFilesToAnalyze.add(path);
         for (final path in _fileTracker.getHtmlPathsReferencingHtml(path)) {
           _htmlFilesToAnalyze.add(path);
