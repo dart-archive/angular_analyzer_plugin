@@ -259,12 +259,12 @@ class ContentChildren extends Query {
 }
 
 class Query extends DependencyMetadata {
-  const DependencyMetadata(dynamic selector) : super(selector);
+  final dynamic /* Type | String */ selector;
+  const DependencyMetadata(this.selector) : super();
 }
 
 class DependencyMetadata {
-  final dynamic /* Type | String */ selector;
-  const DependencyMetadata(this.selector);
+  const DependencyMetadata();
 }
 
 class TemplateRef {}

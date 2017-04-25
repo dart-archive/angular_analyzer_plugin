@@ -370,6 +370,25 @@ class ContentChildLinker {
     }
   }
 
+  /**
+   * ConstantValue.getField() doesn't look up the inheritance tree. Rather than
+   * hardcoding the inheritance tree in our code, look up the inheritance tree
+   * until either it ends, or we find a "selector" field.
+   */
+  DartObject getSelectorWithInheritance(DartObject value) {
+    var selector = value.getField("selector");
+    if (selector != null) {
+      return selector;
+    }
+
+    var _super = value.getField("(super)");
+    if (_super != null) {
+      return getSelectorWithInheritance(_super);
+    }
+
+    return null;
+  }
+
   Future recordContentChildOrChildren(
       ContentChildField field,
       LibraryElement library,
@@ -389,11 +408,7 @@ class ContentChildLinker {
         annotation.element?.enclosingElement?.name == annotationName);
 
     // constantValue.getField() doesn't do inheritance. Do that ourself.
-    final value = annotation
-        .computeConstantValue() // ContentChild
-        .getField("(super)") // extends Query
-        ?.getField("(super)") // extends DependencyMetadata
-        ?.getField("selector"); // which has field selector
+    final value = getSelectorWithInheritance(annotation.computeConstantValue());
     if (value?.toStringValue() != null) {
       final setterType = transformSetterTypeFn(
           bindingSynthesizer.getSetterType(member), field, annotationName);
