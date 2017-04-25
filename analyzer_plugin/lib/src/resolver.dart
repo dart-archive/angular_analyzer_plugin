@@ -745,7 +745,9 @@ class DirectiveResolver extends AngularAstVisitor {
           element.tagMatchedAsDirective = true;
         }
 
-        if (!(directive is Component && directive.isHtml)) {
+        // optimization: only add the bindings that care about content child
+        if (directive.contentChilds.isNotEmpty ||
+            directive.contentChildren.isNotEmpty) {
           outerBindings.add(binding);
         }
       }
