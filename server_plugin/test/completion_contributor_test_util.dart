@@ -106,8 +106,8 @@ abstract class AbstractCompletionContributorTest
     context.analysisPriorityOrder = [testSource];
     CompletionRequestImpl request = new CompletionRequestImpl(
       null,
+      context,
       null,
-      resourceProvider,
       searchEngine,
       testSource,
       completionOffset,
