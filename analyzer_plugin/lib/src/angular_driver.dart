@@ -285,7 +285,10 @@ class AngularDriver
             source.exists() ? source.contents.data : "")(getSource(path));
   }
 
-  Future<DirectivesResult> resolveHtml(String htmlPath, {bool ignoreCache: false,}) async {
+  Future<DirectivesResult> resolveHtml(
+    String htmlPath, {
+    bool ignoreCache: false,
+  }) async {
     final key = getHtmlKey(htmlPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
     final List<int> bytes = byteStore.get(key);
@@ -321,20 +324,30 @@ class AngularDriver
     return result;
   }
 
-  Future<Template> getTemplateForHtml(String htmlPath) async {
-    var dartPaths = _fileTracker.getDartPathsReferencingHtml(htmlPath);
-    for (final dartContext in dartPaths) {
-      var directivesResults = await resolveHtml(htmlPath, ignoreCache: true);
-      var directives = directivesResults.directives;
-      if (directives == null){
-        continue;
-      }
-      for (var directive in directives) {
-        if (directive is Component) {
-          var view = directive.view;
-          if (view.templateUriSource?.fullName == htmlPath){
-            return view.template;
-          }
+  Future<Template> getTemplateForFile(String filePath) async {
+    var isDartFile = filePath.endsWith('.dart');
+    if (!isDartFile && !filePath.endsWith('.html')) {
+      return null;
+    }
+    var directiveResults = isDartFile
+        ? await resolveDart(
+            filePath,
+            withDirectives: true,
+            onlyIfChangedSignature: false,
+          )
+        : await resolveHtml(filePath, ignoreCache: true);
+    var directives = directiveResults.directives;
+    if (directives == null) {
+      return null;
+    }
+    for (var directive in directives) {
+      if (directive is Component) {
+        var view = directive.view;
+        var match = isDartFile
+            ? view.source.toString() == filePath
+            : view.templateUriSource?.fullName == filePath;
+        if (match) {
+          return view.template;
         }
       }
     }

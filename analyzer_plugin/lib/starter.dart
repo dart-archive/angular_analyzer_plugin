@@ -6,12 +6,15 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart'
-    show Request, CompletionGetSuggestionsParams;
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
+    show
+        Request,
+        CompletionGetSuggestionsParams,
+        CompletionGetSuggestionsResult;
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer/src/source/source_resource.dart';
+import 'package:analysis_server/src/domain_completion.dart';
 
 class Starter {
   final angularDrivers = <String, AngularDriver>{};
@@ -22,7 +25,8 @@ class Starter {
     ContextBuilder.onCreateAnalysisDriver = onCreateAnalysisDriver;
     server.onResultErrorSupplementor = sumErrors;
     server.onNoAnalysisResult = sendHtmlResult;
-    server.onAngularCompletion = sendAngularCompletions;
+    server.onNoAnalysisCompletion = sendAngularCompletions;
+    server.angularContributor = sendAngularContributor;
   }
 
   void onCreateAnalysisDriver(
@@ -78,18 +82,46 @@ class Starter {
     sendFn(null, null, null);
   }
 
-  Future sendAngularCompletions(Request request, CompletionGetSuggestionsParams params, CompletionPerformance performance) async {
-    var filePath = (request.toJson()['params'] as Map)['file'];
-    var source = new FileSource(server.resourceProvider.getFile(filePath), filePath);
-//    var filePath = request.source.toString();
+  Future<AngularDartCompletionContributor> sendAngularContributor(
+      CompletionRequestImpl request) async {
+    var filePath = request.result.path;
     if (server.contextManager.isInAnalysisRoot(filePath)) {
       for (final driverPath in angularDrivers.keys) {
-        if (server.contextManager
-            .getContextFolderFor(filePath)
-            .path == driverPath) {
+        if (server.contextManager.getContextFolderFor(filePath).path ==
+            driverPath) {
           final driver = angularDrivers[driverPath];
-          var template = await driver.getTemplateForHtml(filePath);
+          var template = await driver.getTemplateForFile(filePath);
           if (template != null) {
+            return new AngularDartCompletionContributor(
+              [template],
+              driver.standardHtml.events.values,
+              driver.standardHtml.attributes.values,
+            );
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  Future sendAngularCompletions(
+    Request request,
+    CompletionDomainHandler completionHandler,
+    CompletionGetSuggestionsParams params,
+    CompletionPerformance performance,
+    String completionId,
+  ) async {
+    var filePath = (request.toJson()['params'] as Map)['file'];
+    var source =
+        new FileSource(server.resourceProvider.getFile(filePath), filePath);
+    if (server.contextManager.isInAnalysisRoot(filePath)) {
+      for (final driverPath in angularDrivers.keys) {
+        if (server.contextManager.getContextFolderFor(filePath).path ==
+            driverPath) {
+          final driver = angularDrivers[driverPath];
+          var template = await driver.getTemplateForFile(filePath);
+          if (template != null) {
+            // TODO: Add performance measuring.
             CompletionRequestImpl completionRequest = new CompletionRequestImpl(
                 null,
                 null,
@@ -99,23 +131,27 @@ class Starter {
                 params.offset,
                 performance,
                 server.ideOptions);
+            completionHandler.setNewRequest(completionRequest);
             var completer = new TemplateCompleter();
             var templates = [template];
-            var suggestions = await completer.computeSuggestions(
-                completionRequest,
-                templates,
-                driver.standardHtml.events.values,
-                driver.standardHtml.attributes.values,
+            server.sendResponse(new CompletionGetSuggestionsResult(completionId)
+                .toResponse(request.id));
+            var completionResult = await completer.computeSuggestions(
+              completionRequest,
+              templates,
+              driver.standardHtml.events.values,
+              driver.standardHtml.attributes.values,
             );
-            var asdf = 5;
+            completionHandler.sendCompletionNotification(
+              completionId,
+              completionResult.replacementOffset,
+              completionResult.replacementLength,
+              completionResult.suggestions,
+            );
+            completionHandler.ifMatchesRequestClear(completionRequest);
           }
-          // var try1 = await driver.getHtmlNgContent(filePath);
-          var xx = 'hello';
         }
       }
     }
-    var a = 5;
-    var b = 2;
-    var c = a + b;
   }
 }

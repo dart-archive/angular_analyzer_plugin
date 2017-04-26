@@ -19,8 +19,11 @@ import 'package:analysis_server/src/services/completion/dart/completion_manager.
     show DartCompletionRequestImpl;
 import 'package:analysis_server/src/services/index/index.dart';
 import 'package:analysis_server/src/services/search/search_engine_internal.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart'
+    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/task/dart.dart';
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
@@ -103,8 +106,8 @@ abstract class AbstractCompletionContributorTest
     context.analysisPriorityOrder = [testSource];
     CompletionRequestImpl request = new CompletionRequestImpl(
       null,
-      context,
       null,
+      resourceProvider,
       searchEngine,
       testSource,
       completionOffset,

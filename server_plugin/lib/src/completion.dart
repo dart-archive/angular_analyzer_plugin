@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:analysis_server/src/domain_completion.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
     show Element, ElementKind;
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
@@ -198,19 +199,26 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 }
 
 class AngularDartCompletionContributor extends CompletionContributor {
+  final List<Template> templates;
+  final List<OutputElement> standardHtmlEvents;
+  final List<InputElement> standardHtmlAttributes;
+
+  AngularDartCompletionContributor(
+    this.templates,
+    this.standardHtmlEvents,
+    this.standardHtmlAttributes,
+  );
+
   /**
    * Return a [Future] that completes with a list of suggestions
    * for the given completion [request].
    */
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request) async {
-    if (!request.source.shortName.endsWith('.dart')) {
-      return [];
-    }
-
-    //return new TemplateCompleter().computeSuggestions(
-    //    request, templates, standardHtmlEvents, standardHtmlAttributes);
-    return [];
+    var templateCompleter = new TemplateCompleter();
+    var completionResult = await templateCompleter.computeSuggestions(
+        request, templates, standardHtmlEvents, standardHtmlAttributes);
+    return completionResult.suggestions;
   }
 }
 
@@ -234,7 +242,7 @@ class AngularTemplateCompletionContributor extends CompletionContributor {
 class TemplateCompleter {
   static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
 
-  Future<List<CompletionSuggestion>> computeSuggestions(
+  Future<CompletionResult> computeSuggestions(
       CompletionRequest request,
       List<Template> templates,
       List<OutputElement> standardHtmlEvents,
@@ -348,7 +356,11 @@ class TemplateCompleter {
       }
     }
 
-    return suggestions;
+    return new CompletionResult(
+      (request as CompletionRequestImpl).offset,
+      (request as CompletionRequestImpl).replacementLength,
+      suggestions,
+    );
   }
 
   suggestTransclusions(
