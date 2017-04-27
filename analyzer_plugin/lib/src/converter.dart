@@ -7,52 +7,92 @@ import 'package:analyzer/src/dart/ast/token.dart' hide SimpleToken;
 import 'package:analyzer/src/dart/scanner/reader.dart';
 import 'package:analyzer/src/dart/scanner/scanner.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
-import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
-import 'package:html/dom.dart' as html;
-import 'package:html/parser.dart' as html;
-import 'package:source_span/source_span.dart';
 
-html.Element firstElement(html.Node node) {
-  for (html.Element child in node.children) {
-    if (child is html.Element) {
-      return child;
-    }
-  }
-  return null;
-}
+import 'package:meta/meta.dart';
 
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
   final Source templateSource;
   final AnalysisErrorListener errorListener;
 
+  // Following Angular2 Logic:
+  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
+  static const attrToPropMap = const {
+    'class': 'className',
+    'innerHtml': 'innerHTML',
+    'readonly': 'readOnly',
+    'tabindex': 'tabIndex',
+  };
+
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
-  NodeInfo convert(html.Node node, {ElementInfo parent}) {
-    if (node is html.Element) {
-      String localName = node.localName;
-      List<AttributeInfo> attributes = _convertAttributes(node);
-      bool isTemplate = localName == 'template';
-      SourceRange openingSpan = _toSourceRange(node.sourceSpan);
-      SourceRange closingSpan = _toSourceRange(node.endSourceSpan);
-      SourceRange openingNameSpan = openingSpan != null
-          ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
-          : null;
-      SourceRange closingNameSpan = closingSpan != null
-          ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
-          : null;
+  DocumentInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
+    DocumentInfo root = new DocumentInfo();
+    if (asts.isEmpty) {
+      root.childNodes.add(new TextInfo(0, '', root, []));
+    }
+    for (StandaloneTemplateAst node in asts) {
+      var convertedNode = convert(node, parent: root);
+      if (convertedNode != null) {
+        root.childNodes.add(convertedNode);
+      }
+    }
+    return root;
+  }
+
+  NodeInfo convert(
+    StandaloneTemplateAst node, {
+    @required ElementInfo parent,
+  }) {
+    if (node is ElementAst) {
+      String localName = node.name;
+      List<AttributeInfo> attributes = _convertAttributes(
+        attributes: node.attributes,
+        bananas: node.bananas,
+        events: node.events,
+        properties: node.properties,
+        references: node.references,
+        stars: node.stars,
+      );
+      attributes.sort((a, b) => a.offset.compareTo(b.offset));
+      final closeComponent = node.closeComplement;
+      SourceRange openingSpan;
+      SourceRange openingNameSpan;
+      SourceRange closingSpan;
+      SourceRange closingNameSpan;
+
+      if (node.isSynthetic) {
+        openingSpan = _toSourceRange(closeComponent.beginToken.offset, 0);
+        openingNameSpan = openingSpan;
+      } else {
+        openingSpan = _toSourceRange(
+            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+        openingNameSpan = new SourceRange(
+            (node as ParsedElementAst).identifierToken.offset,
+            (node as ParsedElementAst).identifierToken.lexeme.length);
+      }
+      // Check for void element cases (has closing complement)
+      // If closeComponent is synthetic, handle it after child nodes are found.
+      if (closeComponent != null && !closeComponent.isSynthetic) {
+        closingSpan = _toSourceRange(closeComponent.beginToken.offset,
+            closeComponent.endToken.end - closeComponent.beginToken.offset);
+        closingNameSpan =
+            new SourceRange(closingSpan.offset + '</'.length, localName.length);
+      }
+
       ElementInfo element = new ElementInfo(
           localName,
           openingSpan,
           closingSpan,
           openingNameSpan,
           closingNameSpan,
-          isTemplate,
+          false,
           attributes,
           findTemplateAttribute(attributes),
           parent);
@@ -75,98 +115,235 @@ class HtmlTreeConverter {
 
       return element;
     }
-    if (node is html.Text) {
+    if (node is EmbeddedContentAst) {
+      final localName = 'ng-content';
+      final attributes = <AttributeInfo>[];
+      final closeComplement = node.closeComplement;
+      SourceRange openingSpan;
+      SourceRange openingNameSpan;
+      SourceRange closingSpan;
+      SourceRange closingNameSpan;
+
+      if (node.isSynthetic) {
+        openingSpan = _toSourceRange(closeComplement.beginToken.offset, 0);
+        openingNameSpan = openingSpan;
+      } else {
+        openingSpan = _toSourceRange(
+            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+        openingNameSpan =
+            new SourceRange(openingSpan.offset + '<'.length, localName.length);
+        var pnode = node as ParsedEmbeddedContentAst;
+        var valueToken = pnode.selectorValueToken;
+        if (pnode.selectToken != null) {
+          attributes.add(new TextAttribute(
+            'select',
+            pnode.selectToken.offset,
+            valueToken?.innerValue?.lexeme,
+            valueToken?.innerValue?.offset,
+            [],
+          ));
+        }
+      }
+
+      if (closeComplement.isSynthetic) {
+        closingSpan = _toSourceRange(node.endToken.end, 0);
+        closingNameSpan = closingSpan;
+      } else {
+        closingSpan = _toSourceRange(closeComplement.beginToken.offset,
+            closeComplement.endToken.end - closeComplement.beginToken.offset);
+        closingNameSpan =
+            new SourceRange(closingSpan.offset + '</'.length, localName.length);
+      }
+
+      var ngContent = new ElementInfo(localName, openingSpan, closingSpan,
+          openingNameSpan, closingNameSpan, false, attributes, null, parent);
+
+      for (AttributeInfo attribute in attributes) {
+        attribute.parent = ngContent;
+      }
+
+      return ngContent;
+    }
+    if (node is EmbeddedTemplateAst) {
+      String localName = 'template';
+      List<AttributeInfo> attributes = _convertAttributes(
+        attributes: node.attributes,
+        events: node.events,
+        properties: node.properties,
+        references: node.references,
+      );
+      final closeComponent = node.closeComplement;
+      SourceRange openingSpan;
+      SourceRange openingNameSpan;
+      SourceRange closingSpan;
+      SourceRange closingNameSpan;
+
+      if (node.isSynthetic) {
+        openingSpan = _toSourceRange(closeComponent.beginToken.offset, 0);
+        openingNameSpan = openingSpan;
+      } else {
+        openingSpan = _toSourceRange(
+            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+        openingNameSpan =
+            new SourceRange(openingSpan.offset + '<'.length, localName.length);
+      }
+      // Check for void element cases (has closing complement)
+      if (closeComponent != null) {
+        if (closeComponent.isSynthetic) {
+          closingSpan = _toSourceRange(node.endToken.end, 0);
+          closingNameSpan = closingSpan;
+        } else {
+          closingSpan = _toSourceRange(closeComponent.beginToken.offset,
+              closeComponent.endToken.end - closeComponent.beginToken.offset);
+          closingNameSpan = new SourceRange(
+              closingSpan.offset + '</'.length, localName.length);
+        }
+      }
+
+      ElementInfo element = new ElementInfo(
+          localName,
+          openingSpan,
+          closingSpan,
+          openingNameSpan,
+          closingNameSpan,
+          true,
+          attributes,
+          findTemplateAttribute(attributes),
+          parent);
+
+      for (AttributeInfo attribute in attributes) {
+        attribute.parent = element;
+      }
+
+      List<NodeInfo> children = _convertChildren(node, element);
+      element.childNodes.addAll(children);
+
+      if (!element.isSynthetic &&
+          element.openingSpanIsClosed &&
+          closingSpan != null &&
+          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
+        element.childNodes.add(new TextInfo(
+            openingSpan.offset + openingSpan.length, '', element, [],
+            synthetic: true));
+      }
+
+      return element;
+    }
+    if (node is TextAst) {
       int offset = node.sourceSpan.start.offset;
-      String text = node.text;
+      String text = node.value;
+      return new TextInfo(
+          offset, text, parent, dartParser.findMustaches(text, offset));
+    }
+    if (node is InterpolationAst) {
+      int offset = node.sourceSpan.start.offset;
+      String text = '{{' + node.value + '}}';
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
     }
     return null;
   }
 
-  List<AttributeInfo> _convertAttributes(html.Element element) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-    element.attributes.forEach((name, String value) {
-      if (name is String) {
-        try {
-          if (name == "") {
-            attributes.add(_convertSyntheticAttribute(element));
-          } else if (name.startsWith('*')) {
-            attributes.add(_convertTemplateAttribute(element, name, true));
-          } else if (name == 'template') {
-            attributes.add(_convertTemplateAttribute(element, name, false));
-          } else if (name.startsWith('[(')) {
-            attributes.add(_convertExpressionBoundAttribute(
-                element, name, "[(", ")]", ExpressionBoundType.twoWay));
-          } else if (name.startsWith('[class.')) {
-            attributes.add(_convertExpressionBoundAttribute(
-                element, name, "[class.", "]", ExpressionBoundType.clazz));
-          } else if (name.startsWith('[attr.')) {
-            attributes.add(_convertExpressionBoundAttribute(
-                element, name, "[attr.", "]", ExpressionBoundType.attr));
-          } else if (name.startsWith('[style.')) {
-            attributes.add(_convertExpressionBoundAttribute(
-                element, name, "[style.", "]", ExpressionBoundType.style));
-          } else if (name.startsWith('[')) {
-            attributes.add(_convertExpressionBoundAttribute(
-                element, name, "[", "]", ExpressionBoundType.input));
-          } else if (name.startsWith('bind-')) {
-            attributes.add(_convertExpressionBoundAttribute(
-                element, name, "bind-", null, ExpressionBoundType.input));
-          } else if (name.startsWith('on-')) {
-            attributes.add(
-                _convertStatementsBoundAttribute(element, name, "on-", null));
-          } else if (name.startsWith('(')) {
-            attributes
-                .add(_convertStatementsBoundAttribute(element, name, "(", ")"));
-          } else {
-            var valueOffset = _valueOffset(element, name);
-            if (valueOffset == null) {
-              value = null;
-            }
+  List<AttributeInfo> _convertAttributes({
+    List<ParsedAttributeAst> attributes: const [],
+    List<ParsedBananaAst> bananas: const [],
+    List<ParsedEventAst> events: const [],
+    List<ParsedPropertyAst> properties: const [],
+    List<ParsedReferenceAst> references: const [],
+    List<ParsedStarAst> stars: const [],
+  }) {
+    List<AttributeInfo> returnAttributes = <AttributeInfo>[];
 
-            attributes.add(new TextAttribute(
-                name,
-                _nameOffset(element, name),
-                value,
-                valueOffset,
-                dartParser.findMustaches(value, valueOffset)));
-          }
-        } on IgnorableHtmlInternalError {
-          // See https://github.com/dart-lang/html/issues/44, this error will
-          // be thrown looking for nameOffset. Catch it so that analysis else
-          // where continues.
-          return;
+    for (ParsedAttributeAst attribute in attributes) {
+      if (attribute.name == 'template') {
+        returnAttributes.add(_convertTemplateAttribute(attribute));
+      } else {
+        String value;
+        int valueOffset;
+        if (attribute.valueToken != null) {
+          value = attribute.valueToken.innerValue.lexeme;
+          valueOffset = attribute.valueToken.innerValue.offset;
         }
+        returnAttributes.add(new TextAttribute(
+          attribute.name,
+          attribute.nameOffset,
+          value,
+          valueOffset,
+          dartParser.findMustaches(value, valueOffset),
+        ));
       }
-    });
-    return attributes;
+    }
+
+    bananas.map(_convertExpressionBoundAttribute).forEach(returnAttributes.add);
+    events.map(_convertStatementsBoundAttribute).forEach(returnAttributes.add);
+    properties
+        .map(_convertExpressionBoundAttribute)
+        .forEach(returnAttributes.add);
+
+    for (ParsedReferenceAst reference in references) {
+      String value;
+      int valueOffset;
+      if (reference.valueToken != null) {
+        value = reference.valueToken.innerValue.lexeme;
+        valueOffset = reference.valueToken.innerValue.offset;
+      }
+      returnAttributes.add(new TextAttribute(
+          reference.prefixToken.lexeme + reference.nameToken.lexeme,
+          reference.prefixToken.offset,
+          value,
+          valueOffset,
+          dartParser.findMustaches(value, valueOffset)));
+    }
+
+    stars.map(_convertTemplateAttribute).forEach(returnAttributes.add);
+
+    return returnAttributes;
   }
 
-  TextAttribute _convertSyntheticAttribute(html.Element element) {
-    FileSpan openSourceSpan = element.sourceSpan;
-    int nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
-    TextAttribute textAttribute =
-        new TextAttribute("", nameOffset, null, null, []);
-    return textAttribute;
-  }
-
-  TemplateAttribute _convertTemplateAttribute(
-      html.Element element, String origName, bool starSugar) {
-    int origNameOffset = _nameOffset(element, origName);
-    int valueOffset = _valueOffset(element, origName);
-    String value = valueOffset == null ? null : element.attributes[origName];
+  TemplateAttribute _convertTemplateAttribute(TemplateAst ast) {
     String name;
     int nameOffset;
+
+    String value;
+    int valueOffset;
+
+    String origName;
+    int origNameOffset;
+
     var virtualAttributes = [];
-    if (starSugar) {
-      nameOffset = origNameOffset + '*'.length;
-      name = _removePrefixSuffix(origName, '*', null);
-      virtualAttributes = dartParser.parseTemplateVirtualAttributes(
-          nameOffset, name + (' ' * '="'.length) + (value ?? ''));
-    } else {
+
+    if (ast is ParsedStarAst) {
+      value = ast.value;
+      valueOffset = ast.valueOffset;
+
+      origName = ast.prefixToken.lexeme + ast.nameToken.lexeme;
+      origNameOffset = ast.prefixToken.offset;
+
+      name = ast.nameToken.lexeme;
+      nameOffset = ast.nameToken.offset;
+
+      String fullAstName;
+      if (value != null) {
+        fullAstName = ast.name +
+            (' ' * (ast.valueToken.innerValue.offset - ast.nameToken.end)) +
+            (value ?? '');
+      } else {
+        fullAstName = ast.name + ' ';
+      }
+
+      virtualAttributes =
+          dartParser.parseTemplateVirtualAttributes(nameOffset, fullAstName);
+    }
+    if (ast is ParsedAttributeAst) {
+      value = ast.value;
+      valueOffset = ast.valueOffset;
+
+      origName = ast.name;
+      origNameOffset = ast.nameOffset;
+
       name = origName;
       nameOffset = origNameOffset;
+
       if (value == null || value.isEmpty) {
         errorListener.onError(new AnalysisError(templateSource, origNameOffset,
             origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
@@ -193,16 +370,28 @@ class HtmlTreeConverter {
   }
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
-      html.Element element, String origName, String prefix, String suffix) {
-    int origNameOffset = _nameOffset(element, origName);
-    int valueOffset = _valueOffset(element, origName);
-    String value = valueOffset == null ? null : element.attributes[origName];
-    if (value == null) {
+      ParsedEventAst ast) {
+    var prefixComponent =
+        (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme);
+    var suffixComponent =
+        ((ast.suffixToken == null) || ast.suffixToken.errorSynthetic)
+            ? ''
+            : ast.suffixToken.lexeme;
+    var origName = prefixComponent + ast.name + suffixComponent;
+    var origNameOffset = ast.prefixToken.offset;
+
+    var value = ast.value;
+    if ((value == null || value.isEmpty) &&
+        !ast.prefixToken.errorSynthetic &&
+        !ast.suffixToken.errorSynthetic) {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
-          origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
+          origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
     }
-    int propNameOffset = origNameOffset + prefix.length;
-    String propName = _removePrefixSuffix(origName, prefix, suffix);
+    var valueOffset = ast.valueOffset;
+
+    var propName = ast.nameToken.lexeme;
+    var propNameOffset = ast.nameToken.offset;
+
     return new StatementsBoundAttribute(
         propName,
         propNameOffset,
@@ -213,24 +402,61 @@ class HtmlTreeConverter {
         dartParser.parseDartStatements(valueOffset, value));
   }
 
-  ExpressionBoundAttribute _convertExpressionBoundAttribute(
-      html.Element element,
-      String origName,
-      String prefix,
-      String suffix,
-      ExpressionBoundType bound) {
-    int origNameOffset = _nameOffset(element, origName);
-    int valueOffset = _valueOffset(element, origName);
-    String value = valueOffset == null ? null : element.attributes[origName];
-    if (value == null || value == "") {
-      errorListener.onError(new AnalysisError(templateSource, origNameOffset,
-          origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
-      //value = value == ""
-      //    ? "null"
-      //    : value; // we've created a warning. Suppress parse error now.
+  ExpressionBoundAttribute _convertExpressionBoundAttribute(TemplateAst ast) {
+    // Default starting.
+    ExpressionBoundType bound = ExpressionBoundType.input;
+
+    var parsed = ast as ParsedDecoratorAst;
+    var origName =
+        (parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme) +
+            parsed.nameToken.lexeme +
+            ((parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
+                ? ''
+                : parsed.suffixToken.lexeme);
+    var origNameOffset = parsed.prefixToken.offset;
+
+    var propName = parsed.nameToken.lexeme;
+    var propNameOffset = parsed.nameToken.offset;
+
+    if (ast is ParsedPropertyAst) {
+      var name = ast.name;
+      if (ast.postfix != null) {
+        bool replacePropName = false;
+        if (name == 'class') {
+          bound = ExpressionBoundType.clazz;
+          replacePropName = true;
+        } else if (name == 'attr') {
+          bound = ExpressionBoundType.attr;
+          replacePropName = true;
+        } else if (name == 'style') {
+          bound = ExpressionBoundType.style;
+          replacePropName = true;
+        }
+        if (replacePropName) {
+          propName = ast.postfix + (ast.unit == null ? '' : '.${ast.unit}');
+          propNameOffset = parsed.nameToken.offset + name.length + '.'.length;
+        }
+      }
+    } else {
+      bound = ExpressionBoundType.twoWay;
     }
-    int propNameOffset = origNameOffset + prefix.length;
-    String propName = _removePrefixSuffix(origName, prefix, suffix);
+
+    var value = parsed.valueToken?.innerValue?.lexeme;
+    if ((value == null || value.isEmpty) &&
+        !parsed.prefixToken.errorSynthetic &&
+        !parsed.suffixToken.errorSynthetic) {
+      errorListener.onError(new AnalysisError(
+        templateSource,
+        origNameOffset,
+        origName.length,
+        AngularWarningCode.EMPTY_BINDING,
+        [origName],
+      ));
+    }
+    var valueOffset = parsed.valueToken?.innerValue?.offset;
+
+    propName = attrToPropMap[propName] ?? propName;
+
     return new ExpressionBoundAttribute(
         propName,
         propNameOffset,
@@ -242,9 +468,10 @@ class HtmlTreeConverter {
         bound);
   }
 
-  List<NodeInfo> _convertChildren(html.Element node, ElementInfo parent) {
+  List<NodeInfo> _convertChildren(
+      StandaloneTemplateAst node, ElementInfo parent) {
     List<NodeInfo> children = <NodeInfo>[];
-    for (html.Node child in node.nodes) {
+    for (StandaloneTemplateAst child in node.childNodes) {
       NodeInfo childNode = convert(child, parent: parent);
       if (childNode != null) {
         children.add(childNode);
@@ -259,7 +486,6 @@ class HtmlTreeConverter {
   }
 
   TemplateAttribute findTemplateAttribute(List<AttributeInfo> attributes) {
-    // TODO report errors when there are two or when its already a <template>
     for (AttributeInfo attribute in attributes) {
       if (attribute is TemplateAttribute) {
         return attribute;
@@ -268,53 +494,8 @@ class HtmlTreeConverter {
     return null;
   }
 
-  String _removePrefixSuffix(String value, String prefix, String suffix) {
-    value = value.substring(prefix.length);
-    if (suffix != null && value.endsWith(suffix)) {
-      return value.substring(0, value.length - suffix.length);
-    }
-    return value;
-  }
-
-  int _nameOffset(html.Element element, String name) {
-    String lowerName = name.toLowerCase();
-    try {
-      return element.attributeSpans[lowerName].start.offset;
-      // See https://github.com/dart-lang/html/issues/44.
-    } catch (e) {
-      try {
-        AttributeSpanContainer container =
-            AttributeSpanContainer.generateAttributeSpans(element);
-        return container.attributeSpans[name].start.offset;
-      } catch (e) {
-        throw new IgnorableHtmlInternalError(e);
-      }
-    }
-  }
-
-  int _valueOffset(html.Element element, String name) {
-    String lowerName = name.toLowerCase();
-    try {
-      SourceSpan span = element.attributeValueSpans[lowerName];
-      if (span != null) {
-        return span.start.offset;
-      } else {
-        AttributeSpanContainer container =
-            AttributeSpanContainer.generateAttributeSpans(element);
-        return (container.attributeValueSpans.containsKey(name))
-            ? container.attributeValueSpans[name].start.offset
-            : null;
-      }
-    } catch (e) {
-      throw new IgnorableHtmlInternalError(e);
-    }
-  }
-
-  SourceRange _toSourceRange(SourceSpan span) {
-    if (span != null) {
-      return new SourceRange(span.start.offset, span.length);
-    }
-    return null;
+  SourceRange _toSourceRange(int offset, int length) {
+    return new SourceRange(offset, length);
   }
 }
 
@@ -338,7 +519,7 @@ class EmbeddedDartParser {
     Expression expression;
 
     // suppress errors for this. But still parse it so we can analyze it and stuff
-    if (code == "") {
+    if (code.trim().isEmpty) {
       expression = _parseDartExpressionAtToken(token,
           errorListener: new IgnoringAnalysisErrorListener());
     } else {
@@ -446,11 +627,14 @@ class EmbeddedDartParser {
       final int end = text.indexOf('}}', textOffset);
       int exprBegin, exprEnd;
       bool detectTrailing = false;
+
+      // Absolutely no mustaches - simple text.
       if (begin == -1 && end == -1) {
         break;
       }
 
       if (end == -1) {
+        // Begin mustache exists, but no end mustache.
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
@@ -460,12 +644,16 @@ class EmbeddedDartParser {
             ? exprBegin
             : text.length;
       } else if (begin == -1 || end < begin) {
+        // Both exists, but there is an end before a begin.
+        // Example: blah }} {{ mustache ...
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + end, 2, AngularWarningCode.UNOPENED_MUSTACHE));
         // Move the cursor ahead and keep looking for more unmatched mustaches.
         textOffset = end + 2;
         continue;
       } else if (nextBegin != -1 && nextBegin < end) {
+        // Two open mustaches, but both opens are in sequence before an end.
+        // Example: {{ blah {{ mustache }}
         errorListener.onError(new AnalysisError(templateSource,
             fileOffset + begin, 2, AngularWarningCode.UNTERMINATED_MUSTACHE));
         // Skip this open mustache, check the next open we found
@@ -473,6 +661,7 @@ class EmbeddedDartParser {
         exprBegin = textOffset;
         exprEnd = nextBegin;
       } else {
+        // Proper open and close mustache exists and in correct order.
         exprBegin = begin + 2;
         exprEnd = end;
         textOffset = end + 2;
@@ -491,9 +680,14 @@ class EmbeddedDartParser {
         length = end + 2 - begin;
       }
 
-      mustaches.add(new Mustache(offset, length, expression));
+      mustaches.add(new Mustache(
+        offset,
+        length,
+        expression,
+        fileOffset + exprBegin,
+        fileOffset + exprEnd,
+      ));
     }
-
     return mustaches;
   }
 

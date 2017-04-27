@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'package:analysis_server/src/analysis_server.dart';
+import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
@@ -57,6 +58,8 @@ class AngularDriver
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
   }
+
+  ContextRoot get contextRoot => dartDriver.contextRoot;
 
   ApiSignature getUnitElementHash(String path) {
     return dartDriver.getUnitKeyByPath(path);
@@ -357,13 +360,13 @@ class AngularDriver
           final tplParser = new TemplateParser();
 
           tplParser.parse(htmlContent, htmlSource);
-          final document = tplParser.document;
+          final document = tplParser.rawAst;
           final EmbeddedDartParser parser = new EmbeddedDartParser(
               htmlSource, tplErrorListener, errorReporter);
 
           template.ast =
               new HtmlTreeConverter(parser, htmlSource, tplErrorListener)
-                  .convert(firstElement(tplParser.document));
+                  .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
           final resolver = new TemplateResolver(
@@ -418,7 +421,7 @@ class AngularDriver
         new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
     final ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-        .convert(firstElement(tplParser.document));
+        .convertFromAstList(tplParser.rawAst);
     final contents = <NgContent>[];
     ast.accept(new NgContentRecorder.forFile(contents, source, errorReporter));
 
@@ -528,12 +531,12 @@ class AngularDriver
 
           tplParser.parse(view.templateText, source,
               offset: view.templateOffset);
-          final document = tplParser.document;
+          final document = tplParser.rawAst;
           final EmbeddedDartParser parser =
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-              .convert(firstElement(tplParser.document));
+              .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
           final resolver = new TemplateResolver(
@@ -644,7 +647,7 @@ class AngularDriver
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-              .convert(firstElement(tplParser.document));
+              .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
         }
       }
