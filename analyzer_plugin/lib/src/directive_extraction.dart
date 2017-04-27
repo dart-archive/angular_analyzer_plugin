@@ -427,10 +427,14 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
         } else if (member is ast.MethodDeclaration) {
           name = member.name.toString();
 
-          var parameters = member.parameters.parameters;
-          if (parameters.length > 0 && parameters[0].type != null) {
-            setterTypeOffset = parameters[0].type.offset;
-            setterTypeLength = parameters[0].type.length;
+          var parameters = member.parameters?.parameters;
+          if (parameters != null && parameters.length > 0) {
+            var parameter = parameters[0];
+            if (parameter is ast.SimpleFormalParameter &&
+                parameter.type != null) {
+              setterTypeOffset = parameter.type.offset;
+              setterTypeLength = parameter.type.length;
+            }
           }
         }
         targetList.add(new ContentChildField(name,
