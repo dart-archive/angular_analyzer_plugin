@@ -400,9 +400,14 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
           continue;
         }
 
-        final annotationArgs = annotation.arguments.arguments;
+        final annotationArgs = annotation?.arguments?.arguments;
+        if (annotationArgs == null) {
+          // This happens for invalid dart code. Ignore
+          continue;
+        }
+
         if (annotationArgs.length == 0) {
-          // no need to report an error, dart does that already
+          // No need to report an error, dart does that already.
           continue;
         }
 

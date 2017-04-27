@@ -404,8 +404,15 @@ class ContentChildLinker {
 
     final metadata = new List.from(member.metadata)
       ..addAll(member.variable.metadata);
-    final annotation = metadata.singleWhere((annotation) =>
+    final annotations = metadata.where((annotation) =>
         annotation.element?.enclosingElement?.name == annotationName);
+
+    // This can happen for invalid dart
+    if (annotations.length != 1) {
+      return;
+    }
+
+    final annotation = annotations.first;
 
     // constantValue.getField() doesn't do inheritance. Do that ourself.
     final value = getSelectorWithInheritance(annotation.computeConstantValue());

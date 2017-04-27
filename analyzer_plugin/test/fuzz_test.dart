@@ -3,18 +3,23 @@ import 'dart:async';
 
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:front_end/src/scanner/token.dart';
-import 'package:unittest/unittest.dart';
-import 'package:test_reflective_loader/test_reflective_loader.dart';
+//import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
+//import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'abstract_angular.dart';
 
+//main() {
+//  defineReflectiveSuite(() {
+//    defineReflectiveTests(FuzzTest);
+//  });
+//}
+
 main() {
-  defineReflectiveSuite(() {
-    defineReflectiveTests(FuzzTest);
-  });
+  new FuzzTest().test_fuzz_continually();
 }
 
-@reflectiveTest
+//@reflectiveTest
 class FuzzTest extends AbstractAngularTest {
   // collected with
   // `find ../deps -name '*.dart' -exec cat {} \; | shuf -n 500 | sort`
@@ -355,7 +360,7 @@ typedef A();
 ''';
 
   static const String baseDart = r'''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 
 @Component(
   selector: 'my-aaa',
@@ -376,6 +381,9 @@ class CounterComponent {
   @Input() int maxCount;
   EventEmitter<String> resetEvent;
   @Output() EventEmitter<int> incremented;
+
+  @ContentChild(CounterComponent)
+  CounterComponent recursedComponent;
 
   void reset() {}
   void increment() {}
@@ -401,7 +409,9 @@ class CounterComponent {
     [maxCount]='4'
     (reset)=''
     (click)='h1.hidden = !h1.hidden; counter.reset()'
-    (incremented)='items.add($event.toString())'></my-counter>
+    (incremented)='items.add($event.toString())'>
+    <my-counter></my-counter>
+  </my-counter>
 </div>
 ''';
 
