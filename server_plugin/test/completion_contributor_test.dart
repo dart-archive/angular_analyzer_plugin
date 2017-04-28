@@ -9,7 +9,7 @@ import 'completion_contributor_test_util.dart';
 main() {
   // TODO: get these working again on the latest SDK
   //defineReflectiveTests(DartCompletionContributorTest);
-  //defineReflectiveTests(HtmlCompletionContributorTest);
+  defineReflectiveTests(HtmlCompletionContributorTest);
 }
 
 @reflectiveTest
@@ -22,7 +22,8 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
 
   @override
   CompletionContributor createContributor() {
-    return new AngularDartCompletionContributor();
+    return new AngularCompletionContributor(
+        angularDriver.server, angularDriver);
   }
 
   test_completeMemberInMustache() async {
@@ -447,7 +448,7 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
 
   @override
   CompletionContributor createContributor() {
-    return new AngularTemplateCompletionContributor();
+    return new AngularCompletionContributor();
   }
 
   test_completeMemberInMustache() async {

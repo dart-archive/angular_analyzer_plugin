@@ -28,9 +28,9 @@ class AngularServerPlugin implements Plugin {
     //    new AngularNavigationContributor());
     //registerExtension(OCCURRENCES_CONTRIBUTOR_EXTENSION_POINT_ID,
     //    new AngularOccurrencesContributor());
-    registerExtension(COMPLETION_CONTRIBUTOR_EXTENSION_POINT_ID,
-        () => new AngularTemplateCompletionContributor());
-    registerExtension(COMPLETION_CONTRIBUTOR_EXTENSION_POINT_ID,
-        () => new AngularDartCompletionContributor());
+    //registerExtension(COMPLETION_CONTRIBUTOR_EXTENSION_POINT_ID,
+    //    () => new AngularTemplateCompletionContributor());
+    //registerExtension(COMPLETION_CONTRIBUTOR_EXTENSION_POINT_ID,
+    //    () => new AngularDartCompletionContributor());
   }
 }

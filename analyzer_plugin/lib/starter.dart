@@ -26,7 +26,7 @@ class Starter {
     server.onResultErrorSupplementor = sumErrors;
     server.onNoAnalysisResult = sendHtmlResult;
     server.onNoAnalysisCompletion = sendAngularCompletions;
-    server.angularContributor = sendAngularContributor;
+    server.onExtraCompletionContributor = sendAngularContributor;
   }
 
   void onCreateAnalysisDriver(
@@ -82,7 +82,9 @@ class Starter {
     sendFn(null, null, null);
   }
 
-  Future<AngularDartCompletionContributor> sendAngularContributor(
+  // Handles .dart completion. Returns a CompletionContributor to the
+  // domain completion.
+  Future<AngularCompletionContributor> sendAngularContributor(
       CompletionRequestImpl request) async {
     var filePath = request.result.path;
     if (server.contextManager.isInAnalysisRoot(filePath)) {
@@ -92,11 +94,7 @@ class Starter {
           final driver = angularDrivers[driverPath];
           var template = await driver.getTemplateForFile(filePath);
           if (template != null) {
-            return new AngularDartCompletionContributor(
-              [template],
-              driver.standardHtml.events.values,
-              driver.standardHtml.attributes.values,
-            );
+            return new AngularCompletionContributor(server, driver);
           }
         }
       }
@@ -104,6 +102,8 @@ class Starter {
     return null;
   }
 
+  // Handles .html completion. Directly sends the suggestions to the
+  // [completionHandler].
   Future sendAngularCompletions(
     Request request,
     CompletionDomainHandler completionHandler,
@@ -114,42 +114,35 @@ class Starter {
     var filePath = (request.toJson()['params'] as Map)['file'];
     var source =
         new FileSource(server.resourceProvider.getFile(filePath), filePath);
+
     if (server.contextManager.isInAnalysisRoot(filePath)) {
       for (final driverPath in angularDrivers.keys) {
         if (server.contextManager.getContextFolderFor(filePath).path ==
             driverPath) {
           final driver = angularDrivers[driverPath];
-          var template = await driver.getTemplateForFile(filePath);
-          if (template != null) {
-            // TODO: Add performance measuring.
-            CompletionRequestImpl completionRequest = new CompletionRequestImpl(
-                null,
-                null,
-                server.resourceProvider,
-                server.searchEngine,
-                source,
-                params.offset,
-                performance,
-                server.ideOptions);
-            completionHandler.setNewRequest(completionRequest);
-            var completer = new TemplateCompleter();
-            var templates = [template];
-            server.sendResponse(new CompletionGetSuggestionsResult(completionId)
-                .toResponse(request.id));
-            var completionResult = await completer.computeSuggestions(
-              completionRequest,
-              templates,
-              driver.standardHtml.events.values,
-              driver.standardHtml.attributes.values,
-            );
-            completionHandler.sendCompletionNotification(
+
+          var completionContributor =
+              new AngularCompletionContributor(server, driver);
+          CompletionRequestImpl completionRequest = new CompletionRequestImpl(
+              null,
+              null,
+              server.resourceProvider,
+              server.searchEngine,
+              source,
+              params.offset,
+              performance,
+              server.ideOptions);
+          completionHandler.setNewRequest(completionRequest);
+          server.sendResponse(new CompletionGetSuggestionsResult(completionId)
+              .toResponse(request.id));
+          var suggestions =
+              await completionContributor.computeSuggestions(completionRequest);
+          completionHandler.sendCompletionNotification(
               completionId,
-              completionResult.replacementOffset,
-              completionResult.replacementLength,
-              completionResult.suggestions,
-            );
-            completionHandler.ifMatchesRequestClear(completionRequest);
-          }
+              completionRequest.replacementOffset,
+              completionRequest.replacementLength,
+              suggestions);
+          completionHandler.ifMatchesRequestClear(completionRequest);
         }
       }
     }
