@@ -323,8 +323,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     }
 
     // ignore errors from linking subcomponents content childs
-    final errorIgnorer = new ErrorReporter(new IgnoringErrorListener(),
-        directive.classElement.unit.element.source);
+    final errorIgnorer = new ErrorReporter(
+        new IgnoringErrorListener(), directive.classElement.source);
     await new ContentChildLinker(
             directive, this, _standardAngular, errorIgnorer)
         .linkContentChildren();
@@ -345,11 +345,12 @@ class ContentChildLinker {
 
   ContentChildLinker(AbstractDirective directive, this._directiveMatcher,
       this._standardAngular, this._errorReporter)
-      : _context = directive.classElement.unit.element.context,
+      : _context =
+            directive.classElement.enclosingElement.enclosingElement.context,
         _directive = directive;
 
   Future linkContentChildren() async {
-    final unit = _directive.classElement.unit.element;
+    final unit = _directive.classElement.enclosingElement.enclosingElement;
     final bindingSynthesizer = new BindingTypeSynthesizer(
         _directive.classElement,
         unit.context.typeProvider,
