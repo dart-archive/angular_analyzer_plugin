@@ -22,8 +22,7 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
 
   @override
   CompletionContributor createContributor() {
-    return new AngularCompletionContributor(
-        angularDriver.server, angularDriver);
+    return new AngularCompletionContributor();
   }
 
   test_completeMemberInMustache() async {
