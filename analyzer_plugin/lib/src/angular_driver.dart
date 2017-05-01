@@ -310,14 +310,16 @@ class AngularDriver
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(
-          result.errors.where((error) => error is! FromFilePrefixedError))
+      ..errors = summarizeErrors(result.errors
+          .where((error) => error is! FromFilePrefixedError)
+          .toList())
       ..errorsFromPath = result.errors
           .where((error) => error is FromFilePrefixedError)
           .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
             ..path = (error as FromFilePrefixedError).fromSourcePath
             ..originalError =
-                summarizeError((error as FromFilePrefixedError).originalError));
+                summarizeError((error as FromFilePrefixedError).originalError))
+          .toList();
     final List<int> newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
@@ -399,7 +401,7 @@ class AngularDriver
           setIgnoredErrors(template, document);
           final resolver = new TemplateResolver(
               context.typeProvider,
-              standardHtml.components.values,
+              standardHtml.components.values.toList(),
               standardHtml.events,
               standardHtml.attributes,
               tplErrorListener);

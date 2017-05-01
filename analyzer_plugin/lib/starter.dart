@@ -94,7 +94,7 @@ class Starter {
           final driver = angularDrivers[driverPath];
           var template = await driver.getTemplateForFile(filePath);
           if (template != null) {
-            return new AngularCompletionContributor(server, driver);
+            return new AngularCompletionContributor(driver);
           }
         }
       }
@@ -121,8 +121,7 @@ class Starter {
             driverPath) {
           final driver = angularDrivers[driverPath];
 
-          var completionContributor =
-              new AngularCompletionContributor(server, driver);
+          var completionContributor = new AngularCompletionContributor(driver);
           CompletionRequestImpl completionRequest = new CompletionRequestImpl(
               null,
               null,

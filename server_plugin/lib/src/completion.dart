@@ -204,12 +204,11 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
  * Contributor to contribute angular entities.
  */
 class AngularCompletionContributor extends CompletionContributor {
-  final AnalysisServer server;
   final AngularDriver driver;
 
   /// Initialize a newly created handler to handle requests for the given
   /// [server].
-  AngularCompletionContributor(this.server, this.driver);
+  AngularCompletionContributor(this.driver);
 
   /**
    * Return a [Future] that completes with a list of suggestions
@@ -356,8 +355,8 @@ class TemplateCompleter {
       }
 
       Component component = directive;
-      Template template = component?.view?.template;
-      if (template == null) {
+      var view = component?.view;
+      if (view == null) {
         continue;
       }
 
@@ -368,12 +367,8 @@ class TemplateCompleter {
 
         List<HtmlTagForSelector> tags = ngContent.selector.suggestTags();
         for (HtmlTagForSelector tag in tags) {
-          Location location = new Location(
-              template.view.templateSource.fullName,
-              ngContent.offset,
-              ngContent.length,
-              0,
-              0);
+          Location location = new Location(view.templateSource.fullName,
+              ngContent.offset, ngContent.length, 0, 0);
           suggestions.add(_createHtmlTagSuggestion(
               tag.toString(),
               RELEVANCE_TRANSCLUSION,

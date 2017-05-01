@@ -2,7 +2,7 @@ import 'package:angular2/angular2.dart';
 import 'dart:html';
 
 @Component(selector: 'my-counter',
-    template: r'<button (click)="increment($event)">++</button>')
+    template: r'<button  (click)="increment($event)">++</button>')
 class CounterComponent {
 
   @Input() int count;
