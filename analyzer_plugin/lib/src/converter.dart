@@ -158,7 +158,7 @@ class HtmlTreeConverter {
     String value = valueOffset == null ? null : element.attributes[origName];
     String name;
     int nameOffset;
-    var virtualAttributes = [];
+    var virtualAttributes = <AttributeInfo>[];
     if (starSugar) {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
