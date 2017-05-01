@@ -12,10 +12,23 @@ class FileTracker {
 
   FileTracker(this._fileHasher);
 
-  _RelationshipTracker _dartToDart = new _RelationshipTracker();
-  _RelationshipTracker _dartToHtml = new _RelationshipTracker();
+  final _RelationshipTracker _dartToDart = new _RelationshipTracker();
+  final _RelationshipTracker _dartToHtml = new _RelationshipTracker();
 
-  Set<String> _dartFilesWithDartTemplates = new HashSet<String>();
+  final Set<String> _dartFilesWithDartTemplates = new HashSet<String>();
+
+  final Map<String, List<int>> htmlContentHashes = {};
+
+  void rehashHtmlContents(String path) {
+    htmlContentHashes[path] = _fileHasher.getContentHash(path).toByteList();
+  }
+
+  List<int> getHtmlContentHash(String path) {
+    if (htmlContentHashes[path] == null) {
+      rehashHtmlContents(path);
+    }
+    return htmlContentHashes[path];
+  }
 
   void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) {
     return _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
@@ -78,19 +91,18 @@ class FileTracker {
     final signature = new ApiSignature();
     signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
     for (final htmlPath in getHtmlPathsAffectingDart(dartPath)) {
-      signature.addBytes(_fileHasher.getContentHash(htmlPath).toByteList());
+      signature.addBytes(getHtmlContentHash(htmlPath));
     }
     return signature;
   }
 
   ApiSignature getHtmlSignature(String htmlPath) {
     final signature = new ApiSignature();
-    signature.addBytes(_fileHasher.getContentHash(htmlPath).toByteList());
+    signature.addBytes(getHtmlContentHash(htmlPath));
     for (final dartPath in getDartPathsReferencingHtml(htmlPath)) {
       signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
       for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
-        signature
-            .addBytes(_fileHasher.getContentHash(subHtmlPath).toByteList());
+        signature.addBytes(getHtmlContentHash(subHtmlPath));
       }
     }
     return signature;
