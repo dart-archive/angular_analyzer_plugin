@@ -2,8 +2,6 @@ library angular2.src.analysis.server_plugin;
 
 //import 'package:analysis_server/plugin/analysis/navigation/navigation.dart';
 //import 'package:analysis_server/plugin/analysis/occurrences/occurrences.dart';
-import 'package:analysis_server/src/provisional/completion/completion.dart';
-import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:plugin/plugin.dart';
 
 /**

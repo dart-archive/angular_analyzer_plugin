@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:analysis_server/src/domain_completion.dart';
-import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
     show Element, ElementKind;
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';

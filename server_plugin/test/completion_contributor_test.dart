@@ -1,12 +1,5 @@
-import 'dart:async';
-import 'package:analyzer/src/generated/source.dart';
-
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
-import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';

@@ -15,19 +15,10 @@ import 'package:analysis_server/src/provisional/completion/completion_core.dart'
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart'
-    show DartCompletionRequestImpl;
 import 'package:analysis_server/src/services/index/index.dart';
 import 'package:analysis_server/src/services/search/search_engine_internal.dart';
-import 'package:analyzer/src/dart/analysis/driver.dart'
-    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
-import 'package:angular_analyzer_plugin/src/angular_driver.dart';
-import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
