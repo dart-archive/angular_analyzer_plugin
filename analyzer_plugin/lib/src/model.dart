@@ -356,15 +356,32 @@ class View implements AnalysisTarget {
   final Component component;
   final List<AbstractDirective> directives;
   final List<DirectiveReference> directiveReferences;
-  final Map<String, List<AbstractDirective>> elementTagsInfo =
-      <String, List<AbstractDirective>>{};
   final String templateText;
   final int templateOffset;
   final Source templateUriSource;
   final SourceRange templateUrlRange;
   final dart.Annotation annotation;
 
+  Map<String, List<AbstractDirective>> _elementTagsInfo = null;
+
   int get end => templateOffset + templateText.length;
+
+  Map<String, List<AbstractDirective>> get elementTagsInfo {
+    if (_elementTagsInfo == null) {
+      _elementTagsInfo = new Map<String, List<AbstractDirective>>();
+      for (var directive in directives) {
+        if (directive.elementTags != null && directive.elementTags.isNotEmpty) {
+          for (var elementTag in directive.elementTags) {
+            String tagName = elementTag.toString();
+            _elementTagsInfo.putIfAbsent(
+                tagName, () => new List<AbstractDirective>());
+            _elementTagsInfo[tagName].add(directive);
+          }
+        }
+      }
+    }
+    return _elementTagsInfo;
+  }
 
   /**
    * The [Template] of this view, `null` until built.

@@ -120,17 +120,6 @@ class TemplateResolver {
       ..addAll(standardHtmlComponents)
       ..addAll(view.directives);
 
-    for (var directive in view.directives) {
-      if (directive.elementTags != null && directive.elementTags.isNotEmpty) {
-        for (var elementTag in directive.elementTags) {
-          String tagName = elementTag.toString();
-          view.elementTagsInfo
-              .putIfAbsent(tagName, () => new List<AbstractDirective>());
-          view.elementTagsInfo[tagName].add(directive);
-        }
-      }
-    }
-
     DirectiveResolver directiveResolver = new DirectiveResolver(
         allDirectives, templateSource, template, errorListener);
     root.accept(directiveResolver);

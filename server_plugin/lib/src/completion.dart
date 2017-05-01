@@ -215,6 +215,10 @@ class AngularCompletionContributor extends CompletionContributor {
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request) async {
     var filePath = request.source.toString();
+
+    await driver.getStandardHtml();
+    assert(driver.standardHtml != null);
+
     var events = driver.standardHtml.events.values;
     var attributes = driver.standardHtml.attributes.values;
     var template = await driver.getTemplateForFile(filePath);

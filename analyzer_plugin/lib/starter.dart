@@ -26,7 +26,6 @@ class Starter {
     server.onResultErrorSupplementor = sumErrors;
     server.onNoAnalysisResult = sendHtmlResult;
     server.onNoAnalysisCompletion = sendAngularCompletions;
-    //server.onExtraCompletionContributor = sendAngularContributor;
   }
 
   void onCreateAnalysisDriver(
@@ -82,26 +81,6 @@ class Starter {
     sendFn(null, null, null);
   }
 
-  // Handles .dart completion. Returns a CompletionContributor to the
-  // domain completion.
-  Future<AngularCompletionContributor> sendAngularContributor(
-      CompletionRequestImpl request) async {
-    var filePath = request.result.path;
-    if (server.contextManager.isInAnalysisRoot(filePath)) {
-      for (final driverPath in angularDrivers.keys) {
-        if (server.contextManager.getContextFolderFor(filePath).path ==
-            driverPath) {
-          final driver = angularDrivers[driverPath];
-          var template = await driver.getTemplateForFile(filePath);
-          if (template != null) {
-            return new AngularCompletionContributor(driver);
-          }
-        }
-      }
-    }
-    return null;
-  }
-
   // Handles .html completion. Directly sends the suggestions to the
   // [completionHandler].
   Future sendAngularCompletions(
@@ -123,8 +102,8 @@ class Starter {
 
           var completionContributor = new AngularCompletionContributor(driver);
           CompletionRequestImpl completionRequest = new CompletionRequestImpl(
-              null,
-              null,
+              null, // AnalysisResult - unneeded for AngularCompletion
+              null, // AnalysisContext - unnedded for AngularCompletion
               server.resourceProvider,
               server.searchEngine,
               source,

@@ -73,7 +73,6 @@ abstract class AbstractCompletionContributorTest
         await angularDriver.resolveHtml(htmlPath);
       }
     }
-    await angularDriver.getStandardHtml();
   }
 }
 
