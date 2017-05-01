@@ -26,7 +26,7 @@ class Starter {
     server.onResultErrorSupplementor = sumErrors;
     server.onNoAnalysisResult = sendHtmlResult;
     server.onNoAnalysisCompletion = sendAngularCompletions;
-    server.onExtraCompletionContributor = sendAngularContributor;
+    //server.onExtraCompletionContributor = sendAngularContributor;
   }
 
   void onCreateAnalysisDriver(
