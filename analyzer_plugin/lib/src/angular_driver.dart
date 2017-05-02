@@ -72,6 +72,23 @@ class AngularDriver
     return path.endsWith('.dart') || path.endsWith('.html');
   }
 
+  /**
+   * This is implemented in order to satisfy the [AnalysisDriverGeneric]
+   * interface. Ideally, we analyze these files first. For the moment, this lets
+   * the analysis server team add this method to the interface without breaking
+   * any code.
+   */
+  void setPriorityFiles(List<String> priorityPaths) {
+    // TODO analyze these files first
+  }
+
+  /**
+    * Notify the driver that the client is going to stop using it.
+    */
+  void dispose() {
+    // TODO anything we need to do here?
+  }
+
   void addFile(String path) {
     if (_ownsFile(path)) {
       _addedFiles.add(path);
