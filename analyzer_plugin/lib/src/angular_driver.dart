@@ -39,6 +39,7 @@ class AngularDriver
   final AnalysisDriver dartDriver;
   final FileContentOverlay _contentOverlay;
   StandardHtml standardHtml = null;
+  final List<Completer<StandardHtml>> _standardHtmlCompleters = [];
   StandardAngular standardAngular = null;
   SourceFactory _sourceFactory;
   final _addedFiles = new LinkedHashSet<String>();
@@ -85,9 +86,8 @@ class AngularDriver
 
   void fileChanged(String path) {
     if (_ownsFile(path)) {
+      _fileTracker.rehashContents(path);
       if (path.endsWith('.html')) {
-        _fileTracker.rehashHtmlContents(path);
-
         _htmlFilesToAnalyze.add(path);
         for (final path in _fileTracker.getHtmlPathsReferencingHtml(path)) {
           _htmlFilesToAnalyze.add(path);
@@ -121,9 +121,9 @@ class AngularDriver
   }
 
   AnalysisDriverPriority get workPriority {
-    if (standardHtml == null) {
-      return AnalysisDriverPriority.interactive;
-    }
+    //if (standardHtml == null) {
+    //  return AnalysisDriverPriority.interactive;
+    //}
     if (_requestedDartFiles.isNotEmpty) {
       return AnalysisDriverPriority.interactive;
     }
@@ -143,15 +143,15 @@ class AngularDriver
   }
 
   Future<Null> performWork() async {
-    if (standardHtml == null) {
-      getStandardHtml();
-      return;
-    }
+    //if (standardHtml == null) {
+    //  getStandardHtml();
+    //  return;
+    //}
 
-    if (standardAngular == null) {
-      getStandardAngular();
-      return;
-    }
+    //if (standardAngular == null) {
+    //  getStandardAngular();
+    //  return;
+    //}
 
     if (_changedFiles.isNotEmpty) {
       _changedFiles.clear();
@@ -224,17 +224,28 @@ class AngularDriver
 
   Future<StandardHtml> getStandardHtml() async {
     if (standardHtml == null) {
-      final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
+      final first = _standardHtmlCompleters.isEmpty;
 
-      final result = await dartDriver.getResult(source.fullName);
+      final completer = new Completer<StandardHtml>();
+      _standardHtmlCompleters.add(completer);
 
-      final components = <String, Component>{};
-      final events = <String, OutputElement>{};
-      final attributes = <String, InputElement>{};
-      result.unit.accept(new BuildStandardHtmlComponentsVisitor(
-          components, events, attributes, source));
+      if (first) {
+        final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
 
-      standardHtml = new StandardHtml(components, events, attributes);
+        dartDriver.getResult(source.fullName).then((result) {
+          final components = <String, Component>{};
+          final events = <String, OutputElement>{};
+          final attributes = <String, InputElement>{};
+          result.unit.accept(new BuildStandardHtmlComponentsVisitor(
+              components, events, attributes, source));
+
+          standardHtml = new StandardHtml(components, events, attributes);
+
+          _standardHtmlCompleters.forEach((c) => c.complete(standardHtml));
+        });
+      }
+
+      return completer.future;
     }
 
     return standardHtml;
@@ -245,9 +256,9 @@ class AngularDriver
       final source =
           _sourceFactory.resolveUri(null, "package:angular2/angular2.dart");
 
-      final result = await dartDriver.getResult(source.fullName);
+      final result = await dartDriver.getUnitElement(source.fullName);
 
-      final namespace = result.unit.element.library.exportNamespace;
+      final namespace = result.element.library.exportNamespace;
 
       standardAngular = new StandardAngular(
           queryList: namespace.get("QueryList"),
@@ -425,7 +436,10 @@ class AngularDriver
   }
 
   Future<List<NgContent>> getHtmlNgContent(String path) async {
-    final key = getContentHash(path).toHex() + '.ngunlinked';
+    final key = (new ApiSignature()
+              ..addBytes(_fileTracker.getContentHash(path)))
+            .toHex() +
+        '.ngunlinked';
     final List<int> bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
@@ -630,7 +644,10 @@ class AngularDriver
   }
 
   Future<DirectivesResult> getDirectives(path) async {
-    final key = getContentHash(path).toHex() + '.ngunlinked';
+    final key = (new ApiSignature()
+              ..addBytes(_fileTracker.getContentHash(path)))
+            .toHex() +
+        '.ngunlinked';
     final List<int> bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);

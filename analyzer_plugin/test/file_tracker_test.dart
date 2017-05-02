@@ -292,12 +292,13 @@ class FileTrackerTest {
     when(_fileHasher.getContentHash("foo.html")).thenReturn(fooHtmlSignature);
 
     for (var i = 0; i < 3; ++i) {
-      _fileTracker.getHtmlContentHash("foo.html");
+      _fileTracker.getContentHash("foo.html");
       verify(_fileHasher.getContentHash("foo.html")).once();
     }
 
+    _fileTracker.rehashContents("foo.html");
     for (var i = 0; i < 3; ++i) {
-      _fileTracker.rehashHtmlContents("foo.html");
+      _fileTracker.getContentHash("foo.html");
       verify(_fileHasher.getContentHash("foo.html")).times(2);
     }
   }
