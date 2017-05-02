@@ -5,11 +5,11 @@ import 'dart:html';
 class CounterComponent {
 
   @Input() int count;
-  @Output() EventEmitter<int> incremented;
+  @Output() EventEmitter<int> countChange;
 
   increment(MouseEvent event) {
     count++;
-    incremented.add(count);
+    countChange.add(count);
   }
 
   CounterComponent() {
