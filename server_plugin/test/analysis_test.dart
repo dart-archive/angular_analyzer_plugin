@@ -597,7 +597,9 @@ class AbstractAngularTest {
     resourceProvider = new MemoryResourceProvider();
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
-    final packageMap = new Map<String, List<Folder>>();
+    final packageMap = <String, List<Folder>>{
+      "angular2": [resourceProvider.getFolder("/angular2")]
+    };
     PackageMapUriResolver packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
     SourceFactory sf = new SourceFactory([
