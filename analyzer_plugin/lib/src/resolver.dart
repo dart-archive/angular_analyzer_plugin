@@ -15,6 +15,7 @@ import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 
@@ -87,6 +88,7 @@ class TemplateResolver {
   final Map<String, OutputElement> standardHtmlEvents;
   final Map<String, InputElement> standardHtmlAttributes;
   final AnalysisErrorListener errorListener;
+  final StandardAngular standardAngular;
 
   Template template;
   View view;
@@ -105,8 +107,13 @@ class TemplateResolver {
   Map<String, LocalVariable> localVariables =
       new HashMap<String, LocalVariable>();
 
-  TemplateResolver(this.typeProvider, this.standardHtmlComponents,
-      this.standardHtmlEvents, this.standardHtmlAttributes, this.errorListener);
+  TemplateResolver(
+      this.typeProvider,
+      this.standardHtmlComponents,
+      this.standardHtmlEvents,
+      this.standardHtmlAttributes,
+      this.standardAngular,
+      this.errorListener);
 
   void resolve(Template template) {
     this.template = template;
@@ -121,8 +128,16 @@ class TemplateResolver {
       ..addAll(view.directives);
 
     DirectiveResolver directiveResolver = new DirectiveResolver(
-        allDirectives, templateSource, template, errorListener);
+        allDirectives,
+        templateSource,
+        template,
+        standardAngular,
+        errorReporter,
+        errorListener);
     root.accept(directiveResolver);
+    ComponentContentResolver contentResolver =
+        new ComponentContentResolver(templateSource, template, errorListener);
+    root.accept(contentResolver);
 
     _resolveScope(root);
   }
@@ -704,47 +719,170 @@ class DirectiveResolver extends AngularAstVisitor {
   final Source templateSource;
   final Template template;
   final AnalysisErrorListener errorListener;
+  final ErrorReporter _errorReporter;
+  final StandardAngular _standardAngular;
+  final List<DirectiveBinding> outerBindings = [];
+  final List<ElementInfo> outerElements = [];
 
   DirectiveResolver(this.allDirectives, this.templateSource, this.template,
-      this.errorListener);
+      this._standardAngular, this._errorReporter, this.errorListener);
 
   @override
   void visitElementInfo(ElementInfo element) {
+    outerElements.add(element);
     if (element.templateAttribute != null) {
       visitTemplateAttr(element.templateAttribute);
     }
 
     ElementView elementView = new ElementViewImpl(element.attributes, element);
-    bool tagIsResolved = element.tagMatchedAsTransclusion;
-    bool tagIsStandard = _isStandardTagName(element.localName);
-    Component component;
 
+    int containingDirectivesCount = outerBindings.length;
     for (AbstractDirective directive in allDirectives) {
       SelectorMatch match = directive.selector.match(elementView, template);
       if (match != SelectorMatch.NoMatch) {
-        element.boundDirectives.add(new DirectiveBinding(directive));
+        var binding = new DirectiveBinding(directive);
+        element.boundDirectives.add(binding);
         if (match == SelectorMatch.TagMatch) {
-          tagIsResolved = true;
+          element.tagMatchedAsDirective = true;
         }
 
-        if (directive is Component) {
-          component = directive;
-          // TODO better html tag detection, see #248
-          tagIsStandard = component.isHtml;
+        // optimization: only add the bindings that care about content child
+        if (directive.contentChilds.isNotEmpty ||
+            directive.contentChildren.isNotEmpty) {
+          outerBindings.add(binding);
         }
       }
-    }
-    if (!tagIsStandard && !tagIsResolved) {
-      _reportErrorForRange(element.openingNameSpan,
-          AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
     }
 
     if (!element.isOrHasTemplateAttribute) {
       _checkNoStructuralDirectives(element.attributes);
     }
 
+    recordContentChildren(element);
+
+    for (NodeInfo child in element.childNodes) {
+      child.accept(this);
+    }
+
+    outerBindings.removeRange(containingDirectivesCount, outerBindings.length);
+    outerElements.removeLast();
+  }
+
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {
+    // TODO: report error if no directives matched here?
+    ElementView elementView = new ElementViewImpl(attr.virtualAttributes, null);
+    for (AbstractDirective directive in allDirectives) {
+      if (directive.selector.match(elementView, template) !=
+          SelectorMatch.NoMatch) {
+        attr.boundDirectives.add(new DirectiveBinding(directive));
+      }
+    }
+  }
+
+  _checkNoStructuralDirectives(List<AttributeInfo> attributes) {
+    for (AttributeInfo attribute in attributes) {
+      if (attribute.name == 'ngFor' || attribute.name == 'ngIf') {
+        _reportErrorForRange(
+            new SourceRange(attribute.nameOffset, attribute.name.length),
+            AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+            [attribute.name]);
+      }
+    }
+  }
+
+  recordContentChildren(ElementInfo element) {
+    for (final binding in outerBindings) {
+      for (var contentChild in binding.boundDirective.contentChilds) {
+        // an already matched ContentChild shouldn't look inside that match
+        if (binding.contentChildBindings[contentChild]?.boundElements
+                ?.any((element) => outerElements.contains(element)) ==
+            true) {
+          continue;
+        }
+
+        if (contentChild.query
+            .match(element, _standardAngular, _errorReporter)) {
+          binding.contentChildBindings.putIfAbsent(
+              contentChild,
+              () => new ContentChildBinding(
+                  binding.boundDirective, contentChild));
+
+          if (!binding
+              .contentChildBindings[contentChild].boundElements.isEmpty) {
+            _errorReporter.reportErrorForOffset(
+                AngularWarningCode.SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES,
+                element.offset,
+                element.length, [
+              binding.boundDirective.classElement.name,
+              contentChild.field.fieldName
+            ]);
+          }
+          binding.contentChildBindings[contentChild].boundElements.add(element);
+
+          if (element.parent.boundDirectives.contains(binding)) {
+            element.tagMatchedAsImmediateContentChild = true;
+          }
+        }
+      }
+
+      for (var contentChildren in binding.boundDirective.contentChildren) {
+        if (contentChildren.query
+            .match(element, _standardAngular, _errorReporter)) {
+          binding.contentChildrenBindings.putIfAbsent(
+              contentChildren,
+              () => new ContentChildBinding(
+                  binding.boundDirective, contentChildren));
+          binding.contentChildrenBindings[contentChildren].boundElements
+              .add(element);
+
+          if (element.parent.boundDirectives.contains(binding)) {
+            element.tagMatchedAsImmediateContentChild = true;
+          }
+        }
+      }
+    }
+  }
+
+  void _reportErrorForRange(SourceRange range, ErrorCode errorCode,
+      [List<Object> arguments]) {
+    errorListener.onError(new AnalysisError(
+        templateSource, range.offset, range.length, errorCode, arguments));
+  }
+}
+
+class ComponentContentResolver extends AngularAstVisitor {
+  final Source templateSource;
+  final Template template;
+  final AnalysisErrorListener errorListener;
+
+  ComponentContentResolver(
+      this.templateSource, this.template, this.errorListener);
+
+  @override
+  void visitElementInfo(ElementInfo element) {
+    // TODO should we visitTemplateAttr(element.templateAttribute) ??
+    bool tagIsStandard = _isStandardTagName(element.localName);
+    Component component;
+
+    for (AbstractDirective directive in element.directives) {
+      if (directive is Component) {
+        component = directive;
+        // TODO better html tag detection, see #248
+        tagIsStandard = component.isHtml;
+      }
+    }
+
+    if (!tagIsStandard &&
+        !element.tagMatchedAsTransclusion &&
+        !element.tagMatchedAsDirective) {
+      _reportErrorForRange(element.openingNameSpan,
+          AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
+    }
+
     if (!tagIsStandard) {
-      _checkTranscludedContent(component, element.childNodes, tagIsStandard);
+      checkTransclusionsContentChildren(
+          component, element.childNodes, tagIsStandard);
     }
 
     for (NodeInfo child in element.childNodes) {
@@ -752,7 +890,7 @@ class DirectiveResolver extends AngularAstVisitor {
     }
   }
 
-  void _checkTranscludedContent(
+  void checkTransclusionsContentChildren(
       Component component, List<NodeInfo> children, bool tagIsStandard) {
     if (component?.ngContents == null) {
       return;
@@ -777,35 +915,14 @@ class DirectiveResolver extends AngularAstVisitor {
           }
         }
 
+        matched = matched || child.tagMatchedAsImmediateContentChild;
+
         if (!matched) {
           _reportErrorForRange(new SourceRange(child.offset, child.length),
               AngularWarningCode.CONTENT_NOT_TRANSCLUDED);
         } else if (matchedTag) {
           child.tagMatchedAsTransclusion = true;
         }
-      }
-    }
-  }
-
-  @override
-  void visitTemplateAttr(TemplateAttribute attr) {
-    // TODO: report error if no directives matched here?
-    ElementView elementView = new ElementViewImpl(attr.virtualAttributes, null);
-    for (AbstractDirective directive in allDirectives) {
-      if (directive.selector.match(elementView, template) !=
-          SelectorMatch.NoMatch) {
-        attr.boundDirectives.add(new DirectiveBinding(directive));
-      }
-    }
-  }
-
-  _checkNoStructuralDirectives(List<AttributeInfo> attributes) {
-    for (AttributeInfo attribute in attributes) {
-      if (attribute.name == 'ngFor' || attribute.name == 'ngIf') {
-        _reportErrorForRange(
-            new SourceRange(attribute.nameOffset, attribute.name.length),
-            AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
-            [attribute.name]);
       }
     }
   }

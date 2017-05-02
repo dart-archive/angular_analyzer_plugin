@@ -4,11 +4,14 @@ import 'dart:collection';
 import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/dart/element/type.dart' as dart;
 import 'package:analyzer/dart/ast/ast.dart' as dart;
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:angular_analyzer_plugin/tasks.dart';
 
 /**
  * An abstract model of an Angular directive.
@@ -28,12 +31,25 @@ abstract class AbstractDirective {
   final List<ElementNameSelector> elementTags;
   final List<AngularElement> attributes = <AngularElement>[];
 
+  /**
+   * Which fields have been marked `@ContentChild`, and the range of the type
+   * argument. The element model contains the rest. This should be stored in the
+   * summary, so that at link time we can report errors discovered in the model
+   * against the range we saw it the AST.
+   */
+  List<ContentChildField> contentChildrenFields;
+  List<ContentChildField> contentChildFields;
+  final List<ContentChild> contentChilds = [];
+  final List<ContentChild> contentChildren = [];
+
   AbstractDirective(this.classElement,
       {this.exportAs,
       this.inputs,
       this.outputs,
       this.selector,
-      this.elementTags});
+      this.elementTags,
+      this.contentChildFields,
+      this.contentChildrenFields});
 
   /**
    * The source that contains this directive.
@@ -47,6 +63,10 @@ abstract class AbstractDirective {
         'inputs=$inputs '
         'outputs=$outputs '
         'attributes=$attributes)';
+  }
+
+  bool operator ==(Object other) {
+    return other is AbstractDirective && other.classElement == classElement;
   }
 }
 
@@ -114,6 +134,110 @@ class AngularElementImpl implements AngularElement {
   String toString() => name;
 }
 
+abstract class AbstractQueriedChildType {
+  bool match(
+      ElementInfo element, StandardAngular angular, ErrorReporter reporter);
+}
+
+class TemplateRefQueriedChildType extends AbstractQueriedChildType {
+  bool match(NodeInfo element, StandardAngular _, ErrorReporter __) =>
+      element is ElementInfo && element.localName == 'template';
+}
+
+class ElementRefQueriedChildType extends AbstractQueriedChildType {
+  bool match(NodeInfo element, StandardAngular _, ErrorReporter __) =>
+      element is ElementInfo &&
+      element.localName != 'template' &&
+      !element.directives.any((boundDirective) =>
+          boundDirective is Component && !boundDirective.isHtml);
+}
+
+class LetBoundQueriedChildType extends AbstractQueriedChildType {
+  final String letBoundName;
+  final dart.DartType containerType;
+  LetBoundQueriedChildType(this.letBoundName, this.containerType);
+  bool match(
+      NodeInfo element, StandardAngular angular, ErrorReporter errorReporter) {
+    return element is ElementInfo &&
+        element.attributes.any((attribute) {
+          if (attribute is TextAttribute &&
+              attribute.name == '#$letBoundName') {
+            _validateMatch(element, attribute, angular, errorReporter);
+            return true;
+          }
+          return false;
+        });
+  }
+
+  /**
+   * Validate against a matching [TextAttribute] on a matching [ElementInfo],
+   * for assignability to [containerType] errors.
+   */
+  void _validateMatch(ElementInfo element, TextAttribute attr,
+      StandardAngular angular, ErrorReporter errorReporter) {
+    dart.DartType matchType;
+
+    if (attr.value != "" && attr.value != null) {
+      List<AbstractDirective> possibleDirectives =
+          element.directives.where((d) => d.exportAs.name == attr.value);
+      if (possibleDirectives.isEmpty || possibleDirectives.length > 1) {
+        // Don't validate based on an invalid state (that's reported as such).
+        return;
+      }
+      // TODO instantiate this type to bounds
+      matchType = possibleDirectives.first.classElement.type;
+    } else if (element.localName == 'template') {
+      matchType = angular.templateRef.type;
+    } else {
+      List<AbstractDirective> possibleComponents =
+          element.directives.where((d) => d is Component && !d.isHtml);
+      if (possibleComponents.length > 1) {
+        // Don't validate based on an invalid state (that's reported as such).
+        return;
+      }
+
+      if (possibleComponents.isEmpty) {
+        matchType = angular.elementRef.type;
+      } else {
+        // TODO instantiate this type to bounds
+        matchType = possibleComponents.first.classElement.type;
+      }
+    }
+
+    // Don't do isAssignable. Because we KNOW downcasting makes no sense here.
+    if (!containerType.isSupertypeOf(matchType)) {
+      errorReporter.reportErrorForOffset(
+          AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+          element.offset,
+          element.length,
+          [letBoundName, containerType, matchType]);
+    }
+  }
+}
+
+class DirectiveQueriedChildType extends AbstractQueriedChildType {
+  final AbstractDirective directive;
+  DirectiveQueriedChildType(this.directive);
+  bool match(NodeInfo element, StandardAngular _, ErrorReporter __) =>
+      element is ElementInfo &&
+      element.directives.any((boundDirective) => boundDirective == directive);
+}
+
+class ContentChildField {
+  final String fieldName;
+  final SourceRange nameRange;
+  final SourceRange typeRange;
+
+  ContentChildField(this.fieldName, {this.nameRange, this.typeRange});
+}
+
+class ContentChild {
+  final ContentChildField field;
+  final AbstractQueriedChildType query;
+
+  ContentChild(this.field, this.query);
+}
+
 /**
  * The model of an Angular component.
  */
@@ -133,14 +257,18 @@ class Component extends AbstractDirective {
       Selector selector,
       List<ElementNameSelector> elementTags,
       this.isHtml,
-      List<NgContent> ngContents})
+      List<NgContent> ngContents,
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
       : ngContents = ngContents ?? [],
         super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 }
 
 /**
@@ -164,13 +292,17 @@ class Directive extends AbstractDirective {
       List<InputElement> inputs,
       List<OutputElement> outputs,
       Selector selector,
-      List<ElementNameSelector> elementTags})
+      List<ElementNameSelector> elementTags,
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
       : super(classElement,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
             selector: selector,
-            elementTags: elementTags);
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 }
 
 /**

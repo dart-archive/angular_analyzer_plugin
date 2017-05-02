@@ -93,6 +93,10 @@ abstract class SummarizedDirective extends base.SummaryClass {
   List<SummarizedBindable> get outputs;
   @Id(14)
   List<SummarizedDirectiveUse> get subdirectives;
+  @Id(15)
+  List<SummarizedContentChildField> get contentChildFields;
+  @Id(16)
+  List<SummarizedContentChildField> get contentChildrenFields;
 }
 
 abstract class SummarizedAnalysisError extends base.SummaryClass {
@@ -146,4 +150,17 @@ abstract class SummarizedNgContent extends base.SummaryClass {
   String get selectorStr;
   @Id(3)
   int get selectorOffset;
+}
+
+abstract class SummarizedContentChildField extends base.SummaryClass {
+  @Id(0)
+  String get fieldName;
+  @Id(1)
+  int get nameOffset;
+  @Id(2)
+  int get nameLength;
+  @Id(3)
+  int get typeOffset;
+  @Id(4)
+  int get typeLength;
 }

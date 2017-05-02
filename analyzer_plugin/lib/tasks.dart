@@ -44,7 +44,11 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
   AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
-  AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID
+  AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+  AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+  AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,
+  AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
+  AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE
 ];
 
 /**
@@ -402,6 +406,60 @@ class AngularWarningCode extends ErrorCode {
           "Input {0} is not a string input, but is not bound with [bracket] "
           "syntax. This binds the String attribute value directly, resulting "
           "in a type error.");
+  /**
+   * An error code indicating that a @ContentChild or @ContentChildren field
+   * either mismatched types in the definition, or where it was used (ie
+   * `@ContentChild(TemplateRef) ElementRef foo`, or `@ContentChild('foo')
+   * TemplateRef foo` with `<div #foo>`).
+   */
+  static const AngularWarningCode INVALID_TYPE_FOR_CHILD_QUERY =
+      const AngularWarningCode(
+          'INVALID_TYPE_FOR_CHILD_QUERY',
+          "The field {0} marked with @{1} referencing type {2} expects a member"
+          " referencing type {2}, but got a {3}");
+
+  /**
+   * An error code indicating that a @ContentChild or @ContentChildren field
+   * didn't have an expected value
+   */
+  static const AngularWarningCode UNKNOWN_CHILD_QUERY_TYPE =
+      const AngularWarningCode(
+          'UNKNOWN_CHILD_QUERY_TYPE',
+          "The field {0} marked with @{1} must reference a directive, a string"
+          " let-binding name, TemplateRef, or ElementRef");
+
+  /**
+   * An error code indicating that @ContentChildren or @ViewChildren was used
+   * but the property wasn't a `QueryList`.
+   */
+  static const AngularWarningCode CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST =
+      const AngularWarningCode(
+          'CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST',
+          "The field {0} marked with @{1} expects a member of type QueryList,"
+          " but got {2}");
+
+  /**
+   * An error code indicating that @ContentChild or @ViewChild with a string
+   * let-binding query was matched in a way that's not assignable to the
+   * annotated property.
+   */
+  static const AngularWarningCode MATCHED_LET_BINDING_HAS_WRONG_TYPE =
+      const AngularWarningCode(
+          'MATCHED_LET_BINDING_HAS_WRONG_TYPE',
+          "Marking this with #{0} here expects the element to be of type {1},"
+          " (but is of type {2}) because an enclosing element marks {0} as a"
+          " content child field of type {1}.");
+
+  /**
+   * An error code indicating that @ContentChild or @ViewChild was matched
+   * multiple times.
+   */
+  static const AngularWarningCode SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES =
+      const AngularWarningCode(
+          'SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES',
+          "A containing {0} expects a single child matching {1}, but this is"
+          " not the first match. Use (Content or View)Children to allow"
+          " multiple matches.");
 
   /**
    * Initialize a newly created error code to have the given [name].

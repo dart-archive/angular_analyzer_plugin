@@ -227,8 +227,25 @@ class DirectiveBinding {
   final AbstractDirective boundDirective;
   final List<InputBinding> inputBindings = [];
   final List<OutputBinding> outputBindings = [];
+  final Map<ContentChild, ContentChildBinding> contentChildBindings = {};
+  final Map<ContentChild, ContentChildBinding> contentChildrenBindings = {};
 
   DirectiveBinding(this.boundDirective);
+}
+
+/**
+ * Allows us to track ranges for navigating ContentChild(ren), and detect when
+ * multiple ContentChilds are matched which is an error.
+
+ * Naming here is important: "bound content child" != "content child binding." 
+ */
+class ContentChildBinding {
+  final AbstractDirective directive;
+  final ContentChild boundContentChild;
+  final Set<ElementInfo> boundElements = new HashSet<ElementInfo>();
+  // TODO: track bound attributes in #foo?
+
+  ContentChildBinding(this.directive, this.boundContentChild);
 }
 
 /**
@@ -312,6 +329,8 @@ class ElementInfo extends NodeInfo implements HasDirectives {
       boundDirectives.map((bd) => bd.boundDirective);
   int childNodesMaxEnd;
   bool tagMatchedAsTransclusion = false;
+  bool tagMatchedAsDirective = false;
+  bool tagMatchedAsImmediateContentChild = false;
 
   ElementInfo(
       this.localName,
