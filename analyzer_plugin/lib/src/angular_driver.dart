@@ -328,7 +328,7 @@ class AngularDriver
     return result;
   }
 
-  Future<List<Template>> getTemplateForFile(String filePath) async {
+  Future<List<Template>> getTemplatesForFile(String filePath) async {
     var templates = <Template>[];
     var isDartFile = filePath.endsWith('.dart');
     if (!isDartFile && !filePath.endsWith('.html')) {
@@ -343,7 +343,7 @@ class AngularDriver
         : await resolveHtml(filePath, ignoreCache: true);
     var directives = directiveResults.directives;
     if (directives == null) {
-      return null;
+      return templates;
     }
     for (var directive in directives) {
       if (directive is Component) {

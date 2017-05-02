@@ -222,7 +222,7 @@ class AngularCompletionContributor extends CompletionContributor {
 
     var events = driver.standardHtml.events.values;
     var attributes = driver.standardHtml.attributes.values;
-    var templates = await driver.getTemplateForFile(filePath);
+    var templates = await driver.getTemplatesForFile(filePath);
 
     if (templates.isEmpty) {
       return <CompletionSuggestion>[];
