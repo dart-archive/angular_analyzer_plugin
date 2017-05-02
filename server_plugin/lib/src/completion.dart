@@ -424,7 +424,7 @@ class TemplateCompleter {
         }
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
-        if (input.setterType is String) {
+        if (input.setterType.displayName == 'String') {
           suggestions.add(_createPlainAttributeSuggestions(
               input,
               DART_RELEVANCE_DEFAULT,
@@ -445,7 +445,7 @@ class TemplateCompleter {
       }
       suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 1,
           _createInputElement(input, protocol.ElementKind.SETTER)));
-      if (input.setterType is String) {
+      if (input.setterType.displayName == 'String') {
         suggestions.add(_createPlainAttributeSuggestions(
             input,
             DART_RELEVANCE_DEFAULT,
