@@ -424,6 +424,13 @@ class TemplateCompleter {
         }
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
+        if (input.setterType is String) {
+          suggestions.add(_createPlainAttributeSuggestions(
+              input,
+              DART_RELEVANCE_DEFAULT,
+              _createPlainAttributeElement(
+                  input, protocol.ElementKind.SETTER)));
+        }
       }
     }
 
@@ -438,6 +445,12 @@ class TemplateCompleter {
       }
       suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 1,
           _createInputElement(input, protocol.ElementKind.SETTER)));
+      if (input.setterType is String) {
+        suggestions.add(_createPlainAttributeSuggestions(
+            input,
+            DART_RELEVANCE_DEFAULT,
+            _createPlainAttributeElement(input, protocol.ElementKind.SETTER)));
+      }
     }
   }
 
@@ -564,6 +577,26 @@ class TemplateCompleter {
   protocol.Element _createInputElement(
       InputElement inputElement, protocol.ElementKind kind) {
     String name = '[' + inputElement.name + ']';
+    Location location = new Location(inputElement.source.fullName,
+        inputElement.nameOffset, inputElement.nameLength, 0, 0);
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, name, flags, location: location);
+  }
+
+  CompletionSuggestion _createPlainAttributeSuggestions(
+      InputElement inputElement,
+      int defaultRelevance,
+      protocol.Element element) {
+    String completion = inputElement.name;
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  protocol.Element _createPlainAttributeElement(
+      InputElement inputElement, protocol.ElementKind kind) {
+    String name = inputElement.name;
     Location location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
     int flags = protocol.Element
