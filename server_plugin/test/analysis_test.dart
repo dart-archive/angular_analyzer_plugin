@@ -2,7 +2,7 @@ library angular2.src.analysis.server_plugin.analysis_test;
 
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
-import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
+import 'package:analysis_server/protocol/protocol_generated.dart' as protocol;
 import 'package:analysis_server/src/plugin/notification_manager.dart';
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/file_system/file_system.dart';

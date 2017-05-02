@@ -5,11 +5,9 @@ import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
-import 'package:analysis_server/plugin/protocol/protocol.dart'
-    show
-        Request,
-        CompletionGetSuggestionsParams,
-        CompletionGetSuggestionsResult;
+import 'package:analysis_server/protocol/protocol.dart' show Request;
+import 'package:analysis_server/protocol/protocol_generated.dart'
+    show CompletionGetSuggestionsParams, CompletionGetSuggestionsResult;
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
