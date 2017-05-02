@@ -328,10 +328,11 @@ class AngularDriver
     return result;
   }
 
-  Future<Template> getTemplateForFile(String filePath) async {
+  Future<List<Template>> getTemplateForFile(String filePath) async {
+    var templates = <Template>[];
     var isDartFile = filePath.endsWith('.dart');
     if (!isDartFile && !filePath.endsWith('.html')) {
-      return null;
+      return templates;
     }
     var directiveResults = isDartFile
         ? await resolveDart(
@@ -351,11 +352,11 @@ class AngularDriver
             ? view.source.toString() == filePath
             : view.templateUriSource?.fullName == filePath;
         if (match) {
-          return view.template;
+          templates.add(view.template);
         }
       }
     }
-    return null;
+    return templates;
   }
 
   Future<DirectivesResult> resolveHtmlFrom(

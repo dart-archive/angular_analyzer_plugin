@@ -214,6 +214,7 @@ class AngularCompletionContributor extends CompletionContributor {
    */
   Future<List<CompletionSuggestion>> computeSuggestions(
       CompletionRequest request) async {
+    var suggestions = <CompletionSuggestion>[];
     var filePath = request.source.toString();
 
     await driver.getStandardHtml();
@@ -221,14 +222,21 @@ class AngularCompletionContributor extends CompletionContributor {
 
     var events = driver.standardHtml.events.values;
     var attributes = driver.standardHtml.attributes.values;
-    var template = await driver.getTemplateForFile(filePath);
+    var templates = await driver.getTemplateForFile(filePath);
 
-    if (template == null) {
-      return [];
+    if (templates.isEmpty) {
+      return <CompletionSuggestion>[];
     }
     var templateCompleter = new TemplateCompleter();
-    return templateCompleter.computeSuggestions(
-        request, template, events, attributes);
+    for (var template in templates) {
+      suggestions.addAll(await templateCompleter.computeSuggestions(
+        request,
+        template,
+        events,
+        attributes,
+      ));
+    }
+    return suggestions;
   }
 }
 
