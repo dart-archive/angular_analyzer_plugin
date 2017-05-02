@@ -14,12 +14,10 @@ import 'package:analysis_server/src/provisional/completion/completion_core.dart'
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart'
-    show DartCompletionRequestImpl;
 import 'package:analysis_server/src/services/index/index.dart';
 import 'package:analysis_server/src/services/search/search_engine_internal.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
@@ -28,61 +26,6 @@ int suggestionComparator(CompletionSuggestion s1, CompletionSuggestion s2) {
   String c1 = s1.completion.toLowerCase();
   String c2 = s2.completion.toLowerCase();
   return c1.compareTo(c2);
-}
-
-abstract class AbstractDartCompletionContributorTest
-    extends BaseCompletionContributorTest {
-  DartCompletionContributor contributor;
-  DartCompletionRequest request;
-
-  @override
-  void setUp() {
-    super.setUp();
-    contributor = createContributor();
-  }
-
-  DartCompletionContributor createContributor();
-
-  Future computeSuggestions([int times = 200]) async {
-    context.analysisPriorityOrder = [testSource];
-    CompletionRequestImpl baseRequest = new CompletionRequestImpl(
-      null,
-      context,
-      null,
-      searchEngine,
-      testSource,
-      completionOffset,
-      new CompletionPerformance(),
-      null,
-    );
-
-    // Build the request
-    Completer<DartCompletionRequest> requestCompleter =
-        new Completer<DartCompletionRequest>();
-    DartCompletionRequestImpl
-        .from(baseRequest)
-        .then((DartCompletionRequest request) {
-      requestCompleter.complete(request);
-    });
-    request = await performAnalysis(times, requestCompleter);
-
-    replacementOffset = (request as CompletionRequestImpl).replacementOffset;
-    replacementLength = (request as CompletionRequestImpl).replacementLength;
-    Completer<List<CompletionSuggestion>> suggestionCompleter =
-        new Completer<List<CompletionSuggestion>>();
-
-    // Request completions
-    contributor
-        .computeSuggestions(request)
-        .then((List<CompletionSuggestion> computedSuggestions) {
-      suggestionCompleter.complete(computedSuggestions);
-    });
-
-    // Perform analysis until the suggestions have been computed
-    // or the max analysis cycles ([times]) has been reached
-    suggestions = await performAnalysis(times, suggestionCompleter);
-    expect(suggestions, isNotNull, reason: 'expected suggestions');
-  }
 }
 
 abstract class AbstractCompletionContributorTest
@@ -99,10 +42,9 @@ abstract class AbstractCompletionContributorTest
   CompletionContributor createContributor();
 
   Future computeSuggestions([int times = 200]) async {
-    context.analysisPriorityOrder = [testSource];
     CompletionRequestImpl request = new CompletionRequestImpl(
       null,
-      context,
+      null,
       null,
       searchEngine,
       testSource,
@@ -111,32 +53,29 @@ abstract class AbstractCompletionContributorTest
       null,
     );
 
-    // Build the request
-    Completer<CompletionRequest> requestCompleter =
-        new Completer<CompletionRequest>();
-    requestCompleter.complete(request);
-    request = await performAnalysis<CompletionRequest>(times, requestCompleter);
-
-    Completer<List<CompletionSuggestion>> suggestionCompleter =
-        new Completer<List<CompletionSuggestion>>();
-
     // Request completions
-    contributor
-        .computeSuggestions(request)
-        .then((List<CompletionSuggestion> computedSuggestions) {
-      suggestionCompleter.complete(computedSuggestions);
-    });
-
-    // Perform analysis until the suggestions have been computed
-    // or the max analysis cycles ([times]) has been reached
-    suggestions = await performAnalysis(times, suggestionCompleter);
+    suggestions = await contributor.computeSuggestions(request);
     replacementOffset = request.replacementOffset;
     replacementLength = request.replacementLength;
     expect(suggestions, isNotNull, reason: 'expected suggestions');
   }
+
+  /**
+   * Compute all the views declared in the given [dartSource], and resolve the
+   * external template of all the views.
+   */
+  Future resolveSingleTemplate(Source dartSource) async {
+    final result = await angularDriver.resolveDart(dartSource.fullName);
+    for (var d in result.directives) {
+      if (d is Component && d.view.templateUriSource != null) {
+        var htmlPath = d.view.templateUriSource.fullName;
+        await angularDriver.resolveHtml(htmlPath);
+      }
+    }
+  }
 }
 
-abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
+abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   Index index;
   SearchEngineImpl searchEngine;
   String testFile;
@@ -559,27 +498,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     return cs;
   }
 
-  /**
-   * Return a [Future] that completes with the containing library information
-   * after it is accessible via [context.getLibrariesContaining].
-   */
-  Future computeLibrariesContaining([int times = 200]) {
-    List<Source> libraries = context.getLibrariesContaining(testSource);
-    if (libraries.isNotEmpty) {
-      return new Future.value(libraries);
-    }
-    if (times == 0) {
-      fail('failed to determine libraries containing $testSource');
-    }
-    context.performAnalysisTask();
-    // We use a delayed future to allow microtask events to finish. The
-    // Future.value or Future() constructors use scheduleMicrotask themselves and
-    // would therefore not wait for microtask callbacks that are scheduled after
-    // invoking this method.
-    return new Future.delayed(
-        Duration.ZERO, () => computeLibrariesContaining(times - 1));
-  }
-
   Future computeSuggestions([int times = 200]);
 
   void failedCompletion(String message,
@@ -624,28 +542,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       });
     }
     return cs;
-  }
-
-  Future<E> performAnalysis<E>(int times, Completer<E> completer) {
-    if (completer.isCompleted) {
-      return completer.future;
-    }
-    if (times == 0 || context == null) {
-      return new Future.value();
-    }
-    context.performAnalysisTask();
-    // We use a delayed future to allow microtask events to finish. The
-    // Future.value or Future() constructors use scheduleMicrotask themselves and
-    // would therefore not wait for microtask callbacks that are scheduled after
-    // invoking this method.
-    return new Future.delayed(
-        Duration.ZERO, () => performAnalysis(times - 1, completer));
-  }
-
-  void resolveSource(String path, String content) {
-    Source libSource = newSource(path, content);
-    var target = new LibrarySpecificUnit(libSource, libSource);
-    context.computeResult(target, RESOLVED_UNIT);
   }
 
   @override

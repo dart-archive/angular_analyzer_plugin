@@ -3,6 +3,8 @@ library angular2.src.analysis.server_plugin.analysis_test;
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
 import 'package:analysis_server/protocol/protocol_generated.dart' as protocol;
+import 'package:analysis_server/src/plugin/notification_manager.dart';
+import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/context.dart' show AnalysisContextImpl;
@@ -13,9 +15,17 @@ import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/task/driver.dart';
 import 'package:analyzer/src/task/manager.dart';
+import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/task/model.dart';
+import 'package:analyzer/context/context_root.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart' as nonTask
+    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
+import 'package:analyzer/src/dart/analysis/file_state.dart';
+import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:plugin/manager.dart';
 import 'package:plugin/plugin.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -335,6 +345,12 @@ class GatheringErrorListener implements AnalysisErrorListener {
   void onError(AnalysisError error) {
     _errors.add(error);
   }
+
+  void addAll(List<AnalysisError> errors) {
+    for (AnalysisError error in errors) {
+      onError(error);
+    }
+  }
 }
 
 class NavigationCollectorMock extends TypedMock implements NavigationCollector {
@@ -559,4 +575,226 @@ class _RecordedNavigationRegion {
   String toString() {
     return '$offset $length $targetKind $targetLocation';
   }
+}
+
+class AbstractAngularTest {
+  MemoryResourceProvider resourceProvider;
+
+  DartSdk sdk;
+  AngularDriver angularDriver;
+  nonTask.AnalysisDriver dartDriver;
+
+  GatheringErrorListener errorListener;
+
+  void setUp() {
+    nonTask.PerformanceLog logger =
+        new nonTask.PerformanceLog(new StringBuffer());
+    var byteStore = new MemoryByteStore();
+
+    nonTask.AnalysisDriverScheduler scheduler =
+        new nonTask.AnalysisDriverScheduler(logger);
+    scheduler.start();
+    resourceProvider = new MemoryResourceProvider();
+
+    sdk = new MockSdk(resourceProvider: resourceProvider);
+    final packageMap = new Map<String, List<Folder>>();
+    PackageMapUriResolver packageResolver =
+        new PackageMapUriResolver(resourceProvider, packageMap);
+    SourceFactory sf = new SourceFactory([
+      new DartUriResolver(sdk),
+      packageResolver,
+      new ResourceUriResolver(resourceProvider),
+    ]);
+    var testPath = resourceProvider.convertPath('/test');
+    var contextRoot = new ContextRoot(testPath, []);
+
+    dartDriver = new nonTask.AnalysisDriver(
+      scheduler,
+      logger,
+      resourceProvider,
+      byteStore,
+      new FileContentOverlay(),
+      contextRoot,
+      sf,
+      new AnalysisOptionsImpl(),
+    );
+
+    angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
+        scheduler, byteStore, sf, new FileContentOverlay());
+
+    errorListener = new GatheringErrorListener();
+    addAngularSources();
+  }
+
+  Source newSource(String path, [String content = '']) {
+    File file = resourceProvider.newFile(path, content);
+    final source = file.createSource();
+    angularDriver.addFile(path);
+    dartDriver.addFile(path);
+    return source;
+  }
+
+  void fillErrorListener(List<AnalysisError> errors) {
+    errorListener.addAll(errors);
+  }
+
+  void addAngularSources() {
+    newSource(
+        '/angular2/angular2.dart',
+        r'''
+library angular2;
+
+export 'src/core/async.dart';
+export 'src/core/metadata.dart';
+export 'src/core/ng_if.dart';
+export 'src/core/ng_for.dart';
+''');
+    newSource(
+        '/angular2/src/core/metadata.dart',
+        r'''
+library angular2.src.core.metadata;
+
+import 'dart:async';
+
+abstract class Directive {
+  const Directive(
+      {String selector,
+      List<String> inputs,
+      List<String> outputs,
+      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
+      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
+      Map<String, String> host,
+      @Deprecated('Use `providers` instead') List bindings,
+      List providers,
+      String exportAs,
+      String moduleId,
+      Map<String, dynamic> queries})
+      : super(
+            selector: selector,
+            inputs: inputs,
+            outputs: outputs,
+            properties: properties,
+            events: events,
+            host: host,
+            bindings: bindings,
+            providers: providers,
+            exportAs: exportAs,
+            moduleId: moduleId,
+            queries: queries);
+}
+
+class Component extends Directive {
+  const Component(
+      {String selector,
+      List<String> inputs,
+      List<String> outputs,
+      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
+      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
+      Map<String, String> host,
+      @Deprecated('Use `providers` instead') List bindings,
+      List providers,
+      String exportAs,
+      String moduleId,
+      Map<String, dynamic> queries,
+      @Deprecated('Use `viewProviders` instead') List viewBindings,
+      List viewProviders,
+      ChangeDetectionStrategy changeDetection,
+      String templateUrl,
+      String template,
+      dynamic directives,
+      dynamic pipes,
+      ViewEncapsulation encapsulation,
+      List<String> styles,
+      List<String> styleUrls});
+}
+
+class View {
+  const View(
+      {String templateUrl,
+      String template,
+      dynamic directives,
+      dynamic pipes,
+      ViewEncapsulation encapsulation,
+      List<String> styles,
+      List<String> styleUrls});
+}
+
+class Input {
+  final String bindingPropertyName;
+  const InputMetadata([this.bindingPropertyName]);
+}
+
+class Output {
+  final String bindingPropertyName;
+  const OutputMetadata([this.bindingPropertyName]);
+}
+''');
+    newSource(
+        '/angular2/src/core/async.dart',
+        r'''
+library angular2.core.facade.async;
+import 'dart:async';
+
+class EventEmitter<T> extends Stream<T> {
+  StreamController<dynamic> _controller;
+
+  /**
+   * Creates an instance of [EventEmitter], which depending on [isAsync],
+   * delivers events synchronously or asynchronously.
+   */
+  EventEmitter([bool isAsync = true]) {
+    _controller = new StreamController.broadcast(sync: !isAsync);
+  }
+
+  StreamSubscription listen(void onData(dynamic line),
+      {void onError(Error error), void onDone(), bool cancelOnError}) {
+    return _controller.stream.listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  }
+
+  void add(value) {
+    _controller.add(value);
+  }
+
+  void addError(error) {
+    _controller.addError(error);
+  }
+
+  void close() {
+    _controller.close();
+  }
+}
+''');
+    newSource(
+        '/angular2/src/core/ng_if.dart',
+        r'''
+library angular2.ng_if;
+import 'metadata.dart';
+
+@Directive(selector: "[ngIf]", inputs: const ["ngIf"])
+class NgIf {
+  set ngIf(newCondition) {}
+}
+''');
+    newSource(
+        '/angular2/src/core/ng_for.dart',
+        r'''
+library angular2.ng_for;
+import 'metadata.dart';
+
+@Directive(
+    selector: "[ngFor][ngForOf]",
+    inputs: const ["ngForOf", "ngForTemplate"])
+class NgFor {
+  set ngForOf(dynamic value) {}
+}
+''');
+  }
+}
+
+class MockAnalysisServer extends TypedMock implements AnalysisServer {
+  NotificationManager notificationManager = new MockNotificationManager();
+}
+
+class MockNotificationManager extends TypedMock implements NotificationManager {
 }

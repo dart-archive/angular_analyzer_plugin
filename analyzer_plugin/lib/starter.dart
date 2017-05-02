@@ -5,6 +5,14 @@ import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
+import 'package:analysis_server/protocol/protocol.dart' show Request;
+import 'package:analysis_server/protocol/protocol_generated.dart'
+    show CompletionGetSuggestionsParams, CompletionGetSuggestionsResult;
+import 'package:analysis_server/src/services/completion/completion_core.dart';
+import 'package:analysis_server/src/services/completion/completion_performance.dart';
+import 'package:angular_analyzer_server_plugin/src/completion.dart';
+import 'package:analyzer/src/source/source_resource.dart';
+import 'package:analysis_server/src/domain_completion.dart';
 
 class Starter {
   final angularDrivers = <String, AngularDriver>{};
@@ -15,6 +23,7 @@ class Starter {
     ContextBuilder.onCreateAnalysisDriver = onCreateAnalysisDriver;
     server.onResultErrorSupplementor = sumErrors;
     server.onNoAnalysisResult = sendHtmlResult;
+    server.onNoAnalysisCompletion = sendAngularCompletions;
   }
 
   void onCreateAnalysisDriver(
@@ -68,5 +77,50 @@ class Starter {
     }
 
     sendFn(null, null, null);
+  }
+
+  // Handles .html completion. Directly sends the suggestions to the
+  // [completionHandler].
+  Future sendAngularCompletions(
+    Request request,
+    CompletionDomainHandler completionHandler,
+    CompletionGetSuggestionsParams params,
+    CompletionPerformance performance,
+    String completionId,
+  ) async {
+    var filePath = (request.toJson()['params'] as Map)['file'];
+    var source =
+        new FileSource(server.resourceProvider.getFile(filePath), filePath);
+
+    if (server.contextManager.isInAnalysisRoot(filePath)) {
+      for (final driverPath in angularDrivers.keys) {
+        if (server.contextManager.getContextFolderFor(filePath).path ==
+            driverPath) {
+          final driver = angularDrivers[driverPath];
+
+          var completionContributor = new AngularCompletionContributor(driver);
+          CompletionRequestImpl completionRequest = new CompletionRequestImpl(
+              null, // AnalysisResult - unneeded for AngularCompletion
+              null, // AnalysisContext - unnedded for AngularCompletion
+              server.resourceProvider,
+              server.searchEngine,
+              source,
+              params.offset,
+              performance,
+              server.ideOptions);
+          completionHandler.setNewRequest(completionRequest);
+          server.sendResponse(new CompletionGetSuggestionsResult(completionId)
+              .toResponse(request.id));
+          var suggestions =
+              await completionContributor.computeSuggestions(completionRequest);
+          completionHandler.sendCompletionNotification(
+              completionId,
+              completionRequest.replacementOffset,
+              completionRequest.replacementLength,
+              suggestions);
+          completionHandler.ifMatchesRequestClear(completionRequest);
+        }
+      }
+    }
   }
 }

@@ -287,11 +287,14 @@ class AngularDriver
             source.exists() ? source.contents.data : "")(getSource(path));
   }
 
-  Future<DirectivesResult> resolveHtml(String htmlPath) async {
+  Future<DirectivesResult> resolveHtml(
+    String htmlPath, {
+    bool ignoreCache: false,
+  }) async {
     final key = getHtmlKey(htmlPath);
     final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
     final List<int> bytes = byteStore.get(key);
-    if (bytes != null) {
+    if (!ignoreCache && bytes != null) {
       final summary = new LinkedHtmlSummary.fromBuffer(bytes);
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
@@ -309,18 +312,51 @@ class AngularDriver
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(
-          result.errors.where((error) => error is! FromFilePrefixedError))
+      ..errors = summarizeErrors(result.errors
+          .where((error) => error is! FromFilePrefixedError)
+          .toList())
       ..errorsFromPath = result.errors
           .where((error) => error is FromFilePrefixedError)
           .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
             ..path = (error as FromFilePrefixedError).fromSourcePath
             ..originalError =
-                summarizeError((error as FromFilePrefixedError).originalError));
+                summarizeError((error as FromFilePrefixedError).originalError))
+          .toList();
     final List<int> newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
     return result;
+  }
+
+  Future<List<Template>> getTemplatesForFile(String filePath) async {
+    var templates = <Template>[];
+    var isDartFile = filePath.endsWith('.dart');
+    if (!isDartFile && !filePath.endsWith('.html')) {
+      return templates;
+    }
+    var directiveResults = isDartFile
+        ? await resolveDart(
+            filePath,
+            withDirectives: true,
+            onlyIfChangedSignature: false,
+          )
+        : await resolveHtml(filePath, ignoreCache: true);
+    var directives = directiveResults.directives;
+    if (directives == null) {
+      return templates;
+    }
+    for (var directive in directives) {
+      if (directive is Component) {
+        var view = directive.view;
+        var match = isDartFile
+            ? view.source.toString() == filePath
+            : view.templateUriSource?.fullName == filePath;
+        if (match) {
+          templates.add(view.template);
+        }
+      }
+    }
+    return templates;
   }
 
   Future<DirectivesResult> resolveHtmlFrom(
@@ -368,7 +404,7 @@ class AngularDriver
           setIgnoredErrors(template, document);
           final resolver = new TemplateResolver(
               context.typeProvider,
-              standardHtml.components.values,
+              standardHtml.components.values.toList(),
               standardHtml.events,
               standardHtml.attributes,
               tplErrorListener);

@@ -173,14 +173,6 @@ class ViewExtractor extends AnnotationProcessorMixin {
                   element.variable.constantValue != null) {
             directiveReferences.add(new DirectiveReference(
                 name, prefix, new SourceRange(item.offset, item.length)));
-            //DartObject value = element.variable.constantValue;
-            //bool success = _addDirectivesAndElementTagsForDartObject(
-            //    directiveReferences, value);
-            //if (!success) {
-            //  errorReporter.reportErrorForNode(
-            //      AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-            //  return null;
-            //}
             continue;
           }
         }

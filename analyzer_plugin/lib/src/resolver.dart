@@ -119,6 +119,7 @@ class TemplateResolver {
     var allDirectives = <AbstractDirective>[]
       ..addAll(standardHtmlComponents)
       ..addAll(view.directives);
+
     DirectiveResolver directiveResolver = new DirectiveResolver(
         allDirectives, templateSource, template, errorListener);
     root.accept(directiveResolver);
