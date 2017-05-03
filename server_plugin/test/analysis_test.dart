@@ -73,7 +73,7 @@ class AngularNavigationContributorTest extends AbstractAngularTaskTest {
   void test_dart_templates() {
     addAngularSources();
     code = r'''
-import '/angular2/src/core/metadata.dart';
+import 'package:angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
@@ -156,7 +156,7 @@ class User {
   void test_dart_view_templateUrl() {
     addAngularSources();
     code = r'''
-import '/angular2/src/core/metadata.dart';
+import 'package:angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -187,7 +187,7 @@ class TextPanel {}
   void test_html_templates() {
     addAngularSources();
     String dartCode = r'''
-import '/angular2/src/core/metadata.dart';
+import 'package:angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -260,7 +260,7 @@ class AngularOccurrencesContributorTest extends AbstractAngularTaskTest {
   void test_dart_templates() {
     addAngularSources();
     code = r'''
-import '/angular2/src/core/metadata.dart';
+import 'package:angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
@@ -597,7 +597,9 @@ class AbstractAngularTest {
     resourceProvider = new MemoryResourceProvider();
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
-    final packageMap = new Map<String, List<Folder>>();
+    final packageMap = <String, List<Folder>>{
+      "angular2": [resourceProvider.getFolder("/angular2")]
+    };
     PackageMapUriResolver packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
     SourceFactory sf = new SourceFactory([
