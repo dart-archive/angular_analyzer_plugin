@@ -919,6 +919,39 @@ class SingleScopeResolver extends AngularScopeVisitor {
   AnalysisErrorListener errorListener;
   ErrorReporter errorReporter;
 
+  static var styleWithPercent = new Set<String>.from([
+    'border-bottom-left-radius',
+    'border-bottom-right-radius',
+    'border-image-slice',
+    'border-image-width',
+    'border-radius',
+    'border-top-left-radius',
+    'border-top-right-radius',
+    'bottom',
+    'font-size',
+    'height',
+    'left',
+    'line-height',
+    'margin',
+    'margin-bottom',
+    'margin-left',
+    'margin-right',
+    'margin-top',
+    'max-height',
+    'max-width',
+    'min-height',
+    'min-width',
+    'padding',
+    'padding-bottom',
+    'padding-left',
+    'padding-right',
+    'padding-top',
+    'right',
+    'text-indent',
+    'top',
+    'width',
+  ]);
+
   /**
    * The full map of names to local variables in the current context
    */
@@ -1085,6 +1118,68 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
   }
 
+  /**
+   * Resolve input-bound values of [attributes] as strings, if they match. Note,
+   * this does not report an error un unmatched attributes, but it will report
+   * the range, and ensure that input bindings are string-assingable.
+   */
+  void visitTextAttr(TextAttribute attribute) {
+    for (DirectiveBinding directiveBinding
+        in attribute.parent.boundDirectives) {
+      for (InputElement input in directiveBinding.boundDirective.inputs) {
+        if (input.name == attribute.name) {
+          var inputType = input.setterType;
+
+          if (!typeProvider.stringType.isAssignableTo(inputType)) {
+            errorListener.onError(new AnalysisError(
+                templateSource,
+                attribute.nameOffset,
+                attribute.name.length,
+                AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+                [input.name]));
+          }
+
+          SourceRange range =
+              new SourceRange(attribute.nameOffset, attribute.name.length);
+          template.addRange(range, input);
+          directiveBinding.inputBindings
+              .add(new InputBinding(input, attribute));
+        }
+      }
+
+      for (AngularElement elem in directiveBinding.boundDirective.attributes) {
+        if (elem.name == attribute.name) {
+          SourceRange range =
+              new SourceRange(attribute.nameOffset, attribute.name.length);
+          template.addRange(range, elem);
+        }
+      }
+    }
+
+    InputElement standardHtmlAttribute = standardHtmlAttributes[attribute.name];
+    if (standardHtmlAttribute != null) {
+      // DISABLED per issue #280 until we know better how to validate this case
+      //var inputType = standardHtmlAttribute.setterType;
+      //if (!typeProvider.stringType.isAssignableTo(inputType)) {
+      //  errorListener.onError(new AnalysisError(
+      //      templateSource,
+      //      attribute.nameOffset,
+      //      attribute.name.length,
+      //      AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+      //      [attribute.name]));
+      //}
+
+      SourceRange range =
+          new SourceRange(attribute.nameOffset, attribute.name.length);
+      template.addRange(range, standardHtmlAttribute);
+      attribute.parent.boundStandardInputs
+          .add(new InputBinding(standardHtmlAttribute, attribute));
+    }
+
+    // visit mustaches inside
+    super.visitTextAttr(attribute);
+  }
+
   void _typecheckMatchingInput(
       ExpressionBoundAttribute attr, InputElement input) {
     // half-complete-code case: ensure the expression is actually there
@@ -1154,7 +1249,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
     if (dotpos != -1) {
       cssPropertyName = attribute.name.substring(0, dotpos);
       var cssUnitName = attribute.name.substring(dotpos + '.'.length);
-      if (!_isCssIdentifier(cssUnitName)) {
+      var validUnitName =
+          styleWithPercent.contains(cssPropertyName) && cssUnitName == '%';
+      validUnitName = validUnitName || _isCssIdentifier(cssUnitName);
+      if (!validUnitName) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.nameOffset + dotpos + 1,

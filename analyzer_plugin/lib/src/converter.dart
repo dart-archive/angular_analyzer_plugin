@@ -157,6 +157,11 @@ class HtmlTreeConverter {
 
       var ngContent = new ElementInfo(localName, openingSpan, closingSpan,
           openingNameSpan, closingNameSpan, false, attributes, null, parent);
+
+      for (AttributeInfo attribute in attributes) {
+        attribute.parent = ngContent;
+      }
+
       return ngContent;
     }
     if (node is EmbeddedTemplateAst) {

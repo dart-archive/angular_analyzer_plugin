@@ -22,14 +22,15 @@ import 'package:unittest/unittest.dart';
 import 'abstract_angular.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(AngularParseHtmlTest);
-  defineReflectiveTests(BuildStandardHtmlComponentsTest);
-  defineReflectiveTests(BuildUnitDirectivesTest);
-  defineReflectiveTests(BuildUnitViewsTest);
-  defineReflectiveTests(ResolveDartTemplatesTest);
-  defineReflectiveTests(ResolveHtmlTemplatesTest);
-  defineReflectiveTests(ResolveHtmlTemplateTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(AngularParseHtmlTest);
+    defineReflectiveTests(BuildStandardHtmlComponentsTest);
+    defineReflectiveTests(BuildUnitDirectivesTest);
+    defineReflectiveTests(BuildUnitViewsTest);
+    defineReflectiveTests(ResolveDartTemplatesTest);
+    defineReflectiveTests(ResolveHtmlTemplatesTest);
+    defineReflectiveTests(ResolveHtmlTemplateTest);
+  });
 }
 
 @reflectiveTest
@@ -252,7 +253,7 @@ class BuildUnitDirectivesTest extends AbstractAngularTest {
   }
 
   Future test_Component() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -300,7 +301,7 @@ class ComponentB {
   }
 
   Future test_Directive() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -348,7 +349,7 @@ class DirectiveB {
   }
 
   Future test_Directive_elementTags_OrSelector() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -405,7 +406,7 @@ class DirectiveB {
   }
 
   Future test_Directive_elementTags_AndSelector() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -453,7 +454,7 @@ class DirectiveB {
   }
 
   Future test_Directive_elementTags_CompoundSelector() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -518,7 +519,7 @@ class ComponentA {
 class ComponentB {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     expect(directives, hasLength(2));
     {
@@ -552,7 +553,7 @@ class DirectiveA {
 class DirectiveB {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     expect(directives, hasLength(2));
     {
@@ -575,7 +576,7 @@ class DirectiveB {
   }
 
   Future test_exportAs_hasError_notStringValue() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -594,7 +595,7 @@ class ComponentA {
   }
 
   Future test_exportAs_constantStringExpressionOk() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -610,7 +611,7 @@ class ComponentA {
   }
 
   Future test_hasError_ArgumentSelectorMissing() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -632,7 +633,7 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // validate
     assertErrorInCodeAtPosition(
@@ -640,7 +641,7 @@ class ComponentA {
   }
 
   Future test_hasError_selector_notStringValue() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -658,7 +659,7 @@ class ComponentA {
   }
 
   Future test_selector_constantExpressionOk() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -673,7 +674,7 @@ class ComponentA {
   }
 
   Future test_hasError_UndefinedSetter_fullSyntax() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -693,7 +694,7 @@ class ComponentA {
   }
 
   Future test_hasError_UndefinedSetter_shortSyntax() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -709,7 +710,7 @@ class ComponentA {
   }
 
   Future test_hasError_UndefinedSetter_shortSyntax_noInputMade() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -747,7 +748,7 @@ class MyComponent {
   set someSetter(String x) { }
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<InputElement> inputs = component.inputs;
@@ -826,7 +827,7 @@ class MyComponent {
   String trailingText;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<InputElement> inputs = component.inputs;
@@ -872,7 +873,7 @@ class MyComponent {
   EventEmitter get someGetter => null;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<OutputElement> compOutputs = component.outputs;
@@ -956,7 +957,7 @@ class MyComponent {
   Stream<int> myOutput;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<OutputElement> compOutputs = component.outputs;
@@ -983,7 +984,7 @@ class MyComponent {
   MyStream<int> myOutput;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<OutputElement> compOutputs = component.outputs;
@@ -1010,7 +1011,7 @@ class MyComponent {
   MyStream myOutput;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<OutputElement> compOutputs = component.outputs;
@@ -1037,7 +1038,7 @@ class MyComponent {
   MyStream myOutput;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<OutputElement> compOutputs = component.outputs;
@@ -1061,7 +1062,7 @@ class MyComponent {
   int badOutput;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER, code, "badOutput");
@@ -1079,7 +1080,7 @@ class MyComponent {
   int badOutput;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // validate
     Component component = directives.single;
@@ -1111,7 +1112,7 @@ class MyComponent<T, A extends String, B extends A> {
 }
 
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // validate
     Component component = directives.single;
@@ -1190,7 +1191,7 @@ class Generic<T> {
 class MyComponent extends Generic {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<InputElement> compInputs = component.inputs;
@@ -1229,7 +1230,7 @@ class Generic<T> {
 class MyComponent extends Generic<String> {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component component = directives.single;
     List<InputElement> compInputs = component.inputs;
@@ -1260,7 +1261,7 @@ class MyComponent {
   @Input() final int immutable = 1;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // validate
     assertErrorInCodeAtPosition(
@@ -1278,7 +1279,7 @@ class MyComponent {
   final int immutable = 1;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // validate. Can't easily assert position though because its all 'immutable'
     errorListener
@@ -1286,7 +1287,7 @@ class MyComponent {
   }
 
   Future test_noDirectives() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 class A {}
@@ -1306,7 +1307,7 @@ class MyComponent {
   String get someGetter => null;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
@@ -1324,7 +1325,7 @@ class MyComponent {
   set someSetter(x) { }
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     assertErrorInCodeAtPosition(
         AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
@@ -1371,7 +1372,7 @@ import '/angular2/angular2.dart';
     directives: const [NgFor])
 class OtherComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     newSource('/other_file.dart', otherCode);
     await getViews(source);
     {
@@ -1410,7 +1411,7 @@ const DIR_AB = const [DirectiveA, DirectiveB];
     directives: const [DIR_AB, DirectiveC])
 class MyComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getViews(source);
     {
       View view = getViewByClassName(views, 'MyComponent');
@@ -1451,7 +1452,7 @@ import 'other.dart' as other;
     directives: const [other.DIR_AB, other.DirectiveC])
 class MyComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     newSource('/other.dart', otherCode);
     await getViews(source);
     {
@@ -1479,14 +1480,14 @@ const NOT_DIRECTIVE_LIST = 42;
    directives: const [NOT_DIRECTIVE_LIST])
 class MyComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getViews(source);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
   }
 
   Future test_hasError_ComponentAnnotationMissing() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1501,7 +1502,7 @@ class ComponentA {
   }
 
   Future test_hasError_StringValueExpected() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1518,7 +1519,7 @@ class ComponentA {
   }
 
   Future test_constantExpressionTemplateOk() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1532,7 +1533,7 @@ class ComponentA {
   }
 
   Future test_constantExpressionTemplateComplexIsOnlyError() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1549,7 +1550,7 @@ class ComponentA {
   }
 
   Future test_hasError_TypeLiteralExpected() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1564,7 +1565,7 @@ class ComponentA {
   }
 
   Future test_hasError_TemplateAndTemplateUrlDefined() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1580,7 +1581,7 @@ class ComponentA {
   }
 
   Future test_hasError_NeitherTemplateNorTemplateUrlDefined() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1601,7 +1602,7 @@ import '/angular2/angular2.dart';
 @Component(selector: 'my-component', templateUrl: 'missing-template.html')
 class MyComponent {}
 ''';
-    Source dartSource = newSource('/test.dart', code);
+    var dartSource = newSource('/test.dart', code);
     await getViews(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
@@ -1616,8 +1617,8 @@ import '/angular2/angular2.dart';
 @Component(selector: 'my-component', templateUrl: 'my-template.html')
 class MyComponent {}
 ''';
-    Source dartSource = newSource('/test.dart', code);
-    Source htmlSource = newSource('/my-template.html', '');
+    var dartSource = newSource('/test.dart', code);
+    var htmlSource = newSource('/my-template.html', '');
     await getViews(dartSource);
     expect(views, hasLength(1));
     // MyComponent
@@ -1642,8 +1643,8 @@ import '/angular2/angular2.dart';
 @View(templateUrl: 'my-template.html')
 class MyComponent {}
 ''';
-    Source dartSource = newSource('/test.dart', code);
-    Source htmlSource = newSource('/my-template.html', '');
+    var dartSource = newSource('/test.dart', code);
+    var htmlSource = newSource('/my-template.html', '');
     await getViews(dartSource);
     expect(views, hasLength(1));
     // MyComponent
@@ -1674,7 +1675,7 @@ class OtherComponent {}
     directives: const [MyDirective, OtherComponent])
 class MyComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getViews(source);
     expect(views, hasLength(2));
     {
@@ -1711,7 +1712,7 @@ class OtherComponent {}
 @View(template: 'My template', directives: const [MyDirective, OtherComponent])
 class MyComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getViews(source);
     expect(views, hasLength(2));
     {
@@ -1754,7 +1755,7 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
   }
 
   Future test_hasError_DirectiveTypeLiteralExpected() async {
-    Source source = newSource(
+    var source = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -1789,7 +1790,7 @@ class ComponentB {
 class ComponentC {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component componentA = getComponentByClassName(directives, 'ComponentA');
     Component componentB = getComponentByClassName(directives, 'ComponentB');
@@ -1842,7 +1843,7 @@ class TextPanel {
   String text;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener.assertErrorsWithCodes(
         [StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE]);
@@ -1866,7 +1867,7 @@ class TextPanel {
 class UserPanel {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener
         .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
@@ -1882,7 +1883,7 @@ class MyComponent {
 }
 ''';
 
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     assertErrorInCodeAtPosition(
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, 'noSuchName');
@@ -1897,7 +1898,7 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     assertErrorInCodeAtPosition(
         AngularWarningCode.UNRESOLVED_TAG, code, 'unresolved-tag');
@@ -1914,7 +1915,7 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener.assertNoErrors();
   }
@@ -1930,7 +1931,7 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener.assertNoErrors();
   }
@@ -1947,7 +1948,7 @@ class ComponentA {
   Object value;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener.assertNoErrors();
   }
@@ -1961,7 +1962,7 @@ import '/angular2/angular2.dart';
 class TextPanel {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // has errors
     errorListener.assertErrorsWithCodes([
@@ -1984,7 +1985,7 @@ class TodoList {
   gotClicked(MouseEvent event) {}
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     expect(templates, hasLength(1));
     {
@@ -2043,7 +2044,7 @@ class User {
   String name; // 2
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component textPanel = getComponentByClassName(directives, 'TextPanel');
     // validate
@@ -2102,7 +2103,7 @@ class ComponentA {
 class ComponentB {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     Component componentA = getComponentByClassName(directives, 'ComponentA');
     // validate
@@ -2137,7 +2138,7 @@ import '/angular2/angular2.dart';
 class TextPanel {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     expect(templates, hasLength(1));
     // has errors
@@ -2153,7 +2154,7 @@ import '/angular2/angular2.dart';
 class TextPanel {
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     expect(templates, hasLength(1));
     // has errors
@@ -2169,7 +2170,7 @@ class TextPanel {
   String text = "text";
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // has errors
     errorListener
@@ -2185,7 +2186,7 @@ class TextPanel {
   String text;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     // has errors
     errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
@@ -2200,7 +2201,7 @@ class TextPanel {
   String text;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener.assertErrorsWithCodes([
       AngularWarningCode.UNTERMINATED_MUSTACHE,
@@ -2217,7 +2218,7 @@ class TextPanel {
   String text, open, close;
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     errorListener.assertErrorsWithCodes([
       AngularWarningCode.UNTERMINATED_MUSTACHE,
@@ -2238,7 +2239,7 @@ class TextPanel {
   String text; // 1
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     await getDirectives(source);
     expect(templates, hasLength(1));
     {
@@ -2290,7 +2291,7 @@ import '/angular2/angular2.dart';
     directives: const [])
 class ChildComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var source = newSource('/test.dart', code);
     newSource('/child_file.dart', childCode);
     await getDirectives(source);
     expect(templates, hasLength(1));
@@ -2310,6 +2311,55 @@ class ChildComponent {}
     expect(childView.component.ngContents, hasLength(1));
   }
 
+  Future test_attributes() async {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  MyComponent(@Attribute("my-attr") String foo);
+}
+''';
+    var source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.single;
+    List<AngularElement> attributes = component.attributes;
+    expect(attributes, hasLength(1));
+    {
+      AngularElement attribute = attributes[0];
+      expect(attribute.name, 'my-attr');
+      // TODO better offsets here. But its really not that critical
+      expect(attribute.nameOffset, code.indexOf("foo"));
+      expect(attribute.nameLength, "foo".length);
+    }
+    errorListener.assertNoErrors();
+  }
+
+  Future test_attributeNotString() async {
+    String code = r'''
+import '/angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  MyComponent(@Attribute("my-attr") int foo);
+}
+''';
+    var source = newSource('/test.dart', code);
+    await getDirectives(source);
+    Component component = directives.single;
+    List<AngularElement> attributes = component.attributes;
+    expect(attributes, hasLength(1));
+    {
+      AngularElement attribute = attributes[0];
+      expect(attribute.name, 'my-attr');
+      // TODO better offsets here. But its really not that critical
+      expect(attribute.nameOffset, code.indexOf("foo"));
+      expect(attribute.nameLength, "foo".length);
+    }
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING, code, 'foo');
+  }
+
   static Template _getDartTemplateByClassName(
       List<Template> templates, String className) {
     return templates.firstWhere(
@@ -2323,31 +2373,30 @@ class ChildComponent {}
 @reflectiveTest
 class ResolveHtmlTemplatesTest extends AbstractAngularTest {
   List<Template> templates;
-  Future getDirectives(Source dartSource) async {
-    final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder = (AbstractDirective d) =>
-        d is Component && d.view.templateUriSource != null;
-    fillErrorListener(result.errors);
-    final directives = result.directives.where(finder);
-    final htmlPath =
-        (directives.first as Component).view.templateUriSource.fullName;
-    final result2 =
-        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
+  Future getDirectives(Source htmlSource, List<Source> dartSources) async {
+    for (final dartSource in dartSources) {
+      final result = await angularDriver.resolveDart(dartSource.fullName);
+      fillErrorListener(result.errors);
+    }
+    final result2 = await angularDriver.resolveHtml(htmlSource.fullName);
     fillErrorListener(result2.errors);
     templates = result2.directives
-        .where(finder)
         .map((d) => d is Component ? d.view?.template : null)
         .where((d) => d != null);
   }
 
   Future test_multipleViewsWithTemplate() async {
-    String dartCode = r'''
+    String dartCodeOne = r'''
 import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panelA', templateUrl: 'text_panel.html')
 class TextPanelA {
   String text; // A
 }
+''';
+
+    String dartCodeTwo = r'''
+import '/angular2/angular2.dart';
 
 @Component(selector: 'text-panelB', templateUrl: 'text_panel.html')
 class TextPanelB {
@@ -2359,23 +2408,24 @@ class TextPanelB {
   {{text}}
 </div>
 """;
-    Source dartSource = newSource('/test.dart', dartCode);
-    newSource('/text_panel.html', htmlCode);
-    await getDirectives(dartSource);
+    var dartSourceOne = newSource('/test1.dart', dartCodeOne);
+    var dartSourceTwo = newSource('/test2.dart', dartCodeTwo);
+    var htmlSource = newSource('/text_panel.html', htmlCode);
+    await getDirectives(htmlSource, [dartSourceOne, dartSourceTwo]);
     expect(templates, hasLength(2));
     // validate templates
     bool hasTextPanelA = false;
     bool hasTextPanelB = false;
     for (HtmlTemplate template in templates) {
       String viewClassName = template.view.classElement.name;
-      String textTargetPattern;
+      int textLocation;
       if (viewClassName == 'TextPanelA') {
         hasTextPanelA = true;
-        textTargetPattern = 'text; // A';
+        textLocation = dartCodeOne.indexOf('text; // A');
       }
       if (viewClassName == 'TextPanelB') {
         hasTextPanelB = true;
-        textTargetPattern = 'text; // B';
+        textLocation = dartCodeTwo.indexOf('text; // B');
       }
       expect(template.ranges, hasLength(1));
       {
@@ -2383,7 +2433,7 @@ class TextPanelB {
             getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
         PropertyAccessorElement element = assertGetter(resolvedRange);
         expect(element.name, 'text');
-        expect(element.nameOffset, dartCode.indexOf(textTargetPattern));
+        expect(element.nameOffset, textLocation);
       }
     }
     expect(hasTextPanelA, isTrue);
@@ -2394,24 +2444,18 @@ class TextPanelB {
 @reflectiveTest
 class ResolveHtmlTemplateTest extends AbstractAngularTest {
   List<View> views;
-  Future getDirectives(Source dartSource) async {
+  Future getDirectives(Source htmlSource, Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder = (AbstractDirective d) =>
-        d is Component && d.view.templateUriSource != null;
     fillErrorListener(result.errors);
-    final directive = result.directives.singleWhere(finder);
-    final htmlPath = (directive as Component).view.templateUriSource.fullName;
-    final ngResult =
-        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
-    fillErrorListener(ngResult.errors);
-    views = ngResult.directives
-        .where(finder)
+    final result2 = await angularDriver.resolveHtml(htmlSource.fullName);
+    fillErrorListener(result2.errors);
+    views = result2.directives
         .map((d) => d is Component ? d.view : null)
-        .where((d) => d != null);
+        .where((v) => v != null);
   }
 
   Future test_suppressError_UnresolvedTagHtmlTemplate() async {
-    Source dartSource = newSource(
+    var dartSource = newSource(
         '/test.dart',
         r'''
 import '/angular2/angular2.dart';
@@ -2420,13 +2464,13 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''');
-    newSource(
+    var htmlSource = newSource(
         '/test.html',
         '''
 <!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
 <unresolved-tag attr='value'></unresolved-tag>""")
 ''');
-    await getDirectives(dartSource);
+    await getDirectives(htmlSource, dartSource);
     errorListener.assertNoErrors();
   }
 
@@ -2438,9 +2482,10 @@ import '/angular2/angular2.dart';
 class ComponentA {
 }
 ''';
-    Source dartSource = newSource('/weird.dart', code);
-    newSource('/test.html', "<unresolved-tag></unresolved-tag>");
-    await getDirectives(dartSource);
+    var dartSource = newSource('/weird.dart', code);
+    var htmlSource =
+        newSource('/test.html', "<unresolved-tag></unresolved-tag>");
+    await getDirectives(htmlSource, dartSource);
     final errors = errorListener.errors;
     expect(errors, hasLength(1));
     expect(errors.first, new isInstanceOf<FromFilePrefixedError>());
@@ -2462,10 +2507,10 @@ class TextPanel {
   {{text}}
 </div>
 """;
-    Source dartSource = newSource('/test.dart', dartCode);
-    newSource('/text_panel.html', htmlCode);
+    var dartSource = newSource('/test.dart', dartCode);
+    var htmlSource = newSource('/text_panel.html', htmlCode);
     // compute
-    await getDirectives(dartSource);
+    await getDirectives(htmlSource, dartSource);
     expect(views, hasLength(1));
     {
       View view = getViewByClassName(views, 'TextPanel');
@@ -2502,10 +2547,10 @@ import '/angular2/angular2.dart';
     directives: const [])
 class ChildComponent {}
 ''';
-    Source source = newSource('/test.dart', code);
+    var dartSource = newSource('/test.dart', code);
     newSource('/child_file.dart', childCode);
-    newSource('/test.html', '');
-    await getDirectives(source);
+    var htmlSource = newSource('/test.html', '');
+    await getDirectives(htmlSource, dartSource);
 
     List<AbstractDirective> childDirectives = views.first.directives;
     expect(childDirectives, hasLength(1));

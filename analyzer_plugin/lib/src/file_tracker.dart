@@ -83,12 +83,15 @@ class FileTracker {
     return signature;
   }
 
-  ApiSignature getHtmlSignature(String htmlPath, String dartPath) {
+  ApiSignature getHtmlSignature(String htmlPath) {
     final signature = new ApiSignature();
     signature.addBytes(_fileHasher.getContentHash(htmlPath).toByteList());
-    signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
-    for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
-      signature.addBytes(_fileHasher.getContentHash(subHtmlPath).toByteList());
+    for (final dartPath in getDartPathsReferencingHtml(htmlPath)) {
+      signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
+      for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
+        signature
+            .addBytes(_fileHasher.getContentHash(subHtmlPath).toByteList());
+      }
     }
     return signature;
   }

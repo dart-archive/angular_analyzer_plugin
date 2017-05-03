@@ -18,8 +18,9 @@ import 'abstract_angular.dart';
 import 'element_assert.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(TemplateResolverTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(TemplateResolverTest);
+  });
 }
 
 void assertPropertyElement(AngularElement element,
@@ -196,6 +197,52 @@ class SomeComponent {
     _assertElement('hidden').input.inCoreHtml;
   }
 
+  Future test_expression_inputBinding_asString() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Input() String title;
+}
+''');
+    var code = r"""
+<title-comp title='anything can go here' id="some id"></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('title=').input.inFileName('/test_panel.dart').at('title;');
+    _assertElement('id=').input.inCoreHtml;
+  }
+
+  Future test_expression_inputBinding_asString_fromDynamic() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  bool _title;
+  @Input()
+  set title(value) {
+    _title = value == "" ? true : false;
+  }
+  bool get title => _title;
+}
+''');
+    var code = r"""
+<title-comp title='anything can go here'></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement('title=').input.inFileName('/test_panel.dart').at('title(');
+  }
+
   Future test_expression_inputBinding_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
@@ -216,6 +263,45 @@ class TitleComponent {
     assertErrorInCodeAtPosition(
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "text");
   }
+
+  Future test_expression_inputBinding_asString_typeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Input() int titleInput;
+}
+''');
+    var code = r"""
+<title-comp titleInput='string binding'></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+        code,
+        "titleInput");
+  }
+
+// DISABLED for #280 until we better know how to validate this case
+//  Future test_expression_inputBinding_global_asString_typeError() async {
+//    _addDartSource(r'''
+//@Component(selector: 'test-panel',
+//    directives: const [], templateUrl: 'test_panel.html')
+//class TestPanel {
+//}
+//''');
+//    var code = r"""
+//<div hidden="string binding"></div>
+//""";
+//    _addHtmlSource(code);
+//    await _resolveSingleTemplate(dartSource);
+//    assertErrorInCodeAtPosition(
+//        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID, code, "hidden");
+//  }
 
   Future test_expression_inputBinding_noValue() async {
     _addDartSource(r'''
@@ -1085,6 +1171,52 @@ class TestPanel {
     ]);
   }
 
+  Future test_expression_styleBinding_withUnit_heightPercent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int percentage; // 1
+}
+''');
+    var code = r"""
+<span [style.height.%]='percentage'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future test_expression_styleBinding_withUnit_widthPercent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int percentage; // 1
+}
+''');
+    var code = r"""
+<span [style.width.%]='percentage'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future test_expression_styleBinding_withUnit_nonWidthOrHeightPercent() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int percentage; // 1
+}
+''');
+    var code = r"""
+<span [style.something.%]='percentage'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "%");
+  }
+
   Future test_expression_styleBinding_withUnit_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1808,11 +1940,13 @@ class NamePanel {
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
-<name-panel aaa='1' [bbb]='2' bind-ccc='3'></name-panel>
+<name-panel aaa='1' [bbb]='2' bind-ccc='3' id="someid"></name-panel>
 """);
     await _resolveSingleTemplate(dartSource);
+    _assertElement("aaa=").input.at("aaa', ");
     _assertElement("bbb]=").input.at("bbb', ");
     _assertElement("ccc=").input.at("ccc']");
+    _assertElement("id=").input.inCoreHtml;
   }
 
   Future test_outputReference() async {
@@ -1910,6 +2044,29 @@ class TestPanel {}
     _assertElement("exportedValue'>").angular.at("exportedValue')");
     _assertElement("value.aaa").local.at("value=");
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
+  }
+
+  Future test_attributeReference() async {
+    _addDartSource(r'''
+@Component(
+    selector: 'name-panel',
+    template: r"<div>AAA</div>")
+class NamePanel {
+  NamePanel(@Attribute("name-panel-attr") String namePanelAttr);
+}
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+class TestPanel {}
+''');
+    _addHtmlSource(r"""
+<name-panel name-panel-attr="foo"></name-panel>
+""");
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement("name-panel-attr=")
+        .angular
+        .inFileName('/test_panel.dart')
+        .at("namePanelAttr");
   }
 
   Future test_erroroneousTemplate_starHash_noCrash() async {
@@ -3013,10 +3170,10 @@ $code
     final finder = (AbstractDirective d) =>
         d is Component && d.view.templateUriSource != null;
     fillErrorListener(result.errors);
+    errorListener.assertNoErrors();
     final directive = result.directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
-    final result2 =
-        await angularDriver.resolveHtml(htmlPath, dartSource.fullName);
+    final result2 = await angularDriver.resolveHtml(htmlPath);
     fillErrorListener(result2.errors);
     final view = (result2.directives.singleWhere(finder) as Component).view;
 

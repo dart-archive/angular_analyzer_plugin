@@ -246,15 +246,17 @@ class DirectiveBinding {
 }
 
 /**
- * A binding between an [ExpressionBoundAttribute] and an [InputElement].
- * This is used in the context of a [DirectiveBinding] because each instance of
- * a bound directive has different input bindings.
+ * A binding between an [AttributeInfo] and an [InputElement].  This is used in
+ * the context of a [DirectiveBinding] because each instance of a bound
+ * directive has different input bindings. Note that inputs can be bound via
+ * bracket syntax (an [ExpressionBoundAttribute]), or via plain attribute syntax
+ * (a [TextAttribute]).
  *
  * Naming here is important: "bound input" != "input binding." 
  */
 class InputBinding {
   final InputElement boundInput;
-  final ExpressionBoundAttribute attribute;
+  final AttributeInfo attribute;
 
   InputBinding(this.boundInput, this.attribute);
 }

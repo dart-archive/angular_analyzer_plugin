@@ -9,8 +9,9 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:unittest/unittest.dart';
 
 main() {
-  groupSep = ' | ';
-  defineReflectiveTests(OffsettingConstantValueVisitorTest);
+  defineReflectiveSuite(() {
+    defineReflectiveTests(OffsettingConstantValueVisitorTest);
+  });
 }
 
 @reflectiveTest

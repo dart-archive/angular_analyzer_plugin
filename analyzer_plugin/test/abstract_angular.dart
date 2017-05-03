@@ -241,6 +241,11 @@ class Output {
   final String bindingPropertyName;
   const Output([this.bindingPropertyName]);
 }
+
+class Attribute {
+  final String attributeName;
+  const Attribute(this.attributeName);
+}
 ''');
     newSource(
         '/angular2/src/core/async.dart',
