@@ -593,14 +593,14 @@ class BindingTypeSynthesizer {
           return streamedType;
         } else {
           _errorReporter.reportErrorForOffset(
-              AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+              AngularWarningCode.OUTPUT_MUST_BE_STREAM,
               getter.nameOffset,
               getter.name.length,
               [name]);
         }
       } else {
         _errorReporter.reportErrorForOffset(
-            AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+            AngularWarningCode.OUTPUT_MUST_BE_STREAM,
             getter.nameOffset,
             getter.name.length,
             [name]);

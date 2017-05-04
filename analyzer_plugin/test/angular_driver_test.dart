@@ -1074,7 +1074,7 @@ class MyComponent {
     var source = newSource('/test.dart', code);
     await getDirectives(source);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER, code, "badOutput");
+        AngularWarningCode.OUTPUT_MUST_BE_STREAM, code, "badOutput");
   }
 
   Future test_outputs_extendStreamNotStreamHasDynamicEventType() async {
