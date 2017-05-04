@@ -83,7 +83,8 @@ class AngularDriver
    * the analysis server team add this method to the interface without breaking
    * any code.
    */
-  void setPriorityFiles(List<String> priorityPaths) {
+  @override
+  void set priorityFiles(List<String> priorityPaths) {
     // TODO analyze these files first
   }
 
