@@ -51,12 +51,16 @@ class AngularDriver
   final ByteStore byteStore;
   FileTracker _fileTracker;
   final lastSignatures = <String, String>{};
+  bool _hasAngularImported = false;
 
   AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
       SourceFactory sourceFactory, this._contentOverlay) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
+    _hasAngularImported =
+        _sourceFactory.resolveUri(null, "package:angular2/angular2.dart") !=
+            null;
   }
 
   ApiSignature getUnitElementHash(String path) {
@@ -71,6 +75,23 @@ class AngularDriver
 
   bool _ownsFile(String path) {
     return path.endsWith('.dart') || path.endsWith('.html');
+  }
+
+  /**
+   * This is implemented in order to satisfy the [AnalysisDriverGeneric]
+   * interface. Ideally, we analyze these files first. For the moment, this lets
+   * the analysis server team add this method to the interface without breaking
+   * any code.
+   */
+  void setPriorityFiles(List<String> priorityPaths) {
+    // TODO analyze these files first
+  }
+
+  /**
+    * Notify the driver that the client is going to stop using it.
+    */
+  void dispose() {
+    // TODO anything we need to do here?
   }
 
   void addFile(String path) {
@@ -148,7 +169,7 @@ class AngularDriver
       return;
     }
 
-    if (standardAngular == null) {
+    if (_hasAngularImported && standardAngular == null) {
       getStandardAngular();
       return;
     }
