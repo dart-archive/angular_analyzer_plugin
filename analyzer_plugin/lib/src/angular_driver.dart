@@ -266,6 +266,10 @@ class AngularDriver
       final source =
           _sourceFactory.resolveUri(null, "package:angular2/angular2.dart");
 
+      if (source == null) {
+        return standardAngular;
+      }
+
       final result = await dartDriver.getResult(source.fullName);
 
       final namespace = result.unit.element.library.exportNamespace;
