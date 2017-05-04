@@ -121,10 +121,47 @@ class MyChildComponent {
 }
     ''');
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 1);
-    expect(replacementLength, 1);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertSuggestSetter('[stringInput]');
-    assertNotSuggested('(myEvent)');
+  }
+
+  test_completeInput_as_plainAttribute() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Input() String intInput;
+  @Output() EventEmitter<String> myEvent;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('stringInput');
+    assertNotSuggested('intInput');
+  }
+
+  test_completeStandardInput_as_plainAttribute() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+}
+  }
+  ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[id]', relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
   test_completeOutputStarted_at_incompleteTag_with_newTag() async {
@@ -1306,6 +1343,57 @@ class OtherComp {
     assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
+  }
+
+  test_completeInputNotStarted() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  test_completeInputAsPlainAttribute() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Input() int intInput;
+}
+    ''');
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('name');
+    assertNotSuggested('intInput');
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
   test_completeOutputStarted() async {

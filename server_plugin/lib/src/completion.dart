@@ -448,7 +448,7 @@ class TemplateCompleter {
       if (input.setterType.displayName == 'String') {
         suggestions.add(_createPlainAttributeSuggestions(
             input,
-            DART_RELEVANCE_DEFAULT,
+            DART_RELEVANCE_DEFAULT - 1,
             _createPlainAttributeElement(input, protocol.ElementKind.SETTER)));
       }
     }
