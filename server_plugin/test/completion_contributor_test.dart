@@ -108,6 +108,25 @@ class MyChildComponent {
     assertNotSuggested("(myEvent)");
   }
 
+  test_completeInputNotStarted_at_incompleteTag_with_newTag() async {
+    addTestSource('''
+import '/angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent; 
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestSetter('[stringInput]');
+    assertNotSuggested('(myEvent)');
+  }
+
   test_completeOutputStarted_at_incompleteTag_with_newTag() async {
     addTestSource('''
 import '/angular2/angular2.dart';
