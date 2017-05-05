@@ -26,7 +26,7 @@ const List<AngularWarningCode> _angularWarningCodeValues = const [
   AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
   AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
   AngularWarningCode.TRAILING_EXPRESSION,
-  AngularWarningCode.OUTPUT_MUST_BE_EVENTEMITTER,
+  AngularWarningCode.OUTPUT_MUST_BE_STREAM,
   AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
   AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
   AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
@@ -243,9 +243,9 @@ class AngularWarningCode extends ErrorCode {
   /**
    * An error code indicating that an @Output is not an EventEmitter
    */
-  static const AngularWarningCode OUTPUT_MUST_BE_EVENTEMITTER =
-      const AngularWarningCode('OUTPUT_MUST_BE_EVENTEMMITTER',
-          'Output (of name {0}) must return an EventEmitter');
+  static const AngularWarningCode OUTPUT_MUST_BE_STREAM =
+      const AngularWarningCode(
+          'OUTPUT_MUST_BE_STREAM', 'Output (of name {0}) must return a Stream');
 
   /**
    * An error code indicating that a two-way binding expression was not
