@@ -284,22 +284,21 @@ class TitleComponent {
         "titleInput");
   }
 
-// DISABLED for #280 until we better know how to validate this case
-//  Future test_expression_inputBinding_global_asString_typeError() async {
-//    _addDartSource(r'''
-//@Component(selector: 'test-panel',
-//    directives: const [], templateUrl: 'test_panel.html')
-//class TestPanel {
-//}
-//''');
-//    var code = r"""
-//<div hidden="string binding"></div>
-//""";
-//    _addHtmlSource(code);
-//    await _resolveSingleTemplate(dartSource);
-//    assertErrorInCodeAtPosition(
-//        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID, code, "hidden");
-//  }
+  Future test_expression_inputBinding_nativeHtml_asString_notTypeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    var code = r"""
+<div hidden="allowed because becomes addAttribute() rather than .hidden="></div>
+<img width="allowed because becomes addAttribute() rather than .width=" />
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
 
   Future test_expression_inputBinding_noValue() async {
     _addDartSource(r'''
