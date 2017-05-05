@@ -225,8 +225,6 @@ class AngularCompletionContributor extends CompletionContributor {
     var suggestions = <CompletionSuggestion>[];
     var filePath = request.source.toString();
 
-    var typeProvider = await driver.getTypeResolverFor(filePath);
-
     await driver.getStandardHtml();
     assert(driver.standardHtml != null);
 
@@ -244,7 +242,6 @@ class AngularCompletionContributor extends CompletionContributor {
         template,
         events,
         attributes,
-        typeProvider,
       ));
     }
     return suggestions;
@@ -259,9 +256,10 @@ class TemplateCompleter {
     Template template,
     List<OutputElement> standardHtmlEvents,
     List<InputElement> standardHtmlAttributes,
-    TypeProvider typeProvider,
   ) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
+    var typeProvider = template.view.component.classElement.enclosingElement
+        .enclosingElement.context.typeProvider;
     AngularAstNode target = findTarget(request.offset, template.ast);
     target.accept(new ReplacementRangeCalculator(request));
     DartSnippetExtractor extractor = new DartSnippetExtractor();

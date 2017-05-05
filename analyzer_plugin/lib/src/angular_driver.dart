@@ -409,27 +409,6 @@ class AngularDriver
     return templates;
   }
 
-  /// In the case of .html file, any linked .dart file can be used
-  /// to extract the TypeProvider; no aggregation is needed since
-  /// the TypeProvider is SDK-dependent, not user-dart file dependent.
-  /// If no context can be found for the filePath, returns null.
-  Future<TypeProvider> getTypeResolverFor(String filePath) async {
-    var dartPathsToSearch = <String>[];
-    if (filePath.endsWith('.html')) {
-      dartPathsToSearch
-          .addAll(_fileTracker.getDartPathsReferencingHtml(filePath));
-    } else {
-      dartPathsToSearch.add(filePath);
-    }
-    for (var dartPath in dartPathsToSearch) {
-      var unit = (await dartDriver.getUnitElement(dartPath)).element;
-      if (unit != null && unit.context != null) {
-        return unit.context.typeProvider;
-      }
-    }
-    return null;
-  }
-
   Future<DirectivesResult> resolveHtmlFrom(
       String htmlPath, String dartPath) async {
     final result = await getDirectives(dartPath);
