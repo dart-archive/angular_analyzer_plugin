@@ -12,6 +12,7 @@ import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/summary/api_signature.dart';
+import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
@@ -407,6 +408,27 @@ class AngularDriver
       }
     }
     return templates;
+  }
+
+  /// In the case of .html file, any linked .dart file can be used
+  /// to extract the TypeProvider; no aggregation is needed since
+  /// the TypeProvider is SDK-dependent, not user-dart file dependent.
+  /// If no context can be found for the filePath, returns null.
+  Future<TypeProvider> getTypeResolverFor(String filePath) async {
+    var dartPathsToSearch = <String>[];
+    if (filePath.endsWith('.html')) {
+      dartPathsToSearch
+          .addAll(_fileTracker.getDartPathsReferencingHtml(filePath));
+    } else {
+      dartPathsToSearch.add(filePath);
+    }
+    for (var dartPath in dartPathsToSearch) {
+      var unit = (await dartDriver.getUnitElement(dartPath)).element;
+      if (unit != null && unit.context != null) {
+        return unit.context.typeProvider;
+      }
+    }
+    return null;
   }
 
   Future<DirectivesResult> resolveHtmlFrom(

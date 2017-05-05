@@ -132,11 +132,16 @@ import '/angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
-@Component(template: '', selector: 'child-tag')
+@Component(template: '', selector: 'child-tag', 
+    inputs: const ['myDynamicInput'])
 class MyChildComponent {
   @Input() String stringInput;
   @Input() String intInput;
   @Output() EventEmitter<String> myEvent;
+  
+  bool _myDynamicInput = false;
+  bool get myDynamicInput => _myDynamicInput;
+  void set myDynamicInput(value) {}
 }
     ''');
     await computeSuggestions();
@@ -144,6 +149,8 @@ class MyChildComponent {
     expect(replacementLength, 0);
     assertSuggestSetter('stringInput');
     assertNotSuggested('intInput');
+    assertSuggestSetter('myDynamicInput',
+        relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
   test_completeStandardInput_as_plainAttribute() async {
@@ -160,8 +167,8 @@ class MyChildComponent {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestSetter('[id]', relevance: DART_RELEVANCE_DEFAULT - 1);
-    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('[id]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
   test_completeOutputStarted_at_incompleteTag_with_newTag() async {
@@ -897,7 +904,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -926,7 +933,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -955,7 +962,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
@@ -1012,7 +1019,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -1041,7 +1048,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
@@ -1179,7 +1186,7 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '[hidden'.length);
     expect(replacementLength, '[hidden'.length);
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
   test_completeOutputNotSuggestedTwice() async {
@@ -1205,7 +1212,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
@@ -1259,7 +1266,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertNotSuggested("(click)");
   }
@@ -1340,7 +1347,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
@@ -1367,7 +1374,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter('[name]');
-    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
   test_completeInputAsPlainAttribute() async {
@@ -1379,10 +1386,14 @@ import '/angular2/angular2.dart';
     directives: const [OtherComp])
 class MyComp {
 }
-@Component(template: '', selector: 'my-tag')
+@Component(template: '', selector: 'my-tag', inputs: const ['myDynamicInput'])
 class OtherComp {
   @Input() String name;
   @Input() int intInput;
+  
+  bool _myDynamicInput = false;
+  bool get myDynamicInput => _myDynamicInput;
+  void set myDynamicInput(value) {}
 }
     ''');
     addTestSource('<my-tag ^></my-tag>');
@@ -1393,7 +1404,43 @@ class OtherComp {
     expect(replacementLength, 0);
     assertSuggestSetter('name');
     assertNotSuggested('intInput');
-    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestSetter('[myDynamicInput]');
+    assertSuggestSetter('myDynamicInput',
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  test_completeInputAsPlainAttributeStarted() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag', inputs: const ['myDynamicInput'])
+class OtherComp {
+  @Input() String name;
+  @Input() int intInput;
+  
+  bool _myDynamicInput = false;
+  bool get myDynamicInput => _myDynamicInput;
+  void set myDynamicInput(value) {}
+}
+    ''');
+    addTestSource('<my-tag myDyna^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 6);
+    expect(replacementLength, 6);
+    assertSuggestSetter('name');
+    assertNotSuggested('intInput');
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestSetter('[myDynamicInput]');
+    assertSuggestSetter('myDynamicInput',
+        relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
   test_completeOutputStarted() async {
@@ -1447,7 +1494,7 @@ class OtherComp {
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, '[input]'.length);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
