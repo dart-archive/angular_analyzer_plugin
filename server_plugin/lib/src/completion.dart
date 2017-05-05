@@ -14,6 +14,7 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -165,7 +166,14 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   }
 
   @override
-  visitTextAttr(TextAttribute attr) {}
+  visitTextAttr(TextAttribute attr) {
+    if (!attr.fromTemplate &&
+        offsetContained(request.offset, attr.originalNameOffset,
+            attr.originalName.length)) {
+      request.replacementOffset = attr.originalNameOffset;
+      request.replacementLength = attr.originalName.length;
+    }
+  }
 
   @override
   visitTextInfo(TextInfo textInfo) {
@@ -244,11 +252,14 @@ class TemplateCompleter {
   static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
 
   Future<List<CompletionSuggestion>> computeSuggestions(
-      CompletionRequest request,
-      Template template,
-      List<OutputElement> standardHtmlEvents,
-      List<InputElement> standardHtmlAttributes) async {
+    CompletionRequest request,
+    Template template,
+    List<OutputElement> standardHtmlEvents,
+    List<InputElement> standardHtmlAttributes,
+  ) async {
     List<CompletionSuggestion> suggestions = <CompletionSuggestion>[];
+    var typeProvider = template.view.component.classElement.enclosingElement
+        .enclosingElement.context.typeProvider;
     AngularAstNode target = findTarget(request.offset, template.ast);
     target.accept(new ReplacementRangeCalculator(request));
     DartSnippetExtractor extractor = new DartSnippetExtractor();
@@ -303,7 +314,8 @@ class TemplateCompleter {
         // TODO suggest these things if the target is ExpressionBoundInput with
         // boundType of input
         suggestInputs(target.boundDirectives, suggestions,
-            standardHtmlAttributes, target.boundStandardInputs);
+            standardHtmlAttributes, target.boundStandardInputs, typeProvider,
+            includePlainAttributes: true);
         suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
             target.boundStandardOutputs);
       } else {
@@ -333,21 +345,35 @@ class TemplateCompleter {
         target.bound == ExpressionBoundType.input &&
         offsetContained(request.offset, target.originalNameOffset,
             target.originalName.length)) {
-      suggestInputs(target.parent.boundDirectives, suggestions,
-          standardHtmlAttributes, target.parent.boundStandardInputs,
+      suggestInputs(
+          target.parent.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.parent.boundStandardInputs,
+          typeProvider,
           currentAttr: target);
     } else if (target is StatementsBoundAttribute) {
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs,
           currentAttr: target);
     } else if (target is TemplateAttribute) {
-      suggestInputs(target.parent.boundDirectives, suggestions,
-          standardHtmlAttributes, target.parent.boundStandardInputs);
+      suggestInputs(
+          target.parent.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.parent.boundStandardInputs,
+          typeProvider,
+          includePlainAttributes: true);
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs);
     } else if (target is TextAttribute) {
-      suggestInputs(target.parent.boundDirectives, suggestions,
-          standardHtmlAttributes, target.parent.boundStandardInputs);
+      suggestInputs(
+          target.parent.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.parent.boundStandardInputs,
+          typeProvider,
+          includePlainAttributes: true);
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs);
     } else if (target is TextInfo) {
@@ -407,11 +433,14 @@ class TemplateCompleter {
   }
 
   suggestInputs(
-      List<DirectiveBinding> directives,
-      List<CompletionSuggestion> suggestions,
-      List<InputElement> standardHtmlAttributes,
-      List<InputBinding> boundStandardAttributes,
-      {ExpressionBoundAttribute currentAttr}) {
+    List<DirectiveBinding> directives,
+    List<CompletionSuggestion> suggestions,
+    List<InputElement> standardHtmlAttributes,
+    List<InputBinding> boundStandardAttributes,
+    TypeProvider typeProvider, {
+    ExpressionBoundAttribute currentAttr,
+    bool includePlainAttributes: false,
+  }) {
     for (DirectiveBinding directive in directives) {
       Set<InputElement> usedInputs = new HashSet.from(directive.inputBindings
           .where((b) => b.attribute != currentAttr)
@@ -421,6 +450,19 @@ class TemplateCompleter {
         // don't recommend [name] [name] [name]
         if (usedInputs.contains(input)) {
           continue;
+        }
+
+        if (includePlainAttributes && typeProvider != null) {
+          if (typeProvider.stringType.isAssignableTo(input.setterType)) {
+            var relevance = input.setterType.displayName == 'String'
+                ? DART_RELEVANCE_DEFAULT
+                : DART_RELEVANCE_DEFAULT - 1;
+            suggestions.add(_createPlainAttributeSuggestions(
+                input,
+                relevance,
+                _createPlainAttributeElement(
+                    input, protocol.ElementKind.SETTER)));
+          }
         }
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
@@ -436,7 +478,19 @@ class TemplateCompleter {
       if (usedStdInputs.contains(input)) {
         continue;
       }
-      suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 1,
+      if (includePlainAttributes && typeProvider != null) {
+        if (typeProvider.stringType.isAssignableTo(input.setterType)) {
+          var relevance = input.setterType.displayName == 'String'
+              ? DART_RELEVANCE_DEFAULT - 2
+              : DART_RELEVANCE_DEFAULT - 3;
+          suggestions.add(_createPlainAttributeSuggestions(
+              input,
+              relevance,
+              _createPlainAttributeElement(
+                  input, protocol.ElementKind.SETTER)));
+        }
+      }
+      suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 2,
           _createInputElement(input, protocol.ElementKind.SETTER)));
     }
   }
@@ -564,6 +618,26 @@ class TemplateCompleter {
   protocol.Element _createInputElement(
       InputElement inputElement, protocol.ElementKind kind) {
     String name = '[' + inputElement.name + ']';
+    Location location = new Location(inputElement.source.fullName,
+        inputElement.nameOffset, inputElement.nameLength, 0, 0);
+    int flags = protocol.Element
+        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new protocol.Element(kind, name, flags, location: location);
+  }
+
+  CompletionSuggestion _createPlainAttributeSuggestions(
+      InputElement inputElement,
+      int defaultRelevance,
+      protocol.Element element) {
+    String completion = inputElement.name;
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  protocol.Element _createPlainAttributeElement(
+      InputElement inputElement, protocol.ElementKind kind) {
+    String name = inputElement.name;
     Location location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
     int flags = protocol.Element
