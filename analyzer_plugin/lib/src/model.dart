@@ -31,6 +31,8 @@ abstract class AbstractDirective {
   final List<ElementNameSelector> elementTags;
   final List<AngularElement> attributes = <AngularElement>[];
 
+  bool get isHtml;
+
   /**
    * Which fields have been marked `@ContentChild`, and the range of the type
    * argument. The element model contains the rest. This should be stored in the
@@ -287,6 +289,8 @@ class DartElement extends AngularElementImpl {
  * The model of an Angular directive.
  */
 class Directive extends AbstractDirective {
+  bool get isHtml => false;
+
   Directive(dart.ClassElement classElement,
       {AngularElement exportAs,
       List<InputElement> inputs,

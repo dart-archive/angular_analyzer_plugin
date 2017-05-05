@@ -1244,7 +1244,11 @@ class SingleScopeResolver extends AngularScopeVisitor {
         if (input.name == attribute.name) {
           var inputType = input.setterType;
 
-          if (!typeProvider.stringType.isAssignableTo(inputType)) {
+          // Typecheck all but HTML inputs. For those, `width="10"` becomes
+          // `setAttribute("width", "10")`, which is ok. But for directives and
+          // components, this becomes `.someIntProp = "10"` which doesn't work.
+          if (!directiveBinding.boundDirective.isHtml &&
+              !typeProvider.stringType.isAssignableTo(inputType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.nameOffset,
@@ -1272,17 +1276,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
     InputElement standardHtmlAttribute = standardHtmlAttributes[attribute.name];
     if (standardHtmlAttribute != null) {
-      // DISABLED per issue #280 until we know better how to validate this case
-      //var inputType = standardHtmlAttribute.setterType;
-      //if (!typeProvider.stringType.isAssignableTo(inputType)) {
-      //  errorListener.onError(new AnalysisError(
-      //      templateSource,
-      //      attribute.nameOffset,
-      //      attribute.name.length,
-      //      AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
-      //      [attribute.name]));
-      //}
-
+      // Don't typecheck html inputs. Those become attributes, not properties,
+      // which means strings values are OK.
       SourceRange range =
           new SourceRange(attribute.nameOffset, attribute.name.length);
       template.addRange(range, standardHtmlAttribute);
