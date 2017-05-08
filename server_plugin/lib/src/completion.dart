@@ -166,13 +166,9 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {
-    if (!attr.fromTemplate &&
-        offsetContained(request.offset, attr.originalNameOffset,
-            attr.originalName.length)) {
-      request
-        ..replacementOffset = attr.originalNameOffset
-        ..replacementLength = attr.originalName.length;
-    }
+    request
+      ..replacementOffset = attr.offset
+      ..replacementLength = attr.length;
   }
 
   @override
@@ -206,6 +202,9 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   void visitMustache(Mustache mustache) {}
+
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {}
 }
 
 /// Contributor to contribute angular entities.
@@ -337,6 +336,19 @@ class TemplateCompleter {
     } else if (target is ElementInfo) {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target, suggestions);
+    } else if (target.parent is TemplateAttribute) {
+      // `let foo`. Nothing to suggest.
+      if (target is TextAttribute && target.name.startsWith("let-")) {
+        return suggestions;
+      }
+
+      if (offsetContained(request.offset, target.originalNameOffset,
+          target.originalName.length)) {
+        suggestInputsInTemplate(target.parent, suggestions,
+            currentAttr: target);
+      } else {
+        suggestInputsInTemplate(target.parent, suggestions);
+      }
     } else if (target is ExpressionBoundAttribute &&
         target.bound == ExpressionBoundType.input &&
         offsetContained(request.offset, target.originalNameOffset,
@@ -353,15 +365,7 @@ class TemplateCompleter {
           standardHtmlEvents, target.parent.boundStandardOutputs,
           currentAttr: target);
     } else if (target is TemplateAttribute) {
-      suggestInputs(
-          target.parent.boundDirectives,
-          suggestions,
-          standardHtmlAttributes,
-          target.parent.boundStandardInputs,
-          typeProvider,
-          includePlainAttributes: true);
-      suggestOutputs(target.parent.boundDirectives, suggestions,
-          standardHtmlEvents, target.parent.boundStandardOutputs);
+      suggestInputsInTemplate(target, suggestions);
     } else if (target is TextAttribute) {
       suggestInputs(
           target.parent.boundDirectives,
@@ -491,6 +495,33 @@ class TemplateCompleter {
     }
   }
 
+  void suggestInputsInTemplate(
+      TemplateAttribute templateAttr, List<CompletionSuggestion> suggestions,
+      {AttributeInfo currentAttr}) {
+    final directives = templateAttr.boundDirectives;
+    for (final binding in directives) {
+      final usedInputs = new HashSet.from(binding.inputBindings
+          .where((b) => b.attribute != currentAttr)
+          .map((b) => b.boundInput)).toSet();
+
+      for (final input in binding.boundDirective.inputs) {
+        // don't recommend [name] [name] [name]
+        if (usedInputs.contains(input)) {
+          continue;
+        }
+        // edge case. Don't think this comes up in standard.
+        if (!input.name.startsWith(templateAttr.prefix)) {
+          continue;
+        }
+        suggestions.add(_createInputInTemplateSuggestion(
+            templateAttr.prefix,
+            input,
+            DART_RELEVANCE_DEFAULT,
+            _createInputElement(input, protocol.ElementKind.SETTER)));
+      }
+    }
+  }
+
   void suggestOutputs(
       List<DirectiveBinding> directives,
       List<CompletionSuggestion> suggestions,
@@ -606,6 +637,20 @@ class TemplateCompleter {
   CompletionSuggestion _createInputSuggestion(InputElement inputElement,
       int defaultRelevance, protocol.Element element) {
     final completion = '[${inputElement.name}]';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  CompletionSuggestion _createInputInTemplateSuggestion(
+      String prefix,
+      InputElement inputElement,
+      int defaultRelevance,
+      protocol.Element element) {
+    final completionCapitalized = inputElement.name.substring(prefix.length);
+    // ignore: prefer_interpolation_to_compose_strings
+    final completion = completionCapitalized.substring(0, 1).toLowerCase() +
+        completionCapitalized.substring(1);
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);

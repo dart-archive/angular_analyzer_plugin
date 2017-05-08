@@ -665,8 +665,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 'let'.length);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
@@ -686,8 +686,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
@@ -707,8 +707,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 'let item'.length);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
@@ -728,8 +728,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 'let i'.length);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
@@ -2108,5 +2108,93 @@ class ContainerComponent{}
   void assertSuggestTransclusion(String name) {
     assertSuggestClassTypeAlias(name,
         relevance: TemplateCompleter.RELEVANCE_TRANSCLUSION);
+  }
+
+  test_completeInputInStarReplacing() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; trackBy^: foo"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'trackBy'.length);
+    expect(replacementLength, 'trackBy'.length);
+    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("items");
+  }
+
+  test_completeInputInStarReplacingBeforeValue() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; trackBy^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'trackBy'.length);
+    expect(replacementLength, 'trackBy'.length);
+    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("items");
+  }
+
+  test_completeInputInStar() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; ^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("items");
+  }
+
+  test_completeInputInStarValueAlready() async {
+    var dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import '/angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; ^ : foo"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("items");
   }
 }
