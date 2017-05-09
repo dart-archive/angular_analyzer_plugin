@@ -231,10 +231,10 @@ abstract class HasDirectives {
 /// Naming here is important: "bound directive" != "directive binding."
 class DirectiveBinding {
   final AbstractDirective boundDirective;
-  final List<InputBinding> inputBindings = [];
-  final List<OutputBinding> outputBindings = [];
-  final Map<ContentChild, ContentChildBinding> contentChildBindings = {};
-  final Map<ContentChild, ContentChildBinding> contentChildrenBindings = {};
+  final inputBindings = <InputBinding>[];
+  final outputBindings = <OutputBinding>[];
+  final contentChildBindings = <ContentChild, ContentChildBinding>{};
+  final contentChildrenBindings = <ContentChild, ContentChildBinding>{};
 
   DirectiveBinding(this.boundDirective);
 }

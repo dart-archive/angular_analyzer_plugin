@@ -533,7 +533,7 @@ class TemplateCompleter {
           .map((b) => b.boundInput)).toSet();
 
       for (final input in binding.boundDirective.inputs) {
-        // don't recommend [name] [name] [name]
+        // don't recommend trackBy: x trackBy: x trackBy: x
         if (usedInputs.contains(input)) {
           continue;
         }

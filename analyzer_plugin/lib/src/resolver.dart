@@ -710,7 +710,7 @@ class DirectiveResolver extends AngularAstVisitor {
           outerBindings.add(binding);
         }
 
-        // Specifically exclude NgIfand NgFor, they have their own error since
+        // Specifically exclude NgIf and NgFor, they have their own error since
         // we *know* they require a template.
         if (directive.looksLikeTemplate &&
             !element.isTemplate &&
