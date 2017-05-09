@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'package:analysis_server/src/analysis_server.dart';
-import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
