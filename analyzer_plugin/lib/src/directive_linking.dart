@@ -226,7 +226,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
             new StringToken(TokenType.IDENTIFIER, reference.name, 0)),
         null);
 
-    if (type != null) {
+    if (type != null && type.source != null) {
       final fileDirectives = await _fileDirectiveProvider
           .getUnlinkedDirectives(type.source.fullName);
 
