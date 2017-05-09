@@ -412,6 +412,7 @@ library angular2;
 
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
+export 'src/core/linker/template_ref.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
@@ -536,9 +537,11 @@ class EventEmitter<T> extends Stream<T> {
         r'''
 library angular2.ng_if;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
+  NgIf(TemplateRef tpl);
   set ngIf(newCondition) {}
 }
 ''');
@@ -547,16 +550,25 @@ class NgIf {
         r'''
 library angular2.ng_for;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(
     selector: "[ngFor][ngForOf]",
     inputs: const ["ngForOf", "ngForTemplate", "ngForTrackBy"])
 class NgFor {
+  NgFor(TemplateRef tpl);
   set ngForOf(dynamic value) {}
   set ngForTrackBy(TrackByFn value) {}
 }
 
 typedef dynamic TrackByFn(num index, dynamic item);
+''');
+    newSource(
+        '/angular2/src/core/linker/template_ref.dart',
+        r'''
+library angular2.template_ref;
+
+class TemplateRef {}
 ''');
   }
 
@@ -648,6 +660,7 @@ library angular2;
 
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
+export 'src/core/linker/template_ref.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
@@ -772,9 +785,11 @@ class EventEmitter<T> extends Stream<T> {
         r'''
 library angular2.ng_if;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
+  NgIf(TemplateRef tpl);
   set ngIf(newCondition) {}
 }
 ''');
@@ -783,16 +798,25 @@ class NgIf {
         r'''
 library angular2.ng_for;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(
     selector: "[ngFor][ngForOf]",
     inputs: const ["ngForOf", "ngForTemplate", "ngForTrackBy"])
 class NgFor {
+  NgFor(TemplateRef tpl);
   set ngForOf(dynamic value) {}
   set ngForTrackBy(TrackByFn value) {}
 }
 
 typedef dynamic TrackByFn(num index, dynamic item);
+''');
+    newSource(
+        '/angular2/src/core/linker/template_ref.dart',
+        r'''
+library angular2.template_ref;
+
+class TemplateRef {}
 ''');
   }
 }

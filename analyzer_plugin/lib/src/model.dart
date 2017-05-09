@@ -38,6 +38,14 @@ abstract class AbstractDirective {
   final contentChilds = <ContentChild>[];
   final contentChildren = <ContentChild>[];
 
+  /**
+   * Its very hard to tell which directives are meant to be used with a *star.
+   * However, any directives which have a `TemplateRef` as a constructor
+   * parameter are almost certainly meant to be used with one. We use this for
+   * whatever validation we can, and autocomplete suggestions.
+   */
+  bool looksLikeTemplate = false;
+
   AbstractDirective(this.classElement,
       {this.exportAs,
       this.inputs,

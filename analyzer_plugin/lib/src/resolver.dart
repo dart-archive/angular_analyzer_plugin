@@ -48,6 +48,9 @@ class ElementViewImpl implements ElementView {
 
   ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
     for (final attribute in attributeInfoList) {
+      if (attribute is TemplateAttribute) {
+        continue;
+      }
       final name = attribute.name;
       attributeNameSpans[name] =
           new SourceRange(attribute.nameOffset, attribute.name.length);
@@ -706,10 +709,22 @@ class DirectiveResolver extends AngularAstVisitor {
             directive.contentChildren.isNotEmpty) {
           outerBindings.add(binding);
         }
+
+        // Specifically exclude NgIfand NgFor, they have their own error since
+        // we *know* they require a template.
+        if (directive.looksLikeTemplate &&
+            !element.isTemplate &&
+            directive.classElement.name != "NgIf" &&
+            directive.classElement.name != "NgFor") {
+          _reportErrorForRange(
+              element.openingSpan,
+              AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
+              [directive.classElement.name]);
+        }
       }
     }
 
-    if (!element.isOrHasTemplateAttribute) {
+    if (!element.isTemplate) {
       _checkNoStructuralDirectives(element.attributes);
     }
 
@@ -725,7 +740,6 @@ class DirectiveResolver extends AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
-    // TODO: report error if no directives matched here?
     final elementView = new ElementViewImpl(attr.virtualAttributes, null);
     for (final directive in allDirectives) {
       if (directive.selector.match(elementView, template) !=
@@ -733,10 +747,23 @@ class DirectiveResolver extends AngularAstVisitor {
         attr.boundDirectives.add(new DirectiveBinding(directive));
       }
     }
+
+    final templateAttrIsUsed =
+        attr.directives.any((directive) => directive.looksLikeTemplate);
+
+    if (!templateAttrIsUsed) {
+      _reportErrorForRange(
+          new SourceRange(attr.originalNameOffset, attr.originalName.length),
+          AngularWarningCode.TEMPLATE_ATTR_NOT_USED);
+    }
   }
 
   void _checkNoStructuralDirectives(List<AttributeInfo> attributes) {
     for (final attribute in attributes) {
+      if (attribute is! TextAttribute) {
+        continue;
+      }
+
       if (attribute.name == 'ngFor' || attribute.name == 'ngIf') {
         _reportErrorForRange(
             new SourceRange(attribute.nameOffset, attribute.name.length),

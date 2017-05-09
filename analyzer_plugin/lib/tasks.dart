@@ -37,6 +37,8 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.INVALID_CSS_PROPERTY_NAME,
   AngularWarningCode.INVALID_BINDING_NAME,
   AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
+  AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
+  AngularWarningCode.TEMPLATE_ATTR_NOT_USED,
   AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
   AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
@@ -253,6 +255,21 @@ class AngularWarningCode extends ErrorCode {
   static const NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME =
       const AngularWarningCode('NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME',
           'No directives matching this element are exported by the name {0}');
+
+  /// An error code indicating that a custom component appears to require a star.
+  static const AngularWarningCode CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE =
+      const AngularWarningCode(
+          'CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE',
+          'The directive {0} accepts a TemplateRef in its constructor,' +
+              ' so it may require a *-style-attr to work correctly.');
+
+  /// An error code indicating that a custom component appears to require a star.
+  static const AngularWarningCode TEMPLATE_ATTR_NOT_USED =
+      const AngularWarningCode(
+          'TEMPLATE_ATTR_NOT_USED',
+          'This template attr does not match any directives that use the'
+          ' resulting hidden template. Check that all directives are being'
+          ' imported and used correctly.');
 
   /// An error code indicating that an output-bound statement
   /// must be an [ExpressionStatement].
