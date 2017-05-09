@@ -22,7 +22,7 @@ import 'package:analyzer/src/dart/analysis/driver.dart' as nonTask
     show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/generated/engine.dart';
-import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
