@@ -360,7 +360,7 @@ class TemplateCompleter {
     } else if (target is ElementInfo) {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target, suggestions);
-    } else if (target.parent is TemplateAttribute) {
+    } else if (target is AttributeInfo && target.parent is TemplateAttribute) {
       // `let foo`. Nothing to suggest.
       if (target is TextAttribute && target.name.startsWith("let-")) {
         return suggestions;
