@@ -18,7 +18,7 @@ import 'package:html/parser.dart' as html;
 import 'package:source_span/source_span.dart';
 
 html.Element firstElement(html.Node node) {
-  for (html.Element child in node.children) {
+  for (final child in node.children) {
     if (child is html.Element) {
       return child;
     }
@@ -35,18 +35,18 @@ class HtmlTreeConverter {
 
   NodeInfo convert(html.Node node, {ElementInfo parent}) {
     if (node is html.Element) {
-      String localName = node.localName;
-      List<AttributeInfo> attributes = _convertAttributes(node);
-      bool isTemplate = localName == 'template';
-      SourceRange openingSpan = _toSourceRange(node.sourceSpan);
-      SourceRange closingSpan = _toSourceRange(node.endSourceSpan);
-      SourceRange openingNameSpan = openingSpan != null
+      final localName = node.localName;
+      final attributes = _convertAttributes(node);
+      final isTemplate = localName == 'template';
+      final openingSpan = _toSourceRange(node.sourceSpan);
+      final closingSpan = _toSourceRange(node.endSourceSpan);
+      final openingNameSpan = openingSpan != null
           ? new SourceRange(openingSpan.offset + '<'.length, localName.length)
           : null;
-      SourceRange closingNameSpan = closingSpan != null
+      final closingNameSpan = closingSpan != null
           ? new SourceRange(closingSpan.offset + '</'.length, localName.length)
           : null;
-      ElementInfo element = new ElementInfo(
+      final element = new ElementInfo(
           localName,
           openingSpan,
           closingSpan,
@@ -57,11 +57,11 @@ class HtmlTreeConverter {
           findTemplateAttribute(attributes),
           parent);
 
-      for (AttributeInfo attribute in attributes) {
+      for (final attribute in attributes) {
         attribute.parent = element;
       }
 
-      List<NodeInfo> children = _convertChildren(node, element);
+      final children = _convertChildren(node, element);
       element.childNodes.addAll(children);
 
       if (!element.isSynthetic &&
@@ -76,8 +76,8 @@ class HtmlTreeConverter {
       return element;
     }
     if (node is html.Text) {
-      int offset = node.sourceSpan.start.offset;
-      String text = node.text;
+      final offset = node.sourceSpan.start.offset;
+      final text = node.text;
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
     }
@@ -85,8 +85,8 @@ class HtmlTreeConverter {
   }
 
   List<AttributeInfo> _convertAttributes(html.Element element) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-    element.attributes.forEach((name, String value) {
+    final attributes = <AttributeInfo>[];
+    element.attributes.forEach((name, value) {
       if (name is String) {
         try {
           if (name == "") {
@@ -120,7 +120,7 @@ class HtmlTreeConverter {
             attributes
                 .add(_convertStatementsBoundAttribute(element, name, "(", ")"));
           } else {
-            var valueOffset = _valueOffset(element, name);
+            final valueOffset = _valueOffset(element, name);
             if (valueOffset == null) {
               value = null;
             }
@@ -144,26 +144,29 @@ class HtmlTreeConverter {
   }
 
   TextAttribute _convertSyntheticAttribute(html.Element element) {
-    FileSpan openSourceSpan = element.sourceSpan;
-    int nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
-    TextAttribute textAttribute =
-        new TextAttribute("", nameOffset, null, null, []);
+    final openSourceSpan = element.sourceSpan;
+    final nameOffset = openSourceSpan.start.offset + openSourceSpan.length;
+    final textAttribute = new TextAttribute("", nameOffset, null, null, []);
     return textAttribute;
   }
 
   TemplateAttribute _convertTemplateAttribute(
       html.Element element, String origName, bool starSugar) {
-    int origNameOffset = _nameOffset(element, origName);
-    int valueOffset = _valueOffset(element, origName);
-    String value = valueOffset == null ? null : element.attributes[origName];
+    final origNameOffset = _nameOffset(element, origName);
+    final valueOffset = _valueOffset(element, origName);
+    final value = valueOffset == null ? null : element.attributes[origName];
+
     String name;
     int nameOffset;
     var virtualAttributes = <AttributeInfo>[];
+
     if (starSugar) {
       nameOffset = origNameOffset + '*'.length;
       name = _removePrefixSuffix(origName, '*', null);
-      virtualAttributes = dartParser.parseTemplateVirtualAttributes(
-          nameOffset, name + (' ' * '="'.length) + (value ?? ''));
+      // ignore: prefer_interpolation_to_compose_strings
+      final desugaredValue = name + (' ' * '="'.length) + (value ?? '');
+      virtualAttributes =
+          dartParser.parseTemplateVirtualAttributes(nameOffset, desugaredValue);
     } else {
       name = origName;
       nameOffset = origNameOffset;
@@ -176,16 +179,10 @@ class HtmlTreeConverter {
       }
     }
 
-    TemplateAttribute templateAttribute = new TemplateAttribute(
-        name,
-        nameOffset,
-        value,
-        valueOffset,
-        origName,
-        origNameOffset,
-        virtualAttributes);
+    final templateAttribute = new TemplateAttribute(name, nameOffset, value,
+        valueOffset, origName, origNameOffset, virtualAttributes);
 
-    for (AttributeInfo virtualAttribute in virtualAttributes) {
+    for (final virtualAttribute in virtualAttributes) {
       virtualAttribute.parent = templateAttribute;
     }
 
@@ -194,15 +191,15 @@ class HtmlTreeConverter {
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
       html.Element element, String origName, String prefix, String suffix) {
-    int origNameOffset = _nameOffset(element, origName);
-    int valueOffset = _valueOffset(element, origName);
-    String value = valueOffset == null ? null : element.attributes[origName];
+    final origNameOffset = _nameOffset(element, origName);
+    final valueOffset = _valueOffset(element, origName);
+    final value = valueOffset == null ? null : element.attributes[origName];
     if (value == null) {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
     }
-    int propNameOffset = origNameOffset + prefix.length;
-    String propName = _removePrefixSuffix(origName, prefix, suffix);
+    final propNameOffset = origNameOffset + prefix.length;
+    final propName = _removePrefixSuffix(origName, prefix, suffix);
     return new StatementsBoundAttribute(
         propName,
         propNameOffset,
@@ -219,9 +216,9 @@ class HtmlTreeConverter {
       String prefix,
       String suffix,
       ExpressionBoundType bound) {
-    int origNameOffset = _nameOffset(element, origName);
-    int valueOffset = _valueOffset(element, origName);
-    String value = valueOffset == null ? null : element.attributes[origName];
+    final origNameOffset = _nameOffset(element, origName);
+    final valueOffset = _valueOffset(element, origName);
+    final value = valueOffset == null ? null : element.attributes[origName];
     if (value == null || value == "") {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
@@ -229,8 +226,8 @@ class HtmlTreeConverter {
       //    ? "null"
       //    : value; // we've created a warning. Suppress parse error now.
     }
-    int propNameOffset = origNameOffset + prefix.length;
-    String propName = _removePrefixSuffix(origName, prefix, suffix);
+    final propNameOffset = origNameOffset + prefix.length;
+    final propName = _removePrefixSuffix(origName, prefix, suffix);
     return new ExpressionBoundAttribute(
         propName,
         propNameOffset,
@@ -243,9 +240,9 @@ class HtmlTreeConverter {
   }
 
   List<NodeInfo> _convertChildren(html.Element node, ElementInfo parent) {
-    List<NodeInfo> children = <NodeInfo>[];
+    final children = <NodeInfo>[];
     for (html.Node child in node.nodes) {
-      NodeInfo childNode = convert(child, parent: parent);
+      final childNode = convert(child, parent: parent);
       if (childNode != null) {
         children.add(childNode);
         if (childNode is ElementInfo) {
@@ -260,7 +257,7 @@ class HtmlTreeConverter {
 
   TemplateAttribute findTemplateAttribute(List<AttributeInfo> attributes) {
     // TODO report errors when there are two or when its already a <template>
-    for (AttributeInfo attribute in attributes) {
+    for (final attribute in attributes) {
       if (attribute is TemplateAttribute) {
         return attribute;
       }
@@ -269,6 +266,7 @@ class HtmlTreeConverter {
   }
 
   String _removePrefixSuffix(String value, String prefix, String suffix) {
+    // ignore: parameter_assignments
     value = value.substring(prefix.length);
     if (suffix != null && value.endsWith(suffix)) {
       return value.substring(0, value.length - suffix.length);
@@ -277,13 +275,13 @@ class HtmlTreeConverter {
   }
 
   int _nameOffset(html.Element element, String name) {
-    String lowerName = name.toLowerCase();
+    final lowerName = name.toLowerCase();
     try {
       return element.attributeSpans[lowerName].start.offset;
       // See https://github.com/dart-lang/html/issues/44.
     } catch (e) {
       try {
-        AttributeSpanContainer container =
+        final AttributeSpanContainer container =
             AttributeSpanContainer.generateAttributeSpans(element);
         return container.attributeSpans[name].start.offset;
       } catch (e) {
@@ -293,13 +291,13 @@ class HtmlTreeConverter {
   }
 
   int _valueOffset(html.Element element, String name) {
-    String lowerName = name.toLowerCase();
+    final lowerName = name.toLowerCase();
     try {
-      SourceSpan span = element.attributeValueSpans[lowerName];
+      final span = element.attributeValueSpans[lowerName];
       if (span != null) {
         return span.start.offset;
       } else {
-        AttributeSpanContainer container =
+        final AttributeSpanContainer container =
             AttributeSpanContainer.generateAttributeSpans(element);
         return (container.attributeValueSpans.containsKey(name))
             ? container.attributeValueSpans[name].start.offset
@@ -326,15 +324,13 @@ class EmbeddedDartParser {
   EmbeddedDartParser(
       this.templateSource, this.errorListener, this.errorReporter);
 
-  /**
-   * Parse the given Dart [code] that starts at [offset].
-   */
+  /// Parse the given Dart [code] that starts at [offset].
   Expression parseDartExpression(int offset, String code, bool detectTrailing) {
     if (code == null) {
       return null;
     }
 
-    final Token token = _scanDartCode(offset, code);
+    final token = _scanDartCode(offset, code);
     Expression expression;
 
     // suppress errors for this. But still parse it so we can analyze it and stuff
@@ -346,7 +342,7 @@ class EmbeddedDartParser {
     }
 
     if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
-      int trailingExpressionBegin = expression.endToken.next.offset;
+      final trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
           trailingExpressionBegin,
@@ -357,20 +353,21 @@ class EmbeddedDartParser {
     return expression;
   }
 
-  /**
-   * Parse the given Dart [code] that starts ot [offset].
-   * Also removes and reports dangling closing brackets.
-   */
+  /// Parse the given Dart [code] that starts ot [offset].
+  /// Also removes and reports dangling closing brackets.
   List<Statement> parseDartStatements(int offset, String code) {
-    List<Statement> allStatements = new List<Statement>();
+    final allStatements = <Statement>[];
     if (code == null) {
       return allStatements;
     }
+
+    // ignore: parameter_assignments, prefer_interpolation_to_compose_strings
     code = code + ';';
-    Token token = _scanDartCode(offset, code);
+
+    var token = _scanDartCode(offset, code);
 
     while (token.type != TokenType.EOF) {
-      List<Statement> currentStatements = _parseDartStatementsAtToken(token);
+      final currentStatements = _parseDartStatementsAtToken(token);
 
       if (currentStatements.isNotEmpty) {
         allStatements.addAll(currentStatements);
@@ -380,11 +377,11 @@ class EmbeddedDartParser {
         break;
       }
       if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
-        int startCloseBracket = token.offset;
+        final startCloseBracket = token.offset;
         while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
           token = token.next;
         }
-        int length = token.offset - startCloseBracket;
+        final length = token.offset - startCloseBracket;
         errorListener.onError(new AnalysisError(
             templateSource,
             startCloseBracket,
@@ -400,52 +397,46 @@ class EmbeddedDartParser {
     return allStatements;
   }
 
-  /**
-   * Parse the Dart expression starting at the given [token].
-   */
+  /// Parse the Dart expression starting at the given [token].
   Expression _parseDartExpressionAtToken(Token token,
       {AnalysisErrorListener errorListener}) {
     errorListener ??= this.errorListener;
-    Parser parser = new NgExprParser(templateSource, errorListener);
+    final parser = new NgExprParser(templateSource, errorListener);
     return parser.parseExpression(token);
   }
 
-  /**
-   * Parse the Dart statement starting at the given [token].
-   */
+  /// Parse the Dart statement starting at the given [token].
   List<Statement> _parseDartStatementsAtToken(Token token) {
-    Parser parser = new Parser(templateSource, errorListener);
+    final parser = new Parser(templateSource, errorListener);
     return parser.parseStatements(token);
   }
 
-  /**
-   * Scan the given Dart [code] that starts at [offset].
-   */
+  /// Scan the given Dart [code] that starts at [offset].
   Token _scanDartCode(int offset, String code) {
-    String text = ' ' * offset + code;
-    CharSequenceReader reader = new CharSequenceReader(text);
-    Scanner scanner = new Scanner(templateSource, reader, errorListener);
+    // ignore: prefer_interpolation_to_compose_strings
+    final text = ' ' * offset + code;
+    final reader = new CharSequenceReader(text);
+    final scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
   }
 
-  /**
-   * Scan the given [text] staring at the given [offset] and resolve all of
-   * its embedded expressions.
-   */
+  /// Scan the given [text] staring at the given [offset] and resolve all of
+  /// its embedded expressions.
   List<Mustache> findMustaches(String text, int fileOffset) {
-    List<Mustache> mustaches = <Mustache>[];
+    final mustaches = <Mustache>[];
     if (text == null || text.length < 2) {
       return mustaches;
     }
 
-    int textOffset = 0;
+    var textOffset = 0;
     while (true) {
       // begin
-      final int begin = text.indexOf('{{', textOffset);
-      final int nextBegin = text.indexOf('{{', begin + 2);
-      final int end = text.indexOf('}}', textOffset);
+      final begin = text.indexOf('{{', textOffset);
+      final nextBegin = text.indexOf('{{', begin + 2);
+      final end = text.indexOf('}}', textOffset);
+
       int exprBegin, exprEnd;
-      bool detectTrailing = false;
+      var detectTrailing = false;
       if (begin == -1 && end == -1) {
         break;
       }
@@ -479,12 +470,13 @@ class EmbeddedDartParser {
         detectTrailing = true;
       }
       // resolve
-      String code = text.substring(exprBegin, exprEnd);
-      Expression expression =
+      final code = text.substring(exprBegin, exprEnd);
+      final expression =
           parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
 
-      var offset = fileOffset + begin;
-      var length;
+      final offset = fileOffset + begin;
+
+      int length;
       if (end == -1) {
         length = expression.offset + expression.length - offset;
       } else {
@@ -497,18 +489,17 @@ class EmbeddedDartParser {
     return mustaches;
   }
 
-  bool _startsWithWhitespace(String string) {
-    // trim returns the original string when no changes were made
-    return !identical(string.trimLeft(), string);
-  }
+  bool _startsWithWhitespace(String string) =>
+      // trim returns the original string when no changes were made
+      !identical(string.trimLeft(), string);
 
-  /**
-   * Desugar a template="" or *blah="" attribute into its list of virtual [AttributeInfo]s
-   */
+  /// Desugar a template="" or *blah="" attribute into its list of virtual
+  /// [AttributeInfo]s
   List<AttributeInfo> parseTemplateVirtualAttributes(int offset, String code) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-    Token token = _scanDartCode(offset, code);
-    String prefix = null;
+    final attributes = <AttributeInfo>[];
+
+    var token = _scanDartCode(offset, code);
+    String prefix;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
       if (_isDelimiter(token)) {
@@ -517,29 +508,33 @@ class EmbeddedDartParser {
       }
       // maybe a local variable
       if (_isTemplateVarBeginToken(token)) {
+        final originalVarOffset = token.offset;
         if (token.type == TokenType.HASH) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
         }
-        int originalVarOffset = token.offset;
-        String originalName = token.lexeme;
-        token = token.next;
+
+        var originalName = token.lexeme;
+
         // get the local variable name
-        String localVarName = "";
-        int localVarOffset = token.offset;
+        token = token.next;
+        var localVarName = "";
+        var localVarOffset = token.offset;
         if (!_tokenMatchesIdentifier(token)) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.EXPECTED_IDENTIFIER, token);
         } else {
           localVarOffset = token.offset;
           localVarName = token.lexeme;
+          // ignore: prefer_interpolation_to_compose_strings
           originalName +=
               ' ' * (token.offset - originalVarOffset) + localVarName;
           token = token.next;
         }
+
         // get an optional internal variable
-        int internalVarOffset = null;
-        String internalVarName = null;
+        int internalVarOffset;
+        String internalVarName;
         if (token.type == TokenType.EQ) {
           token = token.next;
           // get the internal variable
@@ -563,29 +558,32 @@ class EmbeddedDartParser {
             originalVarOffset, []));
         continue;
       }
+
       // key
-      int keyOffset = token.offset;
-      String originalName = null;
-      int originalNameOffset = keyOffset;
-      String key = null;
+      String key;
+      final keyBuffer = new StringBuffer();
+      final keyOffset = token.offset;
+      String originalName;
+      final originalNameOffset = keyOffset;
       if (_tokenMatchesIdentifier(token)) {
         // scan for a full attribute name
-        key = '';
-        int lastEnd = token.offset;
+        var lastEnd = token.offset;
         while (token.offset == lastEnd &&
             (_tokenMatchesIdentifier(token) || token.type == TokenType.MINUS)) {
-          key += token.lexeme;
+          keyBuffer.write(token.lexeme);
           lastEnd = token.end;
           token = token.next;
         }
 
-        originalName = key;
+        originalName = keyBuffer.toString();
 
         // add the prefix
         if (prefix == null) {
-          prefix = key;
+          prefix = keyBuffer.toString();
+          key = keyBuffer.toString();
         } else {
-          key = prefix + capitalize(key);
+          // ignore: prefer_interpolation_to_compose_strings
+          key = prefix + capitalize(keyBuffer.toString());
         }
       } else {
         errorReporter.reportErrorForToken(
@@ -600,11 +598,12 @@ class EmbeddedDartParser {
       if (!_isTemplateVarBeginToken(token) &&
           !_isDelimiter(token) &&
           token.type != TokenType.EOF) {
-        Expression expression = _parseDartExpressionAtToken(token);
-        var start = token.offset - offset;
+        final expression = _parseDartExpressionAtToken(token);
+        final start = token.offset - offset;
+
         token = expression.endToken.next;
-        var end = token.offset - offset;
-        var exprCode = code.substring(start, end);
+        final end = token.offset - offset;
+        final exprCode = code.substring(start, end);
         attributes.add(new ExpressionBoundAttribute(
             key,
             keyOffset,
@@ -626,11 +625,10 @@ class EmbeddedDartParser {
   static bool _isDelimiter(Token token) =>
       token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON;
 
-  static bool _isTemplateVarBeginToken(Token token) {
-    return token is KeywordToken && token.keyword == Keyword.VAR ||
-        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
-        token.type == TokenType.HASH;
-  }
+  static bool _isTemplateVarBeginToken(Token token) =>
+      token is KeywordToken && token.keyword == Keyword.VAR ||
+      (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
+      token.type == TokenType.HASH;
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
       token is KeywordToken && token.keyword.isBuiltInOrPseudo;

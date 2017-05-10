@@ -1,26 +1,19 @@
-library services.src.correction.strings;
-
 import 'dart:math';
 
-/**
- * "$"
- */
-const int CHAR_DOLLAR = 0x24;
+/// "$"
+const CHAR_DOLLAR = 0x24;
 
-/**
- * "."
- */
-const int CHAR_DOT = 0x2E;
+/// "."
+const CHAR_DOT = 0x2E;
 
-/**
- * "_"
- */
-const int CHAR_UNDERSCORE = 0x5F;
+/// "_"
+const CHAR_UNDERSCORE = 0x5F;
 
 String capitalize(String str) {
   if (isEmpty(str)) {
     return str;
   }
+  // ignore: prefer_interpolation_to_compose_strings
   return str.substring(0, 1).toUpperCase() + str.substring(1);
 }
 
@@ -28,6 +21,7 @@ String decapitalize(String str) {
   if (isEmpty(str)) {
     return str;
   }
+  // ignore: prefer_interpolation_to_compose_strings
   return str.substring(0, 1).toLowerCase() + str.substring(1);
 }
 
@@ -44,15 +38,14 @@ int compareStrings(String a, String b) {
   return a.compareTo(b);
 }
 
-/**
- * Counts how many times [sub] appears in [str].
- */
+/// Counts how many times [sub] appears in [str].
 int countMatches(String str, String sub) {
   if (isEmpty(str) || isEmpty(sub)) {
     return 0;
   }
-  int count = 0;
-  int idx = 0;
+  var count = 0;
+  var idx = 0;
+  // ignore: prefer_contains
   while ((idx = str.indexOf(sub, idx)) != -1) {
     count++;
     idx += sub.length;
@@ -60,32 +53,32 @@ int countMatches(String str, String sub) {
   return count;
 }
 
-/**
- * Returns the number of characters common to the end of [a] and the start
- * of [b].
- */
-int findCommonOverlap(String a, String b) {
-  int a_length = a.length;
-  int b_length = b.length;
+/// Returns the number of characters common to the end of [a] and the start
+/// of [b].
+int findCommonOverlap(String _a, String _b) {
+  var a = _a;
+  var b = _b;
+  final aLength = a.length;
+  final bLength = b.length;
   // all empty
-  if (a_length == 0 || b_length == 0) {
+  if (aLength == 0 || bLength == 0) {
     return 0;
   }
   // truncate
-  if (a_length > b_length) {
-    a = a.substring(a_length - b_length);
-  } else if (a_length < b_length) {
-    b = b.substring(0, a_length);
+  if (aLength > bLength) {
+    a = a.substring(aLength - bLength);
+  } else if (aLength < bLength) {
+    b = b.substring(0, aLength);
   }
-  int text_length = min(a_length, b_length);
+  final textLength = min(aLength, bLength);
   // the worst case
   if (a == b) {
-    return text_length;
+    return textLength;
   }
   // increase common length one by one
-  int length = 0;
-  while (length < text_length) {
-    if (a.codeUnitAt(text_length - 1 - length) != b.codeUnitAt(length)) {
+  var length = 0;
+  while (length < textLength) {
+    if (a.codeUnitAt(textLength - 1 - length) != b.codeUnitAt(length)) {
       break;
     }
     length++;
@@ -93,12 +86,10 @@ int findCommonOverlap(String a, String b) {
   return length;
 }
 
-/**
- * Return the number of characters common to the start of [a] and [b].
- */
+/// Return the number of characters common to the start of [a] and [b].
 int findCommonPrefix(String a, String b) {
-  int n = min(a.length, b.length);
-  for (int i = 0; i < n; i++) {
+  final n = min(a.length, b.length);
+  for (var i = 0; i < n; i++) {
     if (a.codeUnitAt(i) != b.codeUnitAt(i)) {
       return i;
     }
@@ -106,39 +97,35 @@ int findCommonPrefix(String a, String b) {
   return n;
 }
 
-/**
- * Return the number of characters common to the end of [a] and [b].
- */
+/// Return the number of characters common to the end of [a] and [b].
 int findCommonSuffix(String a, String b) {
-  int a_length = a.length;
-  int b_length = b.length;
-  int n = min(a_length, b_length);
-  for (int i = 1; i <= n; i++) {
-    if (a.codeUnitAt(a_length - i) != b.codeUnitAt(b_length - i)) {
+  final aLength = a.length;
+  final bLength = b.length;
+  final n = min(aLength, bLength);
+  for (var i = 1; i <= n; i++) {
+    if (a.codeUnitAt(aLength - i) != b.codeUnitAt(bLength - i)) {
       return i - 1;
     }
   }
   return n;
 }
 
-/**
- * Returns a list of words for the given camel case string.
-*
- * 'getCamelWords' => ['get', 'Camel', 'Words']
- * 'getHTMLText' => ['get', 'HTML', 'Text']
- */
+/// Returns a list of words for the given camel case string.
+///
+/// 'getCamelWords' => ['get', 'Camel', 'Words']
+/// 'getHTMLText' => ['get', 'HTML', 'Text']
 List<String> getCamelWords(String str) {
   if (str == null || str.isEmpty) {
     return <String>[];
   }
-  List<String> parts = <String>[];
-  bool wasLowerCase = false;
-  bool wasUpperCase = false;
-  int wordStart = 0;
-  for (int i = 0; i < str.length; i++) {
-    int c = str.codeUnitAt(i);
-    var newLowerCase = isLowerCase(c);
-    var newUpperCase = isUpperCase(c);
+  final parts = <String>[];
+  var wasLowerCase = false;
+  var wasUpperCase = false;
+  var wordStart = 0;
+  for (var i = 0; i < str.length; i++) {
+    final c = str.codeUnitAt(i);
+    final newLowerCase = isLowerCase(c);
+    final newUpperCase = isUpperCase(c);
     // myWord
     // | ^
     if (wasLowerCase && newUpperCase) {
@@ -161,9 +148,7 @@ List<String> getCamelWords(String str) {
   return parts;
 }
 
-/**
- * Checks if [str] is `null`, empty or is whitespace.
- */
+/// Checks if [str] is `null`, empty or is whitespace.
 bool isBlank(String str) {
   if (str == null) {
     return true;
@@ -174,35 +159,21 @@ bool isBlank(String str) {
   return str.codeUnits.every(isSpace);
 }
 
-bool isDigit(int c) {
-  return c >= 0x30 && c <= 0x39;
-}
+bool isDigit(int c) => c >= 0x30 && c <= 0x39;
 
-bool isEmpty(String str) {
-  return str == null || str.isEmpty;
-}
+bool isEmpty(String str) => str == null || str.isEmpty;
 
-bool isLetter(int c) {
-  return (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A);
-}
+bool isLetter(int c) => (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A);
 
-bool isLetterOrDigit(int c) {
-  return isLetter(c) || isDigit(c);
-}
+bool isLetterOrDigit(int c) => isLetter(c) || isDigit(c);
 
-bool isLowerCase(int c) {
-  return c >= 0x61 && c <= 0x7A;
-}
+bool isLowerCase(int c) => c >= 0x61 && c <= 0x7A;
 
 bool isSpace(int c) => c == 0x20 || c == 0x09;
 
-bool isUpperCase(int c) {
-  return c >= 0x41 && c <= 0x5A;
-}
+bool isUpperCase(int c) => c >= 0x41 && c <= 0x5A;
 
-bool isWhitespace(int c) {
-  return isSpace(c) || c == 0x0D || c == 0x0A;
-}
+bool isWhitespace(int c) => isSpace(c) || c == 0x0D || c == 0x0A;
 
 String remove(String str, String remove) {
   if (isEmpty(str) || isEmpty(remove)) {
@@ -232,17 +203,15 @@ String removeStart(String str, String remove) {
 }
 
 String repeat(String s, int n) {
-  StringBuffer sb = new StringBuffer();
-  for (int i = 0; i < n; i++) {
+  final sb = new StringBuffer();
+  for (var i = 0; i < n; i++) {
     sb.write(s);
   }
   return sb.toString();
 }
 
-/**
- * Gets the substring after the last occurrence of a separator.
- * The separator is not returned.
- */
+/// Gets the substring after the last occurrence of a separator.
+/// The separator is not returned.
 String substringAfterLast(String str, String separator) {
   if (isEmpty(str)) {
     return str;
@@ -250,7 +219,7 @@ String substringAfterLast(String str, String separator) {
   if (isEmpty(separator)) {
     return '';
   }
-  int pos = str.lastIndexOf(separator);
+  final pos = str.lastIndexOf(separator);
   if (pos == -1) {
     return str;
   }

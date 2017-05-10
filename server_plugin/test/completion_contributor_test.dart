@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
@@ -6,7 +8,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'completion_contributor_test_util.dart';
 
-main() {
+void main() {
   // TODO: get these working again on the latest SDK
   //defineReflectiveTests(DartCompletionContributorTest);
   defineReflectiveTests(HtmlCompletionContributorTest);
@@ -15,17 +17,17 @@ main() {
 @reflectiveTest
 class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  setUp() {
+  void setUp() {
     testFile = '/completionTest.dart';
     super.setUp();
   }
 
   @override
-  CompletionContributor createContributor() {
-    return new AngularCompletionContributor(angularDriver);
-  }
+  CompletionContributor createContributor() =>
+      new AngularCompletionContributor(angularDriver);
 
-  test_completeMemberInMustache() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInMustache() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '{{^}}', selector: 'a')
@@ -40,7 +42,8 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInInputBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInInputBinding() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<h1 [hidden]="^"></h1>', selector: 'a')
@@ -55,7 +58,8 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInClassBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInClassBinding() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<h1 [class.my-class]="^"></h1>', selector: 'a')
@@ -70,7 +74,8 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInInputOutput_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInInputOutput_at_incompleteTag_with_newTag() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
@@ -89,7 +94,8 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeInputStarted_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_newTag() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag [^<div></div>', selector: 'my-tag',
@@ -108,7 +114,8 @@ class MyChildComponent {
     assertNotSuggested("(myEvent)");
   }
 
-  test_completeInputNotStarted_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotStarted_at_incompleteTag_with_newTag() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
@@ -126,7 +133,8 @@ class MyChildComponent {
     assertSuggestSetter('[stringInput]');
   }
 
-  test_completeInput_as_plainAttribute() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInput_as_plainAttribute() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
@@ -153,7 +161,8 @@ class MyChildComponent {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeStandardInput_as_plainAttribute() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeStandardInput_as_plainAttribute() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
@@ -171,7 +180,8 @@ class MyChildComponent {
     assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_newTag() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag (^<div></div>', selector: 'my-tag',
@@ -190,7 +200,8 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeMemberInInputOutput_at_incompleteTag_with_EOF() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInInputOutput_at_incompleteTag_with_EOF() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag ^', selector: 'my-tag',
@@ -209,7 +220,8 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeInputStarted_at_incompleteTag_with_EOF() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_EOF() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag [^', selector: 'my-tag',
@@ -228,7 +240,8 @@ class MyChildComponent {
     assertNotSuggested("(myEvent)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_EOF() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_EOF() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<child-tag (^', selector: 'my-tag',
@@ -247,7 +260,8 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeMemberInStyleBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInStyleBinding() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<h1 [style.background-color]="^"></h1>', selector: 'a')
@@ -262,7 +276,8 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInAttrBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInAttrBinding() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<h1 [attr.on-click]="^"></h1>', selector: 'a')
@@ -277,7 +292,8 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberMustacheAttrBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberMustacheAttrBinding() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<h1 title="{{^}}"></h1>', selector: 'a')
@@ -292,7 +308,8 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMultipleMembers() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMultipleMembers() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '{{d^}}', selector: 'a')
@@ -309,7 +326,8 @@ class MyComp {
     assertSuggestGetter('description', 'String');
   }
 
-  test_completeInlineHtmlSelectorTag_at_beginning() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_beginning() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
@@ -328,7 +346,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<my^<div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
@@ -347,7 +366,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_middle() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -366,7 +386,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle_of_text() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_middle_of_text() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div> some text<^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -385,7 +406,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div><my^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
@@ -404,7 +426,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_end() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -423,7 +446,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div></div></div><m^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -442,7 +466,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_on_empty_document() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_on_empty_document() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -461,7 +486,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end_after_close() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_end_after_close() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div><div></div></div>^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -480,7 +506,8 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_in_middle_of_unclosed_tag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_in_middle_of_unclosed_tag() async {
     addTestSource('''
 import '/angular2/angular2.dart';
 @Component(template: '<div>some text<^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
@@ -503,7 +530,7 @@ class MyChildComponent2{}
 @reflectiveTest
 class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  setUp() {
+  void setUp() {
     testFile = '/completionTest.html';
     super.setUp();
     createContributor();
@@ -514,8 +541,9 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
     return new AngularCompletionContributor(angularDriver);
   }
 
-  test_completeMemberInMustache() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -536,8 +564,9 @@ class MyComp {
     assertSuggestGetter('hashCode', 'int');
   }
 
-  test_completeDotMemberInMustache() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeDotMemberInMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -556,8 +585,9 @@ class MyComp {
     assertSuggestGetter('length', 'int');
   }
 
-  test_completeDotMemberAlreadyStartedInMustache() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeDotMemberAlreadyStartedInMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -576,8 +606,9 @@ class MyComp {
     assertSuggestGetter('length', 'int');
   }
 
-  test_completeDotMemberInNgFor() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeDotMemberInNgFor() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -596,8 +627,9 @@ class MyComp {
     assertSuggestGetter('length', 'int');
   }
 
-  test_completeMemberInNgFor() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInNgFor() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -618,8 +650,9 @@ class MyComp {
     assertSuggestGetter('hashCode', 'int');
   }
 
-  test_noCompleteMemberInNgForRightAfterLet() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForRightAfterLet() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -638,8 +671,9 @@ class MyComp {
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgForInLet() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForInLet() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -658,8 +692,9 @@ class MyComp {
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgForAfterLettedName() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForAfterLettedName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -678,8 +713,9 @@ class MyComp {
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgForInLettedName() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForInLettedName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -698,8 +734,9 @@ class MyComp {
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgFor_forLettedName() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgFor_forLettedName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -718,8 +755,9 @@ class MyComp {
     assertNotSuggested('text');
   }
 
-  test_completeNgForItem() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeNgForItem() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -738,8 +776,9 @@ class MyComp {
     assertSuggestLocalVar('item', 'String');
   }
 
-  test_completeHashVar() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHashVar() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -757,8 +796,9 @@ class MyComp {
     assertSuggestLocalVar('buttonEl', 'ButtonElement');
   }
 
-  test_completeNgVars_notAfterDot() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeNgVars_notAfterDot() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -779,8 +819,9 @@ class MyComp {
     assertNotSuggested('item');
   }
 
-  test_findCompletionTarget_afterUnclosedDom() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_findCompletionTarget_afterUnclosedDom() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -799,8 +840,9 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeStatements() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStatements() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -820,8 +862,9 @@ class MyComp {
     assertSuggestField('text', 'String');
   }
 
-  test_completeUnclosedMustache() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeUnclosedMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -840,8 +883,9 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeEmptyExpressionDoesntIncludeVoid() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeEmptyExpressionDoesntIncludeVoid() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -860,8 +904,9 @@ class MyComp {
     assertNotSuggested("dontCompleteMe");
   }
 
-  test_completeInMiddleOfExpressionDoesntIncludeVoid() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInMiddleOfExpressionDoesntIncludeVoid() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -881,8 +926,9 @@ class MyComp {
     assertNotSuggested("dontCompleteMe");
   }
 
-  test_completeInputOutput() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutput() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -910,8 +956,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputOutput_at_incompleteTag_with_newTag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutput_at_incompleteTag_with_newTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -939,8 +986,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputStarted_at_incompleteTag_with_newTag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_newTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -967,8 +1015,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_newTag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -996,8 +1045,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputOutput_at_incompleteTag_with_EOF() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutput_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1025,8 +1075,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputStarted_at_incompleteTag_with_EOF() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1053,8 +1104,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_EOF() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1082,8 +1134,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputNotSuggestedTwice() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1110,8 +1163,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeStandardInputNotSuggestedTwice() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStandardInputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1139,8 +1193,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputSuggestsItself() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1164,8 +1219,9 @@ class OtherComp {
     assertSuggestSetter("[name]");
   }
 
-  test_completeStandardInputSuggestsItself() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStandardInputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1189,8 +1245,9 @@ class OtherComp {
     assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
-  test_completeOutputNotSuggestedTwice() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1218,8 +1275,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeOutputSuggestsItself() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1243,8 +1301,9 @@ class OtherComp {
     assertSuggestGetter("(nameEvent)", "String");
   }
 
-  test_completeStdOutputNotSuggestedTwice() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStdOutputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1271,8 +1330,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeStdOutputSuggestsItself() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStdOutputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1297,8 +1357,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputOutputNotSuggestedAfterTwoWay() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutputNotSuggestedAfterTwoWay() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1324,8 +1385,9 @@ class OtherComp {
     assertNotSuggested("(nameEvent)");
   }
 
-  test_completeInputStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1352,8 +1414,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeInputNotStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1377,8 +1440,9 @@ class OtherComp {
     assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
-  test_completeInputAsPlainAttribute() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputAsPlainAttribute() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1410,8 +1474,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputAsPlainAttributeStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputAsPlainAttributeStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1443,8 +1508,9 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeOutputStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1471,8 +1537,9 @@ class OtherComp {
     assertNotSuggested("[name]");
   }
 
-  test_completeInputReplacing() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputReplacing() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1499,8 +1566,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputReplacing() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputReplacing() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1527,8 +1595,9 @@ class OtherComp {
     assertNotSuggested("[name]");
   }
 
-  test_noCompleteInOutputInCloseTag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteInOutputInCloseTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1555,8 +1624,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_noCompleteEmptyTagContents() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteEmptyTagContents() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1583,8 +1653,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_noCompleteInOutputsOnTagNameCompletion() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteInOutputsOnTagNameCompletion() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1611,8 +1682,9 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeHtmlSelectorTag_at_beginning() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_beginning() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1635,8 +1707,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_beginning_with_partial() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_beginning_with_partial() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1659,8 +1732,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_middle() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_middle() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1683,8 +1757,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_middle_of_text() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_middle_of_text() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1707,8 +1782,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_middle_with_partial() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_middle_with_partial() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1731,8 +1807,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_end() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_end() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1755,8 +1832,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_end_with_partial() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_end_with_partial() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1780,8 +1858,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_on_empty_document() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_on_empty_document() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1804,8 +1883,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_end_after_close() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_end_after_close() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1828,8 +1908,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag__in_middle_of_unclosed_tag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag__in_middle_of_unclosed_tag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
       import '/angular2/angular2.dart';
@@ -1852,8 +1933,9 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeTransclusionSuggestion() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestion() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1877,8 +1959,9 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionInWhitespace() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionInWhitespace() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1905,8 +1988,9 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1933,8 +2017,9 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionStartedTagName() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionStartedTagName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1961,8 +2046,9 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionAfterTag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionAfterTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -1990,8 +2076,9 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionBeforeTag() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionBeforeTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import '/angular2/angular2.dart';
@@ -2019,7 +2106,7 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  assertSuggestTransclusion(String name) {
+  void assertSuggestTransclusion(String name) {
     assertSuggestClassTypeAlias(name,
         relevance: TemplateCompleter.RELEVANCE_TRANSCLUSION);
   }

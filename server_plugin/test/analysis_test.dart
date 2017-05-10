@@ -18,7 +18,7 @@ import 'package:analyzer/src/task/manager.dart';
 import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/context/context_root.dart';
-import 'package:analyzer/src/dart/analysis/driver.dart' as nonTask
+import 'package:analyzer/src/dart/analysis/driver.dart' as non_task
     show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/generated/engine.dart';
@@ -34,7 +34,7 @@ import 'package:unittest/unittest.dart';
 
 import 'mock_sdk.dart';
 
-main() {
+void main() {
   defineReflectiveSuite(() {
     // TODO get these working again in the latest SDK
     //defineReflectiveTests(AngularNavigationContributorTest);
@@ -45,6 +45,7 @@ main() {
 
 @reflectiveTest
 class EmptyTest {
+  // ignore: non_constant_identifier_names
   void test_soTheSuitePasses() {
     expect(null, isNull);
   }
@@ -60,6 +61,7 @@ class AngularNavigationContributorTest extends AbstractAngularTaskTest {
   _RecordedNavigationRegion region;
   protocol.Location targetLocation;
 
+  @override
   void setUp() {
     super.setUp();
     when(collector.addRegion(anyInt, anyInt, anyObject, anyObject)).thenInvoke(
@@ -70,6 +72,7 @@ class AngularNavigationContributorTest extends AbstractAngularTaskTest {
     });
   }
 
+  // ignore: non_constant_identifier_names
   void test_dart_templates() {
     addAngularSources();
     code = r'''
@@ -96,7 +99,7 @@ class User {
   String name; // 3
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    final source = newSource('/test.dart', code);
     //LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     //computeResult(target, DART_TEMPLATES);
     // compute navigation regions
@@ -153,6 +156,7 @@ class User {
     }
   }
 
+  // ignore: non_constant_identifier_names
   void test_dart_view_templateUrl() {
     addAngularSources();
     code = r'''
@@ -162,7 +166,7 @@ import '/angular2/src/core/metadata.dart';
 @View(templateUrl: 'text_panel.html')
 class TextPanel {}
 ''';
-    Source dartSource = newSource('/test.dart', code);
+    final dartSource = newSource('/test.dart', code);
     newSource('/text_panel.html', "");
     // compute views, so that we have the TEMPLATE_VIEWS result
     //{
@@ -184,9 +188,10 @@ class TextPanel {}
     }
   }
 
+  // ignore: non_constant_identifier_names
   void test_html_templates() {
     addAngularSources();
-    String dartCode = r'''
+    final dartCode = r'''
 import '/angular2/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
@@ -195,13 +200,13 @@ class TextPanel {
   String text; // 1
 }
 ''';
-    String htmlCode = r"""
+    final htmlCode = r"""
 <div>
   {{text}}
 </div>
 """;
     newSource('/test.dart', dartCode);
-    Source htmlSource = newSource('/text_panel.html', htmlCode);
+    final htmlSource = newSource('/text_panel.html', htmlCode);
     // compute views, so that we have the TEMPLATE_VIEWS result
     //{
     //  LibrarySpecificUnit target =
@@ -223,21 +228,21 @@ class TextPanel {
   }
 
   void _findRegion(int offset, int length) {
-    for (_RecordedNavigationRegion region in regions) {
+    for (final region in regions) {
       if (region.offset == offset && region.length == length) {
         this.region = region;
-        this.targetLocation = region.targetLocation;
+        targetLocation = region.targetLocation;
         return;
       }
     }
-    String regionsString = regions.join('\n');
+    final regionsString = regions.join('\n');
     fail('Unable to find a region at ($offset, $length) in $regionsString');
   }
 
-  void _findRegionString(String str, String suffix, {String codeOverride}) {
-    String code = codeOverride != null ? codeOverride : this.code;
-    String search = str + suffix;
-    int offset = code.indexOf(search);
+  void _findRegionString(String str, String suffix, {final codeOverride}) {
+    final code = codeOverride != null ? codeOverride : this.code;
+    final search = '$str$suffix';
+    final offset = code.indexOf(search);
     expect(offset, isNonNegative, reason: 'Cannot find |$search| in |$code|');
     _findRegion(offset, str.length);
   }
@@ -252,11 +257,13 @@ class AngularOccurrencesContributorTest extends AbstractAngularTaskTest {
 
   protocol.Occurrences occurrences;
 
+  @override
   void setUp() {
     super.setUp();
     when(collector.addOccurrences(anyObject)).thenInvoke(occurrencesList.add);
   }
 
+  // ignore: non_constant_identifier_names
   void test_dart_templates() {
     addAngularSources();
     code = r'''
@@ -282,7 +289,7 @@ class ObjectContainer<T> {
   T value; // 3
 }
 ''';
-    Source source = newSource('/test.dart', code);
+    final source = newSource('/test.dart', code);
     //LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
     //computeResult(target, DART_TEMPLATES);
     // compute navigation regions
@@ -320,26 +327,22 @@ class ObjectContainer<T> {
   }
 
   void _findOccurrences(int offset) {
-    for (protocol.Occurrences occurrences in occurrencesList) {
+    for (final occurrences in occurrencesList) {
       if (occurrences.offsets.contains(offset)) {
         this.occurrences = occurrences;
         return;
       }
     }
-    String listStr = occurrencesList.join('\n');
+    final listStr = occurrencesList.join('\n');
     fail('Unable to find occurrences at $offset in $listStr');
   }
 }
 
-/**
- * Instances of the class [GatheringErrorListener] implement an error listener
- * that collects all of the errors passed to it for later examination.
- */
+/// Instances of the class [GatheringErrorListener] implement an error listener
+/// that collects all of the errors passed to it for later examination.
 class GatheringErrorListener implements AnalysisErrorListener {
-  /**
-   * A list containing the errors that were collected.
-   */
-  List<AnalysisError> _errors = new List<AnalysisError>();
+  /// A list containing the errors that were collected.
+  final _errors = <AnalysisError>[];
 
   @override
   void onError(AnalysisError error) {
@@ -347,7 +350,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 
   void addAll(List<AnalysisError> errors) {
-    for (AnalysisError error in errors) {
+    for (final error in errors) {
       onError(error);
     }
   }
@@ -383,7 +386,7 @@ class AbstractAngularTaskTest {
   GatheringErrorListener errorListener = new GatheringErrorListener();
 
   Source newSource(String path, [String content = '']) {
-    File file = resourceProvider.newFile(path, content);
+    final file = resourceProvider.newFile(path, content);
     return file.createSource();
   }
 
@@ -572,9 +575,7 @@ class _RecordedNavigationRegion {
       this.offset, this.length, this.targetKind, this.targetLocation);
 
   @override
-  String toString() {
-    return '$offset $length $targetKind $targetLocation';
-  }
+  String toString() => '$offset $length $targetKind $targetLocation';
 }
 
 class AbstractAngularTest {
@@ -582,35 +583,32 @@ class AbstractAngularTest {
 
   DartSdk sdk;
   AngularDriver angularDriver;
-  nonTask.AnalysisDriver dartDriver;
+  non_task.AnalysisDriver dartDriver;
 
   GatheringErrorListener errorListener;
 
   void setUp() {
-    nonTask.PerformanceLog logger =
-        new nonTask.PerformanceLog(new StringBuffer());
-    var byteStore = new MemoryByteStore();
+    final logger = new non_task.PerformanceLog(new StringBuffer());
+    final byteStore = new MemoryByteStore();
 
-    nonTask.AnalysisDriverScheduler scheduler =
-        new nonTask.AnalysisDriverScheduler(logger);
-    scheduler.start();
+    final scheduler = new non_task.AnalysisDriverScheduler(logger)..start();
     resourceProvider = new MemoryResourceProvider();
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
     final packageMap = <String, List<Folder>>{
       "angular2": [resourceProvider.getFolder("/angular2")]
     };
-    PackageMapUriResolver packageResolver =
+    final packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
-    SourceFactory sf = new SourceFactory([
+    final sf = new SourceFactory([
       new DartUriResolver(sdk),
       packageResolver,
       new ResourceUriResolver(resourceProvider),
     ]);
-    var testPath = resourceProvider.convertPath('/test');
-    var contextRoot = new ContextRoot(testPath, []);
+    final testPath = resourceProvider.convertPath('/test');
+    final contextRoot = new ContextRoot(testPath, []);
 
-    dartDriver = new nonTask.AnalysisDriver(
+    dartDriver = new non_task.AnalysisDriver(
       scheduler,
       logger,
       resourceProvider,
@@ -629,7 +627,7 @@ class AbstractAngularTest {
   }
 
   Source newSource(String path, [String content = '']) {
-    File file = resourceProvider.newFile(path, content);
+    final file = resourceProvider.newFile(path, content);
     final source = file.createSource();
     angularDriver.addFile(path);
     dartDriver.addFile(path);
@@ -795,7 +793,8 @@ class NgFor {
 }
 
 class MockAnalysisServer extends TypedMock implements AnalysisServer {
-  NotificationManager notificationManager = new MockNotificationManager();
+  @override
+  final notificationManager = new MockNotificationManager();
 }
 
 class MockNotificationManager extends TypedMock implements NotificationManager {

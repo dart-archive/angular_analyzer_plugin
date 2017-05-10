@@ -27,6 +27,7 @@ abstract class DirectiveLinkerEnablement {
 }
 
 class IgnoringErrorListener implements AnalysisErrorListener {
+  @override
   void onError(Object o) {}
 }
 
@@ -61,9 +62,9 @@ class DirectiveLinker {
       final selector =
           new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
               .parse();
-      List<ElementNameSelector> elementTags = <ElementNameSelector>[];
+      final elementTags = <ElementNameSelector>[];
       selector.recordElementNameSelectors(elementTags);
-      final List<InputElement> inputs = [];
+      final inputs = <InputElement>[];
       for (final inputSum in dirSum.inputs) {
         // is this correct lookup?
         final setter =
@@ -79,7 +80,7 @@ class DirectiveLinker {
             bindingSynthesizer
                 .getSetterType(setter))); // Don't think type is correct
       }
-      final List<OutputElement> outputs = [];
+      final outputs = <OutputElement>[];
       for (final outputSum in dirSum.outputs) {
         // is this correct lookup?
         final getter =
@@ -116,8 +117,8 @@ class DirectiveLinker {
           subDirectives.add(new DirectiveReference(useSum.name, useSum.prefix,
               new SourceRange(useSum.offset, useSum.length)));
         }
-        var templateUriSource = null;
-        var templateUrlRange = null;
+        Source templateUriSource;
+        SourceRange templateUrlRange;
         if (dirSum.templateUrl != '') {
           templateUriSource =
               _directiveLinkerEnablement.getSource(dirSum.templateUrl);
@@ -147,30 +148,30 @@ class DirectiveLinker {
   }
 
   List<NgContent> deserializeNgContents(
-      List<SummarizedNgContent> ngContentSums, Source source) {
-    return ngContentSums.map((ngContentSum) {
-      final selector = ngContentSum.selectorStr == ""
-          ? null
-          : new SelectorParser(
-                  source, ngContentSum.selectorOffset, ngContentSum.selectorStr)
-              .parse();
-      return new NgContent.withSelector(
-          ngContentSum.offset,
-          ngContentSum.length,
-          selector,
-          selector?.offset,
-          ngContentSum.selectorStr.length);
-    }).toList();
-  }
+          List<SummarizedNgContent> ngContentSums, Source source) =>
+      ngContentSums.map((ngContentSum) {
+        final selector = ngContentSum.selectorStr == ""
+            ? null
+            : new SelectorParser(source, ngContentSum.selectorOffset,
+                    ngContentSum.selectorStr)
+                .parse();
+        return new NgContent.withSelector(
+            ngContentSum.offset,
+            ngContentSum.length,
+            selector,
+            selector?.offset,
+            ngContentSum.selectorStr.length);
+      }).toList();
 
   List<ContentChildField> deserializeContentChildFields(
-      List<SummarizedContentChildField> fieldSums) {
-    return fieldSums.map((fieldSum) {
-      return new ContentChildField(fieldSum.fieldName,
-          nameRange: new SourceRange(fieldSum.nameOffset, fieldSum.nameLength),
-          typeRange: new SourceRange(fieldSum.typeOffset, fieldSum.typeLength));
-    }).toList();
-  }
+          List<SummarizedContentChildField> fieldSums) =>
+      fieldSums
+          .map((fieldSum) => new ContentChildField(fieldSum.fieldName,
+              nameRange:
+                  new SourceRange(fieldSum.nameOffset, fieldSum.nameLength),
+              typeRange:
+                  new SourceRange(fieldSum.typeOffset, fieldSum.typeLength)))
+          .toList();
 }
 
 class ChildDirectiveLinker implements DirectiveMatcher {
@@ -268,6 +269,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         reference.range.length);
   }
 
+  @override
   Future<AbstractDirective> matchDirective(ClassElement clazz) async {
     final fileDirectives = await _fileDirectiveProvider
         .getUnlinkedDirectives(clazz.source.fullName);
@@ -281,17 +283,15 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     return null;
   }
 
-  /**
-   * Walk the given [value] and add directives into [directives].
-   * Return `true` if success, or `false` the [value] has items that don't
-   * correspond to a directive.
-   */
+  /// Walk the given [value] and add directives into [directives].
+  /// Return `true` if success, or `false` the [value] has items that don't
+  /// correspond to a directive.
   Future _addDirectivesAndElementTagsForDartObject(
       List<AbstractDirective> directives,
       List<AbstractDirective> fileDirectives,
       List<DartObject> values,
       DirectiveReference reference) async {
-    for (DartObject listItem in values) {
+    for (final listItem in values) {
       final typeValue = listItem.toTypeValue();
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
         final directive = await matchDirective(typeValue.element);
@@ -371,18 +371,16 @@ class ContentChildLinker {
     }
   }
 
-  /**
-   * ConstantValue.getField() doesn't look up the inheritance tree. Rather than
-   * hardcoding the inheritance tree in our code, look up the inheritance tree
-   * until either it ends, or we find a "selector" field.
-   */
+  /// ConstantValue.getField() doesn't look up the inheritance tree. Rather than
+  /// hardcoding the inheritance tree in our code, look up the inheritance tree
+  /// until either it ends, or we find a "selector" field.
   DartObject getSelectorWithInheritance(DartObject value) {
-    var selector = value.getField("selector");
+    final selector = value.getField("selector");
     if (selector != null) {
       return selector;
     }
 
-    var _super = value.getField("(super)");
+    final _super = value.getField("(super)");
     if (_super != null) {
       return getSelectorWithInheritance(_super);
     }
@@ -403,7 +401,7 @@ class ContentChildLinker {
       return;
     }
 
-    final metadata = new List.from(member.metadata)
+    final metadata = new List<ElementAnnotation>.from(member.metadata)
       ..addAll(member.variable.metadata);
     final annotations = metadata.where((annotation) =>
         annotation.element?.enclosingElement?.name == annotationName);
@@ -475,10 +473,10 @@ class ContentChildLinker {
       DartType setterType, ContentChildField field, String annotationName) {
     // construct QueryList<Bottom>, which is a supertype of all QueryList<T>
     // NOTE: In most languages, you'd need QueryList<Object>, but not dart.
-    var queryListBottom = _standardAngular.queryList.type
+    final queryListBottom = _standardAngular.queryList.type
         .instantiate([_context.typeProvider.bottomType]);
 
-    var isQueryList = setterType.isSupertypeOf(queryListBottom);
+    final isQueryList = setterType.isSupertypeOf(queryListBottom);
 
     if (!isQueryList) {
       _errorReporter.reportErrorForOffset(
@@ -490,7 +488,7 @@ class ContentChildLinker {
       return _context.typeProvider.dynamicType;
     }
 
-    var iterableType = _context.typeProvider.iterableType;
+    final iterableType = _context.typeProvider.iterableType;
 
     // get T for setterTypes that extend Iterable<T>
     return _context.typeSystem
