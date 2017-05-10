@@ -38,13 +38,8 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
     return dartRequest;
   }
 
-  EmbeddedDartCompletionRequest._(
-      this.result,
-      this.context,
-      this.resourceProvider,
-      this.librarySource,
-      this.source,
-      this.offset) {}
+  EmbeddedDartCompletionRequest._(this.result, this.context,
+      this.resourceProvider, this.librarySource, this.source, this.offset) {}
 
   /**
    * Update the completion [target] and [dotTarget] based on the given [dart] AST
