@@ -103,7 +103,6 @@ class Starter {
               null, // AnalysisResult - unneeded for AngularCompletion
               null, // AnalysisContext - unnedded for AngularCompletion
               server.resourceProvider,
-              server.searchEngine,
               source,
               params.offset,
               performance,

@@ -30,7 +30,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
         request.result,
         request.context,
         request.resourceProvider,
-        request.searchEngine,
         libSource,
         request.source,
         request.offset);
@@ -43,7 +42,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
       this.result,
       this.context,
       this.resourceProvider,
-      this.searchEngine,
       this.librarySource,
       this.source,
       this.offset) {}
@@ -104,9 +102,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
 
   @override
   AnalysisResult result;
-
-  @override
-  SearchEngine searchEngine;
 
   @override
   Source source;
