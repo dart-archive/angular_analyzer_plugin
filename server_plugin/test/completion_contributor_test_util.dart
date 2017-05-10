@@ -46,7 +46,6 @@ abstract class AbstractCompletionContributorTest
       null,
       null,
       null,
-      searchEngine,
       testSource,
       completionOffset,
       new CompletionPerformance(),
@@ -76,8 +75,6 @@ abstract class AbstractCompletionContributorTest
 }
 
 abstract class BaseCompletionContributorTest extends AbstractAngularTest {
-  Index index;
-  SearchEngineImpl searchEngine;
   String testFile;
   Source testSource;
   int completionOffset;
@@ -547,8 +544,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    index = createMemoryIndex();
-    searchEngine = new SearchEngineImpl(index, null);
     addAngularSources();
   }
 }
