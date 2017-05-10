@@ -75,7 +75,6 @@ abstract class AbstractCompletionContributorTest
 }
 
 abstract class BaseCompletionContributorTest extends AbstractAngularTest {
-  Index index;
   String testFile;
   Source testSource;
   int completionOffset;
@@ -545,7 +544,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    index = createMemoryIndex();
     addAngularSources();
   }
 }
