@@ -8,7 +8,9 @@
 
 ![Preview gif](https://raw.githubusercontent.com/dart-lang/angular_analyzer_plugin/master/assets/angular-dart-intellij-plugin-demo.gif "Preview gif")
 
-## Installing
+**Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
+
+## Building & Installing -- Version One (recommended but soon to be deprecated)
 
 Download chrome depot tools, and clone this repository.
 
@@ -21,7 +23,24 @@ cd server_plugin/bin
 
 Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
 
-**Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
+## Building -- Version Two (not usable yet, but this will soon be the future)
+
+Under the next system, you will not need to build to install (woo hoo!). However, these steps currently don't produce anything usable. Installation steps will come once its ready.
+
+Download chrome depot tools, and clone this repository.
+
+Then run 
+```
+./tools/get_deps.sh
+cd analyze_angular/tools/plugin
+cp pubspec.yaml.defaults pubspec.yaml
+```
+
+Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be absolute for the moment! Once they can be relative this step will not be required.
+
+Then run `pub get`.
+
+You can now use this in projects on your local system which a correctly configured pubspec. For instance, `playground/`. Note that you must `import 'package:analyze_angular/'` in your project to get the analysis.
 
 ## Chart of Current Features
 

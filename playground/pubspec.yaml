@@ -2,11 +2,15 @@ name: angular2_quickstart
 description: QuickStart
 version: 0.0.1
 environment:
-  sdk: '>=1.19.0 <2.0.0'
+  sdk: '>=1.24.0-dev.1.0 <2.0.0'
 dependencies:
   angular2: 2.0.0-beta.22
   browser: ^0.10.0
   dart_to_js_script_rewriter: ^1.0.1
+  analyze_angular: 0.0.0
+dependency_overrides:
+  analyze_angular:
+    path: ../analyze_angular
 transformers:
 - angular2:
     platform_directives:

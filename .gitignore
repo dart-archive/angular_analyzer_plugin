@@ -13,3 +13,5 @@ deps/sdk
 deps/.gclient
 
 server_plugin/bin/server.snapshot
+
+analyze_angular/tools/analysis_plugin/pubspec.yaml
