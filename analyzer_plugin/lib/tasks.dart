@@ -260,8 +260,8 @@ class AngularWarningCode extends ErrorCode {
   static const AngularWarningCode CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE =
       const AngularWarningCode(
           'CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE',
-          'The directive {0} accepts a TemplateRef in its constructor,' +
-              ' so it may require a *-style-attr to work correctly.');
+          'The directive {0} accepts a TemplateRef in its constructor, so it'
+          ' may require a *-style-attr to work correctly.');
 
   /// An error code indicating that a custom component appears to require a star.
   static const AngularWarningCode TEMPLATE_ATTR_NOT_USED =

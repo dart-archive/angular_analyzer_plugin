@@ -442,12 +442,12 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
         elemKind: protocol.ElementKind.SETTER);
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.SETTER));
     expect(element.name, equals(elementName));
@@ -461,9 +461,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   CompletionSuggestion assertSuggestStar(String name,
       {int relevance: DART_RELEVANCE_DEFAULT,
       CompletionSuggestionKind kind: CompletionSuggestionKind.IDENTIFIER}) {
-    CompletionSuggestion cs =
-        assertSuggest(name, csKind: kind, relevance: relevance);
-    protocol.Element element = cs.element;
+    final cs = assertSuggest(name, csKind: kind, relevance: relevance);
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.CLASS));
     expect(element.name, equals(name));

@@ -2110,8 +2110,9 @@ class ContainerComponent{}
         relevance: TemplateCompleter.RELEVANCE_TRANSCLUSION);
   }
 
-  test_completeInputInStarReplacing() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStarReplacing() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2132,8 +2133,9 @@ class MyComp {
     assertNotSuggested("items");
   }
 
-  test_completeInputInStarReplacingBeforeValue() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStarReplacingBeforeValue() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2154,8 +2156,9 @@ class MyComp {
     assertNotSuggested("items");
   }
 
-  test_completeInputInStar() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStar() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2176,8 +2179,9 @@ class MyComp {
     assertNotSuggested("items");
   }
 
-  test_completeInputInStarValueAlready() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStarValueAlready() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2198,8 +2202,9 @@ class MyComp {
     assertNotSuggested("items");
   }
 
-  test_completeNgForStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeNgForStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2221,8 +2226,9 @@ class MyComp {
     assertNotSuggested("id");
   }
 
-  test_completeNgForStartedWithValue() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeNgForStartedWithValue() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2244,8 +2250,9 @@ class MyComp {
     assertNotSuggested("id");
   }
 
-  test_completeStarAttrsNotStarted() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStarAttrsNotStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
@@ -2278,8 +2285,9 @@ class NotTemplateDirective {
     assertNotSuggested("*ngForOf");
   }
 
-  test_completeStarAttrsOnlyStar() async {
-    var dartSource = newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStarAttrsOnlyStar() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
 import 'package:angular2/angular2.dart';
