@@ -1,6 +1,3 @@
-library angular2.src.analysis.analyzer_plugin.src.angular_base;
-
-import 'package:analyzer/file_system/file_system.dart' as fs;
 import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
@@ -15,8 +12,6 @@ import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:typed_mock/typed_mock.dart';
 import 'package:unittest/unittest.dart';
 
-import 'mock_sdk.dart';
-
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analysis_server/src/plugin/notification_manager.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
@@ -29,16 +24,18 @@ import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source_io.dart';
 
+import 'mock_sdk.dart';
+
 void assertComponentReference(
     ResolvedRange resolvedRange, Component component) {
-  ElementNameSelector selector = component.selector;
-  AngularElement element = resolvedRange.element;
+  final ElementNameSelector selector = component.selector;
+  final element = resolvedRange.element;
   expect(element, selector.nameElement);
   expect(resolvedRange.range.length, selector.nameElement.name.length);
 }
 
 PropertyAccessorElement assertGetter(ResolvedRange resolvedRange) {
-  PropertyAccessorElement element =
+  final PropertyAccessorElement element =
       (resolvedRange.element as DartElement).element;
   expect(element.isGetter, isTrue);
   return element;
@@ -46,34 +43,32 @@ PropertyAccessorElement assertGetter(ResolvedRange resolvedRange) {
 
 void assertPropertyReference(
     ResolvedRange resolvedRange, AbstractDirective directive, String name) {
-  var element = resolvedRange.element;
-  for (InputElement input in directive.inputs) {
+  final element = resolvedRange.element;
+  for (final input in directive.inputs) {
     if (input.name == name) {
       expect(element, same(input));
       return;
     }
   }
-  fail('Expected input "$name", but ${element} found.');
+  fail('Expected input "$name", but $element found.');
 }
 
 Component getComponentByClassName(
-    List<AbstractDirective> directives, String className) {
-  return getDirectiveByClassName(directives, className);
-}
+        List<AbstractDirective> directives, String className) =>
+    getDirectiveByClassName(directives, className);
 
 AbstractDirective getDirectiveByClassName(
-    List<AbstractDirective> directives, String className) {
-  return directives.firstWhere(
-      (directive) => directive.classElement.name == className, orElse: () {
-    fail('DirectiveMetadata with the class "$className" was not found.');
-    return null;
-  });
-}
+        List<AbstractDirective> directives, String className) =>
+    directives.firstWhere(
+        (directive) => directive.classElement.name == className, orElse: () {
+      fail('DirectiveMetadata with the class "$className" was not found.');
+      return null;
+    });
 
 ResolvedRange getResolvedRangeAtString(
     String code, List<ResolvedRange> ranges, String str,
     [ResolvedRangeCondition condition]) {
-  int offset = code.indexOf(str);
+  final offset = code.indexOf(str);
   return ranges.firstWhere((range) {
     if (range.range.offset == offset) {
       return condition == null || condition(range);
@@ -85,15 +80,13 @@ ResolvedRange getResolvedRangeAtString(
   });
 }
 
-View getViewByClassName(List<View> views, String className) {
-  return views.firstWhere((view) => view.classElement.name == className,
-      orElse: () {
-    fail('View with the class "$className" was not found.');
-    return null;
-  });
-}
+View getViewByClassName(List<View> views, String className) =>
+    views.firstWhere((view) => view.classElement.name == className, orElse: () {
+      fail('View with the class "$className" was not found.');
+      return null;
+    });
 
-typedef ResolvedRangeCondition(ResolvedRange range);
+typedef bool ResolvedRangeCondition(ResolvedRange range);
 
 class AbstractAngularTest {
   MemoryResourceProvider resourceProvider;
@@ -105,7 +98,7 @@ class AbstractAngularTest {
   GatheringErrorListener errorListener;
 
   Source newSource(String path, [String content = '']) {
-    fs.File file = resourceProvider.newFile(path, content);
+    final file = resourceProvider.newFile(path, content);
     final source = file.createSource();
     angularDriver.addFile(path);
     dartDriver.addFile(path);
@@ -113,26 +106,25 @@ class AbstractAngularTest {
   }
 
   void setUp() {
-    PerformanceLog logger = new PerformanceLog(new StringBuffer());
-    var byteStore = new MemoryByteStore();
+    final logger = new PerformanceLog(new StringBuffer());
+    final byteStore = new MemoryByteStore();
 
-    AnalysisDriverScheduler scheduler = new AnalysisDriverScheduler(logger);
-    scheduler.start();
+    final scheduler = new AnalysisDriverScheduler(logger)..start();
     resourceProvider = new MemoryResourceProvider();
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
     final packageMap = <String, List<Folder>>{
       "angular2": [resourceProvider.getFolder("/angular2")]
     };
-    PackageMapUriResolver packageResolver =
+    final packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
-    SourceFactory sf = new SourceFactory([
+    final sf = new SourceFactory([
       new DartUriResolver(sdk),
       packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
-    var testPath = resourceProvider.convertPath('/test');
-    var contextRoot = new ContextRoot(testPath, []);
+    final testPath = resourceProvider.convertPath('/test');
+    final contextRoot = new ContextRoot(testPath, []);
 
     dartDriver = new AnalysisDriver(
         scheduler,
@@ -330,37 +322,33 @@ class NgFor {
 ''');
   }
 
-  /**
-   * Assert that the [errCode] is reported for [code], highlighting the [snippet].
-   */
+  /// Assert that the [errCode] is reported for [code], highlighting the [snippet].
   void assertErrorInCodeAtPosition(
       ErrorCode errCode, String code, String snippet) {
-    int snippetIndex = code.indexOf(snippet);
+    final snippetIndex = code.indexOf(snippet);
     expect(snippetIndex, greaterThan(-1),
         reason: 'Error in test: snippet ${snippet} not part of code ${code}');
     errorListener.assertErrorsWithCodes(<ErrorCode>[errCode]);
-    AnalysisError error = errorListener.errors.single;
+    final error = errorListener.errors.single;
     expect(error.offset, snippetIndex);
     expect(errorListener.errors.single.length, snippet.length);
   }
 
-/**
- * Assert multiple [errCode] is reported for [code], highlighting the [snippet].
- */
+  /// Assert multiple [errCode] is reported for [code], highlighting the [snippet].
   void assertMultipleErrorsInCodeAtPositions(
       String code, Map<ErrorCode, String> errCodesAndSnippet) {
-    Map<ErrorCode, Map<int, String>> expectedErrors = new Map<ErrorCode, Map>();
+    final expectedErrors = <ErrorCode, Map<int, String>>{};
     errCodesAndSnippet.forEach((errCode, snippet) {
-      int snippetIndex = code.indexOf(snippet);
+      final snippetIndex = code.indexOf(snippet);
       expect(snippetIndex, greaterThan(-1),
-          reason: 'Error in test: snippet ${snippet} not part of code ${code}');
-      Map currErrorList = expectedErrors.putIfAbsent(errCode, () => new Map());
-      currErrorList.putIfAbsent(snippetIndex, () => snippet);
+          reason: 'Error in test: snippet $snippet not part of code $code');
+      expectedErrors
+          .putIfAbsent(errCode, () => <int, String>{})
+          .putIfAbsent(snippetIndex, () => snippet);
     });
     errorListener.assertErrorsWithCodes(expectedErrors.keys);
 
-    List<AnalysisError> errors = errorListener.errors;
-    errors.forEach((currErr) {
+    errorListener.errors.forEach((currErr) {
       expect(expectedErrors.containsKey(currErr.errorCode), true);
       expect(
           expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
@@ -371,46 +359,38 @@ class NgFor {
   }
 }
 
-/**
- * Instances of the class [GatheringErrorListener] implement an error listener
- * that collects all of the errors passed to it for later examination.
- */
+/// Instances of the class [GatheringErrorListener] implement an error listener
+/// that collects all of the errors passed to it for later examination.
 class GatheringErrorListener implements AnalysisErrorListener {
-  /**
-   * A list containing the errors that were collected.
-   */
-  List<AnalysisError> errors = new List<AnalysisError>();
+  /// A list containing the errors that were collected.
+  final errors = <AnalysisError>[];
 
-  /**
-   * Add all of the given errors to this listener.
-   */
+  /// Add all of the given errors to this listener.
   void addAll(List<AnalysisError> errors) {
-    for (AnalysisError error in errors) {
+    for (final error in errors) {
       onError(error);
     }
   }
 
-  /**
-   * Assert that the number of errors that have been gathered matches the number
-   * of errors that are given and that they have the expected error codes. The
-   * order in which the errors were gathered is ignored.
-   */
+  /// Assert that the number of errors that have been gathered matches the number
+  /// of errors that are given and that they have the expected error codes. The
+  /// order in which the errors were gathered is ignored.
   void assertErrorsWithCodes(
       [List<ErrorCode> expectedErrorCodes = const <ErrorCode>[]]) {
-    StringBuffer buffer = new StringBuffer();
+    final buffer = new StringBuffer();
     //
     // Verify that the expected error codes have a non-empty message.
     //
-    for (ErrorCode errorCode in expectedErrorCodes) {
+    for (final errorCode in expectedErrorCodes) {
       expect(errorCode.message.isEmpty, isFalse,
           reason: "Empty error code message");
     }
     //
     // Compute the expected number of each type of error.
     //
-    Map<ErrorCode, int> expectedCounts = <ErrorCode, int>{};
-    for (ErrorCode code in expectedErrorCodes) {
-      int count = expectedCounts[code];
+    final expectedCounts = <ErrorCode, int>{};
+    for (final code in expectedErrorCodes) {
+      var count = expectedCounts[code];
       if (count == null) {
         count = 1;
       } else {
@@ -421,13 +401,12 @@ class GatheringErrorListener implements AnalysisErrorListener {
     //
     // Compute the actual number of each type of error.
     //
-    Map<ErrorCode, List<AnalysisError>> errorsByCode =
-        <ErrorCode, List<AnalysisError>>{};
-    for (AnalysisError error in errors) {
-      ErrorCode code = error.errorCode;
-      List<AnalysisError> list = errorsByCode[code];
+    final errorsByCode = <ErrorCode, List<AnalysisError>>{};
+    for (final error in errors) {
+      final code = error.errorCode;
+      var list = errorsByCode[code];
       if (list == null) {
-        list = new List<AnalysisError>();
+        list = <AnalysisError>[];
         errorsByCode[code] = list;
       }
       list.add(error);
@@ -437,7 +416,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
     //
     expectedCounts.forEach((ErrorCode code, int expectedCount) {
       int actualCount;
-      List<AnalysisError> list = errorsByCode.remove(code);
+      final list = errorsByCode.remove(code);
       if (list == null) {
         actualCount = 0;
       } else {
@@ -449,11 +428,12 @@ class GatheringErrorListener implements AnalysisErrorListener {
         } else {
           buffer.write("; ");
         }
-        buffer.write(expectedCount);
-        buffer.write(" errors of type ");
-        buffer.write(code.uniqueName);
-        buffer.write(", found ");
-        buffer.write(actualCount);
+        buffer
+          ..write(expectedCount)
+          ..write(" errors of type ")
+          ..write(code.uniqueName)
+          ..write(", found ")
+          ..write(actualCount);
       }
     });
     //
@@ -461,19 +441,20 @@ class GatheringErrorListener implements AnalysisErrorListener {
     // otherwise record message.
     //
     errorsByCode.forEach((ErrorCode code, List<AnalysisError> actualErrors) {
-      int actualCount = actualErrors.length;
-      if (buffer.length == 0) {
+      final actualCount = actualErrors.length;
+      if (buffer.isEmpty) {
         buffer.write("Expected ");
       } else {
         buffer.write("; ");
       }
-      buffer.write("0 errors of type ");
-      buffer.write(code.uniqueName);
-      buffer.write(", found ");
-      buffer.write(actualCount);
-      buffer.write(" (");
-      for (int i = 0; i < actualErrors.length; i++) {
-        AnalysisError error = actualErrors[i];
+      buffer
+        ..write("0 errors of type ")
+        ..write(code.uniqueName)
+        ..write(", found ")
+        ..write(actualCount)
+        ..write(" (");
+      for (var i = 0; i < actualErrors.length; i++) {
+        final error = actualErrors[i];
         if (i > 0) {
           buffer.write(", ");
         }
@@ -486,9 +467,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
     }
   }
 
-  /**
-   * Assert that no errors have been gathered.
-   */
+  /// Assert that no errors have been gathered.
   void assertNoErrors() {
     assertErrorsWithCodes();
   }
@@ -500,6 +479,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
 }
 
 class MockAnalysisServer extends TypedMock implements AnalysisServer {
+  @override
   NotificationManager notificationManager = new MockNotificationManager();
 }
 

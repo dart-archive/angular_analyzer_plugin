@@ -1,18 +1,12 @@
-library angular2.src.analysis.server_plugin;
-
 //import 'package:analysis_server/plugin/analysis/navigation/navigation.dart';
 //import 'package:analysis_server/plugin/analysis/occurrences/occurrences.dart';
 import 'package:plugin/plugin.dart';
 
-/**
- * Contribute a plugin for services such as completions, indexing and refactoring
- * of Angular 2 dart code.
- */
+/// Contribute a plugin for services such as completions, indexing and refactoring
+/// of Angular 2 dart code.
 class AngularServerPlugin implements Plugin {
-  /**
-   * The unique identifier for this plugin.
-   */
-  static const String UNIQUE_IDENTIFIER = 'angular2.analysis.server_plugin';
+  /// The unique identifier for this plugin.
+  static const UNIQUE_IDENTIFIER = 'angular2.analysis.server_plugin';
 
   @override
   String get uniqueIdentifier => UNIQUE_IDENTIFIER;
