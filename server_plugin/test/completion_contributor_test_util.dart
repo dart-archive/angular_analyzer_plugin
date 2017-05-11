@@ -43,7 +43,6 @@ abstract class AbstractCompletionContributorTest
     CompletionRequestImpl request = new CompletionRequestImpl(
       null,
       null,
-      null,
       testSource,
       completionOffset,
       new CompletionPerformance(),
