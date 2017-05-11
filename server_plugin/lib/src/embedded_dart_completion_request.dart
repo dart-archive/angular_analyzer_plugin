@@ -4,7 +4,6 @@ import 'package:analysis_server/src/provisional/completion/completion_core.dart'
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_target.dart';
-import 'package:analysis_server/src/services/search/search_engine.dart';
 import 'package:analysis_server/src/ide_options.dart';
 import 'package:analyzer/src/generated/engine.dart' show AnalysisContext;
 import 'package:analyzer/src/dart/analysis/driver.dart';
@@ -112,34 +111,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
 
   @override
   CompletionTarget target;
-
-  /**
-   * Do nothing here, our expressions are already resolved.
-   */
-  @override
-  Future resolveContainingExpression(AstNode node) async {}
-
-  /**
-   * Do nothing here, our statements are already resolved.
-   */
-  @override
-  Future resolveContainingStatement(AstNode node) async {}
-
-  /**
-   * We don't use completions which rely on this
-   */
-  @override
-  Future<List<ImportElement>> resolveImports() async {
-    return [];
-  }
-
-  /**
-   * We don't use completions which rely on this
-   */
-  @override
-  Future<List<CompilationUnitElement>> resolveUnits() async {
-    return [];
-  }
 
   @override
   LibraryElement coreLib;
