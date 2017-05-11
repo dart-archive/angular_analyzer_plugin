@@ -4,9 +4,7 @@ import 'package:analysis_server/src/provisional/completion/completion_core.dart'
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_target.dart';
-import 'package:analysis_server/src/services/search/search_engine.dart';
 import 'package:analysis_server/src/ide_options.dart';
-import 'package:analyzer/src/generated/engine.dart' show AnalysisContext;
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -21,25 +19,17 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
     request.checkAborted();
 
     Source libSource;
-    if (request.context != null) {
-      Source source = request.source;
-      libSource = source;
-    }
+    libSource = request.source;
 
-    var dartRequest = new EmbeddedDartCompletionRequest._(
-        request.result,
-        request.context,
-        request.resourceProvider,
-        libSource,
-        request.source,
-        request.offset);
+    var dartRequest = new EmbeddedDartCompletionRequest._(request.result,
+        request.resourceProvider, libSource, request.source, request.offset);
 
     dartRequest._updateTargets(dart);
     return dartRequest;
   }
 
-  EmbeddedDartCompletionRequest._(this.result, this.context,
-      this.resourceProvider, this.librarySource, this.source, this.offset) {}
+  EmbeddedDartCompletionRequest._(this.result, this.resourceProvider,
+      this.librarySource, this.source, this.offset) {}
 
   /**
    * Update the completion [target] and [dotTarget] based on the given [dart] AST
@@ -64,6 +54,7 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
       opType.includeVoidReturnSuggestions = false;
     }
 
+    // Below is copied from analysis_server.../completion_manager.dart.
     AstNode node = target.containingNode;
     if (node is MethodInvocation) {
       if (identical(node.methodName, target.entity)) {
@@ -85,9 +76,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
       }
     }
   }
-
-  @override
-  AnalysisContext context;
 
   @override
   int offset;
@@ -112,34 +100,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
 
   @override
   CompletionTarget target;
-
-  /**
-   * Do nothing here, our expressions are already resolved.
-   */
-  @override
-  Future resolveContainingExpression(AstNode node) async {}
-
-  /**
-   * Do nothing here, our statements are already resolved.
-   */
-  @override
-  Future resolveContainingStatement(AstNode node) async {}
-
-  /**
-   * We don't use completions which rely on this
-   */
-  @override
-  Future<List<ImportElement>> resolveImports() async {
-    return [];
-  }
-
-  /**
-   * We don't use completions which rely on this
-   */
-  @override
-  Future<List<CompilationUnitElement>> resolveUnits() async {
-    return [];
-  }
 
   @override
   LibraryElement coreLib;

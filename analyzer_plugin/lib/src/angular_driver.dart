@@ -12,7 +12,6 @@ import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/summary/api_signature.dart';
-import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';

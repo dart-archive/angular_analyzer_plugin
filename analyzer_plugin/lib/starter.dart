@@ -101,7 +101,6 @@ class Starter {
           var completionContributor = new AngularCompletionContributor(driver);
           CompletionRequestImpl completionRequest = new CompletionRequestImpl(
               null, // AnalysisResult - unneeded for AngularCompletion
-              null, // AnalysisContext - unnedded for AngularCompletion
               server.resourceProvider,
               source,
               params.offset,
