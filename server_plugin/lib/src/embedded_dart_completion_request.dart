@@ -19,10 +19,7 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
     request.checkAborted();
 
     Source libSource;
-    if (request != null) {
-      Source source = request.source;
-      libSource = source;
-    }
+    libSource = request.source;
 
     var dartRequest = new EmbeddedDartCompletionRequest._(request.result,
         request.resourceProvider, libSource, request.source, request.offset);
@@ -57,6 +54,7 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
       opType.includeVoidReturnSuggestions = false;
     }
 
+    // Below is copied from analysis_server.../completion_manager.dart.
     AstNode node = target.containingNode;
     if (node is MethodInvocation) {
       if (identical(node.methodName, target.entity)) {
