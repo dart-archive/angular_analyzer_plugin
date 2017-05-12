@@ -305,6 +305,7 @@ import 'metadata.dart';
 
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
+  NgIf(TemplateRef tpl);
   set ngIf(newCondition) {}
 }
 ''');
@@ -317,6 +318,7 @@ import 'metadata.dart';
     selector: "[ngFor][ngForOf]",
     inputs: const ["ngForOf", "ngForTemplate"])
 class NgFor {
+  NgFor(TemplateRef tpl);
   set ngForOf(dynamic value) {}
 }
 ''');

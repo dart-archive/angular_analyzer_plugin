@@ -2385,6 +2385,151 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_customDirective_noStarError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [CustomTemplateDirective])
+class TestPanel {
+}
+
+@Directive(selector: '[customTemplateDirective]')
+class CustomTemplateDirective {
+  CustomTemplateDirective(TemplateRef tpl);
+}
+''');
+    final code = r"""
+<div customTemplateDirective></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
+        code,
+        "<div customTemplateDirective>");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customDirective_withStarOk() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [CustomTemplateDirective])
+class TestPanel {
+}
+
+@Directive(selector: '[customTemplateDirective]')
+class CustomTemplateDirective {
+  CustomTemplateDirective(TemplateRef tpl);
+}
+''');
+    final code = r"""
+<div *customTemplateDirective></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customDirective_asTemplateAttrOk() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    directives: const [CustomTemplateDirective])
+class TestPanel {
+}
+
+@Directive(selector: '[customTemplateDirective]')
+class CustomTemplateDirective {
+  CustomTemplateDirective(TemplateRef tpl);
+}
+''');
+    final code = r"""
+<div template="customTemplateDirective"></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customDirective_starDoesntTakeTemplateError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NotTemplateDirective])
+class TestPanel {
+}
+
+@Directive(selector: '[notTemplateDirective]')
+class NotTemplateDirective {
+}
+''');
+    final code = r"""
+<div *notTemplateDirective></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.TEMPLATE_ATTR_NOT_USED, code,
+        "*notTemplateDirective");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_starNoDirectives() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [])
+class TestPanel {
+}
+''');
+    final code = r"""
+<div *foo></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TEMPLATE_ATTR_NOT_USED, code, "*foo");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customDirective_templateDoesntTakeTemplateError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NotTemplateDirective])
+class TestPanel {
+}
+
+@Directive(selector: '[notTemplateDirective]')
+class NotTemplateDirective {
+}
+''');
+    final code = r"""
+<div template="notTemplateDirective"></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TEMPLATE_ATTR_NOT_USED, code, 'template');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_templateNoDirectives() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [])
+class TestPanel {
+}
+''');
+    final code = r"""
+<div template="foo"></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TEMPLATE_ATTR_NOT_USED, code, 'template');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_ngFor_star_itemHiddenInElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -2724,7 +2869,9 @@ class TestPanel {
   Future test_template_attribute_withoutValue() async {
     _addDartSource(r'''
 @Directive(selector: '[deferred-content]')
-class DeferredContentDirective {}
+class DeferredContentDirective {
+  DeferredContentDirective(TemplateRef tpl);
+}
 
 @Component(selector: 'test-panel')
 @View(

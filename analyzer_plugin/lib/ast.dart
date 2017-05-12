@@ -97,11 +97,15 @@ class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   final boundStandardOutputs = <OutputBinding>[];
   @override
   final boundStandardInputs = <InputBinding>[];
+
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();
 
+  String prefix;
+
   TemplateAttribute(String name, int nameOffset, String value, int valueOffset,
-      String originalName, int originalNameOffset, this.virtualAttributes)
+      String originalName, int originalNameOffset, this.virtualAttributes,
+      {this.prefix})
       : super(name, nameOffset, value, valueOffset, originalName,
             originalNameOffset);
 
@@ -164,12 +168,10 @@ class TextAttribute extends AttributeInfo {
   final List<Mustache> mustaches;
   @override
   List<AngularAstNode> get children => new List<AngularAstNode>.from(mustaches);
-  final bool fromTemplate;
 
   TextAttribute(String name, int nameOffset, String value, int valueOffset,
       this.mustaches)
-      : fromTemplate = false,
-        super(name, nameOffset, value, valueOffset, name, nameOffset);
+      : super(name, nameOffset, value, valueOffset, name, nameOffset);
 
   TextAttribute.synthetic(
       String name,
@@ -179,8 +181,7 @@ class TextAttribute extends AttributeInfo {
       String originalName,
       int originalNameOffset,
       this.mustaches)
-      : fromTemplate = true,
-        super(name, nameOffset, value, valueOffset, originalName,
+      : super(name, nameOffset, value, valueOffset, originalName,
             originalNameOffset);
 
   @override
@@ -230,10 +231,10 @@ abstract class HasDirectives {
 /// Naming here is important: "bound directive" != "directive binding."
 class DirectiveBinding {
   final AbstractDirective boundDirective;
-  final List<InputBinding> inputBindings = [];
-  final List<OutputBinding> outputBindings = [];
-  final Map<ContentChild, ContentChildBinding> contentChildBindings = {};
-  final Map<ContentChild, ContentChildBinding> contentChildrenBindings = {};
+  final inputBindings = <InputBinding>[];
+  final outputBindings = <OutputBinding>[];
+  final contentChildBindings = <ContentChild, ContentChildBinding>{};
+  final contentChildrenBindings = <ContentChild, ContentChildBinding>{};
 
   DirectiveBinding(this.boundDirective);
 }

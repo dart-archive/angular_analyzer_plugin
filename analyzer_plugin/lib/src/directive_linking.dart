@@ -326,6 +326,12 @@ class ChildDirectiveLinker implements DirectiveMatcher {
           await _fileDirectiveProvider.getHtmlNgContent(source.fullName));
     }
 
+    // NOTE: Require the Exact type TemplateRef because that's what the
+    // injector does.
+    directive.looksLikeTemplate = directive.classElement.constructors.any(
+        (constructor) => constructor.parameters
+            .any((param) => param.type == _standardAngular.templateRef.type));
+
     // ignore errors from linking subcomponents content childs
     final errorIgnorer = new ErrorReporter(
         new IgnoringErrorListener(), directive.classElement.source);
