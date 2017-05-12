@@ -13,8 +13,8 @@ import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
-
 import 'package:meta/meta.dart';
+
 
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
@@ -33,12 +33,12 @@ class HtmlTreeConverter {
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
   DocumentInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
-    DocumentInfo root = new DocumentInfo();
+    final root = new DocumentInfo();
     if (asts.isEmpty) {
       root.childNodes.add(new TextInfo(0, '', root, []));
     }
-    for (StandaloneTemplateAst node in asts) {
-      var convertedNode = convert(node, parent: root);
+    for (final node in asts) {
+      final convertedNode = convert(node, parent: root);
       if (convertedNode != null) {
         root.childNodes.add(convertedNode);
       }
@@ -51,16 +51,15 @@ class HtmlTreeConverter {
     @required ElementInfo parent,
   }) {
     if (node is ElementAst) {
-      String localName = node.name;
-      List<AttributeInfo> attributes = _convertAttributes(
+      final localName = node.name;
+      final attributes = _convertAttributes(
         attributes: node.attributes,
         bananas: node.bananas,
         events: node.events,
         properties: node.properties,
         references: node.references,
         stars: node.stars,
-      );
-      attributes.sort((a, b) => a.offset.compareTo(b.offset));
+      ) ..sort((a, b) => a.offset.compareTo(b.offset));
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
       SourceRange openingNameSpan;
@@ -86,22 +85,22 @@ class HtmlTreeConverter {
             new SourceRange(closingSpan.offset + '</'.length, localName.length);
       }
 
-      ElementInfo element = new ElementInfo(
+      final element = new ElementInfo(
           localName,
           openingSpan,
           closingSpan,
           openingNameSpan,
           closingNameSpan,
-          false,
           attributes,
           findTemplateAttribute(attributes),
-          parent);
+          parent,
+          isTemplate: false,);
 
-      for (AttributeInfo attribute in attributes) {
+      for (final attribute in attributes) {
         attribute.parent = element;
       }
 
-      List<NodeInfo> children = _convertChildren(node, element);
+      final children = _convertChildren(node, element);
       element.childNodes.addAll(children);
 
       if (!element.isSynthetic &&
@@ -132,8 +131,8 @@ class HtmlTreeConverter {
             node.beginToken.offset, node.endToken.end - node.beginToken.offset);
         openingNameSpan =
             new SourceRange(openingSpan.offset + '<'.length, localName.length);
-        var pnode = node as ParsedEmbeddedContentAst;
-        var valueToken = pnode.selectorValueToken;
+        final pnode = node as ParsedEmbeddedContentAst;
+        final valueToken = pnode.selectorValueToken;
         if (pnode.selectToken != null) {
           attributes.add(new TextAttribute(
             'select',
@@ -155,18 +154,18 @@ class HtmlTreeConverter {
             new SourceRange(closingSpan.offset + '</'.length, localName.length);
       }
 
-      var ngContent = new ElementInfo(localName, openingSpan, closingSpan,
-          openingNameSpan, closingNameSpan, false, attributes, null, parent);
+      final ngContent = new ElementInfo(localName, openingSpan, closingSpan,
+          openingNameSpan, closingNameSpan, attributes, null, parent, isTemplate: false,);
 
-      for (AttributeInfo attribute in attributes) {
+      for (final attribute in attributes) {
         attribute.parent = ngContent;
       }
 
       return ngContent;
     }
     if (node is EmbeddedTemplateAst) {
-      String localName = 'template';
-      List<AttributeInfo> attributes = _convertAttributes(
+      final localName = 'template';
+      final attributes = _convertAttributes(
         attributes: node.attributes,
         events: node.events,
         properties: node.properties,
@@ -200,22 +199,21 @@ class HtmlTreeConverter {
         }
       }
 
-      ElementInfo element = new ElementInfo(
+      final element = new ElementInfo(
           localName,
           openingSpan,
           closingSpan,
           openingNameSpan,
           closingNameSpan,
-          true,
           attributes,
           findTemplateAttribute(attributes),
-          parent);
+          parent, isTemplate: false,);
 
-      for (AttributeInfo attribute in attributes) {
+      for (final attribute in attributes) {
         attribute.parent = element;
       }
 
-      List<NodeInfo> children = _convertChildren(node, element);
+      final children = _convertChildren(node, element);
       element.childNodes.addAll(children);
 
       if (!element.isSynthetic &&
@@ -230,14 +228,14 @@ class HtmlTreeConverter {
       return element;
     }
     if (node is TextAst) {
-      int offset = node.sourceSpan.start.offset;
-      String text = node.value;
+      final offset = node.sourceSpan.start.offset;
+      final text = node.value;
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
     }
     if (node is InterpolationAst) {
-      int offset = node.sourceSpan.start.offset;
-      String text = '{{' + node.value + '}}';
+      final offset = node.sourceSpan.start.offset;
+      final text = '{{${node.value}}}';
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
     }
@@ -252,9 +250,9 @@ class HtmlTreeConverter {
     List<ParsedReferenceAst> references: const [],
     List<ParsedStarAst> stars: const [],
   }) {
-    List<AttributeInfo> returnAttributes = <AttributeInfo>[];
+    final returnAttributes = <AttributeInfo>[];
 
-    for (ParsedAttributeAst attribute in attributes) {
+    for (final attribute in attributes) {
       if (attribute.name == 'template') {
         returnAttributes.add(_convertTemplateAttribute(attribute));
       } else {
@@ -263,7 +261,7 @@ class HtmlTreeConverter {
         if (attribute.valueToken != null) {
           value = attribute.valueToken.innerValue.lexeme;
           valueOffset = attribute.valueToken.innerValue.offset;
-        }
+       }
         returnAttributes.add(new TextAttribute(
           attribute.name,
           attribute.nameOffset,
@@ -280,7 +278,7 @@ class HtmlTreeConverter {
         .map(_convertExpressionBoundAttribute)
         .forEach(returnAttributes.add);
 
-    for (ParsedReferenceAst reference in references) {
+    for (final reference in references) {
       String value;
       int valueOffset;
       if (reference.valueToken != null) {
@@ -288,7 +286,7 @@ class HtmlTreeConverter {
         valueOffset = reference.valueToken.innerValue.offset;
       }
       returnAttributes.add(new TextAttribute(
-          reference.prefixToken.lexeme + reference.nameToken.lexeme,
+          '${reference.prefixToken.lexeme}${reference.nameToken.lexeme}',
           reference.prefixToken.offset,
           value,
           valueOffset,
@@ -316,7 +314,7 @@ class HtmlTreeConverter {
       value = ast.value;
       valueOffset = ast.valueOffset;
 
-      origName = ast.prefixToken.lexeme + ast.nameToken.lexeme;
+      origName = '${ast.prefixToken.lexeme}${ast.nameToken.lexeme}';
       origNameOffset = ast.prefixToken.offset;
 
       name = ast.nameToken.lexeme;
@@ -324,11 +322,10 @@ class HtmlTreeConverter {
 
       String fullAstName;
       if (value != null) {
-        fullAstName = ast.name +
-            (' ' * (ast.valueToken.innerValue.offset - ast.nameToken.end)) +
-            (value ?? '');
+        final whitespacePad = ' ' * (ast.valueToken.innerValue.offset - ast.nameToken.end);
+        fullAstName = "${ast.name}$whitespacePad${value ?? ''}";
       } else {
-        fullAstName = ast.name + ' ';
+        fullAstName = '${ast.name} ';
       }
 
       virtualAttributes =
@@ -353,44 +350,37 @@ class HtmlTreeConverter {
       }
     }
 
-    TemplateAttribute templateAttribute = new TemplateAttribute(
-        name,
-        nameOffset,
-        value,
-        valueOffset,
-        origName,
-        origNameOffset,
-        virtualAttributes);
+    final templateAttribute = new TemplateAttribute(name, nameOffset, value,
+        valueOffset, origName, origNameOffset, virtualAttributes);
 
-    for (AttributeInfo virtualAttribute in virtualAttributes) {
+    for (final virtualAttribute in virtualAttributes) {
       virtualAttribute.parent = templateAttribute;
     }
 
     return templateAttribute;
   }
 
-  StatementsBoundAttribute _convertStatementsBoundAttribute(
-      ParsedEventAst ast) {
-    var prefixComponent =
+  StatementsBoundAttribute _convertStatementsBoundAttribute(ParsedEventAst ast) {
+    final prefixComponent =
         (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme);
-    var suffixComponent =
+    final suffixComponent =
         ((ast.suffixToken == null) || ast.suffixToken.errorSynthetic)
             ? ''
             : ast.suffixToken.lexeme;
-    var origName = prefixComponent + ast.name + suffixComponent;
-    var origNameOffset = ast.prefixToken.offset;
+    final origName = '$prefixComponent${ast.name}$suffixComponent';
+    final origNameOffset = ast.prefixToken.offset;
 
-    var value = ast.value;
+    final value = ast.value;
     if ((value == null || value.isEmpty) &&
         !ast.prefixToken.errorSynthetic &&
         !ast.suffixToken.errorSynthetic) {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
     }
-    var valueOffset = ast.valueOffset;
+    final valueOffset = ast.valueOffset;
 
-    var propName = ast.nameToken.lexeme;
-    var propNameOffset = ast.nameToken.offset;
+    final propName = ast.nameToken.lexeme;
+    final propNameOffset = ast.nameToken.offset;
 
     return new StatementsBoundAttribute(
         propName,
@@ -404,24 +394,26 @@ class HtmlTreeConverter {
 
   ExpressionBoundAttribute _convertExpressionBoundAttribute(TemplateAst ast) {
     // Default starting.
-    ExpressionBoundType bound = ExpressionBoundType.input;
+    var bound = ExpressionBoundType.input;
 
-    var parsed = ast as ParsedDecoratorAst;
-    var origName =
-        (parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme) +
-            parsed.nameToken.lexeme +
-            ((parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
-                ? ''
-                : parsed.suffixToken.lexeme);
-    var origNameOffset = parsed.prefixToken.offset;
+    final parsed = ast as ParsedDecoratorAst;
+    String origName;
+    {
+      final _prefix = parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme;
+      final _suffix = (parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
+          ? ''
+          : parsed.suffixToken.lexeme;
+      origName = '$_prefix${parsed.nameToken.lexeme}$_suffix';
+    }
+    final origNameOffset = parsed.prefixToken.offset;
 
     var propName = parsed.nameToken.lexeme;
     var propNameOffset = parsed.nameToken.offset;
 
     if (ast is ParsedPropertyAst) {
-      var name = ast.name;
+      final name = ast.name;
       if (ast.postfix != null) {
-        bool replacePropName = false;
+        var replacePropName = false;
         if (name == 'class') {
           bound = ExpressionBoundType.clazz;
           replacePropName = true;
@@ -433,7 +425,8 @@ class HtmlTreeConverter {
           replacePropName = true;
         }
         if (replacePropName) {
-          propName = ast.postfix + (ast.unit == null ? '' : '.${ast.unit}');
+          final _unitName = ast.unit == null ? '' : '.${ast.unit}';
+          propName = '${ast.postfix}$_unitName';
           propNameOffset = parsed.nameToken.offset + name.length + '.'.length;
         }
       }
@@ -441,7 +434,7 @@ class HtmlTreeConverter {
       bound = ExpressionBoundType.twoWay;
     }
 
-    var value = parsed.valueToken?.innerValue?.lexeme;
+    final value = parsed.valueToken?.innerValue?.lexeme;
     if ((value == null || value.isEmpty) &&
         !parsed.prefixToken.errorSynthetic &&
         !parsed.suffixToken.errorSynthetic) {
@@ -453,7 +446,7 @@ class HtmlTreeConverter {
         [origName],
       ));
     }
-    var valueOffset = parsed.valueToken?.innerValue?.offset;
+    final valueOffset = parsed.valueToken?.innerValue?.offset;
 
     propName = attrToPropMap[propName] ?? propName;
 
@@ -464,15 +457,15 @@ class HtmlTreeConverter {
         valueOffset,
         origName,
         origNameOffset,
-        dartParser.parseDartExpression(valueOffset, value, true),
+        dartParser.parseDartExpression(valueOffset, value, detectTrailing: true),
         bound);
   }
 
   List<NodeInfo> _convertChildren(
       StandaloneTemplateAst node, ElementInfo parent) {
-    List<NodeInfo> children = <NodeInfo>[];
-    for (StandaloneTemplateAst child in node.childNodes) {
-      NodeInfo childNode = convert(child, parent: parent);
+    final children = <NodeInfo>[];
+    for (final child in node.childNodes) {
+      final childNode = convert(child, parent: parent);
       if (childNode != null) {
         children.add(childNode);
         if (childNode is ElementInfo) {
@@ -486,7 +479,7 @@ class HtmlTreeConverter {
   }
 
   TemplateAttribute findTemplateAttribute(List<AttributeInfo> attributes) {
-    for (AttributeInfo attribute in attributes) {
+    for (final attribute in attributes) {
       if (attribute is TemplateAttribute) {
         return attribute;
       }
@@ -494,9 +487,7 @@ class HtmlTreeConverter {
     return null;
   }
 
-  SourceRange _toSourceRange(int offset, int length) {
-    return new SourceRange(offset, length);
-  }
+  SourceRange _toSourceRange(int offset, int length) => new SourceRange(offset, length);
 }
 
 class EmbeddedDartParser {
@@ -507,15 +498,13 @@ class EmbeddedDartParser {
   EmbeddedDartParser(
       this.templateSource, this.errorListener, this.errorReporter);
 
-  /**
-   * Parse the given Dart [code] that starts at [offset].
-   */
-  Expression parseDartExpression(int offset, String code, bool detectTrailing) {
+  /// Parse the given Dart [code] that starts at [offset].
+  Expression parseDartExpression(int offset, String code, {@required bool detectTrailing}) {
     if (code == null) {
       return null;
     }
 
-    final Token token = _scanDartCode(offset, code);
+    final token = _scanDartCode(offset, code);
     Expression expression;
 
     // suppress errors for this. But still parse it so we can analyze it and stuff
@@ -527,7 +516,7 @@ class EmbeddedDartParser {
     }
 
     if (detectTrailing && expression.endToken.next.type != TokenType.EOF) {
-      int trailingExpressionBegin = expression.endToken.next.offset;
+      final trailingExpressionBegin = expression.endToken.next.offset;
       errorListener.onError(new AnalysisError(
           templateSource,
           trailingExpressionBegin,
@@ -538,20 +527,21 @@ class EmbeddedDartParser {
     return expression;
   }
 
-  /**
-   * Parse the given Dart [code] that starts ot [offset].
-   * Also removes and reports dangling closing brackets.
-   */
+  /// Parse the given Dart [code] that starts ot [offset].
+  /// Also removes and reports dangling closing brackets.
   List<Statement> parseDartStatements(int offset, String code) {
-    List<Statement> allStatements = new List<Statement>();
+    final allStatements = <Statement>[];
     if (code == null) {
       return allStatements;
     }
+
+    // ignore: parameter_assignments, prefer_interpolation_to_compose_strings
     code = code + ';';
-    Token token = _scanDartCode(offset, code);
+
+    var token = _scanDartCode(offset, code);
 
     while (token.type != TokenType.EOF) {
-      List<Statement> currentStatements = _parseDartStatementsAtToken(token);
+      final currentStatements = _parseDartStatementsAtToken(token);
 
       if (currentStatements.isNotEmpty) {
         allStatements.addAll(currentStatements);
@@ -561,11 +551,11 @@ class EmbeddedDartParser {
         break;
       }
       if (token.type == TokenType.CLOSE_CURLY_BRACKET) {
-        int startCloseBracket = token.offset;
+        final startCloseBracket = token.offset;
         while (token.type == TokenType.CLOSE_CURLY_BRACKET) {
           token = token.next;
         }
-        int length = token.offset - startCloseBracket;
+        final length = token.offset - startCloseBracket;
         errorListener.onError(new AnalysisError(
             templateSource,
             startCloseBracket,
@@ -581,52 +571,46 @@ class EmbeddedDartParser {
     return allStatements;
   }
 
-  /**
-   * Parse the Dart expression starting at the given [token].
-   */
+  /// Parse the Dart expression starting at the given [token].
   Expression _parseDartExpressionAtToken(Token token,
       {AnalysisErrorListener errorListener}) {
     errorListener ??= this.errorListener;
-    Parser parser = new NgExprParser(templateSource, errorListener);
+    final parser = new NgExprParser(templateSource, errorListener);
     return parser.parseExpression(token);
   }
 
-  /**
-   * Parse the Dart statement starting at the given [token].
-   */
+  /// Parse the Dart statement starting at the given [token].
   List<Statement> _parseDartStatementsAtToken(Token token) {
-    Parser parser = new Parser(templateSource, errorListener);
+    final parser = new Parser(templateSource, errorListener);
     return parser.parseStatements(token);
   }
 
-  /**
-   * Scan the given Dart [code] that starts at [offset].
-   */
+  /// Scan the given Dart [code] that starts at [offset].
   Token _scanDartCode(int offset, String code) {
-    String text = ' ' * offset + code;
-    CharSequenceReader reader = new CharSequenceReader(text);
-    Scanner scanner = new Scanner(templateSource, reader, errorListener);
+    // ignore: prefer_interpolation_to_compose_strings
+    final text = ' ' * offset + code;
+    final reader = new CharSequenceReader(text);
+    final scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
   }
 
-  /**
-   * Scan the given [text] staring at the given [offset] and resolve all of
-   * its embedded expressions.
-   */
+  /// Scan the given [text] staring at the given [offset] and resolve all of
+  /// its embedded expressions.
   List<Mustache> findMustaches(String text, int fileOffset) {
-    List<Mustache> mustaches = <Mustache>[];
+    final mustaches = <Mustache>[];
     if (text == null || text.length < 2) {
       return mustaches;
     }
 
-    int textOffset = 0;
+    var textOffset = 0;
     while (true) {
       // begin
-      final int begin = text.indexOf('{{', textOffset);
-      final int nextBegin = text.indexOf('{{', begin + 2);
-      final int end = text.indexOf('}}', textOffset);
+      final begin = text.indexOf('{{', textOffset);
+      final nextBegin = text.indexOf('{{', begin + 2);
+      final end = text.indexOf('}}', textOffset);
+
       int exprBegin, exprEnd;
-      bool detectTrailing = false;
+      var detectTrailing = false;
 
       // Absolutely no mustaches - simple text.
       if (begin == -1 && end == -1) {
@@ -668,12 +652,13 @@ class EmbeddedDartParser {
         detectTrailing = true;
       }
       // resolve
-      String code = text.substring(exprBegin, exprEnd);
-      Expression expression =
-          parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
+      final code = text.substring(exprBegin, exprEnd);
+      final expression =
+          parseDartExpression(fileOffset + exprBegin, code, detectTrailing: detectTrailing);
 
-      var offset = fileOffset + begin;
-      var length;
+      final offset = fileOffset + begin;
+
+      int length;
       if (end == -1) {
         length = expression.offset + expression.length - offset;
       } else {
@@ -691,18 +676,17 @@ class EmbeddedDartParser {
     return mustaches;
   }
 
-  bool _startsWithWhitespace(String string) {
-    // trim returns the original string when no changes were made
-    return !identical(string.trimLeft(), string);
-  }
+  bool _startsWithWhitespace(String string) =>
+      // trim returns the original string when no changes were made
+      !identical(string.trimLeft(), string);
 
-  /**
-   * Desugar a template="" or *blah="" attribute into its list of virtual [AttributeInfo]s
-   */
+  /// Desugar a template="" or *blah="" attribute into its list of virtual
+  /// [AttributeInfo]s
   List<AttributeInfo> parseTemplateVirtualAttributes(int offset, String code) {
-    List<AttributeInfo> attributes = <AttributeInfo>[];
-    Token token = _scanDartCode(offset, code);
-    String prefix = null;
+    final attributes = <AttributeInfo>[];
+
+    var token = _scanDartCode(offset, code);
+    String prefix;
     while (token.type != TokenType.EOF) {
       // skip optional comma or semicolons
       if (_isDelimiter(token)) {
@@ -711,29 +695,33 @@ class EmbeddedDartParser {
       }
       // maybe a local variable
       if (_isTemplateVarBeginToken(token)) {
+        final originalVarOffset = token.offset;
         if (token.type == TokenType.HASH) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.UNEXPECTED_HASH_IN_TEMPLATE, token);
         }
-        int originalVarOffset = token.offset;
-        String originalName = token.lexeme;
-        token = token.next;
+
+        var originalName = token.lexeme;
+
         // get the local variable name
-        String localVarName = "";
-        int localVarOffset = token.offset;
+        token = token.next;
+        var localVarName = "";
+        var localVarOffset = token.offset;
         if (!_tokenMatchesIdentifier(token)) {
           errorReporter.reportErrorForToken(
               AngularWarningCode.EXPECTED_IDENTIFIER, token);
         } else {
           localVarOffset = token.offset;
           localVarName = token.lexeme;
+          // ignore: prefer_interpolation_to_compose_strings
           originalName +=
               ' ' * (token.offset - originalVarOffset) + localVarName;
           token = token.next;
         }
+
         // get an optional internal variable
-        int internalVarOffset = null;
-        String internalVarName = null;
+        int internalVarOffset;
+        String internalVarName;
         if (token.type == TokenType.EQ) {
           token = token.next;
           // get the internal variable
@@ -757,29 +745,32 @@ class EmbeddedDartParser {
             originalVarOffset, []));
         continue;
       }
+
       // key
-      int keyOffset = token.offset;
-      String originalName = null;
-      int originalNameOffset = keyOffset;
-      String key = null;
+      String key;
+      final keyBuffer = new StringBuffer();
+      final keyOffset = token.offset;
+      String originalName;
+      final originalNameOffset = keyOffset;
       if (_tokenMatchesIdentifier(token)) {
         // scan for a full attribute name
-        key = '';
-        int lastEnd = token.offset;
+        var lastEnd = token.offset;
         while (token.offset == lastEnd &&
             (_tokenMatchesIdentifier(token) || token.type == TokenType.MINUS)) {
-          key += token.lexeme;
+          keyBuffer.write(token.lexeme);
           lastEnd = token.end;
           token = token.next;
         }
 
-        originalName = key;
+        originalName = keyBuffer.toString();
 
         // add the prefix
         if (prefix == null) {
-          prefix = key;
+          prefix = keyBuffer.toString();
+          key = keyBuffer.toString();
         } else {
-          key = prefix + capitalize(key);
+          // ignore: prefer_interpolation_to_compose_strings
+          key = prefix + capitalize(keyBuffer.toString());
         }
       } else {
         errorReporter.reportErrorForToken(
@@ -794,11 +785,12 @@ class EmbeddedDartParser {
       if (!_isTemplateVarBeginToken(token) &&
           !_isDelimiter(token) &&
           token.type != TokenType.EOF) {
-        Expression expression = _parseDartExpressionAtToken(token);
-        var start = token.offset - offset;
+        final expression = _parseDartExpressionAtToken(token);
+        final start = token.offset - offset;
+
         token = expression.endToken.next;
-        var end = token.offset - offset;
-        var exprCode = code.substring(start, end);
+        final end = token.offset - offset;
+        final exprCode = code.substring(start, end);
         attributes.add(new ExpressionBoundAttribute(
             key,
             keyOffset,
@@ -820,11 +812,10 @@ class EmbeddedDartParser {
   static bool _isDelimiter(Token token) =>
       token.type == TokenType.COMMA || token.type == TokenType.SEMICOLON;
 
-  static bool _isTemplateVarBeginToken(Token token) {
-    return token is KeywordToken && token.keyword == Keyword.VAR ||
-        (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
-        token.type == TokenType.HASH;
-  }
+  static bool _isTemplateVarBeginToken(Token token) =>
+      token is KeywordToken && token.keyword == Keyword.VAR ||
+      (token.type == TokenType.IDENTIFIER && token.lexeme == 'let') ||
+      token.type == TokenType.HASH;
 
   static bool _tokenMatchesBuiltInIdentifier(Token token) =>
       token is KeywordToken && token.keyword.isBuiltInOrPseudo;

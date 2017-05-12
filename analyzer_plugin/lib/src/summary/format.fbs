@@ -66,6 +66,10 @@ table SummarizedDirective {
   outputs:[SummarizedBindable] (id: 13);
 
   subdirectives:[SummarizedDirectiveUse] (id: 14);
+
+  contentChildFields:[SummarizedContentChildField] (id: 15);
+
+  contentChildrenFields:[SummarizedContentChildField] (id: 16);
 }
 
 table SummarizedAnalysisError {
@@ -114,6 +118,18 @@ table SummarizedNgContent {
   selectorStr:string (id: 2);
 
   selectorOffset:uint (id: 3);
+}
+
+table SummarizedContentChildField {
+  fieldName:string (id: 0);
+
+  nameOffset:uint (id: 1);
+
+  nameLength:uint (id: 2);
+
+  typeOffset:uint (id: 3);
+
+  typeLength:uint (id: 4);
 }
 
 root_type PackageBundle;

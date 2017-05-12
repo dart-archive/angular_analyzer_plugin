@@ -1,14 +1,13 @@
-import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'package:analysis_server/src/analysis_server.dart';
-import 'package:analyzer/context/context_root.dart';
-import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
+import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
 import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
@@ -39,40 +38,58 @@ class AngularDriver
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
   final FileContentOverlay _contentOverlay;
-  StandardHtml standardHtml = null;
+  StandardHtml standardHtml;
+  StandardAngular standardAngular;
   SourceFactory _sourceFactory;
   final _addedFiles = new LinkedHashSet<String>();
   final _dartFiles = new LinkedHashSet<String>();
   final _changedFiles = new LinkedHashSet<String>();
-  final _requestedDartFiles = new Map<String, List<Completer>>();
-  final _requestedHtmlFiles = new Map<String, List<Completer>>();
+  final _requestedDartFiles = <String, List<Completer>>{};
+  final _requestedHtmlFiles = <String, List<Completer>>{};
   final _filesToAnalyze = new HashSet<String>();
   final _htmlFilesToAnalyze = new HashSet<String>();
   final ByteStore byteStore;
   FileTracker _fileTracker;
   final lastSignatures = <String, String>{};
+  bool _hasAngularImported = false;
 
   AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
       SourceFactory sourceFactory, this._contentOverlay) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
+    _hasAngularImported =
+        _sourceFactory.resolveUri(null, "package:angular2/angular2.dart") !=
+            null;
   }
 
-  ContextRoot get contextRoot => dartDriver.contextRoot;
+  @override
+  ApiSignature getUnitElementHash(String path) =>
+      dartDriver.getUnitKeyByPath(path);
 
-  ApiSignature getUnitElementHash(String path) {
-    return dartDriver.getUnitKeyByPath(path);
-  }
-
+  @override
   bool get hasFilesToAnalyze =>
       _filesToAnalyze.isNotEmpty ||
       _htmlFilesToAnalyze.isNotEmpty ||
       _requestedDartFiles.isNotEmpty ||
       _requestedHtmlFiles.isNotEmpty;
 
-  bool _ownsFile(String path) {
-    return path.endsWith('.dart') || path.endsWith('.html');
+  bool _ownsFile(String path) =>
+      path.endsWith('.dart') || path.endsWith('.html');
+
+  /// This is implemented in order to satisfy the [AnalysisDriverGeneric]
+  /// interface. Ideally, we analyze these files first. For the moment, this lets
+  /// the analysis server team add this method to the interface without breaking
+  /// any code.
+  @override
+  set priorityFiles(List<String> priorityPaths) {
+    // TODO analyze these files first
+  }
+
+  /// Notify the driver that the client is going to stop using it.
+  @override
+  void dispose() {
+    // TODO anything we need to do here?
   }
 
   void addFile(String path) {
@@ -88,6 +105,8 @@ class AngularDriver
   void fileChanged(String path) {
     if (_ownsFile(path)) {
       if (path.endsWith('.html')) {
+        _fileTracker.rehashHtmlContents(path);
+
         _htmlFilesToAnalyze.add(path);
         for (final path in _fileTracker.getHtmlPathsReferencingHtml(path)) {
           _htmlFilesToAnalyze.add(path);
@@ -103,7 +122,7 @@ class AngularDriver
   }
 
   Future<List<AnalysisError>> requestDartErrors(String path) {
-    var completer = new Completer<List<AnalysisError>>();
+    final completer = new Completer<List<AnalysisError>>();
     _requestedDartFiles
         .putIfAbsent(path, () => <Completer<List<AnalysisError>>>[])
         .add(completer);
@@ -112,7 +131,7 @@ class AngularDriver
   }
 
   Future<List<AnalysisError>> requestHtmlErrors(String path) {
-    var completer = new Completer<List<AnalysisError>>();
+    final completer = new Completer<List<AnalysisError>>();
     _requestedHtmlFiles
         .putIfAbsent(path, () => <Completer<List<AnalysisError>>>[])
         .add(completer);
@@ -120,6 +139,7 @@ class AngularDriver
     return completer.future;
   }
 
+  @override
   AnalysisDriverPriority get workPriority {
     if (standardHtml == null) {
       return AnalysisDriverPriority.interactive;
@@ -142,9 +162,15 @@ class AngularDriver
     return AnalysisDriverPriority.nothing;
   }
 
+  @override
   Future<Null> performWork() async {
     if (standardHtml == null) {
-      getStandardHtml();
+      getStandardHtml(); // ignore: unawaited_futures
+      return;
+    }
+
+    if (_hasAngularImported && standardAngular == null) {
+      getStandardAngular(); // ignore: unawaited_futures
       return;
     }
 
@@ -160,9 +186,10 @@ class AngularDriver
       // Note: We can't use await here, or the dart analysis becomes a future in
       // a queue that won't be completed until the scheduler schedules the dart
       // driver, which doesn't happen because its waiting for us.
+      // ignore: unawaited_futures
       resolveDart(path, onlyIfChangedSignature: false).then((result) {
-        completers
-            .forEach((completer) => completer.complete(result?.errors ?? []));
+        completers.forEach((completer) =>
+            completer.complete(result?.errors ?? <AnalysisError>[]));
       }, onError: (e) {
         completers.forEach((completer) => completer.completeError(e));
       });
@@ -190,9 +217,10 @@ class AngularDriver
       }
 
       // After whichever resolution is complete, push errors.
+      // ignore: unawaited_futures
       resolvedHtml.then((result) {
-        completers
-            .forEach((completer) => completer.complete(result?.errors ?? []));
+        completers.forEach((completer) =>
+            completer.complete(result?.errors ?? <AnalysisError>[]));
       }, onError: (e) {
         completers.forEach((completer) => completer.completeError(e));
       });
@@ -202,6 +230,7 @@ class AngularDriver
 
     if (_filesToAnalyze.isNotEmpty) {
       final path = _filesToAnalyze.first;
+      // ignore: unawaited_futures
       pushDartErrors(path);
       _filesToAnalyze.remove(path);
       return;
@@ -209,6 +238,7 @@ class AngularDriver
 
     if (_htmlFilesToAnalyze.isNotEmpty) {
       final path = _htmlFilesToAnalyze.first;
+      // ignore: unawaited_futures
       pushHtmlErrors(path);
       _htmlFilesToAnalyze.remove(path);
       return;
@@ -235,29 +265,48 @@ class AngularDriver
     return standardHtml;
   }
 
-  List<AnalysisError> deserializeFromPathErrors(
-      Source source, List<SummarizedAnalysisErrorFromPath> errors) {
-    return errors
-        .map((error) {
-          final originalError = deserializeError(source, error.originalError);
-          if (originalError == null) {
-            return null;
-          }
-          return new FromFilePrefixedError.fromPath(error.path, originalError);
-        })
-        .where((e) => e != null)
-        .toList();
+  Future<StandardAngular> getStandardAngular() async {
+    if (standardAngular == null) {
+      final source =
+          _sourceFactory.resolveUri(null, "package:angular2/angular2.dart");
+
+      if (source == null) {
+        return standardAngular;
+      }
+
+      final result = await dartDriver.getResult(source.fullName);
+
+      final namespace = result.unit.element.library.exportNamespace;
+
+      standardAngular = new StandardAngular(
+          queryList: namespace.get("QueryList"),
+          elementRef: namespace.get("ElementRef"),
+          templateRef: namespace.get("TemplateRef"));
+    }
+
+    return standardAngular;
   }
 
+  List<AnalysisError> deserializeFromPathErrors(
+          Source source, List<SummarizedAnalysisErrorFromPath> errors) =>
+      errors
+          .map((error) {
+            final originalError = deserializeError(source, error.originalError);
+            if (originalError == null) {
+              return null;
+            }
+            return new FromFilePrefixedError.fromPath(
+                error.path, originalError);
+          })
+          .where((e) => e != null)
+          .toList();
+
   List<AnalysisError> deserializeErrors(
-      Source source, List<SummarizedAnalysisError> errors) {
-    return errors
-        .map((error) {
-          return deserializeError(source, error);
-        })
-        .where((e) => e != null)
-        .toList();
-  }
+          Source source, List<SummarizedAnalysisError> errors) =>
+      errors
+          .map((error) => deserializeError(source, error))
+          .where((e) => e != null)
+          .toList();
 
   AnalysisError deserializeError(Source source, SummarizedAnalysisError error) {
     final errorName = error.errorCode;
@@ -272,27 +321,30 @@ class AngularDriver
 
   String getHtmlKey(String htmlPath) {
     final key = _fileTracker.getHtmlSignature(htmlPath);
-    return key.toHex() + '.ngresolved';
+    return '${key.toHex()}.ngresolved';
   }
 
+  @override
   ApiSignature getContentHash(String path) {
     final key = new ApiSignature();
-    List<int> contentBytes = UTF8.encode(getFileContent(path));
+    final contentBytes = UTF8.encode(getFileContent(path));
     key.addBytes(md5.convert(contentBytes).bytes);
     return key;
   }
 
-  String getFileContent(String path) {
-    return _contentOverlay[path] ??
-        ((source) =>
-            source.exists() ? source.contents.data : "")(getSource(path));
-  }
+  String getFileContent(String path) =>
+      _contentOverlay[path] ??
+      ((source) =>
+          source.exists() ? source.contents.data : "")(getSource(path));
 
-  Future<DirectivesResult> resolveHtml(String htmlPath) async {
+  Future<DirectivesResult> resolveHtml(
+    String htmlPath, {
+    bool ignoreCache: false,
+  }) async {
     final key = getHtmlKey(htmlPath);
-    final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
-    final List<int> bytes = byteStore.get(key);
-    if (bytes != null) {
+    final htmlSource = _sourceFactory.forUri('file:$htmlPath');
+    final bytes = byteStore.get(key);
+    if (!ignoreCache && bytes != null) {
       final summary = new LinkedHtmlSummary.fromBuffer(bytes);
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
@@ -310,18 +362,51 @@ class AngularDriver
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(
-          result.errors.where((error) => error is! FromFilePrefixedError))
+      ..errors = summarizeErrors(result.errors
+          .where((error) => error is! FromFilePrefixedError)
+          .toList())
       ..errorsFromPath = result.errors
           .where((error) => error is FromFilePrefixedError)
           .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
             ..path = (error as FromFilePrefixedError).fromSourcePath
             ..originalError =
-                summarizeError((error as FromFilePrefixedError).originalError));
-    final List<int> newBytes = summary.toBuffer();
+                summarizeError((error as FromFilePrefixedError).originalError))
+          .toList();
+    final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
     return result;
+  }
+
+  Future<List<Template>> getTemplatesForFile(String filePath) async {
+    final templates = <Template>[];
+    final isDartFile = filePath.endsWith('.dart');
+    if (!isDartFile && !filePath.endsWith('.html')) {
+      return templates;
+    }
+    final directiveResults = isDartFile
+        ? await resolveDart(
+            filePath,
+            withDirectives: true,
+            onlyIfChangedSignature: false,
+          )
+        : await resolveHtml(filePath, ignoreCache: true);
+    final directives = directiveResults.directives;
+    if (directives == null) {
+      return templates;
+    }
+    for (var directive in directives) {
+      if (directive is Component) {
+        final view = directive.view;
+        final match = isDartFile
+            ? view.source.toString() == filePath
+            : view.templateUriSource?.fullName == filePath;
+        if (match) {
+          templates.add(view.template);
+        }
+      }
+    }
+    return templates;
   }
 
   Future<DirectivesResult> resolveHtmlFrom(
@@ -329,11 +414,13 @@ class AngularDriver
     final result = await getDirectives(dartPath);
     final directives = result.directives;
     final unit = (await dartDriver.getUnitElement(dartPath)).element;
-    final htmlSource = _sourceFactory.forUri("file:" + htmlPath);
+    final htmlSource = _sourceFactory.forUri('file:$htmlPath');
 
-    if (unit == null) return null;
+    if (unit == null) {
+      return null;
+    }
     final context = unit.context;
-    final dartSource = _sourceFactory.forUri("file:" + dartPath);
+    final dartSource = _sourceFactory.forUri('file:$dartPath');
     final htmlContent = getFileContent(htmlPath);
     final standardHtml = await getStandardHtml();
 
@@ -342,7 +429,8 @@ class AngularDriver
     final linkErrorListener = new IgnoringErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, dartSource);
 
-    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
+    final linker = new ChildDirectiveLinker(
+        this, await getStandardAngular(), linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
@@ -355,11 +443,12 @@ class AngularDriver
           final errorReporter = new ErrorReporter(tplErrorListener, dartSource);
           final template = new Template(view);
           view.template = template;
-          final tplParser = new TemplateParser();
 
-          tplParser.parse(htmlContent, htmlSource);
+          final tplParser = new TemplateParser()
+            ..parse(htmlContent, htmlSource);
+
           final document = tplParser.rawAst;
-          final EmbeddedDartParser parser = new EmbeddedDartParser(
+          final parser = new EmbeddedDartParser(
               htmlSource, tplErrorListener, errorReporter);
 
           template.ast =
@@ -367,13 +456,14 @@ class AngularDriver
                   .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
-          final resolver = new TemplateResolver(
-              context.typeProvider,
-              standardHtml.components.values,
-              standardHtml.events,
-              standardHtml.attributes,
-              tplErrorListener);
-          resolver.resolve(template);
+          new TemplateResolver(
+                  context.typeProvider,
+                  standardHtml.components.values.toList(),
+                  standardHtml.events,
+                  standardHtml.attributes,
+                  await getStandardAngular(),
+                  tplErrorListener)
+              .resolve(template);
 
           bool rightErrorType(AnalysisError e) =>
               !view.template.ignoredErrors.contains(e.errorCode.name);
@@ -399,9 +489,10 @@ class AngularDriver
     return new DirectivesResult(directives, errors);
   }
 
+  @override
   Future<List<NgContent>> getHtmlNgContent(String path) async {
-    final key = getContentHash(path).toHex() + '.ngunlinked';
-    final List<int> bytes = byteStore.get(key);
+    final key = '${getContentHash(path).toHex()}.ngunlinked';
+    final bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
       return new DirectiveLinker(this).deserializeNgContents(
@@ -412,10 +503,9 @@ class AngularDriver
     final tplErrorListener = new RecordingErrorListener();
     final errorReporter = new ErrorReporter(tplErrorListener, source);
 
-    final tplParser = new TemplateParser();
+    final tplParser = new TemplateParser()..parse(htmlContent, source);
 
-    tplParser.parse(htmlContent, source);
-    final EmbeddedDartParser parser =
+    final parser =
         new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
     final ast = new HtmlTreeConverter(parser, source, tplErrorListener)
@@ -425,7 +515,7 @@ class AngularDriver
 
     final summary = new UnlinkedHtmlSummaryBuilder()
       ..ngContents = serializeNgContents(contents);
-    final List<int> newBytes = summary.toBuffer();
+    final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
     return contents;
@@ -446,7 +536,9 @@ class AngularDriver
 
   Future pushDartErrors(String path) async {
     final result = await resolveDart(path);
-    if (result == null) return;
+    if (result == null) {
+      return;
+    }
     final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));
     final serverErrors = protocol.doAnalysisError_listFromEngine(
@@ -467,7 +559,7 @@ class AngularDriver
       return null;
     }
 
-    final key = baseKey + '.ngresolved';
+    final key = '$baseKey.ngresolved';
 
     if (lastSignatures[path] == key && onlyIfChangedSignature) {
       return null;
@@ -476,7 +568,7 @@ class AngularDriver
     lastSignatures[path] = key;
 
     if (!withDirectives) {
-      final List<int> bytes = byteStore.get(key);
+      final bytes = byteStore.get(key);
       if (bytes != null) {
         final summary = new LinkedDartSummary.fromBuffer(bytes);
 
@@ -484,9 +576,10 @@ class AngularDriver
           _htmlFilesToAnalyze.add(htmlPath);
         }
 
-        _fileTracker.setDartHasTemplate(path, summary.hasDartTemplates);
-        _fileTracker.setDartHtmlTemplates(path, summary.referencedHtmlFiles);
-        _fileTracker.setDartImports(path, summary.referencedDartFiles);
+        _fileTracker
+          ..setDartHasTemplate(path, summary.hasDartTemplates)
+          ..setDartHtmlTemplates(path, summary.referencedHtmlFiles)
+          ..setDartImports(path, summary.referencedDartFiles);
 
         return new DirectivesResult(
             [], deserializeErrors(getSource(path), summary.errors));
@@ -496,7 +589,9 @@ class AngularDriver
     final result = await getDirectives(path);
     final directives = result.directives;
     final unit = (await dartDriver.getUnitElement(path)).element;
-    if (unit == null) return null;
+    if (unit == null) {
+      return null;
+    }
     final context = unit.context;
     final source = unit.source;
 
@@ -506,16 +601,17 @@ class AngularDriver
     final linkErrorListener = new RecordingErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, source);
 
-    final linker = new ChildDirectiveLinker(this, linkErrorReporter);
+    final linker = new ChildDirectiveLinker(
+        this, await getStandardAngular(), linkErrorReporter);
     await linker.linkDirectives(directives, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
     errors.addAll(linkErrorListener.errors);
 
-    final List<String> htmlViews = [];
-    final List<String> usesDart = [];
+    final htmlViews = <String>[];
+    final usesDart = <String>[];
 
-    bool hasDartTemplate = false;
+    var hasDartTemplate = false;
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
@@ -525,86 +621,87 @@ class AngularDriver
           final errorReporter = new ErrorReporter(tplErrorListener, source);
           final template = new Template(view);
           view.template = template;
-          final tplParser = new TemplateParser();
 
-          tplParser.parse(view.templateText, source,
-              offset: view.templateOffset);
+          final tplParser = new TemplateParser()
+            ..parse(view.templateText, source, offset: view.templateOffset);
+
           final document = tplParser.rawAst;
-          final EmbeddedDartParser parser =
+          final parser =
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
               .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
-          final resolver = new TemplateResolver(
-              context.typeProvider,
-              standardHtml.components.values,
-              standardHtml.events,
-              standardHtml.attributes,
-              tplErrorListener);
-          resolver.resolve(template);
-          errors.addAll(tplParser.parseErrors.where(
-              (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
-          errors.addAll(tplErrorListener.errors.where(
-              (e) => !view.template.ignoredErrors.contains(e.errorCode.name)));
+          new TemplateResolver(
+                  context.typeProvider,
+                  standardHtml.components.values.toList(),
+                  standardHtml.events,
+                  standardHtml.attributes,
+                  await getStandardAngular(),
+                  tplErrorListener)
+              .resolve(template);
+          errors
+            ..addAll(tplParser.parseErrors.where(
+                (e) => !view.template.ignoredErrors.contains(e.errorCode.name)))
+            ..addAll(tplErrorListener.errors.where((e) =>
+                !view.template.ignoredErrors.contains(e.errorCode.name)));
         } else if (view?.templateUriSource != null) {
           _htmlFilesToAnalyze.add(view.templateUriSource.fullName);
           htmlViews.add(view.templateUriSource.fullName);
         }
 
-        for (AbstractDirective subDirective in (view?.directives ?? [])) {
+        for (final subDirective in (view?.directives ?? [])) {
           usesDart.add(subDirective.classElement.source.fullName);
         }
       }
     }
 
-    _fileTracker.setDartHasTemplate(path, hasDartTemplate);
-    _fileTracker.setDartHtmlTemplates(path, htmlViews);
-    _fileTracker.setDartImports(path, usesDart);
+    _fileTracker
+      ..setDartHasTemplate(path, hasDartTemplate)
+      ..setDartHtmlTemplates(path, htmlViews)
+      ..setDartImports(path, usesDart);
 
     final summary = new LinkedDartSummaryBuilder()
       ..errors = summarizeErrors(errors)
       ..referencedHtmlFiles = htmlViews
       ..referencedDartFiles = usesDart
       ..hasDartTemplates = hasDartTemplate;
-    final List<int> newBytes = summary.toBuffer();
+    final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
     return new DirectivesResult(directives, errors);
   }
 
-  List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) {
-    return errors.map((error) => summarizeError(error)).toList();
-  }
+  List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) =>
+      errors.map(summarizeError).toList();
 
-  SummarizedAnalysisError summarizeError(AnalysisError error) {
-    return new SummarizedAnalysisErrorBuilder(
-        offset: error.offset,
-        length: error.length,
-        errorCode: error.errorCode.uniqueName,
-        message: error.message,
-        correction: error.correction);
-  }
+  SummarizedAnalysisError summarizeError(AnalysisError error) =>
+      new SummarizedAnalysisErrorBuilder(
+          offset: error.offset,
+          length: error.length,
+          errorCode: error.errorCode.uniqueName,
+          message: error.message,
+          correction: error.correction);
 
+  @override
   Source getSource(String path) =>
-      _sourceFactory.resolveUri(null, 'file:' + path);
+      _sourceFactory.resolveUri(null, 'file:$path');
 
-  Future<CompilationUnitElement> getUnit(String path) async {
-    return (await dartDriver.getUnitElement(path)).element;
-  }
+  @override
+  Future<CompilationUnitElement> getUnit(String path) async =>
+      (await dartDriver.getUnitElement(path)).element;
 
   Future<List<AbstractDirective>> resynthesizeDirectives(
-      UnlinkedDartSummary unlinked, String path) async {
-    return new DirectiveLinker(this).resynthesizeDirectives(unlinked, path);
-  }
+          UnlinkedDartSummary unlinked, String path) async =>
+      new DirectiveLinker(this).resynthesizeDirectives(unlinked, path);
 
-  Future<List<AbstractDirective>> getUnlinkedDirectives(path) async {
-    return (await getDirectives(path)).directives;
-  }
+  @override
+  Future<List<AbstractDirective>> getUnlinkedDirectives(path) async =>
+      (await getDirectives(path)).directives;
 
-  Future<DirectivesResult> getDirectives(path) async {
-    final key = getContentHash(path).toHex() + '.ngunlinked';
-    final List<int> bytes = byteStore.get(key);
+  Future<DirectivesResult> getDirectives(String path) async {
+    final key = '${getContentHash(path).toHex()}.ngunlinked';
+    final bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
       return new DirectivesResult(await resynthesizeDirectives(summary, path),
@@ -624,8 +721,8 @@ class AngularDriver
     final directives =
         new List<AbstractDirective>.from(extractor.getDirectives());
 
-    final viewExtractor = new ViewExtractor(ast, directives, context, source);
-    viewExtractor.getViews();
+    final viewExtractor = new ViewExtractor(ast, directives, context, source)
+      ..getViews();
 
     final tplErrorListener = new RecordingErrorListener();
     final errorReporter = new ErrorReporter(tplErrorListener, source);
@@ -637,11 +734,11 @@ class AngularDriver
         if ((view.templateText ?? "") != "") {
           final template = new Template(view);
           view.template = template;
-          final tplParser = new TemplateParser();
 
-          tplParser.parse(view.templateText, source,
-              offset: view.templateOffset);
-          final EmbeddedDartParser parser =
+          final tplParser = new TemplateParser()
+            ..parse(view.templateText, source, offset: view.templateOffset);
+
+          final parser =
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
@@ -651,11 +748,11 @@ class AngularDriver
       }
     }
 
-    final errors = new List<AnalysisError>.from(extractor.errorListener.errors);
-    errors.addAll(viewExtractor.errorListener.errors);
+    final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
+      ..addAll(viewExtractor.errorListener.errors);
     final result = new DirectivesResult(directives, errors);
     final summary = serializeDartResult(result);
-    final List<int> newBytes = summary.toBuffer();
+    final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
     return result;
   }
@@ -679,6 +776,8 @@ class AngularDriver
       final exportAsOffset = directive?.exportAs?.nameOffset;
       final inputs = <SummarizedBindableBuilder>[];
       final outputs = <SummarizedBindableBuilder>[];
+      final contentChildFields = <SummarizedContentChildFieldBuilder>[];
+      final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
       for (final input in directive.inputs) {
         final name = input.name;
         final nameOffset = input.nameOffset;
@@ -700,6 +799,22 @@ class AngularDriver
           ..nameOffset = nameOffset
           ..propName = propName
           ..propNameOffset = propNameOffset);
+      }
+      for (final childField in directive.contentChildFields) {
+        contentChildFields.add(new SummarizedContentChildFieldBuilder()
+          ..fieldName = childField.fieldName
+          ..nameOffset = childField.nameRange.offset
+          ..nameLength = childField.nameRange.length
+          ..typeOffset = childField.typeRange.offset
+          ..typeLength = childField.typeRange.length);
+      }
+      for (final childrenField in directive.contentChildrenFields) {
+        contentChildrenFields.add(new SummarizedContentChildFieldBuilder()
+          ..fieldName = childrenField.fieldName
+          ..nameOffset = childrenField.nameRange.offset
+          ..nameLength = childrenField.nameRange.length
+          ..typeOffset = childrenField.typeRange.offset
+          ..typeLength = childrenField.typeRange.length);
       }
       final dirUseSums = <SummarizedDirectiveUseBuilder>[];
       final ngContents = <SummarizedNgContentBuilder>[];
@@ -741,22 +856,23 @@ class AngularDriver
         ..ngContents = ngContents
         ..inputs = inputs
         ..outputs = outputs
-        ..subdirectives = dirUseSums);
+        ..subdirectives = dirUseSums
+        ..contentChildFields = contentChildFields
+        ..contentChildrenFields = contentChildrenFields);
     }
 
     return dirSums;
   }
 
   List<SummarizedNgContentBuilder> serializeNgContents(
-      List<NgContent> ngContents) {
-    return ngContents
-        .map((ngContent) => new SummarizedNgContentBuilder()
-          ..selectorStr = ngContent.selector?.originalString
-          ..selectorOffset = ngContent.selector?.offset
-          ..offset = ngContent.offset
-          ..length = ngContent.length)
-        .toList();
-  }
+          List<NgContent> ngContents) =>
+      ngContents
+          .map((ngContent) => new SummarizedNgContentBuilder()
+            ..selectorStr = ngContent.selector?.originalString
+            ..selectorOffset = ngContent.selector?.offset
+            ..offset = ngContent.offset
+            ..length = ngContent.length)
+          .toList();
 }
 
 class DirectivesResult {

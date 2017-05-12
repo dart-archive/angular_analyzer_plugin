@@ -5,19 +5,12 @@
   To provide information for DAS clients the `server_plugin` plugin contributes several extensions.
 
 * Angular analysis errors are automatically merged into normal `errors` notifications for Dart and HTML files.
-* Navigation extension contributes navigation regions:
-    * In external HTML templates.
-    * In inline templates in Dart files.
-    * In Dart annotations:
-        * navigation from `templateUrl` to the corresponding HTML files.
-        * navigation from input declarations to setters, e.g. to `text` in `inputs: const ['text: my-text']`.
-* Occurrences extension reports regions where every Dart element or an input is used in a Dart or HTML file. So, clients of DAS can highlight all of the whe user select one.
 
 ![Preview gif](https://raw.githubusercontent.com/dart-lang/angular_analyzer_plugin/master/assets/angular-dart-intellij-plugin-demo.gif "Preview gif")
 
-## Installing
+**Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
 
-**Build is currently broken as we are changing the analyzer plugin API to something more formal, reliable, and convenient.** Only works with older versions of the SDK right now (1.22.0.dev.4), which is a royal pain to install with dependencies.
+## Building & Installing -- Version One (recommended but soon to be deprecated)
 
 Download chrome depot tools, and clone this repository.
 
@@ -30,11 +23,30 @@ cd server_plugin/bin
 
 Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
 
-**Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
+## Building -- Version Two (not usable yet, but this will soon be the future)
+
+Under the next system, you will not need to build to install (woo hoo!). However, these steps currently don't produce anything usable. Installation steps will come once its ready.
+
+Download chrome depot tools, and clone this repository.
+
+Then run 
+```
+./tools/get_deps.sh
+cd analyze_angular/tools/plugin
+cp pubspec.yaml.defaults pubspec.yaml
+```
+
+Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be absolute for the moment! Once they can be relative this step will not be required.
+
+Then run `pub get`.
+
+You can now use this in projects on your local system which a correctly configured pubspec. For instance, `playground/`. Note that you must `import 'package:analyze_angular/'` in your project to get the analysis.
 
 ## Chart of Current Features
 
-All regular dart errros (that is to say, errors defined purely by the dart language spec) are not shown in this list.
+All regular dart errors (that is to say, errors defined purely by the dart language spec) are not shown in this list.
+
+Autocomplete is available in a branch, and only in editors that support it, and maybe with bugs (many don't replace the correct content during autocomplete within html, for instance).
 
 Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 --------------|------------|---------------|------------|-------------

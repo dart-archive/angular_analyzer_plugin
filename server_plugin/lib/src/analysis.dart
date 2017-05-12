@@ -1,8 +1,6 @@
-library angular2.src.analysis.server_plugin.analysis;
-
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
-import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol;
+import 'package:analysis_server/protocol/protocol_generated.dart' as protocol;
 import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
 import 'package:analyzer/dart/element/element.dart' as engine;
 import 'package:analyzer/src/dart/element/member.dart';
@@ -55,13 +53,12 @@ class AngularNavigationContributor implements NavigationContributor {
 
   void addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
       AbstractDirective directive) {
-    for (InputElement input in directive.inputs) {
-      engine.PropertyAccessorElement setter = input.setter;
+    for (final input in directive.inputs) {
+      final setter = input.setter;
       if (setter == null) {
         continue;
       }
-      LineInfo_Location offsetLineLocation =
-          lineInfo.getLocation(setter.nameOffset);
+      final offsetLineLocation = lineInfo.getLocation(setter.nameOffset);
       if (setter != null) {
         collector.addRegion(
             input.setterRange.offset,
@@ -79,10 +76,10 @@ class AngularNavigationContributor implements NavigationContributor {
 
   void addTemplateRegions(
       NavigationCollector collector, LineInfo lineInfo, Template template) {
-    for (ResolvedRange resolvedRange in template.ranges) {
-      int offset = resolvedRange.range.offset;
-      AngularElement element = resolvedRange.element;
-      LineInfo_Location offsetLineLocation = lineInfo.getLocation(offset);
+    for (final resolvedRange in template.ranges) {
+      final offset = resolvedRange.range.offset;
+      final element = resolvedRange.element;
+      final offsetLineLocation = lineInfo.getLocation(offset);
       collector.addRegion(
           offset,
           resolvedRange.range.length,
@@ -135,14 +132,13 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
 
   void addDirectiveOccurrences(
       OccurrencesCollector collector, AbstractDirective directive) {
-    Map<engine.PropertyAccessorElement, List<int>> elementsOffsets =
-        <engine.PropertyAccessorElement, List<int>>{};
-    for (InputElement input in directive.inputs) {
-      engine.PropertyAccessorElement setter = input.setter;
+    final elementsOffsets = <engine.PropertyAccessorElement, List<int>>{};
+    for (final input in directive.inputs) {
+      final setter = input.setter;
       if (setter == null) {
         continue;
       }
-      List<int> offsets = elementsOffsets[setter];
+      var offsets = elementsOffsets[setter];
       if (offsets == null) {
         offsets = <int>[setter.nameOffset];
         elementsOffsets[setter] = offsets;
@@ -151,9 +147,9 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
     }
     // convert map into Occurrences
     elementsOffsets.forEach((setter, offsets) {
-      protocol.Element protocolElement = _newProtocolElement_forEngine(setter);
-      int length = protocolElement.location.length;
-      protocol.Occurrences occurrences =
+      final protocolElement = _newProtocolElementForEngine(setter);
+      final length = protocolElement.location.length;
+      final occurrences =
           new protocol.Occurrences(protocolElement, offsets, length);
       collector.addOccurrences(occurrences);
     });
@@ -161,11 +157,10 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
 
   void addTemplateOccurrences(
       OccurrencesCollector collector, Template template) {
-    Map<AngularElement, List<int>> elementsOffsets =
-        <AngularElement, List<int>>{};
-    for (ResolvedRange resolvedRange in template.ranges) {
-      AngularElement element = resolvedRange.element;
-      List<int> offsets = elementsOffsets[element];
+    final elementsOffsets = <AngularElement, List<int>>{};
+    for (final resolvedRange in template.ranges) {
+      final element = resolvedRange.element;
+      var offsets = elementsOffsets[element];
       if (offsets == null) {
         offsets = <int>[element.nameOffset];
         elementsOffsets[element] = offsets;
@@ -174,38 +169,39 @@ class AngularOccurrencesContributor implements OccurrencesContributor {
     }
     // convert map into Occurrences
     elementsOffsets.forEach((angularElement, offsets) {
-      int length = angularElement.nameLength;
-      protocol.Element protocolElement = _newProtocolElement(angularElement);
-      protocol.Occurrences occurrences =
+      final length = angularElement.nameLength;
+      final protocolElement = _newProtocolElement(angularElement);
+      final occurrences =
           new protocol.Occurrences(protocolElement, offsets, length);
       collector.addOccurrences(occurrences);
     });
   }
 
   engine.Element _canonicalizeElement(engine.Element element) {
-    if (element is engine.PropertyAccessorElement) {
-      element = (element as engine.PropertyAccessorElement).variable;
+    var canonical = element;
+    if (canonical is engine.PropertyAccessorElement) {
+      canonical = (canonical as engine.PropertyAccessorElement).variable;
     }
-    if (element is Member) {
-      element = (element as Member).baseElement;
+    if (canonical is Member) {
+      canonical = (canonical as Member).baseElement;
     }
-    return element;
+    return canonical;
   }
 
   protocol.Element _newProtocolElement(AngularElement angularElement) {
-    String name = angularElement.name;
-    int length = name.length;
+    final name = angularElement.name;
+    final length = name.length;
     if (angularElement is DartElement) {
-      engine.Element dartElement = angularElement.element;
-      return _newProtocolElement_forEngine(dartElement);
+      final dartElement = angularElement.element;
+      return _newProtocolElementForEngine(dartElement);
     }
     return new protocol.Element(protocol.ElementKind.UNKNOWN, name, 0,
         location: new protocol.Location(angularElement.source.fullName,
             angularElement.nameOffset, length, -1, -1));
   }
 
-  protocol.Element _newProtocolElement_forEngine(engine.Element dartElement) {
-    dartElement = _canonicalizeElement(dartElement);
-    return protocol.convertElement(dartElement);
+  protocol.Element _newProtocolElementForEngine(engine.Element dartElement) {
+    final cannonical = _canonicalizeElement(dartElement);
+    return protocol.convertElement(cannonical);
   }
 }

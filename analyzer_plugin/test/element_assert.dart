@@ -74,34 +74,34 @@ class ElementAssert {
       this._htmlSource, this.element, this._referenceOffset);
 
   AngularElementAssert get angular {
-    expect(element, new isInstanceOf<AngularElement>());
+    expect(element, const isInstanceOf<AngularElement>());
     return new AngularElementAssert(element, _dartSource);
   }
 
   DartElementAssert get dart {
-    expect(element, new isInstanceOf<DartElement>());
-    DartElement dartElement = element;
+    expect(element, const isInstanceOf<DartElement>());
+    final DartElement dartElement = element;
     return new DartElementAssert(dartElement.element, _dartSource, _dartCode);
   }
 
   AngularElementAssert get input {
-    expect(element, new isInstanceOf<InputElement>());
+    expect(element, const isInstanceOf<InputElement>());
     return new AngularElementAssert(element, _dartSource);
   }
 
   AngularElementAssert get output {
-    expect(element, new isInstanceOf<OutputElement>());
+    expect(element, const isInstanceOf<OutputElement>());
     return new AngularElementAssert(element, _dartSource);
   }
 
   LocalVariableAssert get local {
-    expect(element, new isInstanceOf<LocalVariable>());
+    expect(element, const isInstanceOf<LocalVariable>());
     return new LocalVariableAssert(
         element, _referenceOffset, _htmlSource, _htmlCode);
   }
 
   AngularElementAssert get selector {
-    expect(element, new isInstanceOf<SelectorName>());
+    expect(element, const isInstanceOf<SelectorName>());
     return new AngularElementAssert(element, _dartSource);
   }
 }
@@ -140,7 +140,7 @@ class _AbstractElementAssert {
     if (_code == null) {
       _code = _source.contents.data;
     }
-    int offset = _code.indexOf(search);
+    final offset = _code.indexOf(search);
     expect(offset, isNonNegative, reason: "|$search| in |$_code|");
     expect(actualOffset, offset);
   }

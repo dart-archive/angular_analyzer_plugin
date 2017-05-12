@@ -3,18 +3,23 @@ import 'dart:async';
 
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:front_end/src/scanner/token.dart';
-import 'package:unittest/unittest.dart';
-import 'package:test_reflective_loader/test_reflective_loader.dart';
+//import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
+//import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'abstract_angular.dart';
 
-main() {
-  defineReflectiveSuite(() {
-    defineReflectiveTests(FuzzTest);
-  });
+//main() {
+//  defineReflectiveSuite(() {
+//    defineReflectiveTests(FuzzTest);
+//  });
+//}
+
+void main() {
+  new FuzzTest().test_fuzz_continually();
 }
 
-@reflectiveTest
+//@reflectiveTest
 class FuzzTest extends AbstractAngularTest {
   // collected with
   // `find ../deps -name '*.dart' -exec cat {} \; | shuf -n 500 | sort`
@@ -355,7 +360,7 @@ typedef A();
 ''';
 
   static const String baseDart = r'''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 
 @Component(
   selector: 'my-aaa',
@@ -376,6 +381,9 @@ class CounterComponent {
   @Input() int maxCount;
   EventEmitter<String> resetEvent;
   @Output() EventEmitter<int> incremented;
+
+  @ContentChild(CounterComponent)
+  CounterComponent recursedComponent;
 
   void reset() {}
   void increment() {}
@@ -401,7 +409,9 @@ class CounterComponent {
     [maxCount]='4'
     (reset)=''
     (click)='h1.hidden = !h1.hidden; counter.reset()'
-    (incremented)='items.add($event.toString())'></my-counter>
+    (incremented)='items.add($event.toString())'>
+    <my-counter></my-counter>
+  </my-counter>
 </div>
 ''';
 
@@ -410,8 +420,9 @@ class CounterComponent {
 
   Random random = new Random();
 
+  // ignore: non_constant_identifier_names
   Future test_fuzz_continually() async {
-    List<FuzzModification> fuzzOptions = [
+    final fuzzOptions = <FuzzModification>[
       fuzz_removeChar,
       fuzz_truncate,
       fuzz_addChar,
@@ -427,7 +438,7 @@ class CounterComponent {
 
     const iters = 1000000;
     for (var i = 0; i < iters; ++i) {
-      var transforms = random.nextInt(20) + 1;
+      final transforms = random.nextInt(20) + 1;
       print("Fuzz $i: $transforms transforms");
       dart = baseDart;
       html = baseHtml;
@@ -452,7 +463,7 @@ class CounterComponent {
   }
 
   int randomPos(String s) {
-    if (s.length == 0) {
+    if (s.isEmpty) {
       return 0;
     }
     // range is between 1 and n, but a random pos is 0 to n
@@ -460,7 +471,7 @@ class CounterComponent {
   }
 
   int randomIndex(List s) {
-    if (s.length == 0) {
+    if (s.isEmpty) {
       return null;
     } else if (s.length == 1) {
       return 0;
@@ -469,14 +480,16 @@ class CounterComponent {
     return random.nextInt(s.length - 1);
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_removeChar(String input) {
-    int charpos = randomIndex(input.codeUnits);
+    final charpos = randomIndex(input.codeUnits);
     if (charpos == null) {
       return input;
     }
     return input.replaceRange(charpos, charpos + 1, '');
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_addChar(String input) {
     String newchar;
     if (input.isEmpty) {
@@ -484,109 +497,119 @@ class CounterComponent {
     } else {
       newchar = input[randomIndex(input.codeUnits)];
     }
-    int charpos = randomPos(input);
+    final charpos = randomPos(input);
     return input.replaceRange(charpos, charpos, newchar);
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_truncate(String input) {
-    int charpos = randomPos(input);
+    final charpos = randomPos(input);
     if (charpos == 0) {
       return '';
     }
     return input.substring(0, charpos);
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_shuffleLines(String input) {
-    List<String> lines = input.split('\n');
-    lines.shuffle(random);
+    final lines = input.split('\n')..shuffle(random);
     return lines.join('\n');
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_dropLine(String input) {
-    List<String> lines = input.split('\n');
-    lines.removeAt(randomIndex(lines));
+    final lines = input.split('\n');
+    lines.removeAt(randomIndex(lines)); // ignore: cascade_invocations
     return lines.join('\n');
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_joinLine(String input) {
-    List<String> lines = input.split('\n');
+    final lines = input.split('\n');
     if (lines.length == 1) {
       return input;
     }
-    int which = randomIndex(lines);
-    String toPrepend = lines[which];
+    final which = randomIndex(lines);
+    final toPrepend = lines[which];
     lines.removeAt(which);
+    // ignore: prefer_interpolation_to_compose_strings
     lines[which] = toPrepend + lines[which];
     return lines.join('\n');
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_copyLine(String input) {
-    List<String> lines = input.split('\n');
+    final lines = input.split('\n');
     if (lines.length == 1) {
       return input;
     }
-    int which = randomIndex(lines);
-    String toPrepend = lines[which];
+    final which = randomIndex(lines);
+    final toPrepend = lines[which];
     lines.removeAt(which);
+    // ignore: prefer_interpolation_to_compose_strings
     lines[which] = toPrepend + lines[which];
     return lines.join('\n');
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_copyChunk(String input) {
     if (input.isEmpty) {
       return input;
     }
 
-    String chunk = fuzz_truncate(input.substring(randomIndex(input.codeUnits)));
-    int charpos = randomPos(input);
+    final chunk = fuzz_truncate(input.substring(randomIndex(input.codeUnits)));
+    final charpos = randomPos(input);
     return input.replaceRange(charpos, charpos, chunk);
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_addKeyword(String input) {
-    Keyword token = Keyword.values[randomIndex(Keyword.values)];
+    final token = Keyword.values[randomIndex(Keyword.values)];
     if (input.isEmpty) {
       return input;
     }
 
-    int charpos = randomPos(input);
-    return input.replaceRange(charpos, charpos, token.syntax);
+    final charpos = randomPos(input);
+    return input.replaceRange(charpos, charpos, token.lexeme);
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_addDartChunk(String input) {
-    String chunk = fuzz_truncate(dartSnippets);
+    var chunk = fuzz_truncate(dartSnippets);
     if (chunk.length > 80) {
       chunk = chunk.substring(0, random.nextInt(80));
-    } else if (chunk.length == 0) {
+    } else if (chunk.isEmpty) {
       return input;
     } else {
       chunk = chunk.substring(randomPos(chunk));
     }
-    int charpos = randomPos(input);
+    final charpos = randomPos(input);
     return input.replaceRange(charpos, charpos, chunk);
   }
 
+  // ignore: non_constant_identifier_names
   String fuzz_addHtmlChunk(String input) {
-    String chunk = fuzz_truncate(htmlSnippets);
+    var chunk = fuzz_truncate(htmlSnippets);
     if (chunk.length > 80) {
       chunk = chunk.substring(0, random.nextInt(80));
-    } else if (chunk.length == 0) {
+    } else if (chunk.isEmpty) {
       return input;
     } else {
       chunk = chunk.substring(randomPos(chunk));
     }
-    int charpos = randomPos(input);
+    final charpos = randomPos(input);
     return input.replaceRange(charpos, charpos, chunk);
   }
 
   Future checkNoCrash(String dart, String html) async {
     newSource('/test.dart', dart);
     newSource('/test.html', html);
-    String reason =
+    final reason =
         '<<==DART CODE==>>\n$dart\n<<==HTML CODE==>>\n$html\n<<==DONE==>>';
     try {
       final result = await angularDriver.resolveDart('/test.dart');
-      if (result.directives.length > 0) {
-        AbstractDirective directive = result.directives.first;
+      if (result.directives.isNotEmpty) {
+        final directive = result.directives.first;
         if (directive is Component &&
             directive.view?.templateUriSource?.fullName == '/test.html') {
           try {
@@ -601,23 +624,21 @@ class CounterComponent {
     }
   }
 
-  /**
-   * More or less expect(), but without failing the test. Returns a [Future] so
-   * that you can chain things to do when this succeeds or fails.
-   */
+  /// More or less expect(), but without failing the test. Returns a [Future] so
+  /// that you can chain things to do when this succeeds or fails.
   Future check(Object actual, Matcher matcher, {String reason}) {
-    var matchState = {};
+    final matchState = {};
 
     print('failed');
-    var description = new StringDescription();
+    final description = new StringDescription();
     description.add('Expected: ').addDescriptionOf(matcher).add('\n');
     description.add('  Actual: ').addDescriptionOf(actual).add('\n');
 
-    var mismatchDescription = new StringDescription();
+    final mismatchDescription = new StringDescription();
     matcher.describeMismatch(actual, mismatchDescription, matchState, false);
 
     if (mismatchDescription.length > 0) {
-      description.add('   Which: ${mismatchDescription}\n');
+      description.add('   Which: $mismatchDescription\n');
     }
     if (reason != null) description.add(reason).add('\n');
 

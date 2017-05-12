@@ -12,14 +12,26 @@ class FileTracker {
 
   FileTracker(this._fileHasher);
 
-  _RelationshipTracker _dartToDart = new _RelationshipTracker();
-  _RelationshipTracker _dartToHtml = new _RelationshipTracker();
+  final _dartToDart = new _RelationshipTracker();
+  final _dartToHtml = new _RelationshipTracker();
 
-  Set<String> _dartFilesWithDartTemplates = new HashSet<String>();
+  final _dartFilesWithDartTemplates = new HashSet<String>();
 
-  void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) {
-    return _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
+  final htmlContentHashes = <String, List<int>>{};
+
+  void rehashHtmlContents(String path) {
+    htmlContentHashes[path] = _fileHasher.getContentHash(path).toByteList();
   }
+
+  List<int> getHtmlContentHash(String path) {
+    if (htmlContentHashes[path] == null) {
+      rehashHtmlContents(path);
+    }
+    return htmlContentHashes[path];
+  }
+
+  void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) =>
+      _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
 
   void setDartHasTemplate(String dartPath, bool hasTemplate) {
     if (hasTemplate) {
@@ -29,35 +41,30 @@ class FileTracker {
     }
   }
 
-  List<String> getHtmlPathsReferencedByDart(String dartPath) {
-    return _dartToHtml.getFilesReferencedBy(dartPath);
-  }
+  List<String> getHtmlPathsReferencedByDart(String dartPath) =>
+      _dartToHtml.getFilesReferencedBy(dartPath);
 
-  List<String> getDartPathsReferencingHtml(String htmlPath) {
-    return _dartToHtml.getFilesReferencingFile(htmlPath);
-  }
+  List<String> getDartPathsReferencingHtml(String htmlPath) =>
+      _dartToHtml.getFilesReferencingFile(htmlPath);
 
   void setDartImports(String dartPath, List<String> imports) {
     _dartToDart.setFileReferencesFiles(dartPath, imports);
   }
 
-  List<String> getHtmlPathsReferencingHtml(String htmlPath) {
-    return _dartToHtml
-        .getFilesReferencingFile(htmlPath)
-        .map((dartPath) => _dartToDart.getFilesReferencingFile(dartPath))
-        .fold(<String>[], (list, acc) => list..addAll(acc))
-        .map((dartPath) => _dartToHtml.getFilesReferencedBy(dartPath))
-        .fold(<String>[], (list, acc) => list..addAll(acc));
-  }
+  List<String> getHtmlPathsReferencingHtml(String htmlPath) => _dartToHtml
+      .getFilesReferencingFile(htmlPath)
+      .map(_dartToDart.getFilesReferencingFile)
+      .fold(<String>[], (list, acc) => list..addAll(acc))
+      .map(_dartToHtml.getFilesReferencedBy)
+      .fold(<String>[], (list, acc) => list..addAll(acc))
+      .toList();
 
-  List<String> getDartPathsAffectedByHtml(String htmlPath) {
-    return _dartToHtml
-        .getFilesReferencingFile(htmlPath)
-        .map((dartPath) => _dartToDart.getFilesReferencingFile(dartPath))
-        .fold(<String>[], (list, acc) => list..addAll(acc))
-        .where((dartPath) => _dartFilesWithDartTemplates.contains(dartPath))
-        .toList();
-  }
+  List<String> getDartPathsAffectedByHtml(String htmlPath) => _dartToHtml
+      .getFilesReferencingFile(htmlPath)
+      .map(_dartToDart.getFilesReferencingFile)
+      .fold(<String>[], (list, acc) => list..addAll(acc))
+      .where(_dartFilesWithDartTemplates.contains)
+      .toList();
 
   List<String> getHtmlPathsAffectingDart(String dartPath) {
     if (_dartFilesWithDartTemplates.contains(dartPath)) {
@@ -67,30 +74,27 @@ class FileTracker {
     return [];
   }
 
-  List<String> getHtmlPathsAffectingDartContext(String dartPath) {
-    return _dartToDart
-        .getFilesReferencedBy(dartPath)
-        .map((dartPath) => _dartToHtml.getFilesReferencedBy(dartPath))
-        .fold(<String>[], (list, acc) => list..addAll(acc));
-  }
+  List<String> getHtmlPathsAffectingDartContext(String dartPath) => _dartToDart
+      .getFilesReferencedBy(dartPath)
+      .map(_dartToHtml.getFilesReferencedBy)
+      .fold(<String>[], (list, acc) => list..addAll(acc)).toList();
 
   ApiSignature getDartSignature(String dartPath) {
-    final signature = new ApiSignature();
-    signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
+    final signature = new ApiSignature()
+      ..addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
     for (final htmlPath in getHtmlPathsAffectingDart(dartPath)) {
-      signature.addBytes(_fileHasher.getContentHash(htmlPath).toByteList());
+      signature.addBytes(getHtmlContentHash(htmlPath));
     }
     return signature;
   }
 
   ApiSignature getHtmlSignature(String htmlPath) {
-    final signature = new ApiSignature();
-    signature.addBytes(_fileHasher.getContentHash(htmlPath).toByteList());
+    final signature = new ApiSignature()
+      ..addBytes(getHtmlContentHash(htmlPath));
     for (final dartPath in getDartPathsReferencingHtml(htmlPath)) {
       signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
       for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
-        signature
-            .addBytes(_fileHasher.getContentHash(subHtmlPath).toByteList());
+        signature.addBytes(getHtmlContentHash(subHtmlPath));
       }
     }
     return signature;
@@ -98,11 +102,11 @@ class FileTracker {
 }
 
 class _RelationshipTracker {
-  Map<String, List<String>> _filesReferencedByFile = <String, List<String>>{};
-  Map<String, List<String>> _filesReferencingFile = <String, List<String>>{};
+  final _filesReferencedByFile = <String, List<String>>{};
+  final _filesReferencingFile = <String, List<String>>{};
 
   void setFileReferencesFiles(String filePath, List<String> referencesPaths) {
-    Set<String> priorRelationships = new HashSet<String>();
+    final priorRelationships = new HashSet<String>();
     if (_filesReferencedByFile.containsKey(filePath)) {
       for (final referencesPath in _filesReferencedByFile[filePath]) {
         if (!referencesPaths.contains(referencesPath)) {
@@ -128,11 +132,9 @@ class _RelationshipTracker {
     }
   }
 
-  List<String> getFilesReferencedBy(String filePath) {
-    return _filesReferencedByFile[filePath] ?? [];
-  }
+  List<String> getFilesReferencedBy(String filePath) =>
+      _filesReferencedByFile[filePath] ?? [];
 
-  List<String> getFilesReferencingFile(String usesPath) {
-    return _filesReferencingFile[usesPath] ?? [];
-  }
+  List<String> getFilesReferencingFile(String usesPath) =>
+      _filesReferencingFile[usesPath] ?? [];
 }

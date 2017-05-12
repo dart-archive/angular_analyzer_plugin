@@ -16,10 +16,10 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
 
   @override
   Object visitAdjacentStrings(ast.AdjacentStrings node) {
-    StringBuffer buffer = new StringBuffer();
-    int lastEndingOffset = null;
-    for (ast.StringLiteral string in node.strings) {
-      Object value = string.accept(this);
+    final buffer = new StringBuffer();
+    int lastEndingOffset;
+    for (final string in node.strings) {
+      final value = string.accept(this);
       if (identical(value, utils.ConstantEvaluator.NOT_A_CONSTANT)) {
         return value;
       }
@@ -36,19 +36,22 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
   @override
   Object visitBinaryExpression(ast.BinaryExpression node) {
     if (node.operator.type == TokenType.PLUS) {
-      Object leftOperand = node.leftOperand.accept(this);
+      // ignore: omit_local_variable_types
+      final Object leftOperand = node.leftOperand.accept(this);
       if (identical(leftOperand, utils.ConstantEvaluator.NOT_A_CONSTANT)) {
         return leftOperand;
       }
-      Object rightOperand = node.rightOperand.accept(this);
+      // ignore: omit_local_variable_types
+      final Object rightOperand = node.rightOperand.accept(this);
       if (identical(rightOperand, utils.ConstantEvaluator.NOT_A_CONSTANT)) {
         return rightOperand;
       }
       // numeric or {@code null}
       if (leftOperand is String && rightOperand is String) {
-        int gap = node.rightOperand.offset -
+        final gap = node.rightOperand.offset -
             node.leftOperand.offset -
             node.leftOperand.length;
+        // ignore: prefer_interpolation_to_compose_strings
         return leftOperand + (' ' * gap) + rightOperand;
       }
     }
@@ -74,13 +77,15 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
   Object visitParenthesizedExpression(ast.ParenthesizedExpression node) {
     offsetsAreValid = false;
     lastUnoffsettableNode = node;
-    int preGap = node.expression.offset - node.offset;
-    int postGap = node.offset +
+    final preGap = node.expression.offset - node.offset;
+    final postGap = node.offset +
         node.length -
         node.expression.offset -
         node.expression.length;
-    Object value = super.visitParenthesizedExpression(node);
+    // ignore: omit_local_variable_types
+    final Object value = super.visitParenthesizedExpression(node);
     if (value is String) {
+      // ignore: prefer_interpolation_to_compose_strings
       return ' ' * preGap + value + ' ' * postGap;
     }
 
@@ -89,8 +94,9 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
 
   @override
   Object visitSimpleStringLiteral(ast.SimpleStringLiteral node) {
-    int gap = node.contentsOffset - node.offset;
+    final gap = node.contentsOffset - node.offset;
     lastUnoffsettableNode = node;
+    // ignore: prefer_interpolation_to_compose_strings
     return ' ' * gap + node.value + ' ';
   }
 
@@ -116,35 +122,28 @@ class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
   }
 }
 
-/**
- * Helper for processing Angular annotations.
- */
+/// Helper for processing Angular annotations.
 class AnnotationProcessorMixin {
-  RecordingErrorListener errorListener = new RecordingErrorListener();
+  var errorListener = new RecordingErrorListener();
   ErrorReporter errorReporter;
 
-  /**
-   * The evaluator of constant values, such as annotation arguments.
-   */
+  /// The evaluator of constant values, such as annotation arguments.
   final utils.ConstantEvaluator _constantEvaluator =
       new utils.ConstantEvaluator();
 
-  /**
-   * Initialize the processor working in the given [target].
-   */
+  /// Initialize the processor working in the given [target].
   void initAnnotationProcessor(Source source) {
     assert(errorReporter == null);
     errorReporter = new ErrorReporter(errorListener, source);
   }
 
-  /**
-   * Returns the [String] value of the given [expression].
-   * If [expression] does not have a [String] value, reports an error
-   * and returns `null`.
-   */
+  /// Returns the [String] value of the given [expression].
+  /// If [expression] does not have a [String] value, reports an error
+  /// and returns `null`.
   String getExpressionString(ast.Expression expression) {
     if (expression != null) {
-      Object value = expression.accept(_constantEvaluator);
+      // ignore: omit_local_variable_types
+      final Object value = expression.accept(_constantEvaluator);
       if (value is String) {
         return value;
       }
@@ -154,15 +153,13 @@ class AnnotationProcessorMixin {
     return null;
   }
 
-  /**
-   * Returns the [String] value of the given [expression].
-   * If [expression] does not have a [String] value, reports an error
-   * and returns `null`.
-   */
+  /// Returns the [String] value of the given [expression].
+  /// If [expression] does not have a [String] value, reports an error
+  /// and returns `null`.
   OffsettingConstantEvaluator calculateStringWithOffsets(
       ast.Expression expression) {
     if (expression != null) {
-      OffsettingConstantEvaluator evaluator = new OffsettingConstantEvaluator();
+      final evaluator = new OffsettingConstantEvaluator();
       evaluator.value = expression.accept(evaluator);
 
       if (evaluator.value is String) {
@@ -179,14 +176,12 @@ class AnnotationProcessorMixin {
     return null;
   }
 
-  /**
-   * Returns the value of the argument with the given [name].
-   * Returns `null` if not found.
-   */
+  /// Returns the value of the argument with the given [name].
+  /// Returns `null` if not found.
   ast.Expression getNamedArgument(ast.Annotation node, String name) {
     if (node.arguments != null) {
-      List<ast.Expression> arguments = node.arguments.arguments;
-      for (ast.Expression argument in arguments) {
+      final arguments = node.arguments.arguments;
+      for (var argument in arguments) {
         if (argument is ast.NamedExpression &&
             argument.name != null &&
             argument.name.label != null &&
@@ -198,13 +193,11 @@ class AnnotationProcessorMixin {
     return null;
   }
 
-  /**
-   * Returns `true` is the given [node] is resolved to a creation of an Angular
-   * annotation class with the given [name].
-   */
+  /// Returns `true` is the given [node] is resolved to a creation of an Angular
+  /// annotation class with the given [name].
   bool isAngularAnnotation(ast.Annotation node, String name) {
     if (node.element is ConstructorElement) {
-      ClassElement clazz = node.element.enclosingElement;
+      final clazz = node.element.enclosingElement;
       return clazz.library.source.uri.path
               .endsWith('angular2/src/core/metadata.dart') &&
           clazz.name == name;
