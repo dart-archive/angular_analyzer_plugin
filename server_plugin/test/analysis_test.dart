@@ -19,10 +19,11 @@ import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart' as non_task
-    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
+    show AnalysisDriver, AnalysisDriverScheduler;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
+import 'package:front_end/src/base/performace_logger.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -602,7 +603,7 @@ class AbstractAngularTest {
   GatheringErrorListener errorListener;
 
   void setUp() {
-    final logger = new non_task.PerformanceLog(new StringBuffer());
+    final logger = new PerformanceLog(new StringBuffer());
     final byteStore = new MemoryByteStore();
 
     final scheduler = new non_task.AnalysisDriverScheduler(logger)..start();
