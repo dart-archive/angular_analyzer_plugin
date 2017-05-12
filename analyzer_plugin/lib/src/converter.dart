@@ -217,7 +217,7 @@ class HtmlTreeConverter {
         attributes,
         findTemplateAttribute(attributes),
         parent,
-        isTemplate: false,
+        isTemplate: true,
       );
 
       for (final attribute in attributes) {

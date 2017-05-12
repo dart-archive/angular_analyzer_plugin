@@ -242,7 +242,7 @@ void setIgnoredErrors(Template template, List<ng_ast.TemplateAst> asts) {
           text = text.substring(1);
         }
         // Per spec: optional commas
-        final delim = text.contains(',') ? ' ' : ',';
+        final delim = !text.contains(',') ? ' ' : ',';
         template.ignoredErrors.addAll(new HashSet.from(
             text.split(delim).map((c) => c.trim().toUpperCase())));
       }
