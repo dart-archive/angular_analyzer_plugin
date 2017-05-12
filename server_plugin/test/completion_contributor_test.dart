@@ -2128,8 +2128,10 @@ class MyComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 'trackBy'.length);
     expect(replacementLength, 'trackBy'.length);
-    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
     assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
     assertNotSuggested("items");
   }
 
@@ -2151,8 +2153,10 @@ class MyComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 'trackBy'.length);
     expect(replacementLength, 'trackBy'.length);
-    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
     assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
     assertNotSuggested("items");
   }
 
@@ -2174,8 +2178,10 @@ class MyComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
     assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
     assertNotSuggested("items");
   }
 
@@ -2197,8 +2203,10 @@ class MyComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestTemplateInput("trackBy", elementName: '[ngForTrackBy]');
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
     assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
     assertNotSuggested("items");
   }
 

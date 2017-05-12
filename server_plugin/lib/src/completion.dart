@@ -708,10 +708,10 @@ class TemplateCompleter {
       InputElement inputElement,
       int defaultRelevance,
       protocol.Element element) {
-    final completionCapitalized = inputElement.name.substring(prefix.length);
-    // ignore: prefer_interpolation_to_compose_strings
-    final completion = completionCapitalized.substring(0, 1).toLowerCase() +
-        completionCapitalized.substring(1);
+    final capitalized = inputElement.name.substring(prefix.length);
+    final firstLetter = capitalized.substring(0, 1).toLowerCase();
+    final remaining = capitalized.substring(1);
+    final completion = '$firstLetter$remaining:';
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
