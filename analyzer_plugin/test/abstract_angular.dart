@@ -15,8 +15,9 @@ import 'package:unittest/unittest.dart';
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analysis_server/src/plugin/notification_manager.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
+import 'package:front_end/src/base/performace_logger.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart'
-    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
+    show AnalysisDriver, AnalysisDriverScheduler;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/generated/engine.dart';
 
