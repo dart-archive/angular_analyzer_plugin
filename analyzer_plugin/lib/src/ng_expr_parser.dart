@@ -23,7 +23,7 @@ class NgExprParser extends Parser {
     Token beforePipeToken;
     expression = parseBitwiseXorExpression();
     while (_currentToken.type == TokenType.BAR) {
-      if (beforePipeToken == null) beforePipeToken = _currentToken.previous;
+      beforePipeToken ??= _currentToken.previous;
       getAndAdvance();
       parsePipeExpression();
     }

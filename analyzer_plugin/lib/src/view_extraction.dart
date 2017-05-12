@@ -200,8 +200,8 @@ class TemplateParser {
       content = ' ' * offset + content;
     }
     final parser = new AngularHtmlParser(content,
-        generateSpans: true, lowercaseAttrName: false);
-    parser.compatMode = 'quirks';
+        generateSpans: true, lowercaseAttrName: false)
+      ..compatMode = 'quirks';
     document = parser.parse();
 
     final htmlErrors = parser.errors;
@@ -214,9 +214,12 @@ class TemplateParser {
       }
 
       final span = parseError.span;
+
       // html parser lib isn't nice enough to send this error all the time
       // see github #47 for dart-lang/html
-      if (span == null) continue;
+      if (span == null) {
+        continue;
+      }
 
       parseErrors.add(new AnalysisError(source, span.start.offset, span.length,
           HtmlErrorCode.PARSE_ERROR, [parseError.errorCode]));

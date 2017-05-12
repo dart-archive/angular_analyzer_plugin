@@ -15,6 +15,7 @@ import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:html/dom.dart' as html;
 import 'package:html/parser.dart' as html;
+import 'package:meta/meta.dart';
 import 'package:source_span/source_span.dart';
 
 html.Element firstElement(html.Node node) {
@@ -52,10 +53,10 @@ class HtmlTreeConverter {
           closingSpan,
           openingNameSpan,
           closingNameSpan,
-          isTemplate,
           attributes,
           findTemplateAttribute(attributes),
-          parent);
+          parent,
+          isTemplate: isTemplate);
 
       for (final attribute in attributes) {
         attribute.parent = element;
@@ -132,7 +133,7 @@ class HtmlTreeConverter {
                 valueOffset,
                 dartParser.findMustaches(value, valueOffset)));
           }
-        } on IgnorableHtmlInternalError {
+        } on IgnorableHtmlInternalException {
           // See https://github.com/dart-lang/html/issues/44, this error will
           // be thrown looking for nameOffset. Catch it so that analysis else
           // where continues.
@@ -235,13 +236,14 @@ class HtmlTreeConverter {
         valueOffset,
         origName,
         origNameOffset,
-        dartParser.parseDartExpression(valueOffset, value, true),
+        dartParser.parseDartExpression(valueOffset, value,
+            detectTrailing: true),
         bound);
   }
 
   List<NodeInfo> _convertChildren(html.Element node, ElementInfo parent) {
     final children = <NodeInfo>[];
-    for (html.Node child in node.nodes) {
+    for (final child in node.nodes) {
       final childNode = convert(child, parent: parent);
       if (childNode != null) {
         children.add(childNode);
@@ -285,7 +287,7 @@ class HtmlTreeConverter {
             AttributeSpanContainer.generateAttributeSpans(element);
         return container.attributeSpans[name].start.offset;
       } catch (e) {
-        throw new IgnorableHtmlInternalError(e);
+        throw new IgnorableHtmlInternalException(e);
       }
     }
   }
@@ -304,7 +306,7 @@ class HtmlTreeConverter {
             : null;
       }
     } catch (e) {
-      throw new IgnorableHtmlInternalError(e);
+      throw new IgnorableHtmlInternalException(e);
     }
   }
 
@@ -325,7 +327,8 @@ class EmbeddedDartParser {
       this.templateSource, this.errorListener, this.errorReporter);
 
   /// Parse the given Dart [code] that starts at [offset].
-  Expression parseDartExpression(int offset, String code, bool detectTrailing) {
+  Expression parseDartExpression(int offset, String code,
+      {@required bool detectTrailing}) {
     if (code == null) {
       return null;
     }
@@ -471,8 +474,8 @@ class EmbeddedDartParser {
       }
       // resolve
       final code = text.substring(exprBegin, exprEnd);
-      final expression =
-          parseDartExpression(fileOffset + exprBegin, code, detectTrailing);
+      final expression = parseDartExpression(fileOffset + exprBegin, code,
+          detectTrailing: detectTrailing);
 
       final offset = fileOffset + begin;
 
@@ -638,6 +641,10 @@ class EmbeddedDartParser {
       _tokenMatchesBuiltInIdentifier(token);
 }
 
-class IgnorableHtmlInternalError extends StateError {
-  IgnorableHtmlInternalError(String msg) : super(msg);
+class IgnorableHtmlInternalException implements Exception {
+  String msg;
+  IgnorableHtmlInternalException(this.msg);
+
+  @override
+  String toString() => "IgnorableHtmlInternalException: $msg";
 }

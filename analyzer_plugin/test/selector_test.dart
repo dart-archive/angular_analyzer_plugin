@@ -116,14 +116,16 @@ class AttributeSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_match_notName() {
-    final selector = new AttributeSelector(nameElement, null, false);
+    final selector =
+        new AttributeSelector(nameElement, null, isWildcard: false);
     when(element.attributes).thenReturn({'not-kind': 'no-matter'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
   }
 
   // ignore: non_constant_identifier_names
   void test_match_notValue() {
-    final selector = new AttributeSelector(nameElement, 'silly', false);
+    final selector =
+        new AttributeSelector(nameElement, 'silly', isWildcard: false);
     when(element.attributes).thenReturn({'kind': 'strange'});
     when(element.attributeNameSpans)
         .thenReturn({'kind': _newStringSpan(100, "kind")});
@@ -132,7 +134,8 @@ class AttributeSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_match_noValue() {
-    final selector = new AttributeSelector(nameElement, null, false);
+    final selector =
+        new AttributeSelector(nameElement, null, isWildcard: false);
     when(element.attributes).thenReturn({'kind': 'no-matter'});
     when(element.attributeNameSpans)
         .thenReturn({'kind': _newStringSpan(100, "kind")});
@@ -144,7 +147,7 @@ class AttributeSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_match_wildCard() {
-    final selector = new AttributeSelector(nameElement, null, true);
+    final selector = new AttributeSelector(nameElement, null, isWildcard: true);
     when(element.attributes).thenReturn({'kindatrue': 'no-matter'});
     when(element.attributeNameSpans)
         .thenReturn({'kindatrue': _newStringSpan(100, "kindatrue")});
@@ -156,7 +159,7 @@ class AttributeSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_noMatch_wildCard() {
-    final selector = new AttributeSelector(nameElement, null, true);
+    final selector = new AttributeSelector(nameElement, null, isWildcard: true);
     when(element.attributes).thenReturn({'indatrue': 'no-matter'});
     when(element.attributeNameSpans)
         .thenReturn({'indatrue': _newStringSpan(100, "indatrue")});
@@ -166,13 +169,15 @@ class AttributeSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_toString_hasValue() {
-    final selector = new AttributeSelector(nameElement, 'daffy', false);
+    final selector =
+        new AttributeSelector(nameElement, 'daffy', isWildcard: false);
     expect(selector.toString(), '[kind=daffy]');
   }
 
   // ignore: non_constant_identifier_names
   void test_toString_noValue() {
-    final selector = new AttributeSelector(nameElement, null, false);
+    final selector =
+        new AttributeSelector(nameElement, null, isWildcard: false);
     expect(selector.toString(), '[kind]');
   }
 }
@@ -603,8 +608,8 @@ class SelectorParserTest {
     expect(selector, const isInstanceOf<OrSelector>());
     expect(
         selector.toString(),
-        equals("aaa || bbb && :not(ccc) || " +
-            ":not(:not(ddd) && [eee] || fff && [ggg])"));
+        equals('aaa || bbb && :not(ccc) || '
+            ':not(:not(ddd) && [eee] || fff && [ggg])'));
     {
       final ElementNameSelector subSelector = selector.selectors[0];
       expect(subSelector, const isInstanceOf<ElementNameSelector>());
@@ -730,7 +735,8 @@ class SuggestTagsTest {
   // ignore: non_constant_identifier_names
   void test_suggestPropertyNoValue() {
     final selector = new AttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), null, false);
+        new AngularElementImpl('attr', 10, 5, null), null,
+        isWildcard: false);
 
     final suggestions = _evenInvalidSuggestions(selector);
     expect(suggestions.length, 1);
@@ -741,7 +747,8 @@ class SuggestTagsTest {
   // ignore: non_constant_identifier_names
   void test_suggestPropertyWithValue() {
     final selector = new AttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), "blah", false);
+        new AngularElementImpl('attr', 10, 5, null), "blah",
+        isWildcard: false);
 
     final suggestions = _evenInvalidSuggestions(selector);
     expect(suggestions.length, 1);
@@ -752,7 +759,8 @@ class SuggestTagsTest {
   // ignore: non_constant_identifier_names
   void test_suggestWildcardProperty() {
     final selector = new AttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), null, true);
+        new AngularElementImpl('attr', 10, 5, null), null,
+        isWildcard: true);
 
     final suggestions = _evenInvalidSuggestions(selector);
     expect(suggestions.length, 1);
@@ -764,7 +772,8 @@ class SuggestTagsTest {
   // ignore: non_constant_identifier_names
   void test_suggestWildcardPropertyValue() {
     final selector = new AttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), "value", true);
+        new AngularElementImpl('attr', 10, 5, null), "value",
+        isWildcard: true);
 
     final suggestions = _evenInvalidSuggestions(selector);
     expect(suggestions.length, 1);
@@ -802,7 +811,8 @@ class SuggestTagsTest {
     final nameSelector =
         new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
     final attrSelector = new AttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), "value", true);
+        new AngularElementImpl('attr', 10, 5, null), "value",
+        isWildcard: true);
     final selector = new AndSelector([nameSelector, attrSelector]);
 
     final suggestions = selector.suggestTags();
@@ -816,7 +826,8 @@ class SuggestTagsTest {
     final nameSelector =
         new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
     final attrSelector = new AttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), "value", true);
+        new AngularElementImpl('attr', 10, 5, null), "value",
+        isWildcard: true);
     final selector = new OrSelector([nameSelector, attrSelector]);
 
     final suggestions = _evenInvalidSuggestions(selector);
@@ -834,12 +845,14 @@ class SuggestTagsTest {
     final nameSelector1 =
         new ElementNameSelector(new AngularElementImpl('name1', 10, 5, null));
     final attrSelector1 = new AttributeSelector(
-        new AngularElementImpl('attr1', 10, 5, null), "value", true);
+        new AngularElementImpl('attr1', 10, 5, null), "value",
+        isWildcard: true);
     final andSelector1 = new AndSelector([nameSelector1, attrSelector1]);
     final nameSelector2 =
         new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
     final attrSelector2 = new AttributeSelector(
-        new AngularElementImpl('attr2', 10, 5, null), "value", true);
+        new AngularElementImpl('attr2', 10, 5, null), "value",
+        isWildcard: true);
     final andSelector2 = new AndSelector([nameSelector2, attrSelector2]);
     final selector = new OrSelector([andSelector1, andSelector2]);
 
@@ -860,9 +873,11 @@ class SuggestTagsTest {
     final orSelector1 = new OrSelector([nameSelector1, nameSelector2]);
 
     final attrSelector1 = new AttributeSelector(
-        new AngularElementImpl('attr1', 10, 5, null), "value", true);
+        new AngularElementImpl('attr1', 10, 5, null), "value",
+        isWildcard: true);
     final attrSelector2 = new AttributeSelector(
-        new AngularElementImpl('attr2', 10, 5, null), "value", true);
+        new AngularElementImpl('attr2', 10, 5, null), "value",
+        isWildcard: true);
     final orSelector2 = new OrSelector([attrSelector1, attrSelector2]);
 
     final selector = new AndSelector([orSelector1, orSelector2]);
@@ -888,9 +903,11 @@ class SuggestTagsTest {
     final orSelector1 = new OrSelector([nameSelector1, nameSelector2]);
 
     final attrSelector1 = new AttributeSelector(
-        new AngularElementImpl('attr1', 10, 5, null), "value", true);
+        new AngularElementImpl('attr1', 10, 5, null), "value",
+        isWildcard: true);
     final attrSelector2 = new AttributeSelector(
-        new AngularElementImpl('attr2', 10, 5, null), "value", true);
+        new AngularElementImpl('attr2', 10, 5, null), "value",
+        isWildcard: true);
     final orSelector2 = new OrSelector([attrSelector1, attrSelector2]);
 
     final selector = new OrSelector([orSelector1, orSelector2]);
@@ -1210,10 +1227,8 @@ class _SelectorTest {
   List<ResolvedRange> resolvedRanges = <ResolvedRange>[];
 
   void setUp() {
-    when(template.addRange(anyObject, anyObject))
-        .thenInvoke((SourceRange range, AngularElement element) {
-      resolvedRanges.add(new ResolvedRange(range, element));
-    });
+    when(template.addRange(anyObject, anyObject)).thenInvoke((range, element) =>
+        resolvedRanges.add(new ResolvedRange(range, element)));
   }
 
   void _assertRange(ResolvedRange resolvedRange, int offset, int length,

@@ -107,7 +107,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
       final analysisErrorListener = new IgnoringAnalysisErrorListener();
       final dartParser =
           new EmbeddedDartParser(null, analysisErrorListener, null);
-      dartSnippet = dartParser.parseDartExpression(offset, '', false);
+      dartSnippet =
+          dartParser.parseDartExpression(offset, '', detectTrailing: false);
     }
   }
 }
@@ -260,8 +261,7 @@ class TemplateCompleter {
         .enclosingElement.context.typeProvider;
     final target = findTarget(request.offset, template.ast)
       ..accept(new ReplacementRangeCalculator(request));
-    final extractor = new DartSnippetExtractor();
-    extractor.offset = request.offset;
+    final extractor = new DartSnippetExtractor()..offset = request.offset;
     target.accept(extractor);
     if (extractor.dartSnippet != null) {
       final dartRequest = new EmbeddedDartCompletionRequest.from(

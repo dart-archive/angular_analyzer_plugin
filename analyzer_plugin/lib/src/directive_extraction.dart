@@ -59,12 +59,9 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     final isComponent = isAngularAnnotation(node, 'Component');
     final isDirective = isAngularAnnotation(node, 'Directive');
     if (isComponent || isDirective) {
-      var selector = _parseSelector(node);
-      if (selector == null) {
-        // empty selector. Don't fail to create a Component just because of a
-        // broken or missing selector, that results in cascading errors.
-        selector = new AndSelector([]);
-      }
+      // Don't fail to create a Component just because of a broken or missing
+      // selector, that results in cascading errors.
+      final selector = _parseSelector(node) ?? new AndSelector([]);
       final exportAs = _parseExportAs(node);
       final inputElements = <InputElement>[];
       final outputElements = <OutputElement>[];

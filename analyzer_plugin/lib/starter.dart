@@ -40,7 +40,7 @@ class Starter {
     final driver = new AngularDriver(server, analysisDriver, scheduler,
         byteStore, sourceFactory, contentOverlay);
     angularDrivers[driverPath] = driver;
-    server.onFileAdded.listen((String path) {
+    server.onFileAdded.listen((path) {
       if (server.contextManager.getContextFolderFor(path).path == driverPath) {
         // only the owning driver "adds" the path
         driver.addFile(path);

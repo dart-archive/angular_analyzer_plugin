@@ -537,9 +537,8 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   }
 
   @override
-  CompletionContributor createContributor() {
-    return new AngularCompletionContributor(angularDriver);
-  }
+  CompletionContributor createContributor() =>
+      new AngularCompletionContributor(angularDriver);
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
