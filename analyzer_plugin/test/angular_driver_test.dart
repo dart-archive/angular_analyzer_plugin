@@ -279,31 +279,31 @@ class ComponentB {
     expect(directives, hasLength(2));
     {
       final component = directives[0];
-      expect(component, new isInstanceOf<Component>());
+      expect(component, const isInstanceOf<Component>());
       {
         final selector = component.selector;
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-a');
       }
       {
         expect(component.elementTags, hasLength(1));
         final selector = component.elementTags[0];
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-a');
       }
     }
     {
       final component = directives[1];
-      expect(component, new isInstanceOf<Component>());
+      expect(component, const isInstanceOf<Component>());
       {
         final selector = component.selector;
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-b');
       }
       {
         expect(component.elementTags, hasLength(1));
         final selector = component.elementTags[0];
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'comp-b');
       }
     }
@@ -328,31 +328,31 @@ class DirectiveB {
     expect(directives, hasLength(2));
     {
       final directive = directives[0];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-a');
       }
       {
         expect(directive.elementTags, hasLength(1));
         final selector = directive.elementTags[0];
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-a');
       }
     }
     {
       final directive = directives[1];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-b');
       }
       {
         expect(directive.elementTags, hasLength(1));
         final selector = directive.elementTags[0];
-        expect(selector, new isInstanceOf<ElementNameSelector>());
+        expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-b');
       }
     }
@@ -377,40 +377,40 @@ class DirectiveB {
     expect(directives, hasLength(2));
     {
       final directive = directives[0];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<OrSelector>());
+        expect(selector, const isInstanceOf<OrSelector>());
         expect((selector as OrSelector).selectors, hasLength(3));
       }
       {
         expect(directive.elementTags, hasLength(3));
-        expect(
-            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[0].toString(), 'dir-a1');
-        expect(
-            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[1].toString(), 'dir-a2');
-        expect(
-            directive.elementTags[2], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[2],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[2].toString(), 'dir-a3');
       }
     }
     {
       final directive = directives[1];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<OrSelector>());
+        expect(selector, const isInstanceOf<OrSelector>());
         expect((selector as OrSelector).selectors, hasLength(2));
       }
       {
         expect(directive.elementTags, hasLength(2));
-        expect(
-            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[0].toString(), 'dir-b1');
-        expect(
-            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
@@ -435,31 +435,31 @@ class DirectiveB {
     expect(directives, hasLength(2));
     {
       final directive = directives[0];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<AndSelector>());
+        expect(selector, const isInstanceOf<AndSelector>());
         expect((selector as AndSelector).selectors, hasLength(3));
       }
       {
         expect(directive.elementTags, hasLength(1));
-        expect(
-            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[0].toString(), 'dir-a');
       }
     }
     {
       final directive = directives[1];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<AndSelector>());
+        expect(selector, const isInstanceOf<AndSelector>());
         expect((selector as AndSelector).selectors, hasLength(2));
       }
       {
         expect(directive.elementTags, hasLength(1));
-        expect(
-            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[0].toString(), 'dir-b');
       }
     }
@@ -484,37 +484,37 @@ class DirectiveB {
     expect(directives, hasLength(2));
     {
       final directive = directives[0];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<OrSelector>());
+        expect(selector, const isInstanceOf<OrSelector>());
         expect((selector as OrSelector).selectors, hasLength(2));
       }
       {
         expect(directive.elementTags, hasLength(2));
-        expect(
-            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[0].toString(), 'dir-a1');
-        expect(
-            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[1].toString(), 'dir-a2');
       }
     }
     {
       final directive = directives[1];
-      expect(directive, new isInstanceOf<Directive>());
+      expect(directive, const isInstanceOf<Directive>());
       {
         final selector = directive.selector;
-        expect(selector, new isInstanceOf<OrSelector>());
+        expect(selector, const isInstanceOf<OrSelector>());
         expect((selector as OrSelector).selectors, hasLength(2));
       }
       {
         expect(directive.elementTags, hasLength(2));
-        expect(
-            directive.elementTags[0], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[0].toString(), 'dir-b1');
-        expect(
-            directive.elementTags[1], new isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1],
+            const isInstanceOf<ElementNameSelector>());
         expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
@@ -1948,7 +1948,7 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType child = childs.first.query;
 
     expect(child.directive, equals(directives[1]));
@@ -1976,7 +1976,7 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
 
     expect(children.directive, equals(directives[1]));
@@ -2007,14 +2007,14 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
 
     expect(children.directive, equals(directives[1]));
 
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType child = childs.first.query;
 
     expect(child.directive, equals(directives[1]));
@@ -2051,27 +2051,27 @@ class ContentChildComp {}
     final LetBoundQueriedChildType childDirective = childs
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
         .query;
-    expect(childDirective, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childDirective, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childDirective.letBoundName, equals("foo"));
     expect(childDirective.containerType.toString(), equals("ContentChildComp"));
 
     final LetBoundQueriedChildType childTemplate =
         childs.singleWhere((c) => c.field.fieldName == "contentChildTpl").query;
-    expect(childTemplate, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childTemplate, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childTemplate.letBoundName, equals("fooTpl"));
     expect(childTemplate.containerType.toString(), equals("TemplateRef"));
 
     final LetBoundQueriedChildType childElement = childs
         .singleWhere((c) => c.field.fieldName == "contentChildElem")
         .query;
-    expect(childElement, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childElement.letBoundName, equals("fooElem"));
     expect(childElement.containerType.toString(), equals("ElementRef"));
 
     final LetBoundQueriedChildType childDynamic = childs
         .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
         .query;
-    expect(childDynamic, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childDynamic, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childDynamic.letBoundName, equals("fooDynamic"));
     expect(childDynamic.containerType.toString(), equals("dynamic"));
 
@@ -2108,7 +2108,7 @@ class ContentChildComp {}
     final LetBoundQueriedChildType childrenDirective = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
         .query;
-    expect(childrenDirective, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenDirective, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenDirective.letBoundName, equals("foo"));
     expect(
         childrenDirective.containerType.toString(), equals("ContentChildComp"));
@@ -2116,21 +2116,21 @@ class ContentChildComp {}
     final LetBoundQueriedChildType childrenTemplate = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildTpl")
         .query;
-    expect(childrenTemplate, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenTemplate, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenTemplate.letBoundName, equals("fooTpl"));
     expect(childrenTemplate.containerType.toString(), equals("TemplateRef"));
 
     final LetBoundQueriedChildType childrenElement = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildElem")
         .query;
-    expect(childrenElement, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenElement.letBoundName, equals("fooElem"));
     expect(childrenElement.containerType.toString(), equals("ElementRef"));
 
     final LetBoundQueriedChildType childrenDynamic = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
         .query;
-    expect(childrenDynamic, new isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenDynamic, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenDynamic.letBoundName, equals("fooDynamic"));
     expect(childrenDynamic.containerType.toString(), equals("dynamic"));
 
@@ -2157,7 +2157,8 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<ElementRefQueriedChildType>());
+    expect(
+        childs.first.query, const isInstanceOf<ElementRefQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
@@ -2179,8 +2180,8 @@ class ComponentA {
     final component = directives.first;
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, new isInstanceOf<ElementRefQueriedChildType>());
+    expect(childrens.first.query,
+        const isInstanceOf<ElementRefQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
@@ -2202,8 +2203,8 @@ class ComponentA {
     final component = directives.first;
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, new isInstanceOf<TemplateRefQueriedChildType>());
+    expect(childrens.first.query,
+        const isInstanceOf<TemplateRefQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
@@ -2228,7 +2229,8 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<TemplateRefQueriedChildType>());
+    expect(
+        childs.first.query, const isInstanceOf<TemplateRefQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
@@ -2320,7 +2322,7 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType child = childs.first.query;
     expect(child.directive, equals(directives[1]));
 
@@ -2348,7 +2350,7 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType child = childs.first.query;
 
     expect(child.directive, equals(directives[1]));
@@ -2377,7 +2379,7 @@ class ContentChildCompSub extends ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(childs.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType child = childs.first.query;
     expect(child.directive, equals(directives[1]));
 
@@ -2406,7 +2408,7 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
     expect(children.directive, equals(directives[1]));
 
@@ -2437,7 +2439,7 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
 
     expect(children.directive, equals(directives[1]));
@@ -2487,7 +2489,7 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
 
     expect(children.directive, equals(directives[1]));
@@ -2515,7 +2517,7 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
 
     expect(children.directive, equals(directives[1]));
@@ -2565,7 +2567,7 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
 
     expect(children.directive, equals(directives[1]));
@@ -2596,7 +2598,7 @@ abstract class CannotSubtypeQueryList extends QueryList {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
     expect(
-        childrens.first.query, new isInstanceOf<DirectiveQueriedChildType>());
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
     final DirectiveQueriedChildType children = childrens.first.query;
     expect(children.directive, equals(directives[1]));
 
@@ -2966,7 +2968,7 @@ class TodoList {
             getResolvedRangeAtString(code, ranges, r'gotClicked($');
         expect(resolvedRange.range.length, 'gotClicked'.length);
         final element = (resolvedRange.element as DartElement).element;
-        expect(element, new isInstanceOf<MethodElement>());
+        expect(element, const isInstanceOf<MethodElement>());
         expect(element.name, 'gotClicked');
         expect(
             element.nameOffset, code.indexOf('gotClicked(MouseEvent event)'));
@@ -2976,7 +2978,7 @@ class TodoList {
             getResolvedRangeAtString(code, ranges, r"$event)'>");
         expect(resolvedRange.range.length, r'$event'.length);
         final element = (resolvedRange.element as LocalVariable).dartVariable;
-        expect(element, new isInstanceOf<LocalVariableElement>());
+        expect(element, const isInstanceOf<LocalVariableElement>());
         expect(element.name, r'$event');
         expect(element.nameOffset, -1);
       }
@@ -3031,7 +3033,7 @@ class User {
         final resolvedRange = getResolvedRangeAtString(code, ranges, 'user.');
         expect(resolvedRange.range.length, 'user'.length);
         final element = (resolvedRange.element as DartElement).element;
-        expect(element, new isInstanceOf<PropertyAccessorElement>());
+        expect(element, const isInstanceOf<PropertyAccessorElement>());
         expect(element.name, 'user');
         expect(element.nameOffset, code.indexOf('user; // 1'));
       }
@@ -3039,7 +3041,7 @@ class User {
         final resolvedRange = getResolvedRangeAtString(code, ranges, "name'>");
         expect(resolvedRange.range.length, 'name'.length);
         final element = (resolvedRange.element as DartElement).element;
-        expect(element, new isInstanceOf<PropertyAccessorElement>());
+        expect(element, const isInstanceOf<PropertyAccessorElement>());
         expect(element.name, 'name');
         expect(element.nameOffset, code.indexOf('name; // 2'));
       }
@@ -3485,7 +3487,7 @@ class ComponentA {
     await getDirectives(htmlSource, dartSource);
     final errors = errorListener.errors;
     expect(errors, hasLength(1));
-    expect(errors.first, new isInstanceOf<FromFilePrefixedError>());
+    expect(errors.first, const isInstanceOf<FromFilePrefixedError>());
     expect(errors.first.message,
         equals('Unresolved tag "unresolved-tag" (from /weird.dart)'));
   }

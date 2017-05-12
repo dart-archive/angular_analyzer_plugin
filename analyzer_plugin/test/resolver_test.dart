@@ -4175,26 +4175,23 @@ $code
         resolvedRange.element, resolvedRange.range.offset);
   }
 
-  ElementAssert _assertInputElement(String atString) {
-    return _assertElement(atString, _isInputElement);
-  }
+  ElementAssert _assertInputElement(String atString) =>
+      _assertElement(atString, _isInputElement);
 
-  ElementAssert _assertSelectorElement(String atString) {
-    return _assertElement(atString, _isSelectorName);
-  }
+  ElementAssert _assertSelectorElement(String atString) =>
+      _assertElement(atString, _isSelectorName);
 
   /// Return the [ResolvedRange] that starts at the position of the give
   /// [search] and, if specified satisfies the given [condition].
   ResolvedRange _findResolvedRange(String search,
-      [ResolvedRangeCondition condition]) {
-    return getResolvedRangeAtString(htmlCode, ranges, search, condition);
-  }
+          [ResolvedRangeCondition condition]) =>
+      getResolvedRangeAtString(htmlCode, ranges, search, condition);
 
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of the last one.
   Future _resolveSingleTemplate(Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
-    final finder = (AbstractDirective d) =>
+    bool finder(AbstractDirective d) =>
         d is Component && d.view.templateUriSource != null;
     fillErrorListener(result.errors);
     errorListener.assertNoErrors();
@@ -4208,13 +4205,11 @@ $code
     ranges = template.ranges;
   }
 
-  static bool _isInputElement(ResolvedRange region) {
-    return region.element is InputElement;
-  }
+  static bool _isInputElement(ResolvedRange region) =>
+      region.element is InputElement;
 
-  static bool _isSelectorName(ResolvedRange region) {
-    return region.element is SelectorName;
-  }
+  static bool _isSelectorName(ResolvedRange region) =>
+      region.element is SelectorName;
 }
 
 class ElementSearch extends AngularAstVisitor {

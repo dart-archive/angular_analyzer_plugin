@@ -5,6 +5,7 @@ import 'dart:collection';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
+import 'package:meta/meta.dart';
 
 enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
 
@@ -63,7 +64,7 @@ class AttributeSelector extends Selector {
   final bool isWildcard;
   final String value;
 
-  AttributeSelector(this.nameElement, this.value, this.isWildcard);
+  AttributeSelector(this.nameElement, this.value, {@required this.isWildcard});
 
   @override
   SelectorMatch match(ElementView element, Template template) {
@@ -447,6 +448,7 @@ class HtmlTagForSelector {
       ? true
       : _classes.length == 1 && _classes.first == _attributes["class"];
 
+  String get name => _name;
   set name(String name) {
     if (_name != null && _name != name) {
       _isValid = false;
@@ -473,15 +475,11 @@ class HtmlTagForSelector {
     _classes.add(classname);
   }
 
-  HtmlTagForSelector clone() {
-    final copy = new HtmlTagForSelector();
-    copy
-      ..name = _name
-      .._attributes = (<String, String>{}..addAll(_attributes))
-      .._isValid = _isValid
-      .._classes = new HashSet<String>.from(_classes);
-    return copy;
-  }
+  HtmlTagForSelector clone() => new HtmlTagForSelector()
+    ..name = _name
+    .._attributes = (<String, String>{}..addAll(_attributes))
+    .._isValid = _isValid
+    .._classes = new HashSet<String>.from(_classes);
 
   @override
   String toString() {
@@ -629,9 +627,8 @@ class SelectorParser {
         }
 
         selectors.add(new AttributeSelector(
-            new SelectorName(name, nameOffset, name.length, source),
-            value,
-            isWildcard));
+            new SelectorName(name, nameOffset, name.length, source), value,
+            isWildcard: isWildcard));
       } else if (currentMatchType == _SelectorRegexMatch.Comma) {
         advance();
         final rhs = parseNested();

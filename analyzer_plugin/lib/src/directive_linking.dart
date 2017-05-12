@@ -69,7 +69,9 @@ class DirectiveLinker {
         // is this correct lookup?
         final setter =
             classElem.lookUpSetter(inputSum.propName, classElem.library);
-        if (setter == null) continue;
+        if (setter == null) {
+          continue;
+        }
         inputs.add(new InputElement(
             inputSum.name,
             inputSum.nameOffset,
@@ -85,7 +87,9 @@ class DirectiveLinker {
         // is this correct lookup?
         final getter =
             classElem.lookUpGetter(outputSum.propName, classElem.library);
-        if (getter == null) continue;
+        if (getter == null) {
+          continue;
+        }
         outputs.add(new OutputElement(
             outputSum.name,
             outputSum.nameOffset,

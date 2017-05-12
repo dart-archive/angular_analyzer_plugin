@@ -11,7 +11,7 @@ import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
 import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:analyzer/src/summary/api_signature.dart';
+import 'package:front_end/src/base/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
@@ -85,6 +85,8 @@ class AngularDriver
   set priorityFiles(List<String> priorityPaths) {
     // TODO analyze these files first
   }
+
+  List<String> get priorityFiles => [];
 
   /// Notify the driver that the client is going to stop using it.
   @override
@@ -416,7 +418,9 @@ class AngularDriver
     final unit = (await dartDriver.getUnitElement(dartPath)).element;
     final htmlSource = _sourceFactory.forUri('file:$htmlPath');
 
-    if (unit == null) return null;
+    if (unit == null) {
+      return null;
+    }
     final context = unit.context;
     final dartSource = _sourceFactory.forUri('file:$dartPath');
     final htmlContent = getFileContent(htmlPath);
@@ -534,7 +538,9 @@ class AngularDriver
 
   Future pushDartErrors(String path) async {
     final result = await resolveDart(path);
-    if (result == null) return;
+    if (result == null) {
+      return;
+    }
     final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));
     final serverErrors = protocol.doAnalysisError_listFromEngine(
@@ -585,7 +591,9 @@ class AngularDriver
     final result = await getDirectives(path);
     final directives = result.directives;
     final unit = (await dartDriver.getUnitElement(path)).element;
-    if (unit == null) return null;
+    if (unit == null) {
+      return null;
+    }
     final context = unit.context;
     final source = unit.source;
 

@@ -1,5 +1,5 @@
-import 'dart:math';
 import 'dart:async';
+import 'dart:math';
 
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:front_end/src/scanner/token.dart';
@@ -640,7 +640,9 @@ class CounterComponent {
     if (mismatchDescription.length > 0) {
       description.add('   Which: $mismatchDescription\n');
     }
-    if (reason != null) description.add(reason).add('\n');
+    if (reason != null) {
+      description.add(reason).add('\n');
+    }
 
     print(description.toString());
     return new Future.error(description);
