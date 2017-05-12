@@ -15,7 +15,6 @@ import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:meta/meta.dart';
 
-
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
   final Source templateSource;
@@ -59,7 +58,7 @@ class HtmlTreeConverter {
         properties: node.properties,
         references: node.references,
         stars: node.stars,
-      ) ..sort((a, b) => a.offset.compareTo(b.offset));
+      )..sort((a, b) => a.offset.compareTo(b.offset));
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
       SourceRange openingNameSpan;
@@ -86,15 +85,16 @@ class HtmlTreeConverter {
       }
 
       final element = new ElementInfo(
-          localName,
-          openingSpan,
-          closingSpan,
-          openingNameSpan,
-          closingNameSpan,
-          attributes,
-          findTemplateAttribute(attributes),
-          parent,
-          isTemplate: false,);
+        localName,
+        openingSpan,
+        closingSpan,
+        openingNameSpan,
+        closingNameSpan,
+        attributes,
+        findTemplateAttribute(attributes),
+        parent,
+        isTemplate: false,
+      );
 
       for (final attribute in attributes) {
         attribute.parent = element;
@@ -154,8 +154,17 @@ class HtmlTreeConverter {
             new SourceRange(closingSpan.offset + '</'.length, localName.length);
       }
 
-      final ngContent = new ElementInfo(localName, openingSpan, closingSpan,
-          openingNameSpan, closingNameSpan, attributes, null, parent, isTemplate: false,);
+      final ngContent = new ElementInfo(
+        localName,
+        openingSpan,
+        closingSpan,
+        openingNameSpan,
+        closingNameSpan,
+        attributes,
+        null,
+        parent,
+        isTemplate: false,
+      );
 
       for (final attribute in attributes) {
         attribute.parent = ngContent;
@@ -200,14 +209,16 @@ class HtmlTreeConverter {
       }
 
       final element = new ElementInfo(
-          localName,
-          openingSpan,
-          closingSpan,
-          openingNameSpan,
-          closingNameSpan,
-          attributes,
-          findTemplateAttribute(attributes),
-          parent, isTemplate: false,);
+        localName,
+        openingSpan,
+        closingSpan,
+        openingNameSpan,
+        closingNameSpan,
+        attributes,
+        findTemplateAttribute(attributes),
+        parent,
+        isTemplate: false,
+      );
 
       for (final attribute in attributes) {
         attribute.parent = element;
@@ -261,7 +272,7 @@ class HtmlTreeConverter {
         if (attribute.valueToken != null) {
           value = attribute.valueToken.innerValue.lexeme;
           valueOffset = attribute.valueToken.innerValue.offset;
-       }
+        }
         returnAttributes.add(new TextAttribute(
           attribute.name,
           attribute.nameOffset,
@@ -322,7 +333,8 @@ class HtmlTreeConverter {
 
       String fullAstName;
       if (value != null) {
-        final whitespacePad = ' ' * (ast.valueToken.innerValue.offset - ast.nameToken.end);
+        final whitespacePad =
+            ' ' * (ast.valueToken.innerValue.offset - ast.nameToken.end);
         fullAstName = "${ast.name}$whitespacePad${value ?? ''}";
       } else {
         fullAstName = '${ast.name} ';
@@ -360,7 +372,8 @@ class HtmlTreeConverter {
     return templateAttribute;
   }
 
-  StatementsBoundAttribute _convertStatementsBoundAttribute(ParsedEventAst ast) {
+  StatementsBoundAttribute _convertStatementsBoundAttribute(
+      ParsedEventAst ast) {
     final prefixComponent =
         (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme);
     final suffixComponent =
@@ -399,10 +412,12 @@ class HtmlTreeConverter {
     final parsed = ast as ParsedDecoratorAst;
     String origName;
     {
-      final _prefix = parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme;
-      final _suffix = (parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
-          ? ''
-          : parsed.suffixToken.lexeme;
+      final _prefix =
+          parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme;
+      final _suffix =
+          (parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
+              ? ''
+              : parsed.suffixToken.lexeme;
       origName = '$_prefix${parsed.nameToken.lexeme}$_suffix';
     }
     final origNameOffset = parsed.prefixToken.offset;
@@ -457,7 +472,8 @@ class HtmlTreeConverter {
         valueOffset,
         origName,
         origNameOffset,
-        dartParser.parseDartExpression(valueOffset, value, detectTrailing: true),
+        dartParser.parseDartExpression(valueOffset, value,
+            detectTrailing: true),
         bound);
   }
 
@@ -487,7 +503,8 @@ class HtmlTreeConverter {
     return null;
   }
 
-  SourceRange _toSourceRange(int offset, int length) => new SourceRange(offset, length);
+  SourceRange _toSourceRange(int offset, int length) =>
+      new SourceRange(offset, length);
 }
 
 class EmbeddedDartParser {
@@ -499,7 +516,8 @@ class EmbeddedDartParser {
       this.templateSource, this.errorListener, this.errorReporter);
 
   /// Parse the given Dart [code] that starts at [offset].
-  Expression parseDartExpression(int offset, String code, {@required bool detectTrailing}) {
+  Expression parseDartExpression(int offset, String code,
+      {@required bool detectTrailing}) {
     if (code == null) {
       return null;
     }
@@ -653,8 +671,8 @@ class EmbeddedDartParser {
       }
       // resolve
       final code = text.substring(exprBegin, exprEnd);
-      final expression =
-          parseDartExpression(fileOffset + exprBegin, code, detectTrailing: detectTrailing);
+      final expression = parseDartExpression(fileOffset + exprBegin, code,
+          detectTrailing: detectTrailing);
 
       final offset = fileOffset + begin;
 
@@ -825,6 +843,10 @@ class EmbeddedDartParser {
       _tokenMatchesBuiltInIdentifier(token);
 }
 
-class IgnorableHtmlInternalError extends StateError {
-  IgnorableHtmlInternalError(String msg) : super(msg);
+class IgnorableHtmlInternalException implements Exception {
+  String msg;
+  IgnorableHtmlInternalException(this.msg);
+
+  @override
+  String toString() => "IgnorableHtmlInternalException: $msg";
 }

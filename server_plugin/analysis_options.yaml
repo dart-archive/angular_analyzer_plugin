@@ -9,7 +9,6 @@ linter:
     - always_require_non_null_named_parameters
     - annotate_overrides
     - avoid_annotating_with_dynamic
-    - avoid_catches_without_on_clauses
     - avoid_catching_errors
     - avoid_classes_with_only_static_members
     - avoid_empty_else

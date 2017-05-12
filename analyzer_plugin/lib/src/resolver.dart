@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver;
 
 import 'dart:collection';
+import 'package:meta/meta.dart';
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
@@ -198,10 +199,8 @@ class _DartReferencesRecorder extends RecursiveAstVisitor {
   void visitSimpleIdentifier(SimpleIdentifier node) {
     final dartElement = node.bestElement;
     if (dartElement != null) {
-      var angularElement = dartToAngularMap[dartElement];
-      if (angularElement == null) {
-        angularElement = new DartElement(dartElement);
-      }
+      final angularElement =
+          dartToAngularMap[dartElement] ?? new DartElement(dartElement);
       final range = new SourceRange(node.offset, node.length);
       template.addRange(range, angularElement);
     }
@@ -478,10 +477,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
         offset += prefixLen;
 
         // prepare internal variable name
-        var internalName = attribute.value;
-        if (internalName == null) {
-          internalName = r'$implicit';
-        }
+        final internalName = attribute.value ?? r'$implicit';
 
         // maybe an internal variable reference
         DartType type;
@@ -504,9 +500,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
         }
 
         // any unmatched values should be dynamic to prevent secondary errors
-        if (type == null) {
-          type = typeProvider.dynamicType;
-        }
+        type ??= typeProvider.dynamicType;
 
         // add a new local variable with type
         final localVariableElement =
@@ -559,8 +553,8 @@ class DartVariableManager {
     // ensure artificial Dart elements in the template source
     if (htmlMethodElement == null) {
       htmlCompilationUnitElement =
-          new CompilationUnitElementImpl(templateSource.fullName);
-      htmlCompilationUnitElement.source = templateSource;
+          new CompilationUnitElementImpl(templateSource.fullName)
+            ..source = templateSource;
       htmlClassElement = new ClassElementImpl('AngularTemplateClass', -1);
       htmlCompilationUnitElement.types = <ClassElement>[htmlClassElement];
       htmlMethodElement = new MethodElementImpl('angularTemplateMethod', -1);
@@ -856,8 +850,8 @@ class ComponentContentResolver extends AngularAstVisitor {
     }
 
     if (!tagIsStandard) {
-      checkTransclusionsContentChildren(
-          component, element.childNodes, tagIsStandard);
+      checkTransclusionsContentChildren(component, element.childNodes,
+          tagIsStandard: tagIsStandard);
     }
 
     for (final child in element.childNodes) {
@@ -866,7 +860,8 @@ class ComponentContentResolver extends AngularAstVisitor {
   }
 
   void checkTransclusionsContentChildren(
-      Component component, List<NodeInfo> children, bool tagIsStandard) {
+      Component component, List<NodeInfo> children,
+      {@required bool tagIsStandard}) {
     if (component?.ngContents == null) {
       return;
     }
@@ -1005,7 +1000,6 @@ class SingleScopeResolver extends AngularScopeVisitor {
   TypeProvider typeProvider;
   AnalysisErrorListener errorListener;
   ErrorReporter errorReporter;
-
 
   static var styleWithPercent = new Set<String>.from(<String>[
     'border-bottom-left-radius',
@@ -1361,7 +1355,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       astNode.accept(visitor);
     }
     final resolver = new AngularResolverVisitor(
-        library, templateSource, typeProvider, errorListener, acceptAssignment);
+        library, templateSource, typeProvider, errorListener,
+        acceptAssignment: acceptAssignment);
     // fill the name scope
     final classScope = new ClassScope(resolver.nameScope, classElement);
     final localScope = new EnclosedScope(classScope);
@@ -1373,8 +1368,9 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    final verifier = new AngularErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), acceptAssignment);
+    final verifier = new AngularErrorVerifier(
+        errorReporter, library, typeProvider, new InheritanceManager(library),
+        acceptAssignment: acceptAssignment);
     astNode.accept(verifier);
   }
 
@@ -1446,12 +1442,9 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
     with ReportUnacceptableNodesMixin {
   final bool acceptAssignment;
 
-  AngularResolverVisitor(
-      LibraryElement library,
-      Source source,
-      TypeProvider typeProvider,
-      AnalysisErrorListener errorListener,
-      this.acceptAssignment)
+  AngularResolverVisitor(LibraryElement library, Source source,
+      TypeProvider typeProvider, AnalysisErrorListener errorListener,
+      {@required this.acceptAssignment})
       : super(library, source, typeProvider, errorListener);
 
   @override
@@ -1529,12 +1522,9 @@ class AngularErrorVerifier extends ErrorVerifier
   @override
   TypeProvider typeProvider;
 
-  AngularErrorVerifier(
-      ErrorReporter errorReporter,
-      LibraryElement library,
-      TypeProvider typeProvider,
-      InheritanceManager inheritanceManager,
-      this.acceptAssignment)
+  AngularErrorVerifier(ErrorReporter errorReporter, LibraryElement library,
+      TypeProvider typeProvider, InheritanceManager inheritanceManager,
+      {@required this.acceptAssignment})
       : errorReporter = errorReporter,
         typeProvider = typeProvider,
         super(errorReporter, library, typeProvider, inheritanceManager, false);

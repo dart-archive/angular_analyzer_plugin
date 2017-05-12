@@ -216,11 +216,11 @@ class TemplateParser {
     for (final e in exceptionHandler.exceptions) {
       if (e.errorCode is ng_ast.NgParserWarningCode) {
         parseErrors.add(new AnalysisError(
-              source,
-              e.offset,
-              e.length,
-              errorMap[e.errorCode] ?? e.errorCode,
-            ));
+          source,
+          e.offset,
+          e.length,
+          errorMap[e.errorCode] ?? e.errorCode,
+        ));
       }
     }
   }

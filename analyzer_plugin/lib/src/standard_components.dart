@@ -122,8 +122,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   }
 
   List<InputElement> _buildInputs(bool skipHtmlElement) =>
-      _captureAspects((Map<String, InputElement> inputMap,
-          PropertyAccessorElement accessor) {
+      _captureAspects((inputMap, accessor) {
         final name = accessor.displayName;
         if (!inputMap.containsKey(name)) {
           if (accessor.isSetter) {
@@ -140,8 +139,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them
 
   List<OutputElement> _buildOutputs(bool skipHtmlElement) =>
-      _captureAspects((Map<String, OutputElement> outputMap,
-          PropertyAccessorElement accessor) {
+      _captureAspects((outputMap, accessor) {
         final domName = _getDomName(accessor);
         if (domName == null) {
           return;

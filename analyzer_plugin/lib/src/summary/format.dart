@@ -5,10 +5,10 @@
 // This file has been automatically generated.  Please do not edit it manually.
 // To regenerate the file, use the script "pkg/analyzer/tool/generate_files".
 
-import 'package:analyzer/src/summary/flat_buffers.dart' as fb;
+import 'package:front_end/src/base/flat_buffers.dart' as fb;
 import 'idl.dart' as idl;
 import 'dart:convert' as convert;
-import 'package:analyzer/src/summary/api_signature.dart' as api_sig;
+import 'package:front_end/src/base/api_signature.dart' as api_sig;
 
 class PackageBundleBuilder extends Object
     with _PackageBundleMixin

@@ -520,7 +520,7 @@ class MockSdk implements DartSdk {
         uriMap = dartAsync ? FULL_URI_MAP : NO_ASYNC_URI_MAP {
     for (_MockSdkLibrary library in sdkLibraries) {
       provider.newFile(provider.convertPath(library.path), library.content);
-      library.parts.forEach((String path, String content) {
+      library.parts.forEach((path, content) {
         provider.newFile(provider.convertPath(path), content);
       });
     }
@@ -553,7 +553,7 @@ class MockSdk implements DartSdk {
 
   @override
   List<String> get uris =>
-      sdkLibraries.map((SdkLibrary library) => library.shortName).toList();
+      sdkLibraries.map((library) => library.shortName).toList();
 
   @override
   Source fromFileUri(Uri uri) {
@@ -644,9 +644,8 @@ class MockSdk implements DartSdk {
 
   /// Compute the bytes of the linked bundle associated with this SDK.
   List<int> _computeLinkedBundleBytes() {
-    final librarySources = sdkLibraries
-        .map((SdkLibrary library) => mapDartUri(library.shortName))
-        .toList();
+    final librarySources =
+        sdkLibraries.map((library) => mapDartUri(library.shortName)).toList();
     return new SummaryBuilder(
             librarySources, context, context.analysisOptions.strongMode)
         .build();

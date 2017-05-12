@@ -328,7 +328,7 @@ class NgFor {
       ErrorCode errCode, String code, String snippet) {
     final snippetIndex = code.indexOf(snippet);
     expect(snippetIndex, greaterThan(-1),
-        reason: 'Error in test: snippet ${snippet} not part of code ${code}');
+        reason: 'Error in test: snippet $snippet not part of code $code');
     errorListener.assertErrorsWithCodes(<ErrorCode>[errCode]);
     final error = errorListener.errors.single;
     expect(error.offset, snippetIndex);
@@ -423,7 +423,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
     //
     // Compare the expected and actual number of each type of error.
     //
-    expectedCounts.forEach((ErrorCode code, int expectedCount) {
+    expectedCounts.forEach((code, expectedCount) {
       int actualCount;
       final list = errorsByCode.remove(code);
       if (list == null) {
@@ -449,7 +449,7 @@ class GatheringErrorListener implements AnalysisErrorListener {
     // Check that there are no more errors in the actual-errors map,
     // otherwise record message.
     //
-    errorsByCode.forEach((ErrorCode code, List<AnalysisError> actualErrors) {
+    errorsByCode.forEach((code, actualErrors) {
       final actualCount = actualErrors.length;
       if (buffer.isEmpty) {
         buffer.write("Expected ");

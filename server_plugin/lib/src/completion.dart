@@ -110,7 +110,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
       final analysisErrorListener = new IgnoringAnalysisErrorListener();
       final dartParser =
           new EmbeddedDartParser(null, analysisErrorListener, null);
-      dartSnippet = dartParser.parseDartExpression(offset, '', false);
+      dartSnippet =
+          dartParser.parseDartExpression(offset, '', detectTrailing: false);
     }
   }
 }
@@ -155,7 +156,7 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   ReplacementRangeCalculator(this.request);
 
   @override
-  visitDocumentInfo(DocumentInfo document) {}
+  void visitDocumentInfo(DocumentInfo document) {}
 
   // don't recurse, findTarget already did that
   @override
@@ -260,18 +261,18 @@ class TemplateCompleter {
   static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
 
   Future<List<CompletionSuggestion>> computeSuggestions(
-<<<<<<< HEAD
       CompletionRequest request,
-      List<Template> templates,
+      Template template,
       List<OutputElement> standardHtmlEvents,
-      List<InputElement> standardHtmlAttributes) async {
-    var suggestions = <CompletionSuggestion>[];
-    for (Template template in templates) {
-      var target = findTarget(request.offset, template.ast);
-      target.accept(new ReplacementRangeCalculator(request));
-      var extractor = new DartSnippetExtractor();
-      extractor.offset = request.offset;
-      target.accept(extractor);
+      List<InputElement> standardHtmlAttributes,
+  ) async {
+    final suggestions = <CompletionSuggestion>[];
+    final typeProvider = template.view.component.classElement.enclosingElement
+        .enclosingElement.context.typeProvider;
+    final target = findTarget(request.offset, template.ast)
+      ..accept(new ReplacementRangeCalculator(request));
+    final extractor = new DartSnippetExtractor()..offset = request.offset;
+    target.accept(extractor);
 
       // If [CompletionRequest] is in
       // [StatementsBoundAttribute],
@@ -279,30 +280,28 @@ class TemplateCompleter {
       // [Mustache],
       // [TemplateAttribute].
       if (extractor.dartSnippet != null) {
-        var dartRequest = new EmbeddedDartCompletionRequest.from(
+        final dartRequest = new EmbeddedDartCompletionRequest.from(
             request, extractor.dartSnippet);
-        var range = new ReplacementRange.compute(
+        final range = new ReplacementRange.compute(
             dartRequest.offset, dartRequest.target);
         (request as CompletionRequestImpl)
           ..replacementOffset = range.offset
           ..replacementLength = range.length;
 
         dartRequest.libraryElement = template.view.classElement.library;
-        var memberContributor = new TypeMemberContributor();
-        var inheritedContributor = new InheritedReferenceContributor();
+        final memberContributor = new TypeMemberContributor();
+        final inheritedContributor = new InheritedReferenceContributor();
 
-        suggestions.addAll(
+        suggestions..addAll(
           inheritedContributor.computeSuggestionsForClass(
             template.view.classElement,
             dartRequest,
             skipChildClass: false,
           ),
-        );
-        suggestions
-            .addAll(await memberContributor.computeSuggestions(dartRequest));
+        )..addAll(await memberContributor.computeSuggestions(dartRequest));
 
         if (dartRequest.opType.includeIdentifiers) {
-          var varExtractor = new LocalVariablesExtractor();
+          final varExtractor = new LocalVariablesExtractor();
           target.accept(varExtractor);
           if (varExtractor.variables != null) {
             addLocalVariables(
@@ -323,16 +322,14 @@ class TemplateCompleter {
             if (target.parent != null || target.parent is! DocumentInfo) {
               suggestTransclusions(target.parent, suggestions);
             }
-          } else {
-            // Directly within closing tag; suggest nothing. Ex: '</div^>'
-            continue;
           }
         }
-        if (!offsetContained(request.offset, target.openingNameSpan.offset,
+        else if (!offsetContained(request.offset, target.openingNameSpan.offset,
             target.openingNameSpan.length)) {
           // If request is not in [openingNameSpan], suggest decorators.
           suggestInputs(target.boundDirectives, suggestions,
-              standardHtmlAttributes, target.boundStandardInputs);
+              standardHtmlAttributes, target.boundStandardInputs, typeProvider,
+              includePlainAttributes: true);
           suggestOutputs(target.boundDirectives, suggestions,
               standardHtmlEvents, target.boundStandardOutputs);
         } else {
@@ -347,7 +344,7 @@ class TemplateCompleter {
           offsetContained(request.offset, target.originalNameOffset,
               target.originalName.length)) {
         suggestInputs(target.parent.boundDirectives, suggestions,
-            standardHtmlAttributes, target.parent.boundStandardInputs,
+            standardHtmlAttributes, target.parent.boundStandardInputs,typeProvider,
             currentAttr: target);
       } else if (target is StatementsBoundAttribute) {
         suggestOutputs(target.parent.boundDirectives, suggestions,
@@ -355,7 +352,8 @@ class TemplateCompleter {
             currentAttr: target);
       } else if (target is TemplateAttribute) {
         suggestInputs(target.parent.boundDirectives, suggestions,
-            standardHtmlAttributes, target.parent.boundStandardInputs);
+            standardHtmlAttributes, target.parent.boundStandardInputs, typeProvider,
+            includePlainAttributes: true);
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs);
       } else if (target is TextAttribute &&
@@ -363,140 +361,15 @@ class TemplateCompleter {
           offsetContained(
               request.offset, target.nameOffset, target.name.length)) {
         suggestInputs(target.parent.boundDirectives, suggestions,
-            standardHtmlAttributes, target.parent.boundStandardInputs);
+            standardHtmlAttributes, target.parent.boundStandardInputs, typeProvider,
+            includePlainAttributes: true);
         suggestOutputs(target.parent.boundDirectives, suggestions,
             standardHtmlEvents, target.parent.boundStandardOutputs);
       } else if (target is TextInfo) {
         suggestHtmlTags(template, suggestions);
         suggestTransclusions(target.parent, suggestions);
-=======
-    CompletionRequest request,
-    Template template,
-    List<OutputElement> standardHtmlEvents,
-    List<InputElement> standardHtmlAttributes,
-  ) async {
-    final suggestions = <CompletionSuggestion>[];
-    final typeProvider = template.view.component.classElement.enclosingElement
-        .enclosingElement.context.typeProvider;
-    final target = findTarget(request.offset, template.ast)
-      ..accept(new ReplacementRangeCalculator(request));
-    final extractor = new DartSnippetExtractor();
-    extractor.offset = request.offset;
-    target.accept(extractor);
-    if (extractor.dartSnippet != null) {
-      final dartRequest = new EmbeddedDartCompletionRequest.from(
-          request, extractor.dartSnippet);
-
-      final range =
-          new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
-      (request as CompletionRequestImpl)
-        ..replacementOffset = range.offset
-        ..replacementLength = range.length;
-
-      dartRequest.libraryElement = template.view.classElement.library;
-      final memberContributor = new TypeMemberContributor();
-      final inheritedContributor = new InheritedReferenceContributor();
-      suggestions
-        ..addAll(inheritedContributor.computeSuggestionsForClass(
-            template.view.classElement, dartRequest,
-            skipChildClass: false))
-        ..addAll(await memberContributor.computeSuggestions(dartRequest));
-
-      if (dartRequest.opType.includeIdentifiers) {
-        final varExtractor = new LocalVariablesExtractor();
-        target.accept(varExtractor);
-        if (varExtractor.variables != null) {
-          addLocalVariables(
-              suggestions, varExtractor.variables, dartRequest.opType);
-        }
       }
-    } else if (target is ElementInfo &&
-        target.openingSpan == null &&
-        target.localName == 'html' &&
-        target.childNodes.isNotEmpty &&
-        target.childNodes.length == 2 &&
-        target.childNodes[1] is ElementInfo &&
-        (target.childNodes[1] as ElementInfo).localName == 'body' &&
-        (target.childNodes[1] as ElementInfo).childNodes.isEmpty) {
-      //On an empty document
-      suggestHtmlTags(template, suggestions);
-    } else if (target is ElementInfo &&
-        target.openingSpan != null &&
-        target.openingNameSpan != null &&
-        (offsetContained(request.offset, target.openingSpan.offset,
-            target.openingSpan.length))) {
-      if (!offsetContained(request.offset, target.openingNameSpan.offset,
-          target.openingNameSpan.length)) {
-        // TODO suggest these things if the target is ExpressionBoundInput with
-        // boundType of input
-        suggestInputs(target.boundDirectives, suggestions,
-            standardHtmlAttributes, target.boundStandardInputs, typeProvider,
-            includePlainAttributes: true);
-        suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
-            target.boundStandardOutputs);
-      } else {
-        suggestHtmlTags(template, suggestions);
-        if (target.parent != null) {
-          suggestTransclusions(target.parent, suggestions);
-        }
->>>>>>> fcd746c9ff0bd945b5f58cd4dd4075715c87bb0b
-      }
-    } else if (target is ElementInfo &&
-        target.openingSpan != null &&
-        target.openingNameSpan != null &&
-        target.closingSpan != null &&
-        target.closingNameSpan != null &&
-        request.offset ==
-            (target.closingSpan.offset + target.closingSpan.length)) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target.parent, suggestions);
-    } else if (target is ElementInfo &&
-        target.openingSpan != null &&
-        request.offset == target.childNodesMaxEnd) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target, suggestions);
-    } else if (target is ElementInfo) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target, suggestions);
-    } else if (target is ExpressionBoundAttribute &&
-        target.bound == ExpressionBoundType.input &&
-        offsetContained(request.offset, target.originalNameOffset,
-            target.originalName.length)) {
-      suggestInputs(
-          target.parent.boundDirectives,
-          suggestions,
-          standardHtmlAttributes,
-          target.parent.boundStandardInputs,
-          typeProvider,
-          currentAttr: target);
-    } else if (target is StatementsBoundAttribute) {
-      suggestOutputs(target.parent.boundDirectives, suggestions,
-          standardHtmlEvents, target.parent.boundStandardOutputs,
-          currentAttr: target);
-    } else if (target is TemplateAttribute) {
-      suggestInputs(
-          target.parent.boundDirectives,
-          suggestions,
-          standardHtmlAttributes,
-          target.parent.boundStandardInputs,
-          typeProvider,
-          includePlainAttributes: true);
-      suggestOutputs(target.parent.boundDirectives, suggestions,
-          standardHtmlEvents, target.parent.boundStandardOutputs);
-    } else if (target is TextAttribute) {
-      suggestInputs(
-          target.parent.boundDirectives,
-          suggestions,
-          standardHtmlAttributes,
-          target.parent.boundStandardInputs,
-          typeProvider,
-          includePlainAttributes: true);
-      suggestOutputs(target.parent.boundDirectives, suggestions,
-          standardHtmlEvents, target.parent.boundStandardOutputs);
-    } else if (target is TextInfo) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target.parent, suggestions);
-    }
+
     return suggestions;
   }
 

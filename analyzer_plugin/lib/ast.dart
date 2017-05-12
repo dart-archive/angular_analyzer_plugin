@@ -385,8 +385,8 @@ class ElementInfo extends NodeInfo implements HasDirectives {
       this.closingNameSpan,
       this.attributes,
       this.templateAttribute,
-      this.parent, {@required bool isTemplate}) : this.isTemplate = isTemplate
-      {
+      this.parent,
+      {@required this.isTemplate}) {
     if (!isSynthetic) {
       childNodesMaxEnd = offset + length;
     }

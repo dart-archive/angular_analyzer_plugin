@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import 'package:analyzer/src/summary/api_signature.dart';
+import 'package:front_end/src/base/api_signature.dart';
 
 abstract class FileHasher {
   ApiSignature getContentHash(String path);
@@ -33,6 +33,7 @@ class FileTracker {
   void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) =>
       _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
 
+  // ignore: avoid_positional_boolean_parameters
   void setDartHasTemplate(String dartPath, bool hasTemplate) {
     if (hasTemplate) {
       _dartFilesWithDartTemplates.add(dartPath);

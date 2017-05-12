@@ -11,7 +11,7 @@ import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
 import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:analyzer/src/summary/api_signature.dart';
+import 'package:front_end/src/base/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
@@ -85,6 +85,8 @@ class AngularDriver
   set priorityFiles(List<String> priorityPaths) {
     // TODO analyze these files first
   }
+
+  List<String> get priorityFiles => [];
 
   /// Notify the driver that the client is going to stop using it.
   @override

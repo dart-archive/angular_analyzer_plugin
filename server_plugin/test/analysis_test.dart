@@ -64,9 +64,8 @@ class AngularNavigationContributorTest extends AbstractAngularTaskTest {
   @override
   void setUp() {
     super.setUp();
-    when(collector.addRegion(anyInt, anyInt, anyObject, anyObject)).thenInvoke(
-        (int offset, int length, protocol.ElementKind targetKind,
-            protocol.Location targetLocation) {
+    when(collector.addRegion(anyInt, anyInt, anyObject, anyObject))
+        .thenInvoke((offset, length, targetKind, targetLocation) {
       regions.add(new _RecordedNavigationRegion(
           offset, length, targetKind, targetLocation));
     });
@@ -396,11 +395,11 @@ class AbstractAngularTaskTest {
       ..add(new AngularAnalyzerPlugin()));
     emptySource = newSource('/test.dart');
     // prepare AnalysisContext
-    context = new AnalysisContextImpl();
-    context.sourceFactory = new SourceFactory(<UriResolver>[
-      new DartUriResolver(sdk),
-      new ResourceUriResolver(resourceProvider)
-    ]);
+    context = new AnalysisContextImpl()
+      ..sourceFactory = new SourceFactory(<UriResolver>[
+        new DartUriResolver(sdk),
+        new ResourceUriResolver(resourceProvider)
+      ]);
     // configure AnalysisDriver
     analysisDriver = context.driver;
   }
