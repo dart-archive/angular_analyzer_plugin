@@ -1167,6 +1167,7 @@ class TestPanel {
       new Tuple4(']', 1,
           NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
       new Tuple4('[', 14, NgParserWarningCode.SUFFIX_PROPERTY, []),
+      new Tuple4('*property', 9, AngularWarningCode.TEMPLATE_ATTR_NOT_USED, []),
     ]);
   }
 
