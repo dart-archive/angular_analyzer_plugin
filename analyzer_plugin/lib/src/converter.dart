@@ -14,6 +14,8 @@ import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:meta/meta.dart';
+import 'package:tuple/tuple.dart';
+import 'package:source_span/source_span.dart';
 
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;
@@ -311,6 +313,7 @@ class HtmlTreeConverter {
 
   TemplateAttribute _convertTemplateAttribute(TemplateAst ast) {
     String name;
+    String prefix;
     int nameOffset;
 
     String value;
@@ -340,8 +343,10 @@ class HtmlTreeConverter {
         fullAstName = '${ast.name} ';
       }
 
-      virtualAttributes =
+      final tuple =
           dartParser.parseTemplateVirtualAttributes(nameOffset, fullAstName);
+      virtualAttributes = tuple.item2;
+      prefix = tuple.item1;
     }
     if (ast is ParsedAttributeAst) {
       value = ast.value;
@@ -358,12 +363,13 @@ class HtmlTreeConverter {
             origName.length, AngularWarningCode.EMPTY_BINDING, [origName]));
       } else {
         virtualAttributes =
-            dartParser.parseTemplateVirtualAttributes(valueOffset, value);
+            dartParser.parseTemplateVirtualAttributes(valueOffset, value).item2;
       }
     }
 
     final templateAttribute = new TemplateAttribute(name, nameOffset, value,
-        valueOffset, origName, origNameOffset, virtualAttributes);
+        valueOffset, origName, origNameOffset, virtualAttributes,
+        prefix: prefix);
 
     for (final virtualAttribute in virtualAttributes) {
       virtualAttribute.parent = templateAttribute;
@@ -700,7 +706,8 @@ class EmbeddedDartParser {
 
   /// Desugar a template="" or *blah="" attribute into its list of virtual
   /// [AttributeInfo]s
-  List<AttributeInfo> parseTemplateVirtualAttributes(int offset, String code) {
+  Tuple2<String, List<AttributeInfo>> parseTemplateVirtualAttributes(
+      int offset, String code) {
     final attributes = <AttributeInfo>[];
 
     var token = _scanDartCode(offset, code);
@@ -733,7 +740,8 @@ class EmbeddedDartParser {
           localVarName = token.lexeme;
           // ignore: prefer_interpolation_to_compose_strings
           originalName +=
-              ' ' * (token.offset - originalVarOffset) + localVarName;
+              ' ' * (token.offset - originalVarOffset - 'let'.length) +
+                  localVarName;
           token = token.next;
         }
 
@@ -813,7 +821,7 @@ class EmbeddedDartParser {
             key,
             keyOffset,
             exprCode,
-            token.offset,
+            expression.offset,
             originalName,
             originalNameOffset,
             expression,
@@ -824,7 +832,7 @@ class EmbeddedDartParser {
       }
     }
 
-    return attributes;
+    return new Tuple2(prefix, attributes);
   }
 
   static bool _isDelimiter(Token token) =>

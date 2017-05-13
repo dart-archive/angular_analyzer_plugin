@@ -19,10 +19,11 @@ import 'package:analyzer/source/package_map_resolver.dart';
 import 'package:analyzer/task/model.dart';
 import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart' as non_task
-    show AnalysisDriver, AnalysisDriverScheduler, PerformanceLog;
+    show AnalysisDriver, AnalysisDriverScheduler;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
+import 'package:front_end/src/base/performace_logger.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -412,6 +413,7 @@ library angular2;
 
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
+export 'src/core/linker/template_ref.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
@@ -536,9 +538,11 @@ class EventEmitter<T> extends Stream<T> {
         r'''
 library angular2.ng_if;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
+  NgIf(TemplateRef tpl);
   set ngIf(newCondition) {}
 }
 ''');
@@ -547,13 +551,25 @@ class NgIf {
         r'''
 library angular2.ng_for;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(
     selector: "[ngFor][ngForOf]",
-    inputs: const ["ngForOf", "ngForTemplate"])
+    inputs: const ["ngForOf", "ngForTemplate", "ngForTrackBy"])
 class NgFor {
+  NgFor(TemplateRef tpl);
   set ngForOf(dynamic value) {}
+  set ngForTrackBy(TrackByFn value) {}
 }
+
+typedef dynamic TrackByFn(num index, dynamic item);
+''');
+    newSource(
+        '/angular2/src/core/linker/template_ref.dart',
+        r'''
+library angular2.template_ref;
+
+class TemplateRef {}
 ''');
   }
 
@@ -587,7 +603,7 @@ class AbstractAngularTest {
   GatheringErrorListener errorListener;
 
   void setUp() {
-    final logger = new non_task.PerformanceLog(new StringBuffer());
+    final logger = new PerformanceLog(new StringBuffer());
     final byteStore = new MemoryByteStore();
 
     final scheduler = new non_task.AnalysisDriverScheduler(logger)..start();
@@ -645,6 +661,7 @@ library angular2;
 
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
+export 'src/core/linker/template_ref.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
@@ -769,9 +786,11 @@ class EventEmitter<T> extends Stream<T> {
         r'''
 library angular2.ng_if;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
+  NgIf(TemplateRef tpl);
   set ngIf(newCondition) {}
 }
 ''');
@@ -780,13 +799,25 @@ class NgIf {
         r'''
 library angular2.ng_for;
 import 'metadata.dart';
+import 'linker/template_ref.dart';
 
 @Directive(
     selector: "[ngFor][ngForOf]",
-    inputs: const ["ngForOf", "ngForTemplate"])
+    inputs: const ["ngForOf", "ngForTemplate", "ngForTrackBy"])
 class NgFor {
+  NgFor(TemplateRef tpl);
   set ngForOf(dynamic value) {}
+  set ngForTrackBy(TrackByFn value) {}
 }
+
+typedef dynamic TrackByFn(num index, dynamic item);
+''');
+    newSource(
+        '/angular2/src/core/linker/template_ref.dart',
+        r'''
+library angular2.template_ref;
+
+class TemplateRef {}
 ''');
   }
 }

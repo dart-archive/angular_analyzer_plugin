@@ -17,6 +17,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 
@@ -33,6 +34,14 @@ bool offsetContained(int offset, int start, int length) =>
 
 AngularAstNode findTarget(int offset, AngularAstNode root) {
   for (final child in root.children) {
+    // `*ngIf="x"` creates, inside the template attr, a property binding named
+    // `ngIf`, which will confuse our autocompleter. Skip it.
+    if (root is TemplateAttribute &&
+        child is AttributeInfo &&
+        child.name == root.prefix) {
+      continue;
+    }
+
     if (child is ElementInfo) {
       if (child.isSynthetic) {
         final target = findTarget(offset, child);
@@ -96,6 +105,11 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
+    if (attr.value == null ||
+        !offsetContained(offset, attr.valueOffset, attr.value.length)) {
+      return;
+    }
+
     // if we visit this, we're in a template but after one of its attributes.
     AttributeInfo attributeToAppendTo;
     for (final subAttribute in attr.virtualAttributes) {
@@ -176,13 +190,9 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {
-    if (!attr.fromTemplate &&
-        offsetContained(request.offset, attr.originalNameOffset,
-            attr.originalName.length)) {
-      request
-        ..replacementOffset = attr.originalNameOffset
-        ..replacementLength = attr.originalName.length;
-    }
+    request
+      ..replacementOffset = attr.offset
+      ..replacementLength = attr.length;
   }
 
   @override
@@ -216,6 +226,16 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   void visitMustache(Mustache mustache) {}
+
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {
+    if (offsetContained(
+        request.offset, attr.originalNameOffset, attr.originalName.length)) {
+      request
+        ..replacementOffset = attr.originalNameOffset
+        ..replacementLength = attr.originalName.length;
+    }
+  }
 }
 
 /// Contributor to contribute angular entities.
@@ -261,10 +281,10 @@ class TemplateCompleter {
   static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
 
   Future<List<CompletionSuggestion>> computeSuggestions(
-      CompletionRequest request,
-      Template template,
-      List<OutputElement> standardHtmlEvents,
-      List<InputElement> standardHtmlAttributes,
+    CompletionRequest request,
+    Template template,
+    List<OutputElement> standardHtmlEvents,
+    List<InputElement> standardHtmlAttributes,
   ) async {
     final suggestions = <CompletionSuggestion>[];
     final typeProvider = template.view.component.classElement.enclosingElement
@@ -274,101 +294,126 @@ class TemplateCompleter {
     final extractor = new DartSnippetExtractor()..offset = request.offset;
     target.accept(extractor);
 
-      // If [CompletionRequest] is in
-      // [StatementsBoundAttribute],
-      // [ExpressionsBoundAttribute],
-      // [Mustache],
-      // [TemplateAttribute].
-      if (extractor.dartSnippet != null) {
-        final dartRequest = new EmbeddedDartCompletionRequest.from(
-            request, extractor.dartSnippet);
-        final range = new ReplacementRange.compute(
-            dartRequest.offset, dartRequest.target);
-        (request as CompletionRequestImpl)
-          ..replacementOffset = range.offset
-          ..replacementLength = range.length;
+    // If [CompletionRequest] is in
+    // [StatementsBoundAttribute],
+    // [ExpressionsBoundAttribute],
+    // [Mustache],
+    // [TemplateAttribute].
+    if (extractor.dartSnippet != null) {
+      final dartRequest = new EmbeddedDartCompletionRequest.from(
+          request, extractor.dartSnippet);
+      final range =
+          new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
+      (request as CompletionRequestImpl)
+        ..replacementOffset = range.offset
+        ..replacementLength = range.length;
 
-        dartRequest.libraryElement = template.view.classElement.library;
-        final memberContributor = new TypeMemberContributor();
-        final inheritedContributor = new InheritedReferenceContributor();
+      dartRequest.libraryElement = template.view.classElement.library;
+      final memberContributor = new TypeMemberContributor();
+      final inheritedContributor = new InheritedReferenceContributor();
 
-        suggestions..addAll(
+      suggestions
+        ..addAll(
           inheritedContributor.computeSuggestionsForClass(
             template.view.classElement,
             dartRequest,
             skipChildClass: false,
           ),
-        )..addAll(await memberContributor.computeSuggestions(dartRequest));
+        )
+        ..addAll(await memberContributor.computeSuggestions(dartRequest));
 
-        if (dartRequest.opType.includeIdentifiers) {
-          final varExtractor = new LocalVariablesExtractor();
-          target.accept(varExtractor);
-          if (varExtractor.variables != null) {
-            addLocalVariables(
-              suggestions,
-              varExtractor.variables,
-              dartRequest.opType,
-            );
-          }
+      if (dartRequest.opType.includeIdentifiers) {
+        final varExtractor = new LocalVariablesExtractor();
+        target.accept(varExtractor);
+        if (varExtractor.variables != null) {
+          addLocalVariables(
+            suggestions,
+            varExtractor.variables,
+            dartRequest.opType,
+          );
         }
-      } else if (target is ElementInfo) {
-        if (target.closingSpan != null &&
-            offsetContained(request.offset, target.closingSpan.offset,
-                target.closingSpan.length)) {
-          if (request.offset ==
-              (target.closingSpan.offset + target.closingSpan.length)) {
-            // In closing tag, but could be directly after it; ex: '</div>^'.
-            suggestHtmlTags(template, suggestions);
-            if (target.parent != null || target.parent is! DocumentInfo) {
-              suggestTransclusions(target.parent, suggestions);
-            }
-          }
-        }
-        else if (!offsetContained(request.offset, target.openingNameSpan.offset,
-            target.openingNameSpan.length)) {
-          // If request is not in [openingNameSpan], suggest decorators.
-          suggestInputs(target.boundDirectives, suggestions,
-              standardHtmlAttributes, target.boundStandardInputs, typeProvider,
-              includePlainAttributes: true);
-          suggestOutputs(target.boundDirectives, suggestions,
-              standardHtmlEvents, target.boundStandardOutputs);
-        } else {
-          // Otherwise, suggest HTML tags and transclusions.
+      }
+    } else if (target is ElementInfo) {
+      if (target.closingSpan != null &&
+          offsetContained(request.offset, target.closingSpan.offset,
+              target.closingSpan.length)) {
+        if (request.offset ==
+            (target.closingSpan.offset + target.closingSpan.length)) {
+          // In closing tag, but could be directly after it; ex: '</div>^'.
           suggestHtmlTags(template, suggestions);
           if (target.parent != null || target.parent is! DocumentInfo) {
             suggestTransclusions(target.parent, suggestions);
           }
         }
-      } else if (target is ExpressionBoundAttribute &&
-          target.bound == ExpressionBoundType.input &&
-          offsetContained(request.offset, target.originalNameOffset,
-              target.originalName.length)) {
-        suggestInputs(target.parent.boundDirectives, suggestions,
-            standardHtmlAttributes, target.parent.boundStandardInputs,typeProvider,
-            currentAttr: target);
-      } else if (target is StatementsBoundAttribute) {
-        suggestOutputs(target.parent.boundDirectives, suggestions,
-            standardHtmlEvents, target.parent.boundStandardOutputs,
-            currentAttr: target);
-      } else if (target is TemplateAttribute) {
-        suggestInputs(target.parent.boundDirectives, suggestions,
-            standardHtmlAttributes, target.parent.boundStandardInputs, typeProvider,
+      } else if (!offsetContained(request.offset, target.openingNameSpan.offset,
+          target.openingNameSpan.length)) {
+        // If request is not in [openingNameSpan], suggest decorators.
+        suggestInputs(target.boundDirectives, suggestions,
+            standardHtmlAttributes, target.boundStandardInputs, typeProvider,
             includePlainAttributes: true);
-        suggestOutputs(target.parent.boundDirectives, suggestions,
-            standardHtmlEvents, target.parent.boundStandardOutputs);
-      } else if (target is TextAttribute &&
-          target.nameOffset != null &&
-          offsetContained(
-              request.offset, target.nameOffset, target.name.length)) {
-        suggestInputs(target.parent.boundDirectives, suggestions,
-            standardHtmlAttributes, target.parent.boundStandardInputs, typeProvider,
-            includePlainAttributes: true);
-        suggestOutputs(target.parent.boundDirectives, suggestions,
-            standardHtmlEvents, target.parent.boundStandardOutputs);
-      } else if (target is TextInfo) {
+        suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
+            target.boundStandardOutputs);
+        if (!target.isOrHasTemplateAttribute) {
+          suggestStarAttrs(template, suggestions);
+        }
+      } else {
+        // Otherwise, suggest HTML tags and transclusions.
         suggestHtmlTags(template, suggestions);
-        suggestTransclusions(target.parent, suggestions);
+        if (target.parent != null || target.parent is! DocumentInfo) {
+          suggestTransclusions(target.parent, suggestions);
+        }
       }
+    } else if (target is AttributeInfo && target.parent is TemplateAttribute) {
+      // `let foo`. Nothing to suggest.
+      if (target is TextAttribute && target.name.startsWith("let-")) {
+        return suggestions;
+      }
+
+      if (offsetContained(request.offset, target.originalNameOffset,
+          target.originalName.length)) {
+        suggestInputsInTemplate(target.parent, suggestions,
+            currentAttr: target);
+      } else {
+        suggestInputsInTemplate(target.parent, suggestions);
+      }
+    } else if (target is ExpressionBoundAttribute &&
+        target.bound == ExpressionBoundType.input &&
+        offsetContained(request.offset, target.originalNameOffset,
+            target.originalName.length)) {
+      suggestInputs(
+          target.parent.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.parent.boundStandardInputs,
+          typeProvider,
+          currentAttr: target);
+    } else if (target is StatementsBoundAttribute) {
+      suggestOutputs(target.parent.boundDirectives, suggestions,
+          standardHtmlEvents, target.parent.boundStandardOutputs,
+          currentAttr: target);
+    } else if (target is TemplateAttribute) {
+      if (offsetContained(request.offset, target.originalNameOffset,
+          target.originalName.length)) {
+        suggestStarAttrs(template, suggestions);
+      }
+      suggestInputsInTemplate(target, suggestions);
+    } else if (target is TextAttribute &&
+        target.nameOffset != null &&
+        offsetContained(
+            request.offset, target.nameOffset, target.name.length)) {
+      suggestInputs(
+          target.parent.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.parent.boundStandardInputs,
+          typeProvider,
+          includePlainAttributes: true);
+      suggestOutputs(target.parent.boundDirectives, suggestions,
+          standardHtmlEvents, target.parent.boundStandardOutputs);
+    } else if (target is TextInfo) {
+      suggestHtmlTags(template, suggestions);
+      suggestTransclusions(target.parent, suggestions);
+    }
 
     return suggestions;
   }
@@ -485,6 +530,33 @@ class TemplateCompleter {
     }
   }
 
+  void suggestInputsInTemplate(
+      TemplateAttribute templateAttr, List<CompletionSuggestion> suggestions,
+      {AttributeInfo currentAttr}) {
+    final directives = templateAttr.boundDirectives;
+    for (final binding in directives) {
+      final usedInputs = new HashSet.from(binding.inputBindings
+          .where((b) => b.attribute != currentAttr)
+          .map((b) => b.boundInput)).toSet();
+
+      for (final input in binding.boundDirective.inputs) {
+        // don't recommend trackBy: x trackBy: x trackBy: x
+        if (usedInputs.contains(input)) {
+          continue;
+        }
+        // edge case. Don't think this comes up in standard.
+        if (!input.name.startsWith(templateAttr.prefix)) {
+          continue;
+        }
+        suggestions.add(_createInputInTemplateSuggestion(
+            templateAttr.prefix,
+            input,
+            DART_RELEVANCE_DEFAULT,
+            _createInputElement(input, protocol.ElementKind.SETTER)));
+      }
+    }
+  }
+
   void suggestOutputs(
       List<DirectiveBinding> directives,
       List<CompletionSuggestion> suggestions,
@@ -518,6 +590,39 @@ class TemplateCompleter {
           output,
           DART_RELEVANCE_DEFAULT - 1, // just below regular relevance
           _createOutputElement(output, protocol.ElementKind.GETTER)));
+    }
+  }
+
+  void suggestStarAttrs(
+      Template template, List<CompletionSuggestion> suggestions) {
+    template.view.directives.where((d) => d.looksLikeTemplate).forEach(
+        (directive) =>
+            suggestStarAttrsForSelector(directive.selector, suggestions));
+  }
+
+  void suggestStarAttrsForSelector(
+      Selector selector, List<CompletionSuggestion> suggestions) {
+    if (selector is OrSelector) {
+      for (final subselector in selector.selectors) {
+        suggestStarAttrsForSelector(subselector, suggestions);
+      }
+    } else if (selector is AndSelector) {
+      for (final subselector in selector.selectors) {
+        suggestStarAttrsForSelector(subselector, suggestions);
+      }
+    } else if (selector is AttributeSelector) {
+      if (selector.nameElement.name == "ngForOf") {
+        // `ngFor`'s selector includes `[ngForOf]`, but `*ngForOf=..` won't ever
+        // work, because it then becomes impossible to satisfy the other half,
+        // `[ngFor]`. Hardcode to filter this out, rather than using some kind
+        // of complex heuristic.
+        return;
+      }
+
+      suggestions.add(_createStarAttrSuggestion(
+          selector,
+          DART_RELEVANCE_DEFAULT,
+          _createStarAttrElement(selector, protocol.ElementKind.CLASS)));
     }
   }
 
@@ -605,6 +710,20 @@ class TemplateCompleter {
         element: element);
   }
 
+  CompletionSuggestion _createInputInTemplateSuggestion(
+      String prefix,
+      InputElement inputElement,
+      int defaultRelevance,
+      protocol.Element element) {
+    final capitalized = inputElement.name.substring(prefix.length);
+    final firstLetter = capitalized.substring(0, 1).toLowerCase();
+    final remaining = capitalized.substring(1);
+    final completion = '$firstLetter$remaining:';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
   protocol.Element _createInputElement(
       InputElement inputElement, protocol.ElementKind kind) {
     final name = '[${inputElement.name}]';
@@ -651,5 +770,26 @@ class TemplateCompleter {
     final flags = protocol.Element.makeFlags();
     return new protocol.Element(kind, name, flags,
         location: location, returnType: outputElement.eventType.toString());
+  }
+
+  CompletionSuggestion _createStarAttrSuggestion(AttributeSelector selector,
+      int defaultRelevance, protocol.Element element) {
+    final completion = '*${selector.nameElement.name}';
+    return new CompletionSuggestion(CompletionSuggestionKind.IDENTIFIER,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  protocol.Element _createStarAttrElement(
+      AttributeSelector selector, protocol.ElementKind kind) {
+    final name = '*${selector.nameElement.name}';
+    final location = new Location(
+        selector.nameElement.source.fullName,
+        selector.nameElement.nameOffset,
+        selector.nameElement.name.length,
+        0,
+        0);
+    final flags = protocol.Element.makeFlags();
+    return new protocol.Element(kind, name, flags, location: location);
   }
 }
