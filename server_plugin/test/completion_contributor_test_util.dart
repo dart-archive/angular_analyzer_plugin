@@ -6,9 +6,9 @@ library test.services.completion.dart.util;
 
 import 'dart:async';
 
-import 'package:analysis_server/protocol/protocol_generated.dart' as protocol
+import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show ElementKind;
-import 'package:analysis_server/protocol/protocol_generated.dart'
+import 'package:analyzer_plugin/protocol/protocol_common.dart'
     hide Element, ElementKind;
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';

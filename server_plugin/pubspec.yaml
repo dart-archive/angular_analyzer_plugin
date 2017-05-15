@@ -8,9 +8,10 @@ dependencies:
   angular_analyzer_plugin:
     path: ../analyzer_plugin
   analysis_server: any
+  analyzer_plugin: any
   plugin: '^0.2.0'
 dev_dependencies:
-  test_reflective_loader: '^0.0.3'
+  test_reflective_loader: '^0.1.0'
   typed_mock: '^0.0.4'
   unittest: '^0.11.0'
 dependency_overrides:
@@ -18,5 +19,7 @@ dependency_overrides:
      path: ../../sdk/pkg/analyzer
   analysis_server:
      path: ../../sdk/pkg/analysis_server
+  analyzer_plugin:
+     path: ../../sdk/pkg/analyzer_plugin
   front_end:
      path: ../../sdk/pkg/front_end
