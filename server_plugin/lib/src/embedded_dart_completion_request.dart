@@ -1,12 +1,8 @@
-import 'dart:async';
-
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_target.dart';
-import 'package:analysis_server/src/services/search/search_engine.dart';
 import 'package:analysis_server/src/ide_options.dart';
-import 'package:analyzer/src/generated/engine.dart' show AnalysisContext;
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -21,36 +17,17 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
     request.checkAborted();
 
     Source libSource;
-    if (request.context != null) {
-      Source source = request.source;
-      libSource = source;
-    }
+    libSource = request.source;
 
-    var dartRequest = new EmbeddedDartCompletionRequest._(
-        request.result,
-        request.context,
-        request.resourceProvider,
-        request.searchEngine,
-        libSource,
-        request.source,
-        request.offset);
-
-    dartRequest._updateTargets(dart);
-    return dartRequest;
+    return new EmbeddedDartCompletionRequest._(request.result,
+        request.resourceProvider, libSource, request.source, request.offset)
+      .._updateTargets(dart);
   }
 
-  EmbeddedDartCompletionRequest._(
-      this.result,
-      this.context,
-      this.resourceProvider,
-      this.searchEngine,
-      this.librarySource,
-      this.source,
-      this.offset) {}
+  EmbeddedDartCompletionRequest._(this.result, this.resourceProvider,
+      this.librarySource, this.source, this.offset);
 
-  /**
-   * Update the completion [target] and [dotTarget] based on the given [dart] AST
-   */
+  /// Update the completion [target] and [dotTarget] based on the given [dart] AST
   void _updateTargets(AstNode dart) {
     dotTarget = null;
     target = new CompletionTarget.forOffset(null, offset, entryPoint: dart);
@@ -59,10 +36,11 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
     // if the containing node IS the AST, it means the context decides what's
     // completable. In that case, that's in our court only.
     if (target.containingNode == dart) {
-      opType.includeReturnValueSuggestions = true;
-      opType.includeTypeNameSuggestions = true;
-      // expressions always have nonvoid returns
-      opType.includeVoidReturnSuggestions = !(dart is Expression);
+      opType
+        ..includeReturnValueSuggestions = true
+        ..includeTypeNameSuggestions = true
+        // expressions always have nonvoid returns
+        ..includeVoidReturnSuggestions = !(dart is Expression);
     }
 
     // NG Expressions (not statements) always must return something. We have to
@@ -71,7 +49,8 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
       opType.includeVoidReturnSuggestions = false;
     }
 
-    AstNode node = target.containingNode;
+    // Below is copied from analysis_server.../completion_manager.dart.
+    final node = target.containingNode;
     if (node is MethodInvocation) {
       if (identical(node.methodName, target.entity)) {
         dotTarget = node.realTarget;
@@ -94,9 +73,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
   }
 
   @override
-  AnalysisContext context;
-
-  @override
   int offset;
 
   @override
@@ -104,9 +80,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
 
   @override
   AnalysisResult result;
-
-  @override
-  SearchEngine searchEngine;
 
   @override
   Source source;
@@ -123,34 +96,6 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
   @override
   CompletionTarget target;
 
-  /**
-   * Do nothing here, our expressions are already resolved.
-   */
-  @override
-  Future resolveContainingExpression(AstNode node) async {}
-
-  /**
-   * Do nothing here, our statements are already resolved.
-   */
-  @override
-  Future resolveContainingStatement(AstNode node) async {}
-
-  /**
-   * We don't use completions which rely on this
-   */
-  @override
-  Future<List<ImportElement>> resolveImports() async {
-    return [];
-  }
-
-  /**
-   * We don't use completions which rely on this
-   */
-  @override
-  Future<List<CompilationUnitElement>> resolveUnits() async {
-    return [];
-  }
-
   @override
   LibraryElement coreLib;
 
@@ -158,36 +103,26 @@ class EmbeddedDartCompletionRequest implements DartCompletionRequest {
   Expression dotTarget;
 
   @override
-  bool get includeIdentifiers {
-    return opType.includeIdentifiers;
-  }
+  bool get includeIdentifiers => opType.includeIdentifiers;
 
   @override
   IdeOptions get ideOptions => null;
 
-  /**
-   * We have to return non null or much code will view this as an isolated part
-   * file. We will use our template's libraryElement.
-   */
+  /// We have to return non null or much code will view this as an isolated part
+  /// file. We will use our template's libraryElement.
   @override
   LibraryElement libraryElement;
 
-  /**
-   * We have to return non null or much code will view this as an isolated part
-   * file. We will use our template's libraryElement.
-   */
+  /// We have to return non null or much code will view this as an isolated part
+  /// file. We will use our template's libraryElement.
   @override
   Source librarySource;
 
-  /**
-   * Answer the [DartType] for Object in dart:core
-   */
+  /// Answer the [DartType] for Object in dart:core
   @override
   DartType objectType;
 
-  /**
-   * Return the [SourceFactory] of the request.
-   */
+  /// Return the [SourceFactory] of the request.
   @override
   SourceFactory sourceFactory;
 }

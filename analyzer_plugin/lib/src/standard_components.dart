@@ -14,6 +14,14 @@ class StandardHtml {
   StandardHtml(this.components, this.events, this.attributes);
 }
 
+class StandardAngular {
+  final ClassElement templateRef;
+  final ClassElement elementRef;
+  final ClassElement queryList;
+
+  StandardAngular({this.templateRef, this.elementRef, this.queryList});
+}
+
 class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, Component> components;
   final Map<String, OutputElement> events;
@@ -40,21 +48,21 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     classElement = node.element;
     super.visitClassDeclaration(node);
     if (classElement.name == 'HtmlElement') {
-      List<OutputElement> outputElements = _buildOutputs(false);
-      for (OutputElement outputElement in outputElements) {
+      final outputElements = _buildOutputs(false);
+      for (final outputElement in outputElements) {
         events[outputElement.name] = outputElement;
       }
-      List<InputElement> inputElements = _buildInputs(false);
-      for (InputElement inputElement in inputElements) {
+      final inputElements = _buildInputs(false);
+      for (final inputElement in inputElements) {
         attributes[inputElement.name] = inputElement;
       }
     } else {
-      String specialTagName = specialElementClasses[classElement.name];
+      final specialTagName = specialElementClasses[classElement.name];
       if (specialTagName != null) {
-        String tag = specialTagName;
+        final tag = specialTagName;
         // TODO any better offset we can do here?
-        int tagOffset = classElement.nameOffset + 'HTML'.length;
-        Component component = _buildComponent(tag, tagOffset);
+        final tagOffset = classElement.nameOffset + 'HTML'.length;
+        final component = _buildComponent(tag, tagOffset);
         components[tag] = component;
       }
     }
@@ -70,18 +78,19 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   @override
   void visitMethodInvocation(ast.MethodInvocation node) {
-    ast.Expression target = node.target;
-    ast.ArgumentList argumentList = node.argumentList;
+    // ignore: omit_local_variable_types
+    final ast.Expression target = node.target;
+    final argumentList = node.argumentList;
     if (target is ast.SimpleIdentifier &&
         target.name == 'document' &&
         node.methodName.name == 'createElement' &&
         argumentList != null &&
         argumentList.arguments.length == 1) {
-      ast.Expression argument = argumentList.arguments.single;
+      final argument = argumentList.arguments.single;
       if (argument is ast.SimpleStringLiteral) {
-        String tag = argument.value;
-        int tagOffset = argument.contentsOffset;
-        Component component = _buildComponent(tag, tagOffset);
+        final tag = argument.value;
+        final tagOffset = argument.contentsOffset;
+        final component = _buildComponent(tag, tagOffset);
         components[tag] = component;
       }
     } else if (node.methodName.name == 'JS' &&
@@ -92,20 +101,18 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       if (documentArgument is ast.SimpleIdentifier &&
           documentArgument.name == 'document' &&
           tagArgument is ast.SimpleStringLiteral) {
-        String tag = tagArgument.value;
-        int tagOffset = tagArgument.contentsOffset;
-        Component component = _buildComponent(tag, tagOffset);
+        final tag = tagArgument.value;
+        final tagOffset = tagArgument.contentsOffset;
+        final component = _buildComponent(tag, tagOffset);
         components[tag] = component;
       }
     }
   }
 
-  /**
-   * Return a new [Component] for the current [classElement].
-   */
+  /// Return a new [Component] for the current [classElement].
   Component _buildComponent(String tag, int tagOffset) {
-    List<InputElement> inputElements = _buildInputs(true);
-    List<OutputElement> outputElements = _buildOutputs(true);
+    final inputElements = _buildInputs(true);
+    final outputElements = _buildOutputs(true);
     return new Component(classElement,
         inputs: inputElements,
         outputs: outputElements,
@@ -114,66 +121,62 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         isHtml: true);
   }
 
-  List<InputElement> _buildInputs(bool skipHtmlElement) {
-    return _captureAspects(
-        (Map<String, InputElement> inputMap, PropertyAccessorElement accessor) {
-      String name = accessor.displayName;
-      if (!inputMap.containsKey(name)) {
-        if (accessor.isSetter) {
-          inputMap[name] = new InputElement(
-              name,
-              accessor.nameOffset,
-              accessor.nameLength,
-              accessor.source,
-              accessor,
-              new SourceRange(accessor.nameOffset, accessor.nameLength),
-              accessor.variable.type);
+  List<InputElement> _buildInputs(bool skipHtmlElement) =>
+      _captureAspects((inputMap, accessor) {
+        final name = accessor.displayName;
+        if (!inputMap.containsKey(name)) {
+          if (accessor.isSetter) {
+            inputMap[name] = new InputElement(
+                name,
+                accessor.nameOffset,
+                accessor.nameLength,
+                accessor.source,
+                accessor,
+                new SourceRange(accessor.nameOffset, accessor.nameLength),
+                accessor.variable.type);
+          }
         }
-      }
-    }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them
-  }
+      }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them
 
-  List<OutputElement> _buildOutputs(bool skipHtmlElement) {
-    return _captureAspects((Map<String, OutputElement> outputMap,
-        PropertyAccessorElement accessor) {
-      String domName = _getDomName(accessor);
-      if (domName == null) {
-        return;
-      }
+  List<OutputElement> _buildOutputs(bool skipHtmlElement) =>
+      _captureAspects((outputMap, accessor) {
+        final domName = _getDomName(accessor);
+        if (domName == null) {
+          return;
+        }
 
-      // Event domnames start with Element.on or Document.on
-      int offset = domName.indexOf(".") + ".on".length;
-      String name = domName.substring(offset);
+        // Event domnames start with Element.on or Document.on
+        final offset = domName.indexOf(".") + ".on".length;
+        final name = domName.substring(offset);
 
-      if (!outputMap.containsKey(name)) {
-        if (accessor.isGetter) {
-          var returnType =
-              accessor.type == null ? null : accessor.type.returnType;
-          DartType eventType = null;
-          if (returnType != null && returnType is InterfaceType) {
-            // TODO allow subtypes of ElementStream? This is a generated file
-            // so might not be necessary.
-            if (returnType.element.name == 'ElementStream') {
-              eventType = returnType.typeArguments[0]; // may be null
-              outputMap[name] = new OutputElement(
-                  name,
-                  accessor.nameOffset,
-                  accessor.nameLength,
-                  accessor.source,
-                  accessor,
-                  null,
-                  eventType);
+        if (!outputMap.containsKey(name)) {
+          if (accessor.isGetter) {
+            final returnType =
+                accessor.type == null ? null : accessor.type.returnType;
+            DartType eventType;
+            if (returnType != null && returnType is InterfaceType) {
+              // TODO allow subtypes of ElementStream? This is a generated file
+              // so might not be necessary.
+              if (returnType.element.name == 'ElementStream') {
+                eventType = returnType.typeArguments[0]; // may be null
+                outputMap[name] = new OutputElement(
+                    name,
+                    accessor.nameOffset,
+                    accessor.nameLength,
+                    accessor.source,
+                    accessor,
+                    null,
+                    eventType);
+              }
             }
           }
         }
-      }
-    }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
-  }
+      }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
 
   String _getDomName(Element element) {
-    for (ElementAnnotation annotation in element.metadata) {
+    for (final annotation in element.metadata) {
       // this has caching built in, so we can compute every time
-      var value = annotation.computeConstantValue();
+      final value = annotation.computeConstantValue();
       if (value != null && value.type is InterfaceType) {
         if (value.type.element.name == 'DomName') {
           return value.getField("name").toStringValue();
@@ -186,8 +189,8 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   List<T> _captureAspects<T>(
       CaptureAspectFn<T> addAspect, bool skipHtmlElement) {
-    Map<String, T> aspectMap = <String, T>{};
-    Set<InterfaceType> visitedTypes = new Set<InterfaceType>();
+    final aspectMap = <String, T>{};
+    final visitedTypes = new Set<InterfaceType>();
 
     void addAspects(InterfaceType type) {
       if (type != null && visitedTypes.add(type)) {

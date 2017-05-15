@@ -4,16 +4,20 @@ description: Dart analyzer plugin for Angular 2
 environment:
   sdk: '>=1.21.0-dev.1.0'
 dependencies:
-  analyzer: '^0.30.0-alpha.0'
+  analyzer: '^0.30.0'
   plugin: '^0.2.0'
   html: '^0.12.2'
   tuple: '^1.0.1'
+  analysis_server: any
 dev_dependencies:
-  test_reflective_loader: '^0.0.3'
+  test_reflective_loader: '^0.1.0'
   typed_mock: '^0.0.4'
   unittest: '^0.11.0'
+  test: '^0.12.20'
 dependency_overrides:
   analyzer:
-     path: ../../sdk/pkg/analyzer
+     path: ../deps/sdk/pkg/analyzer
   front_end:
-     path: ../../sdk/pkg/front_end
+     path: ../deps/sdk/pkg/front_end
+  analysis_server:
+    path: ../deps/sdk/pkg/analysis_server

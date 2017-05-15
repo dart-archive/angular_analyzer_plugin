@@ -5,10 +5,10 @@
 // This file has been automatically generated.  Please do not edit it manually.
 // To regenerate the file, use the script "pkg/analyzer/tool/generate_files".
 
-import 'package:analyzer/src/summary/flat_buffers.dart' as fb;
+import 'package:front_end/src/base/flat_buffers.dart' as fb;
 import 'idl.dart' as idl;
 import 'dart:convert' as convert;
-import 'package:analyzer/src/summary/api_signature.dart' as api_sig;
+import 'package:front_end/src/base/api_signature.dart' as api_sig;
 
 class PackageBundleBuilder extends Object
     with _PackageBundleMixin
@@ -750,6 +750,8 @@ class SummarizedDirectiveBuilder extends Object
   List<SummarizedBindableBuilder> _inputs;
   List<SummarizedBindableBuilder> _outputs;
   List<SummarizedDirectiveUseBuilder> _subdirectives;
+  List<SummarizedContentChildFieldBuilder> _contentChildFields;
+  List<SummarizedContentChildFieldBuilder> _contentChildrenFields;
 
   @override
   bool get isComponent => _isComponent ??= false;
@@ -865,6 +867,23 @@ class SummarizedDirectiveBuilder extends Object
     this._subdirectives = value;
   }
 
+  @override
+  List<SummarizedContentChildFieldBuilder> get contentChildFields =>
+      _contentChildFields ??= <SummarizedContentChildFieldBuilder>[];
+
+  void set contentChildFields(List<SummarizedContentChildFieldBuilder> value) {
+    this._contentChildFields = value;
+  }
+
+  @override
+  List<SummarizedContentChildFieldBuilder> get contentChildrenFields =>
+      _contentChildrenFields ??= <SummarizedContentChildFieldBuilder>[];
+
+  void set contentChildrenFields(
+      List<SummarizedContentChildFieldBuilder> value) {
+    this._contentChildrenFields = value;
+  }
+
   SummarizedDirectiveBuilder(
       {bool isComponent,
       String selectorStr,
@@ -880,7 +899,9 @@ class SummarizedDirectiveBuilder extends Object
       List<SummarizedNgContentBuilder> ngContents,
       List<SummarizedBindableBuilder> inputs,
       List<SummarizedBindableBuilder> outputs,
-      List<SummarizedDirectiveUseBuilder> subdirectives})
+      List<SummarizedDirectiveUseBuilder> subdirectives,
+      List<SummarizedContentChildFieldBuilder> contentChildFields,
+      List<SummarizedContentChildFieldBuilder> contentChildrenFields})
       : _isComponent = isComponent,
         _selectorStr = selectorStr,
         _selectorOffset = selectorOffset,
@@ -895,7 +916,9 @@ class SummarizedDirectiveBuilder extends Object
         _ngContents = ngContents,
         _inputs = inputs,
         _outputs = outputs,
-        _subdirectives = subdirectives;
+        _subdirectives = subdirectives,
+        _contentChildFields = contentChildFields,
+        _contentChildrenFields = contentChildrenFields;
 
   /**
    * Flush [informative] data recursively.
@@ -905,6 +928,8 @@ class SummarizedDirectiveBuilder extends Object
     _inputs?.forEach((b) => b.flushInformative());
     _outputs?.forEach((b) => b.flushInformative());
     _subdirectives?.forEach((b) => b.flushInformative());
+    _contentChildFields?.forEach((b) => b.flushInformative());
+    _contentChildrenFields?.forEach((b) => b.flushInformative());
   }
 
   /**
@@ -954,6 +979,22 @@ class SummarizedDirectiveBuilder extends Object
         x?.collectApiSignature(signature);
       }
     }
+    if (this._contentChildFields == null) {
+      signature.addInt(0);
+    } else {
+      signature.addInt(this._contentChildFields.length);
+      for (var x in this._contentChildFields) {
+        x?.collectApiSignature(signature);
+      }
+    }
+    if (this._contentChildrenFields == null) {
+      signature.addInt(0);
+    } else {
+      signature.addInt(this._contentChildrenFields.length);
+      for (var x in this._contentChildrenFields) {
+        x?.collectApiSignature(signature);
+      }
+    }
   }
 
   fb.Offset finish(fb.Builder fbBuilder) {
@@ -966,6 +1007,8 @@ class SummarizedDirectiveBuilder extends Object
     fb.Offset offset_inputs;
     fb.Offset offset_outputs;
     fb.Offset offset_subdirectives;
+    fb.Offset offset_contentChildFields;
+    fb.Offset offset_contentChildrenFields;
     if (_selectorStr != null) {
       offset_selectorStr = fbBuilder.writeString(_selectorStr);
     }
@@ -996,6 +1039,14 @@ class SummarizedDirectiveBuilder extends Object
     if (!(_subdirectives == null || _subdirectives.isEmpty)) {
       offset_subdirectives = fbBuilder
           .writeList(_subdirectives.map((b) => b.finish(fbBuilder)).toList());
+    }
+    if (!(_contentChildFields == null || _contentChildFields.isEmpty)) {
+      offset_contentChildFields = fbBuilder.writeList(
+          _contentChildFields.map((b) => b.finish(fbBuilder)).toList());
+    }
+    if (!(_contentChildrenFields == null || _contentChildrenFields.isEmpty)) {
+      offset_contentChildrenFields = fbBuilder.writeList(
+          _contentChildrenFields.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (_isComponent == true) {
@@ -1043,6 +1094,12 @@ class SummarizedDirectiveBuilder extends Object
     if (offset_subdirectives != null) {
       fbBuilder.addOffset(14, offset_subdirectives);
     }
+    if (offset_contentChildFields != null) {
+      fbBuilder.addOffset(15, offset_contentChildFields);
+    }
+    if (offset_contentChildrenFields != null) {
+      fbBuilder.addOffset(16, offset_contentChildrenFields);
+    }
     return fbBuilder.endTable();
   }
 }
@@ -1079,6 +1136,8 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedBindable> _inputs;
   List<idl.SummarizedBindable> _outputs;
   List<idl.SummarizedDirectiveUse> _subdirectives;
+  List<idl.SummarizedContentChildField> _contentChildFields;
+  List<idl.SummarizedContentChildField> _contentChildrenFields;
 
   @override
   bool get isComponent {
@@ -1181,6 +1240,26 @@ class _SummarizedDirectiveImpl extends Object
         .vTableGet(_bc, _bcOffset, 14, const <idl.SummarizedDirectiveUse>[]);
     return _subdirectives;
   }
+
+  @override
+  List<idl.SummarizedContentChildField> get contentChildFields {
+    _contentChildFields ??=
+        const fb.ListReader<idl.SummarizedContentChildField>(
+                const _SummarizedContentChildFieldReader())
+            .vTableGet(
+                _bc, _bcOffset, 15, const <idl.SummarizedContentChildField>[]);
+    return _contentChildFields;
+  }
+
+  @override
+  List<idl.SummarizedContentChildField> get contentChildrenFields {
+    _contentChildrenFields ??=
+        const fb.ListReader<idl.SummarizedContentChildField>(
+                const _SummarizedContentChildFieldReader())
+            .vTableGet(
+                _bc, _bcOffset, 16, const <idl.SummarizedContentChildField>[]);
+    return _contentChildrenFields;
+  }
 }
 
 abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
@@ -1211,6 +1290,12 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
     if (subdirectives.isNotEmpty)
       _result["subdirectives"] =
           subdirectives.map((_value) => _value.toJson()).toList();
+    if (contentChildFields.isNotEmpty)
+      _result["contentChildFields"] =
+          contentChildFields.map((_value) => _value.toJson()).toList();
+    if (contentChildrenFields.isNotEmpty)
+      _result["contentChildrenFields"] =
+          contentChildrenFields.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
@@ -1231,6 +1316,8 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
         "inputs": inputs,
         "outputs": outputs,
         "subdirectives": subdirectives,
+        "contentChildFields": contentChildFields,
+        "contentChildrenFields": contentChildrenFields,
       };
 
   @override
@@ -2001,6 +2088,188 @@ abstract class _SummarizedNgContentMixin implements idl.SummarizedNgContent {
         "length": length,
         "selectorStr": selectorStr,
         "selectorOffset": selectorOffset,
+      };
+
+  @override
+  String toString() => convert.JSON.encode(toJson());
+}
+
+class SummarizedContentChildFieldBuilder extends Object
+    with _SummarizedContentChildFieldMixin
+    implements idl.SummarizedContentChildField {
+  String _fieldName;
+  int _nameOffset;
+  int _nameLength;
+  int _typeOffset;
+  int _typeLength;
+
+  @override
+  String get fieldName => _fieldName ??= '';
+
+  void set fieldName(String value) {
+    this._fieldName = value;
+  }
+
+  @override
+  int get nameOffset => _nameOffset ??= 0;
+
+  void set nameOffset(int value) {
+    assert(value == null || value >= 0);
+    this._nameOffset = value;
+  }
+
+  @override
+  int get nameLength => _nameLength ??= 0;
+
+  void set nameLength(int value) {
+    assert(value == null || value >= 0);
+    this._nameLength = value;
+  }
+
+  @override
+  int get typeOffset => _typeOffset ??= 0;
+
+  void set typeOffset(int value) {
+    assert(value == null || value >= 0);
+    this._typeOffset = value;
+  }
+
+  @override
+  int get typeLength => _typeLength ??= 0;
+
+  void set typeLength(int value) {
+    assert(value == null || value >= 0);
+    this._typeLength = value;
+  }
+
+  SummarizedContentChildFieldBuilder(
+      {String fieldName,
+      int nameOffset,
+      int nameLength,
+      int typeOffset,
+      int typeLength})
+      : _fieldName = fieldName,
+        _nameOffset = nameOffset,
+        _nameLength = nameLength,
+        _typeOffset = typeOffset,
+        _typeLength = typeLength;
+
+  /**
+   * Flush [informative] data recursively.
+   */
+  void flushInformative() {}
+
+  /**
+   * Accumulate non-[informative] data into [signature].
+   */
+  void collectApiSignature(api_sig.ApiSignature signature) {
+    signature.addString(this._fieldName ?? '');
+    signature.addInt(this._nameOffset ?? 0);
+    signature.addInt(this._nameLength ?? 0);
+    signature.addInt(this._typeOffset ?? 0);
+    signature.addInt(this._typeLength ?? 0);
+  }
+
+  fb.Offset finish(fb.Builder fbBuilder) {
+    fb.Offset offset_fieldName;
+    if (_fieldName != null) {
+      offset_fieldName = fbBuilder.writeString(_fieldName);
+    }
+    fbBuilder.startTable();
+    if (offset_fieldName != null) {
+      fbBuilder.addOffset(0, offset_fieldName);
+    }
+    if (_nameOffset != null && _nameOffset != 0) {
+      fbBuilder.addUint32(1, _nameOffset);
+    }
+    if (_nameLength != null && _nameLength != 0) {
+      fbBuilder.addUint32(2, _nameLength);
+    }
+    if (_typeOffset != null && _typeOffset != 0) {
+      fbBuilder.addUint32(3, _typeOffset);
+    }
+    if (_typeLength != null && _typeLength != 0) {
+      fbBuilder.addUint32(4, _typeLength);
+    }
+    return fbBuilder.endTable();
+  }
+}
+
+class _SummarizedContentChildFieldReader
+    extends fb.TableReader<_SummarizedContentChildFieldImpl> {
+  const _SummarizedContentChildFieldReader();
+
+  @override
+  _SummarizedContentChildFieldImpl createObject(
+          fb.BufferContext bc, int offset) =>
+      new _SummarizedContentChildFieldImpl(bc, offset);
+}
+
+class _SummarizedContentChildFieldImpl extends Object
+    with _SummarizedContentChildFieldMixin
+    implements idl.SummarizedContentChildField {
+  final fb.BufferContext _bc;
+  final int _bcOffset;
+
+  _SummarizedContentChildFieldImpl(this._bc, this._bcOffset);
+
+  String _fieldName;
+  int _nameOffset;
+  int _nameLength;
+  int _typeOffset;
+  int _typeLength;
+
+  @override
+  String get fieldName {
+    _fieldName ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 0, '');
+    return _fieldName;
+  }
+
+  @override
+  int get nameOffset {
+    _nameOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 1, 0);
+    return _nameOffset;
+  }
+
+  @override
+  int get nameLength {
+    _nameLength ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 2, 0);
+    return _nameLength;
+  }
+
+  @override
+  int get typeOffset {
+    _typeOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 3, 0);
+    return _typeOffset;
+  }
+
+  @override
+  int get typeLength {
+    _typeLength ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 4, 0);
+    return _typeLength;
+  }
+}
+
+abstract class _SummarizedContentChildFieldMixin
+    implements idl.SummarizedContentChildField {
+  @override
+  Map<String, Object> toJson() {
+    Map<String, Object> _result = <String, Object>{};
+    if (fieldName != '') _result["fieldName"] = fieldName;
+    if (nameOffset != 0) _result["nameOffset"] = nameOffset;
+    if (nameLength != 0) _result["nameLength"] = nameLength;
+    if (typeOffset != 0) _result["typeOffset"] = typeOffset;
+    if (typeLength != 0) _result["typeLength"] = typeLength;
+    return _result;
+  }
+
+  @override
+  Map<String, Object> toMap() => {
+        "fieldName": fieldName,
+        "nameOffset": nameOffset,
+        "nameLength": nameLength,
+        "typeOffset": typeOffset,
+        "typeLength": typeLength,
       };
 
   @override

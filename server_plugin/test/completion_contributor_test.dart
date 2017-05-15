@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
@@ -6,28 +8,28 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'completion_contributor_test_util.dart';
 
-main() {
+void main() {
   // TODO: get these working again on the latest SDK
   //defineReflectiveTests(DartCompletionContributorTest);
-  //defineReflectiveTests(HtmlCompletionContributorTest);
+  defineReflectiveTests(HtmlCompletionContributorTest);
 }
 
 @reflectiveTest
 class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  setUp() {
+  void setUp() {
     testFile = '/completionTest.dart';
     super.setUp();
   }
 
   @override
-  CompletionContributor createContributor() {
-    return new AngularDartCompletionContributor();
-  }
+  CompletionContributor createContributor() =>
+      new AngularCompletionContributor(angularDriver);
 
-  test_completeMemberInMustache() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInMustache() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '{{^}}', selector: 'a')
 class MyComp {
   String text;
@@ -40,9 +42,10 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInInputBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInInputBinding() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<h1 [hidden]="^"></h1>', selector: 'a')
 class MyComp {
   String text;
@@ -55,9 +58,10 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInClassBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInClassBinding() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<h1 [class.my-class]="^"></h1>', selector: 'a')
 class MyComp {
   String text;
@@ -70,9 +74,10 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInInputOutput_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInInputOutput_at_incompleteTag_with_newTag() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
@@ -89,9 +94,10 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeInputStarted_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_newTag() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag [^<div></div>', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
@@ -108,9 +114,76 @@ class MyChildComponent {
     assertNotSuggested("(myEvent)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotStarted_at_incompleteTag_with_newTag() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() String stringInput;
+  @Output() EventEmitter<String> myEvent; 
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[stringInput]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInput_as_plainAttribute() async {
+    addTestSource('''
+import 'package:angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag', 
+    inputs: const ['myDynamicInput'])
+class MyChildComponent {
+  @Input() String stringInput;
+  @Input() String intInput;
+  @Output() EventEmitter<String> myEvent;
+  
+  bool _myDynamicInput = false;
+  bool get myDynamicInput => _myDynamicInput;
+  void set myDynamicInput(value) {}
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('stringInput');
+    assertNotSuggested('intInput');
+    assertSuggestSetter('myDynamicInput',
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeStandardInput_as_plainAttribute() async {
+    addTestSource('''
+import 'package:angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+}
+  }
+  ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[id]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+    addTestSource('''
+import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag (^<div></div>', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
@@ -127,9 +200,10 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeMemberInInputOutput_at_incompleteTag_with_EOF() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInInputOutput_at_incompleteTag_with_EOF() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag ^', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
@@ -146,9 +220,10 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeInputStarted_at_incompleteTag_with_EOF() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_EOF() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag [^', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
@@ -165,9 +240,10 @@ class MyChildComponent {
     assertNotSuggested("(myEvent)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_EOF() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_EOF() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag (^', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
@@ -184,9 +260,10 @@ class MyChildComponent {
     assertSuggestGetter("(myEvent)", "String");
   }
 
-  test_completeMemberInStyleBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInStyleBinding() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<h1 [style.background-color]="^"></h1>', selector: 'a')
 class MyComp {
   String text;
@@ -199,9 +276,10 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberInAttrBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInAttrBinding() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<h1 [attr.on-click]="^"></h1>', selector: 'a')
 class MyComp {
   String text;
@@ -214,9 +292,10 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMemberMustacheAttrBinding() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberMustacheAttrBinding() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<h1 title="{{^}}"></h1>', selector: 'a')
 class MyComp {
   String text;
@@ -229,9 +308,10 @@ class MyComp {
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeMultipleMembers() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeMultipleMembers() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '{{d^}}', selector: 'a')
 class MyComp {
   String text;
@@ -246,9 +326,10 @@ class MyComp {
     assertSuggestGetter('description', 'String');
   }
 
-  test_completeInlineHtmlSelectorTag_at_beginning() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_beginning() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<^<div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -265,9 +346,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_beginning_with_partial() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<my^<div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -284,9 +366,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_middle() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div><div><^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -303,9 +386,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle_of_text() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_middle_of_text() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div><div> some text<^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -322,9 +406,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_middle_with_partial() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div><div><my^</div></div>', selector: 'my-parent', directives: const[MyChildComponent1, MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -341,9 +426,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_end() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div><div></div></div><^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -360,9 +446,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_end_with_partial() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div><div></div></div><m^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -379,9 +466,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_on_empty_document() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_on_empty_document() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -398,9 +486,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_at_end_after_close() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_at_end_after_close() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div><div></div></div>^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -417,9 +506,10 @@ class MyChildComponent2{}
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeInlineHtmlSelectorTag_in_middle_of_unclosed_tag() async {
+  // ignore: non_constant_identifier_names
+  Future test_completeInlineHtmlSelectorTag_in_middle_of_unclosed_tag() async {
     addTestSource('''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(template: '<div>some text<^', selector: 'my-parent', directives: const[MyChildComponent1,MyChildComponent2])
 class MyParentComponent{}
 @Component(template: '', selector: 'my-child1, my-child2')
@@ -440,32 +530,31 @@ class MyChildComponent2{}
 @reflectiveTest
 class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  setUp() {
+  void setUp() {
     testFile = '/completionTest.html';
     super.setUp();
+    createContributor();
   }
 
   @override
-  CompletionContributor createContributor() {
-    return new AngularTemplateCompletionContributor();
-  }
+  CompletionContributor createContributor() =>
+      new AngularCompletionContributor(angularDriver);
 
-  test_completeMemberInMustache() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   String text;
 }
     ''');
 
-    addTestSource('html file {{ ^ }} with mustache');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    addTestSource('html file {{^}} with mustache');
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -474,11 +563,12 @@ class MyComp {
     assertSuggestGetter('hashCode', 'int');
   }
 
-  test_completeDotMemberInMustache() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeDotMemberInMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   String text;
@@ -486,21 +576,20 @@ class MyComp {
     ''');
 
     addTestSource('html file {{text.^}} with mustache');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestGetter('length', 'int');
   }
 
-  test_completeDotMemberAlreadyStartedInMustache() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeDotMemberAlreadyStartedInMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   String text;
@@ -508,21 +597,20 @@ class MyComp {
     ''');
 
     addTestSource('html file {{text.le^}} with mustache');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 'le'.length);
     expect(replacementLength, 'le'.length);
     assertSuggestGetter('length', 'int');
   }
 
-  test_completeDotMemberInNgFor() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeDotMemberInNgFor() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -530,21 +618,20 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item of text.^"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestGetter('length', 'int');
   }
 
-  test_completeMemberInNgFor() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInNgFor() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -552,10 +639,8 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item of ^"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -564,11 +649,12 @@ class MyComp {
     assertSuggestGetter('hashCode', 'int');
   }
 
-  test_noCompleteMemberInNgForRightAfterLet() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForRightAfterLet() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -576,21 +662,20 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let^ item of [text]"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 'let'.length);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgForInLet() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForInLet() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -598,21 +683,20 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="l^et item of [text]"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgForAfterLettedName() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForAfterLettedName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -620,21 +704,20 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item^ of [text]"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 'let item'.length);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgForInLettedName() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgForInLettedName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -642,21 +725,20 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let i^tem of [text]"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
+    expect(replacementOffset, completionOffset - 'let i'.length);
+    expect(replacementLength, 'let item'.length);
     assertNotSuggested('text');
   }
 
-  test_noCompleteMemberInNgFor_forLettedName() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteMemberInNgFor_forLettedName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   String text;
@@ -664,21 +746,20 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let ^"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
-  test_completeNgForItem() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeNgForItem() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
 class MyComp {
   List<String> items;
@@ -686,42 +767,40 @@ class MyComp {
     ''');
 
     addTestSource('<div *ngFor="let item of items">{{^}}</div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestLocalVar('item', 'String');
   }
 
-  test_completeHashVar() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHashVar() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
 }
     ''');
 
     addTestSource('<button #buttonEl>button</button> {{^}}');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestLocalVar('buttonEl', 'ButtonElement');
   }
 
-  test_completeNgVars_notAfterDot() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeNgVars_notAfterDot() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   List<String> items;
@@ -730,10 +809,8 @@ class MyComp {
 
     addTestSource(
         '<button #buttonEl>button</button><div *ngFor="item of items">{{hashCode.^}}</div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -741,11 +818,12 @@ class MyComp {
     assertNotSuggested('item');
   }
 
-  test_findCompletionTarget_afterUnclosedDom() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_findCompletionTarget_afterUnclosedDom() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   String text;
@@ -753,21 +831,20 @@ class MyComp {
     ''');
 
     addTestSource('<input /> {{^}}');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeStatements() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStatements() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   String text;
@@ -775,10 +852,8 @@ class MyComp {
     ''');
 
     addTestSource('<button (click)="^"></button>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -786,33 +861,33 @@ class MyComp {
     assertSuggestField('text', 'String');
   }
 
-  test_completeUnclosedMustache() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeUnclosedMustache() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   String text;
 }
     ''');
 
-    addTestSource('some text and {{^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
+    addTestSource('some text and {{^   <div>some html</div>');
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestGetter('text', 'String');
   }
 
-  test_completeEmptyExpressionDoesntIncludeVoid() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeEmptyExpressionDoesntIncludeVoid() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   void dontCompleteMe() {}
@@ -820,21 +895,20 @@ class MyComp {
     ''');
 
     addTestSource('{{^}}');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("dontCompleteMe");
   }
 
-  test_completeInMiddleOfExpressionDoesntIncludeVoid() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInMiddleOfExpressionDoesntIncludeVoid() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a')
 class MyComp {
   bool takesArg(dynamic arg) {};
@@ -843,21 +917,20 @@ class MyComp {
     ''');
 
     addTestSource('{{takesArg(^)}}');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertNotSuggested("dontCompleteMe");
   }
 
-  test_completeInputOutput() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutput() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -870,25 +943,24 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag ^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputOutput_at_incompleteTag_with_newTag() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutput_at_incompleteTag_with_newTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -901,25 +973,24 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag ^<div></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputStarted_at_incompleteTag_with_newTag() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_newTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -932,24 +1003,23 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^<div></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_newTag() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_newTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -962,10 +1032,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^<div></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -976,11 +1044,12 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputOutput_at_incompleteTag_with_EOF() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutput_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -993,25 +1062,24 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag ^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputStarted_at_incompleteTag_with_EOF() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1024,24 +1092,23 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputStarted_at_incompleteTag_with_EOF() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1054,10 +1121,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1068,11 +1133,12 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputNotSuggestedTwice() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1085,10 +1151,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [name]="\'bob\'" ^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1098,11 +1162,12 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeStandardInputNotSuggestedTwice() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStandardInputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1115,10 +1180,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [hidden]="true" ^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1129,11 +1192,12 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputSuggestsItself() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1146,21 +1210,20 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [name^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '[name'.length);
     expect(replacementLength, '[name'.length);
     assertSuggestSetter("[name]");
   }
 
-  test_completeStandardInputSuggestsItself() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStandardInputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1173,21 +1236,20 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [hidden^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '[hidden'.length);
     expect(replacementLength, '[hidden'.length);
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
   }
 
-  test_completeOutputNotSuggestedTwice() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1200,25 +1262,24 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (nameEvent)="" ^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeOutputSuggestsItself() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1231,21 +1292,20 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (nameEvent^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '(nameEvent'.length);
     expect(replacementLength, '(nameEvent'.length);
     assertSuggestGetter("(nameEvent)", "String");
   }
 
-  test_completeStdOutputNotSuggestedTwice() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStdOutputNotSuggestedTwice() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1258,24 +1318,23 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (click)="" ^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertSuggestGetter("(nameEvent)", "String");
     assertNotSuggested("(click)");
   }
 
-  test_completeStdOutputSuggestsItself() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeStdOutputSuggestsItself() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1288,10 +1347,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (click^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '(click'.length);
     expect(replacementLength, '(click'.length);
@@ -1299,11 +1356,12 @@ class OtherComp {
         relevance: DART_RELEVANCE_DEFAULT - 1);
   }
 
-  test_completeInputOutputNotSuggestedAfterTwoWay() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutputNotSuggestedAfterTwoWay() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1317,10 +1375,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [(name)]="name" ^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1328,11 +1384,12 @@ class OtherComp {
     assertNotSuggested("(nameEvent)");
   }
 
-  test_completeInputStarted() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1345,24 +1402,117 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputStarted() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameEvent;
+}
+    ''');
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputAsPlainAttribute() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag', inputs: const ['myDynamicInput'])
+class OtherComp {
+  @Input() String name;
+  @Input() int intInput;
+  
+  bool _myDynamicInput = false;
+  bool get myDynamicInput => _myDynamicInput;
+  void set myDynamicInput(value) {}
+}
+    ''');
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('name');
+    assertNotSuggested('intInput');
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestSetter('[myDynamicInput]');
+    assertSuggestSetter('myDynamicInput',
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputAsPlainAttributeStarted() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag', inputs: const ['myDynamicInput'])
+class OtherComp {
+  @Input() String name;
+  @Input() int intInput;
+  
+  bool _myDynamicInput = false;
+  bool get myDynamicInput => _myDynamicInput;
+  void set myDynamicInput(value) {}
+}
+    ''');
+    addTestSource('<my-tag myDyna^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 6);
+    expect(replacementLength, 6);
+    assertSuggestSetter('name');
+    assertNotSuggested('intInput');
+    assertSuggestSetter('id', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestSetter('[myDynamicInput]');
+    assertSuggestSetter('myDynamicInput',
+        relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputStarted() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1375,10 +1525,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1388,11 +1536,12 @@ class OtherComp {
     assertNotSuggested("[name]");
   }
 
-  test_completeInputReplacing() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeInputReplacing() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1405,24 +1554,23 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag [^input]="4"></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, '[input]'.length);
     assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
     assertNotSuggested("(nameEvent)");
     assertNotSuggested("(click)");
   }
 
-  test_completeOutputReplacing() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeOutputReplacing() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1435,10 +1583,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag (^output)="4"></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, '(output)'.length);
@@ -1448,11 +1594,12 @@ class OtherComp {
     assertNotSuggested("[name]");
   }
 
-  test_noCompleteInOutputInCloseTag() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteInOutputInCloseTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1465,10 +1612,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag></my-tag ^>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1478,11 +1623,12 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_noCompleteEmptyTagContents() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteEmptyTagContents() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1495,10 +1641,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag>^</my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1508,11 +1652,12 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_noCompleteInOutputsOnTagNameCompletion() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_noCompleteInOutputsOnTagNameCompletion() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [OtherComp])
 class MyComp {
@@ -1525,10 +1670,8 @@ class OtherComp {
     ''');
 
     addTestSource('<my-tag^></my-tag>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, 0);
     expect(replacementLength, '<my-tag'.length);
@@ -1538,11 +1681,12 @@ class OtherComp {
     assertNotSuggested("(click)");
   }
 
-  test_completeHtmlSelectorTag_at_beginning() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_beginning() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1552,10 +1696,8 @@ class OtherComp {
       class MyChildComponent2
       ''');
     addTestSource('<^<div></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1564,11 +1706,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_beginning_with_partial() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_beginning_with_partial() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1578,10 +1721,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('<my^<div></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '<my'.length);
     expect(replacementLength, '<my'.length);
@@ -1590,11 +1731,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_middle() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_middle() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1604,10 +1746,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div><^</div></div>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1616,11 +1756,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_middle_of_text() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_middle_of_text() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1630,10 +1771,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div> some text<^</div></div>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1642,11 +1781,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_middle_with_partial() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_middle_with_partial() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1656,10 +1796,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div><my^</div></div>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '<my'.length);
     expect(replacementLength, '<my'.length);
@@ -1668,11 +1806,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_end() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_end() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1682,10 +1821,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('''<div><div></div></div><^''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1694,11 +1831,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_end_with_partial() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_end_with_partial() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1709,10 +1847,8 @@ class OtherComp {
       ''');
     addTestSource('''<div><div></div></div>
     <my^''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - '<my'.length);
     expect(replacementLength, '<my'.length);
@@ -1721,11 +1857,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_on_empty_document() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_on_empty_document() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1735,10 +1872,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1747,11 +1882,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeHtmlSelectorTag_at_end_after_close() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag_at_end_after_close() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1761,10 +1897,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('<div><div></div></div>^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1773,30 +1907,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeTextAttribute_expect_no_suggestion_in_value() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeHtmlSelectorTag__in_middle_of_unclosed_tag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-      import '/angular2/angular2.dart';
-      @Component(templateUrl: 'completionTest.html', selector: 'a',
-        directives: const [MyChildComponent1, MyChildComponent2])
-        class MyComp{}
-      ''');
-    addTestSource('<div blah="^"></div>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
-
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(suggestions.length, 0);
-  }
-
-  test_completeHtmlSelectorTag__in_middle_of_unclosed_tag() async {
-    newSource(
-        '/completionTest.dart',
-        '''
-      import '/angular2/angular2.dart';
+      import 'package:angular2/angular2.dart';
       @Component(templateUrl: 'completionTest.html', selector: 'a',
         directives: const [MyChildComponent1, MyChildComponent2])
         class MyComp{}
@@ -1806,10 +1922,8 @@ class OtherComp {
       class MyChildComponent2{}
       ''');
     addTestSource('<div>some text<^');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset - 1);
     expect(replacementLength, 1);
@@ -1818,11 +1932,12 @@ class OtherComp {
     assertSuggestClassTypeAlias("<my-child3");
   }
 
-  test_completeTransclusionSuggestion() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestion() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [ContainerComponent])
 class MyComp{}
@@ -1833,10 +1948,8 @@ class MyComp{}
 class ContainerComponent{}
       ''');
     addTestSource('<container>^</container>');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1845,11 +1958,12 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionInWhitespace() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionInWhitespace() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [ContainerComponent])
 class MyComp{}
@@ -1863,10 +1977,8 @@ class ContainerComponent{}
 <container>
   ^
 </container>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1875,11 +1987,12 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionStarted() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionStarted() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [ContainerComponent])
 class MyComp{}
@@ -1893,10 +2006,8 @@ class ContainerComponent{}
 <container>
   <^
 </container>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     //expect(replacementOffset, completionOffset - 1);
     //expect(replacementLength, 1);
@@ -1905,11 +2016,12 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionStartedTagName() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionStartedTagName() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [ContainerComponent])
 class MyComp{}
@@ -1923,10 +2035,8 @@ class ContainerComponent{}
 <container>
   <tag^
 </container>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     //expect(replacementOffset, completionOffset - 4);
     //expect(replacementLength, 4);
@@ -1935,11 +2045,12 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionAfterTag() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionAfterTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [ContainerComponent])
 class MyComp{}
@@ -1954,10 +2065,8 @@ class ContainerComponent{}
   <blah></blah>
   ^
 </container>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1966,11 +2075,12 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  test_completeTransclusionSuggestionBeforeTag() async {
-    newSource(
+  // ignore: non_constant_identifier_names
+  Future test_completeTransclusionSuggestionBeforeTag() async {
+    final dartSource = newSource(
         '/completionTest.dart',
         '''
-import '/angular2/angular2.dart';
+import 'package:angular2/angular2.dart';
 @Component(templateUrl: 'completionTest.html', selector: 'a',
     directives: const [ContainerComponent])
 class MyComp{}
@@ -1985,10 +2095,8 @@ class ContainerComponent{}
   ^
   <blah></blah>
 </container>''');
-    //LibrarySpecificUnit target =
-    //    new LibrarySpecificUnit(dartSource, dartSource);
-    //computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
 
+    await resolveSingleTemplate(dartSource);
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
@@ -1997,8 +2105,223 @@ class ContainerComponent{}
     assertSuggestTransclusion("<tag3 class=\"withclass\"");
   }
 
-  assertSuggestTransclusion(String name) {
+  void assertSuggestTransclusion(String name) {
     assertSuggestClassTypeAlias(name,
         relevance: TemplateCompleter.RELEVANCE_TRANSCLUSION);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStarReplacing() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; trackBy^: foo"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'trackBy'.length);
+    expect(replacementLength, 'trackBy'.length);
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
+    assertNotSuggested("items");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStarReplacingBeforeValue() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; trackBy^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'trackBy'.length);
+    expect(replacementLength, 'trackBy'.length);
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
+    assertNotSuggested("items");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStar() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; ^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
+    assertNotSuggested("items");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputInStarValueAlready() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor="let x of items; ^ : foo"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestTemplateInput("trackBy:", elementName: '[ngForTrackBy]');
+    assertNotSuggested("of");
+    assertNotSuggested("of:");
+    assertNotSuggested("trackBy"); // without the colon
+    assertNotSuggested("items");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeNgForStarted() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor^');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - '*ngFor'.length);
+    expect(replacementLength, '*ngFor'.length);
+    assertSuggestStar("*ngFor");
+    assertNotSuggested("*ngForOf");
+    assertNotSuggested("[id]");
+    assertNotSuggested("id");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeNgForStartedWithValue() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgFor])
+class MyComp {
+  List<String> items;
+}
+    ''');
+
+    addTestSource('<div *ngFor^="let x of items"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - '*ngFor'.length);
+    expect(replacementLength, '*ngFor'.length);
+    assertSuggestStar("*ngFor");
+    assertNotSuggested("*ngForOf");
+    assertNotSuggested("[id]");
+    assertNotSuggested("id");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeStarAttrsNotStarted() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [NgFor, NgIf, CustomTemplateDirective, NotTemplateDirective])
+class MyComp {
+  List<String> items;
+}
+
+@Directive(selector: '[customTemplateDirective]')
+class CustomTemplateDirective {
+  CustomTemplateDirective(TemplateRef tpl);
+}
+
+@Directive(selector: '[notTemplateDirective]')
+class NotTemplateDirective {
+}
+    ''');
+
+    addTestSource('<div ^></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestStar("*ngFor");
+    assertSuggestStar("*ngIf");
+    assertSuggestStar("*customTemplateDirective");
+    assertNotSuggested("*notTemplateDirective");
+    assertNotSuggested("*ngForOf");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeStarAttrsOnlyStar() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [NgFor, NgIf, CustomTemplateDirective])
+class MyComp {
+  List<String> items;
+}
+
+@Directive(selector: '[customTemplateDirective]')
+class CustomTemplateDirective {
+  CustomTemplateDirective(TemplateRef tpl);
+}
+    ''');
+
+    addTestSource('<div *^></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestStar("*ngFor");
+    assertSuggestStar("*ngIf");
+    assertSuggestStar("*customTemplateDirective");
+    assertNotSuggested("*ngForOf");
+    assertNotSuggested("[id]");
+    assertNotSuggested("id");
   }
 }

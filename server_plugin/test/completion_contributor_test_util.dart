@@ -6,84 +6,24 @@ library test.services.completion.dart.util;
 
 import 'dart:async';
 
-import 'package:analysis_server/plugin/protocol/protocol.dart' as protocol
-    show Element, ElementKind;
-import 'package:analysis_server/plugin/protocol/protocol.dart'
+import 'package:analysis_server/protocol/protocol_generated.dart' as protocol
+    show ElementKind;
+import 'package:analysis_server/protocol/protocol_generated.dart'
     hide Element, ElementKind;
-import 'package:analysis_server/plugin/protocol/protocol.dart';
 import 'package:analysis_server/src/provisional/completion/completion_core.dart';
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart'
-    show DartCompletionRequestImpl;
-import 'package:analysis_server/src/services/index/index.dart';
-import 'package:analysis_server/src/services/search/search_engine_internal.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/task/dart.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
 
 int suggestionComparator(CompletionSuggestion s1, CompletionSuggestion s2) {
-  String c1 = s1.completion.toLowerCase();
-  String c2 = s2.completion.toLowerCase();
+  final c1 = s1.completion.toLowerCase();
+  final c2 = s2.completion.toLowerCase();
   return c1.compareTo(c2);
-}
-
-abstract class AbstractDartCompletionContributorTest
-    extends BaseCompletionContributorTest {
-  DartCompletionContributor contributor;
-  DartCompletionRequest request;
-
-  @override
-  void setUp() {
-    super.setUp();
-    contributor = createContributor();
-  }
-
-  DartCompletionContributor createContributor();
-
-  Future computeSuggestions([int times = 200]) async {
-    context.analysisPriorityOrder = [testSource];
-    CompletionRequestImpl baseRequest = new CompletionRequestImpl(
-      null,
-      context,
-      null,
-      searchEngine,
-      testSource,
-      completionOffset,
-      new CompletionPerformance(),
-      null,
-    );
-
-    // Build the request
-    Completer<DartCompletionRequest> requestCompleter =
-        new Completer<DartCompletionRequest>();
-    DartCompletionRequestImpl
-        .from(baseRequest)
-        .then((DartCompletionRequest request) {
-      requestCompleter.complete(request);
-    });
-    request = await performAnalysis(times, requestCompleter);
-
-    replacementOffset = (request as CompletionRequestImpl).replacementOffset;
-    replacementLength = (request as CompletionRequestImpl).replacementLength;
-    Completer<List<CompletionSuggestion>> suggestionCompleter =
-        new Completer<List<CompletionSuggestion>>();
-
-    // Request completions
-    contributor
-        .computeSuggestions(request)
-        .then((List<CompletionSuggestion> computedSuggestions) {
-      suggestionCompleter.complete(computedSuggestions);
-    });
-
-    // Perform analysis until the suggestions have been computed
-    // or the max analysis cycles ([times]) has been reached
-    suggestions = await performAnalysis(times, suggestionCompleter);
-    expect(suggestions, isNotNull, reason: 'expected suggestions');
-  }
 }
 
 abstract class AbstractCompletionContributorTest
@@ -99,47 +39,38 @@ abstract class AbstractCompletionContributorTest
 
   CompletionContributor createContributor();
 
+  @override
   Future computeSuggestions([int times = 200]) async {
-    context.analysisPriorityOrder = [testSource];
-    CompletionRequestImpl request = new CompletionRequestImpl(
+    final request = new CompletionRequestImpl(
       null,
-      context,
       null,
-      searchEngine,
       testSource,
       completionOffset,
       new CompletionPerformance(),
       null,
     );
 
-    // Build the request
-    Completer<CompletionRequest> requestCompleter =
-        new Completer<CompletionRequest>();
-    requestCompleter.complete(request);
-    request = await performAnalysis<CompletionRequest>(times, requestCompleter);
-
-    Completer<List<CompletionSuggestion>> suggestionCompleter =
-        new Completer<List<CompletionSuggestion>>();
-
     // Request completions
-    contributor
-        .computeSuggestions(request)
-        .then((List<CompletionSuggestion> computedSuggestions) {
-      suggestionCompleter.complete(computedSuggestions);
-    });
-
-    // Perform analysis until the suggestions have been computed
-    // or the max analysis cycles ([times]) has been reached
-    suggestions = await performAnalysis(times, suggestionCompleter);
+    suggestions = await contributor.computeSuggestions(request);
     replacementOffset = request.replacementOffset;
     replacementLength = request.replacementLength;
     expect(suggestions, isNotNull, reason: 'expected suggestions');
   }
+
+  /// Compute all the views declared in the given [dartSource], and resolve the
+  /// external template of all the views.
+  Future resolveSingleTemplate(Source dartSource) async {
+    final result = await angularDriver.resolveDart(dartSource.fullName);
+    for (var d in result.directives) {
+      if (d is Component && d.view.templateUriSource != null) {
+        final htmlPath = d.view.templateUriSource.fullName;
+        await angularDriver.resolveHtml(htmlPath);
+      }
+    }
+  }
 }
 
-abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
-  Index index;
-  SearchEngineImpl searchEngine;
+abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   String testFile;
   Source testSource;
   int completionOffset;
@@ -147,34 +78,33 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
   int replacementLength;
   List<CompletionSuggestion> suggestions;
 
-  /**
-   * If `true` and `null` is specified as the suggestion's expected returnType
-   * then the actual suggestion is expected to have a `dynamic` returnType.
-   * Newer tests return `false` so that they can distinguish between
-   * `dynamic` and `null`.
-   * Eventually all tests should be converted and this getter removed.
-   */
+  /// If `true` and `null` is specified as the suggestion's expected returnType
+  /// then the actual suggestion is expected to have a `dynamic` returnType.
+  /// Newer tests return `false` so that they can distinguish between
+  /// `dynamic` and `null`.
+  /// Eventually all tests should be converted and this getter removed.
   bool get isNullExpectedReturnTypeConsideredDynamic => true;
 
   void addTestSource(String content) {
     expect(completionOffset, isNull, reason: 'Call addTestUnit exactly once');
     completionOffset = content.indexOf('^');
     expect(completionOffset, isNot(equals(-1)), reason: 'missing ^');
-    int nextOffset = content.indexOf('^', completionOffset + 1);
+    final nextOffset = content.indexOf('^', completionOffset + 1);
     expect(nextOffset, equals(-1), reason: 'too many ^');
+    // ignore: parameter_assignments, prefer_interpolation_to_compose_strings
     content = content.substring(0, completionOffset) +
         content.substring(completionOffset + 1);
     testSource = newSource(testFile, content);
   }
 
-  void assertHasNoParameterInfo(CompletionSuggestion suggestion) {
+  void assertHasNoParameterInfo(final suggestion) {
     expect(suggestion.parameterNames, isNull);
     expect(suggestion.parameterTypes, isNull);
     expect(suggestion.requiredParameterCount, isNull);
     expect(suggestion.hasNamedParameters, isNull);
   }
 
-  void assertHasParameterInfo(CompletionSuggestion suggestion) {
+  void assertHasParameterInfo(final suggestion) {
     expect(suggestion.parameterNames, isNotNull);
     expect(suggestion.parameterTypes, isNotNull);
     expect(suggestion.parameterNames.length, suggestion.parameterTypes.length);
@@ -185,13 +115,12 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
 
   void assertNoSuggestions({CompletionSuggestionKind kind: null}) {
     if (kind == null) {
-      if (suggestions.length > 0) {
+      if (suggestions.isNotEmpty) {
         failedCompletion('Expected no suggestions', suggestions);
       }
       return;
     }
-    CompletionSuggestion suggestion = suggestions.firstWhere(
-        (CompletionSuggestion cs) => cs.kind == kind,
+    final suggestion = suggestions.firstWhere((final cs) => cs.kind == kind,
         orElse: () => null);
     if (suggestion != null) {
       failedCompletion('did not expect completion: $completion\n  $suggestion');
@@ -199,8 +128,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
   }
 
   void assertNotSuggested(String completion) {
-    CompletionSuggestion suggestion = suggestions.firstWhere(
-        (CompletionSuggestion cs) => cs.completion == completion,
+    final suggestion = suggestions.firstWhere(
+        (final cs) => cs.completion == completion,
         orElse: () => null);
     if (suggestion != null) {
       failedCompletion('did not expect completion: $completion\n  $suggestion');
@@ -216,9 +145,9 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       bool isPotential: false,
       String elemFile,
       int elemOffset,
-      String paramName,
-      String paramType}) {
-    CompletionSuggestion cs =
+      final paramName,
+      final paramType}) {
+    final cs =
         getSuggest(completion: completion, csKind: csKind, elemKind: elemKind);
     if (cs == null) {
       failedCompletion('expected $completion $csKind $elemKind', suggestions);
@@ -265,14 +194,14 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       String elemFile,
       String elemName,
       int elemOffset}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
         isDeprecated: isDeprecated,
         elemFile: elemFile,
         elemOffset: elemOffset);
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.CLASS));
     expect(element.name, equals(elemName ?? name));
@@ -285,9 +214,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
   CompletionSuggestion assertSuggestClassTypeAlias(String name,
       {int relevance: DART_RELEVANCE_DEFAULT,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION}) {
-    CompletionSuggestion cs =
-        assertSuggest(name, csKind: kind, relevance: relevance);
-    protocol.Element element = cs.element;
+    final cs = assertSuggest(name, csKind: kind, relevance: relevance);
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.CLASS_TYPE_ALIAS));
     expect(element.name, equals(name));
@@ -301,20 +229,19 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
       int elemOffset}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         relevance: relevance, importUri: importUri, elemOffset: elemOffset);
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.CONSTRUCTOR));
-    int index = name.indexOf('.');
+    final index = name.indexOf('.');
     expect(element.name, index >= 0 ? name.substring(index + 1) : '');
     return cs;
   }
 
   CompletionSuggestion assertSuggestEnum(String completion,
       {bool isDeprecated: false}) {
-    CompletionSuggestion suggestion =
-        assertSuggest(completion, isDeprecated: isDeprecated);
+    final suggestion = assertSuggest(completion, isDeprecated: isDeprecated);
     expect(suggestion.isDeprecated, isDeprecated);
     expect(suggestion.element.kind, protocol.ElementKind.ENUM);
     return suggestion;
@@ -322,7 +249,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
 
   CompletionSuggestion assertSuggestEnumConst(String completion,
       {int relevance: DART_RELEVANCE_DEFAULT, bool isDeprecated: false}) {
-    CompletionSuggestion suggestion = assertSuggest(completion,
+    final suggestion = assertSuggest(completion,
         relevance: relevance, isDeprecated: isDeprecated);
     expect(suggestion.completion, completion);
     expect(suggestion.isDeprecated, isDeprecated);
@@ -335,7 +262,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       bool isDeprecated: false}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
@@ -343,7 +270,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
         isDeprecated: isDeprecated);
     // The returnType represents the type of a field
     expect(cs.returnType, type != null ? type : 'dynamic');
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.FIELD));
     expect(element.name, equals(name));
@@ -359,7 +286,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       bool isDeprecated: false,
       int relevance: DART_RELEVANCE_DEFAULT,
       String importUri}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
@@ -369,12 +296,12 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     } else if (isNullExpectedReturnTypeConsideredDynamic) {
       expect(cs.returnType, 'dynamic');
     }
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.FUNCTION));
     expect(element.name, equals(name));
     expect(element.isDeprecated, equals(isDeprecated));
-    String param = element.parameters;
+    final param = element.parameters;
     expect(param, isNotNull);
     expect(param[0], equals('('));
     expect(param[param.length - 1], equals(')'));
@@ -393,7 +320,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       int relevance: DART_RELEVANCE_DEFAULT,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       String importUri}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
@@ -405,13 +332,13 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     } else {
       expect(cs.returnType, isNull);
     }
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.FUNCTION_TYPE_ALIAS));
     expect(element.name, equals(name));
     expect(element.isDeprecated, equals(isDeprecated));
     // TODO (danrubel) Determine why params are null
-    //    String param = element.parameters;
+    //    final param = element.parameters;
     //    expect(param, isNotNull);
     //    expect(param[0], equals('('));
     //    expect(param[param.length - 1], equals(')'));
@@ -427,14 +354,14 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       bool isDeprecated: false}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
         elemKind: protocol.ElementKind.GETTER,
         isDeprecated: isDeprecated);
     expect(cs.returnType, returnType != null ? returnType : 'dynamic');
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.GETTER));
     expect(element.name, equals(name));
@@ -451,18 +378,18 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       bool isDeprecated: false}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
         isDeprecated: isDeprecated);
     expect(cs.declaringType, equals(declaringType));
     expect(cs.returnType, returnType != null ? returnType : 'dynamic');
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.METHOD));
     expect(element.name, equals(name));
-    String param = element.parameters;
+    final param = element.parameters;
     expect(param, isNotNull);
     expect(param[0], equals('('));
     expect(param[param.length - 1], equals(')'));
@@ -476,7 +403,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.IDENTIFIER,
       bool isDeprecated: false}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
@@ -491,12 +418,12 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
         importUri: importUri,
         elemKind: protocol.ElementKind.SETTER);
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.SETTER));
     expect(element.name, equals(name));
@@ -510,18 +437,53 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestTemplateInput(String name,
+      {String elementName,
+      int relevance: DART_RELEVANCE_DEFAULT,
+      String importUri,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION}) {
+    final cs = assertSuggest(name,
+        csKind: kind,
+        relevance: relevance,
+        importUri: importUri,
+        elemKind: protocol.ElementKind.SETTER);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.SETTER));
+    expect(element.name, equals(elementName));
+    if (element.returnType != null) {
+      expect(element.returnType, 'dynamic');
+    }
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
+  CompletionSuggestion assertSuggestStar(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.IDENTIFIER}) {
+    final cs = assertSuggest(name, csKind: kind, relevance: relevance);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.CLASS));
+    expect(element.name, equals(name));
+    expect(element.parameters, isNull);
+    expect(element.returnType, isNull);
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   CompletionSuggestion assertSuggestTopLevelVar(String name, String returnType,
       {int relevance: DART_RELEVANCE_DEFAULT,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       String importUri}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind, relevance: relevance, importUri: importUri);
     if (returnType != null) {
       expect(cs.returnType, returnType);
     } else if (isNullExpectedReturnTypeConsideredDynamic) {
       expect(cs.returnType, 'dynamic');
     }
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.TOP_LEVEL_VARIABLE));
     expect(element.name, equals(name));
@@ -539,14 +501,14 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       {int relevance: DART_RELEVANCE_LOCAL_VARIABLE,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       String importUri}) {
-    CompletionSuggestion cs = assertSuggest(name,
+    final cs = assertSuggest(name,
         csKind: kind, relevance: relevance, importUri: importUri);
     if (returnType != null) {
       expect(cs.returnType, returnType);
     } else if (isNullExpectedReturnTypeConsideredDynamic) {
       expect(cs.returnType, 'dynamic');
     }
-    protocol.Element element = cs.element;
+    final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.LOCAL_VARIABLE));
     expect(element.name, equals(name));
@@ -560,37 +522,16 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     return cs;
   }
 
-  /**
-   * Return a [Future] that completes with the containing library information
-   * after it is accessible via [context.getLibrariesContaining].
-   */
-  Future computeLibrariesContaining([int times = 200]) {
-    List<Source> libraries = context.getLibrariesContaining(testSource);
-    if (libraries.isNotEmpty) {
-      return new Future.value(libraries);
-    }
-    if (times == 0) {
-      fail('failed to determine libraries containing $testSource');
-    }
-    context.performAnalysisTask();
-    // We use a delayed future to allow microtask events to finish. The
-    // Future.value or Future() constructors use scheduleMicrotask themselves and
-    // would therefore not wait for microtask callbacks that are scheduled after
-    // invoking this method.
-    return new Future.delayed(
-        Duration.ZERO, () => computeLibrariesContaining(times - 1));
-  }
-
   Future computeSuggestions([int times = 200]);
 
   void failedCompletion(String message,
       [Iterable<CompletionSuggestion> completions]) {
-    StringBuffer sb = new StringBuffer(message);
+    final sb = new StringBuffer(message);
     if (completions != null) {
       sb.write('\n  found');
       completions.toList()
         ..sort(suggestionComparator)
-        ..forEach((CompletionSuggestion suggestion) {
+        ..forEach((final suggestion) {
           sb.write('\n    ${suggestion.completion} -> $suggestion');
         });
     }
@@ -601,9 +542,9 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
       {String completion: null,
       CompletionSuggestionKind csKind: null,
       protocol.ElementKind elemKind: null}) {
-    CompletionSuggestion cs;
+    var cs;
     if (suggestions != null) {
-      suggestions.forEach((CompletionSuggestion s) {
+      suggestions.forEach((s) {
         if (completion != null && completion != s.completion) {
           return;
         }
@@ -611,7 +552,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
           return;
         }
         if (elemKind != null) {
-          protocol.Element element = s.element;
+          final element = s.element;
           if (element == null || elemKind != element.kind) {
             return;
           }
@@ -627,33 +568,9 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTaskTest {
     return cs;
   }
 
-  Future<E> performAnalysis<E>(int times, Completer<E> completer) {
-    if (completer.isCompleted) {
-      return completer.future;
-    }
-    if (times == 0 || context == null) {
-      return new Future.value();
-    }
-    context.performAnalysisTask();
-    // We use a delayed future to allow microtask events to finish. The
-    // Future.value or Future() constructors use scheduleMicrotask themselves and
-    // would therefore not wait for microtask callbacks that are scheduled after
-    // invoking this method.
-    return new Future.delayed(
-        Duration.ZERO, () => performAnalysis(times - 1, completer));
-  }
-
-  void resolveSource(String path, String content) {
-    Source libSource = newSource(path, content);
-    var target = new LibrarySpecificUnit(libSource, libSource);
-    context.computeResult(target, RESOLVED_UNIT);
-  }
-
   @override
   void setUp() {
     super.setUp();
-    index = createMemoryIndex();
-    searchEngine = new SearchEngineImpl(index, null);
     addAngularSources();
   }
 }

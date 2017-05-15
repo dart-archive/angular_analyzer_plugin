@@ -4,7 +4,7 @@ description: Dart analyzer server plugin for Angular 2
 environment:
   sdk: '>=1.21.0-dev.1.0'
 dependencies:
-  analyzer: '>=0.25.1 <0.27.0'
+  analyzer: '^0.30.0'
   angular_analyzer_plugin:
     path: ../analyzer_plugin
   analysis_server: any

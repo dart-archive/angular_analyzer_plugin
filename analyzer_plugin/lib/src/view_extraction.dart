@@ -5,9 +5,9 @@ import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
-import 'tasks.dart';
 import 'package:analyzer/error/error.dart';
-import 'package:angular_ast/angular_ast.dart' as NgAst;
+import 'package:angular_ast/angular_ast.dart' as ng_ast;
+import 'tasks.dart';
 
 class ViewExtractor extends AnnotationProcessorMixin {
   AnalysisContext context;
@@ -27,14 +27,14 @@ class ViewExtractor extends AnnotationProcessorMixin {
     //
     // Process all classes.
     //
-    List<View> views = <View>[];
-    for (ast.CompilationUnitMember unitMember in unit.declarations) {
+    final views = <View>[];
+    for (final unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
-        ClassElement classElement = unitMember.element;
+        final classElement = unitMember.element;
         ast.Annotation viewAnnotation;
         ast.Annotation componentAnnotation;
 
-        for (ast.Annotation annotation in unitMember.metadata) {
+        for (final annotation in unitMember.metadata) {
           if (isAngularAnnotation(annotation, 'View')) {
             viewAnnotation = annotation;
           } else if (isAngularAnnotation(annotation, 'Component')) {
@@ -47,7 +47,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
         }
 
         //@TODO when there's both a @View and @Component, handle edge cases
-        View view =
+        final view =
             _createView(classElement, viewAnnotation ?? componentAnnotation);
 
         if (view != null) {
@@ -59,23 +59,22 @@ class ViewExtractor extends AnnotationProcessorMixin {
     return views;
   }
 
-  /**
-   * Create a new [View] for the given [annotation], may return `null`
-   * if [annotation] or [classElement] don't provide enough information.
-   */
+  /// Create a new [View] for the given [annotation], may return `null`
+  /// if [annotation] or [classElement] don't provide enough information.
   View _createView(ClassElement classElement, ast.Annotation annotation) {
     // Template in a separate HTML file.
-    Source templateUriSource = null;
-    bool definesTemplate = false;
-    bool definesTemplateUrl = false;
-    SourceRange templateUrlRange = null;
+    Source templateUriSource;
+    var definesTemplate = false;
+    var definesTemplateUrl = false;
+    SourceRange templateUrlRange;
     {
-      ast.Expression templateUrlExpression =
+      // ignore: omit_local_variable_types
+      final ast.Expression templateUrlExpression =
           getNamedArgument(annotation, 'templateUrl');
       definesTemplateUrl = templateUrlExpression != null;
-      String templateUrl = getExpressionString(templateUrlExpression);
+      final templateUrl = getExpressionString(templateUrlExpression);
       if (templateUrl != null) {
-        SourceFactory sourceFactory = context.sourceFactory;
+        final sourceFactory = context.sourceFactory;
         templateUriSource = sourceFactory.resolveUri(source, templateUrl);
 
         if (templateUriSource == null || !templateUriSource.exists()) {
@@ -90,17 +89,22 @@ class ViewExtractor extends AnnotationProcessorMixin {
     }
     // Try to find inline "template".
     String templateText;
-    int templateOffset = 0;
+    var templateOffset = 0;
     {
-      ast.Expression expression = getNamedArgument(annotation, 'template');
+      // ignore: omit_local_variable_types
+      final ast.Expression expression =
+          getNamedArgument(annotation, 'template');
       if (expression != null) {
         templateOffset = expression.offset;
         definesTemplate = true;
-        OffsettingConstantEvaluator constantEvaluation =
+        // ignore: omit_local_variable_types
+        final OffsettingConstantEvaluator constantEvaluation =
             calculateStringWithOffsets(expression);
 
         // highly dynamically generated constant expressions can't be validated
-        if (constantEvaluation == null || !constantEvaluation.offsetsAreValid) {
+        if (constantEvaluation == null ||
+            !constantEvaluation.offsetsAreValid ||
+            constantEvaluation.value is! String) {
           templateText = '';
         } else {
           templateText = constantEvaluation.value;
@@ -123,7 +127,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
     }
 
     // Find the corresponding Component.
-    Component component = _findComponentAnnotationOrReportError(classElement);
+    final component = _findComponentAnnotationOrReportError(classElement);
     if (component == null) {
       return null;
     }
@@ -140,7 +144,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
   }
 
   Component _findComponentAnnotationOrReportError(ClassElement classElement) {
-    for (AbstractDirective directive in directivesDefinedInFile) {
+    for (final directive in directivesDefinedInFile) {
       if (directive is Component && directive.classElement == classElement) {
         return directive;
       }
@@ -153,30 +157,25 @@ class ViewExtractor extends AnnotationProcessorMixin {
   void findDirectives(
       ast.Annotation annotation, List<DirectiveReference> directiveReferences) {
     // Prepare directives and elementTags
-    ast.Expression listExpression = getNamedArgument(annotation, 'directives');
+    // ignore: omit_local_variable_types
+    final ast.Expression listExpression =
+        getNamedArgument(annotation, 'directives');
     if (listExpression is ast.ListLiteral) {
-      for (ast.Expression item in listExpression.elements) {
+      // ignore: omit_local_variable_types
+      for (final ast.Expression item in listExpression.elements) {
         if (item is ast.Identifier) {
-          var name = item.name;
+          final name = item.name;
           var prefix = "";
           if (item is ast.PrefixedIdentifier) {
             prefix = item.prefix.name;
           }
-          Element element = item.staticElement;
+          final element = item.staticElement;
           // LIST_OF_DIRECTIVES or TypeLiteral
           if (element is ClassElement ||
               element is PropertyAccessorElement &&
                   element.variable.constantValue != null) {
             directiveReferences.add(new DirectiveReference(
                 name, prefix, new SourceRange(item.offset, item.length)));
-            //DartObject value = element.variable.constantValue;
-            //bool success = _addDirectivesAndElementTagsForDartObject(
-            //    directiveReferences, value);
-            //if (!success) {
-            //  errorReporter.reportErrorForNode(
-            //      AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
-            //  return null;
-            //}
             continue;
           }
         }
@@ -189,22 +188,24 @@ class ViewExtractor extends AnnotationProcessorMixin {
 }
 
 class TemplateParser {
+  //Todo(Max): remove errorMap after new ast implemented
   static const errorMap = const {
-    NgAst.NgParserWarningCode.UNTERMINATED_MUSTACHE:
+    ng_ast.NgParserWarningCode.UNTERMINATED_MUSTACHE:
         AngularWarningCode.UNTERMINATED_MUSTACHE,
-    NgAst.NgParserWarningCode.UNOPENED_MUSTACHE:
+    ng_ast.NgParserWarningCode.UNOPENED_MUSTACHE:
         AngularWarningCode.UNOPENED_MUSTACHE,
   };
 
-  List<NgAst.TemplateAst> rawAst;
-  final List<AnalysisError> parseErrors = <AnalysisError>[];
+  List<ng_ast.TemplateAst> rawAst;
+  final parseErrors = <AnalysisError>[];
 
   void parse(String content, Source source, {int offset = 0}) {
     if (offset != null) {
+      // ignore: prefer_interpolation_to_compose_strings, parameter_assignments
       content = ' ' * offset + content;
     }
-    var exceptionHandler = new NgAst.RecoveringExceptionHandler();
-    rawAst = NgAst.parse(
+    final exceptionHandler = new ng_ast.RecoveringExceptionHandler();
+    rawAst = ng_ast.parse(
       content,
       sourceUrl: source.toString(),
       desugar: false,
@@ -212,28 +213,28 @@ class TemplateParser {
       exceptionHandler: exceptionHandler,
     );
 
-    for (NgAst.AngularParserException e in exceptionHandler.exceptions) {
-      if (e.errorCode is NgAst.NgParserWarningCode) {
-        this.parseErrors.add(new AnalysisError(
-              source,
-              e.offset,
-              e.length,
-              errorMap[e.errorCode] ?? e.errorCode,
-            ));
+    for (final e in exceptionHandler.exceptions) {
+      if (e.errorCode is ng_ast.NgParserWarningCode) {
+        parseErrors.add(new AnalysisError(
+          source,
+          e.offset,
+          e.length,
+          errorMap[e.errorCode] ?? e.errorCode,
+        ));
       }
     }
   }
 }
 
-setIgnoredErrors(Template template, List<NgAst.TemplateAst> asts) {
-  if (asts == null || asts.length == 0) {
+void setIgnoredErrors(Template template, List<ng_ast.TemplateAst> asts) {
+  if (asts == null || asts.isEmpty) {
     return;
   }
-  for (NgAst.TemplateAst ast in asts) {
-    if (ast is NgAst.TextAst && ast.value.trim().isEmpty) {
+  for (final ast in asts) {
+    if (ast is ng_ast.TextAst && ast.value.trim().isEmpty) {
       continue;
-    } else if (ast is NgAst.CommentAst) {
-      String text = ast.value.trim();
+    } else if (ast is ng_ast.CommentAst) {
+      var text = ast.value.trim();
       if (text.startsWith("@ngIgnoreErrors")) {
         text = text.substring("@ngIgnoreErrors".length);
         // Per spec: optional color
@@ -241,7 +242,7 @@ setIgnoredErrors(Template template, List<NgAst.TemplateAst> asts) {
           text = text.substring(1);
         }
         // Per spec: optional commas
-        String delim = text.indexOf(',') == -1 ? ' ' : ',';
+        final delim = !text.contains(',') ? ' ' : ',';
         template.ignoredErrors.addAll(new HashSet.from(
             text.split(delim).map((c) => c.trim().toUpperCase())));
       }
