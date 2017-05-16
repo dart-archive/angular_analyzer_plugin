@@ -39,8 +39,12 @@ class AngularAnalysisPlugin extends ServerPlugin {
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
     final root = new ContextRoot(contextRoot.root, contextRoot.exclude);
     final sdkManager = new DartSdkManager('/home/mfairhurst/.dart-sdk', true);
+    final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
-      ..analysisDriverScheduler = analysisDriverScheduler;
+      ..analysisDriverScheduler = analysisDriverScheduler
+      ..byteStore = byteStore
+      ..performanceLog = logger
+      ..fileContentOverlay = fileContentOverlay;
     final dartDriver = builder.buildDriver(root);
 
     final sourceFactory = dartDriver.sourceFactory;
@@ -111,22 +115,23 @@ class AngularAnalysisPlugin extends ServerPlugin {
   @override
   Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
       plugin.CompletionGetSuggestionsParams parameters) async {
-    final filePath = parameters.file;
-    final contextRoot = contextRootContaining(filePath);
-    if (contextRoot == null) {
-      // Return an error from the request.
-      throw new plugin.RequestFailure(plugin.RequestErrorFactory
-          .pluginError('Failed to analyze $filePath', null));
-    }
-    final AngularDriver driver = driverMap[contextRoot];
-    final analysisResult = await driver.dartDriver.getResult(filePath);
-    final contributor = new AngularCompletionContributor(driver);
-    final request = new CompletionRequestImpl(
-        analysisResult, resourceProvider, null, parameters.offset, null, null);
-    final DartCompletionRequestImpl dartRequest =
-        await DartCompletionRequestImpl.from(request);
-    final suggestions = await contributor.computeSuggestions(dartRequest);
-    return new plugin.CompletionGetSuggestionsResult(
-        request.replacementOffset, request.replacementLength, suggestions);
+    //final filePath = parameters.file;
+    //final contextRoot = contextRootContaining(filePath);
+    //if (contextRoot == null) {
+    //  // Return an error from the request.
+    //  throw new plugin.RequestFailure(plugin.RequestErrorFactory
+    //      .pluginError('Failed to analyze $filePath', null));
+    //}
+    //final AngularDriver driver = driverMap[contextRoot];
+    //final analysisResult = await driver.dartDriver.getResult(filePath);
+    //final contributor = new AngularCompletionContributor(driver);
+    //final request = new CompletionRequestImpl(
+    //    analysisResult, resourceProvider, null, parameters.offset, null, null);
+    //final DartCompletionRequestImpl dartRequest =
+    //    await DartCompletionRequestImpl.from(request);
+    //final suggestions = await contributor.computeSuggestions(dartRequest);
+    //return new plugin.CompletionGetSuggestionsResult(
+    //    request.replacementOffset, request.replacementLength, suggestions);
+    return super.handleCompletionGetSuggestions(parameters);
   }
 }
