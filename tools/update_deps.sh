@@ -37,3 +37,11 @@ echo Adding server to .packages
 echo 'angular_analyzer_server_plugin:server_plugin/lib' >> .packages
 echo done
 echo
+
+echo Updating new plugin architecture .packages file
+cd analyze_angular/tools/analysis_plugin
+pub get
+cd ../../..
+echo done
+echo
+
