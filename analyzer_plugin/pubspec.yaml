@@ -9,6 +9,10 @@ dependencies:
   html: '^0.12.2'
   tuple: '^1.0.1'
   analysis_server: any
+  angular_ast:
+    git:
+      url: https://github.com/dart-lang/angular_ast
+      ref: master
 dev_dependencies:
   test_reflective_loader: '^0.1.0'
   typed_mock: '^0.0.4'
