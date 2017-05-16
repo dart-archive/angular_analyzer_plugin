@@ -102,7 +102,7 @@ class AngularAnalysisPlugin extends ServerPlugin {
   /// server. This method will not be invoked under normal conditions.
   @override
   void onError(Object exception, StackTrace stackTrace) {
-    print("Communication Exception: $exception\n$stackTrace");
+    print('Communication Exception: $exception\n$stackTrace');
     throw exception;
   }
 

@@ -135,7 +135,7 @@ class ServerNotificationManager implements NotificationManager {
   void recordAnalysisErrors(
           String path, LineInfo lineInfo, List<AnalysisError> analysisErrors) =>
       server.notificationManager.recordAnalysisErrors(
-          "angular driver",
+          'angular driver',
           path,
           protocol.doAnalysisError_listFromEngine(
               dartDriver.analysisOptions, lineInfo, errors));
