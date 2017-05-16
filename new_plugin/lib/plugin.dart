@@ -91,11 +91,13 @@ class AngularAnalysisPlugin extends ServerPlugin {
       return;
     }
 
-    (driverMap[contextRoot] as AngularDriver)
+    final driver = (driverMap[contextRoot] as AngularDriver)
       ..addFile(path) // TODO new API to only do this on file add
       ..fileChanged(path);
 
-    // TODO do these these to add/change file on the underlying dart driver?
+    driver.dartDriver
+      ..addFile(path) // TODO new API to only do this on file add
+      ..changeFile(path);
   }
 
   /// The method that is called when an error has occurred in the analysis
