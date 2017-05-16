@@ -19,6 +19,7 @@ import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 //import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
+import 'package:front_end/src/base/performace_logger.dart';
 
 class AngularAnalysisPlugin extends ServerPlugin {
   AngularAnalysisPlugin(ResourceProvider provider) : super(provider);

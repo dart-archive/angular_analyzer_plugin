@@ -15,4 +15,4 @@ script:
 env:
   - PACKAGE=analyzer_plugin
   - PACKAGE=server_plugin
-
+  - PACKAGE=new_plugin
