@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
-import 'package:analysis_server/src/analysis_server.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
-import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:front_end/src/base/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
@@ -34,7 +32,7 @@ class AngularDriver
         FileDirectiveProvider,
         DirectiveLinkerEnablement,
         FileHasher {
-  final AnalysisServer server;
+  final NotificationManager notificationManager;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
   final FileContentOverlay _contentOverlay;
@@ -53,8 +51,8 @@ class AngularDriver
   final lastSignatures = <String, String>{};
   bool _hasAngularImported = false;
 
-  AngularDriver(this.server, this.dartDriver, this._scheduler, this.byteStore,
-      SourceFactory sourceFactory, this._contentOverlay) {
+  AngularDriver(this.notificationManager, this.dartDriver, this._scheduler,
+      this.byteStore, SourceFactory sourceFactory, this._contentOverlay) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
@@ -526,10 +524,7 @@ class AngularDriver
   Future pushHtmlErrors(String htmlPath) async {
     final errors = (await resolveHtml(htmlPath)).errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(htmlPath));
-    final serverErrors = protocol.doAnalysisError_listFromEngine(
-        dartDriver.analysisOptions, lineInfo, errors);
-    server.notificationManager
-        .recordAnalysisErrors("angularPlugin", htmlPath, serverErrors);
+    notificationManager.recordAnalysisErrors(htmlPath, lineInfo, errors);
   }
 
   Future pushDartNavigation(String path) async {}
@@ -543,10 +538,7 @@ class AngularDriver
     }
     final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));
-    final serverErrors = protocol.doAnalysisError_listFromEngine(
-        dartDriver.analysisOptions, lineInfo, errors);
-    server.notificationManager
-        .recordAnalysisErrors("angularPlugin", path, serverErrors);
+    notificationManager.recordAnalysisErrors(path, lineInfo, errors);
   }
 
   Future<DirectivesResult> resolveDart(String path,

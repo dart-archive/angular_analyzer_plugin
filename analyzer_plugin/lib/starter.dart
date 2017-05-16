@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:analyzer/error/error.dart';
 import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart';
+import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:analyzer/src/context/builder.dart';
+import 'package:analysis_server/src/protocol_server.dart' as protocol;
 import 'package:analysis_server/protocol/protocol.dart' show Request;
 import 'package:analysis_server/protocol/protocol_generated.dart'
     show CompletionGetSuggestionsParams, CompletionGetSuggestionsResult;
@@ -37,8 +40,13 @@ class Starter {
       driverPath,
       sourceFactory,
       analysisOptions) {
-    final driver = new AngularDriver(server, analysisDriver, scheduler,
-        byteStore, sourceFactory, contentOverlay);
+    final driver = new AngularDriver(
+        new ServerNotificationManager(server, analysisDriver),
+        analysisDriver,
+        scheduler,
+        byteStore,
+        sourceFactory,
+        contentOverlay);
     angularDrivers[driverPath] = driver;
     server.onFileAdded.listen((path) {
       if (server.contextManager.getContextFolderFor(path).path == driverPath) {
@@ -123,4 +131,20 @@ class Starter {
       }
     }
   }
+}
+
+class ServerNotificationManager implements NotificationManager {
+  final AnalysisServer server;
+  final AnalysisDriver dartDriver;
+
+  ServerNotificationManager(this.server, this.dartDriver);
+
+  @override
+  void recordAnalysisErrors(
+          String path, LineInfo lineInfo, List<AnalysisError> analysisErrors) =>
+      server.notificationManager.recordAnalysisErrors(
+          'angular driver',
+          path,
+          protocol.doAnalysisError_listFromEngine(
+              dartDriver.analysisOptions, lineInfo, analysisErrors));
 }

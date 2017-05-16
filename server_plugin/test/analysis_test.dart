@@ -4,8 +4,6 @@ import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart'
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
 import 'package:analysis_server/protocol/protocol_generated.dart' as protocol;
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
-import 'package:analysis_server/src/plugin/notification_manager.dart';
-import 'package:analysis_server/src/analysis_server.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/src/context/context.dart' show AnalysisContextImpl;
@@ -25,8 +23,9 @@ import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:front_end/src/base/performace_logger.dart';
-import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
+import 'package:angular_analyzer_plugin/plugin.dart';
+import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:plugin/manager.dart';
 import 'package:plugin/plugin.dart';
@@ -635,7 +634,7 @@ class AbstractAngularTest {
       new AnalysisOptionsImpl(),
     );
 
-    angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
+    angularDriver = new AngularDriver(new MockNotificationManager(), dartDriver,
         scheduler, byteStore, sf, new FileContentOverlay());
 
     errorListener = new GatheringErrorListener();
@@ -821,11 +820,6 @@ library angular2.template_ref;
 class TemplateRef {}
 ''');
   }
-}
-
-class MockAnalysisServer extends TypedMock implements AnalysisServer {
-  @override
-  final notificationManager = new MockNotificationManager();
 }
 
 class MockNotificationManager extends TypedMock implements NotificationManager {
