@@ -6,6 +6,7 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -13,8 +14,6 @@ import 'package:typed_mock/typed_mock.dart';
 import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
-import 'package:analysis_server/src/analysis_server.dart';
-import 'package:analysis_server/src/plugin/notification_manager.dart';
 import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:front_end/src/base/performace_logger.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart'
@@ -137,7 +136,7 @@ class AbstractAngularTest {
         contextRoot,
         sf,
         new AnalysisOptionsImpl());
-    angularDriver = new AngularDriver(new MockAnalysisServer(), dartDriver,
+    angularDriver = new AngularDriver(new MockNotificationManager(), dartDriver,
         scheduler, byteStore, sf, new FileContentOverlay());
 
     errorListener = new GatheringErrorListener();
@@ -488,11 +487,6 @@ class GatheringErrorListener implements AnalysisErrorListener {
   void onError(AnalysisError error) {
     errors.add(error);
   }
-}
-
-class MockAnalysisServer extends TypedMock implements AnalysisServer {
-  @override
-  NotificationManager notificationManager = new MockNotificationManager();
 }
 
 class MockNotificationManager extends TypedMock implements NotificationManager {
