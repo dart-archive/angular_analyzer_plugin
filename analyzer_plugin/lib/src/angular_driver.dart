@@ -449,13 +449,13 @@ class AngularDriver
           final tplParser = new TemplateParser()
             ..parse(htmlContent, htmlSource);
 
-          final document = tplParser.document;
+          final document = tplParser.rawAst;
           final parser = new EmbeddedDartParser(
               htmlSource, tplErrorListener, errorReporter);
 
           template.ast =
               new HtmlTreeConverter(parser, htmlSource, tplErrorListener)
-                  .convert(firstElement(tplParser.document));
+                  .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
           new TemplateResolver(
@@ -511,7 +511,7 @@ class AngularDriver
         new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
     final ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-        .convert(firstElement(tplParser.document));
+        .convertFromAstList(tplParser.rawAst);
     final contents = <NgContent>[];
     ast.accept(new NgContentRecorder.forFile(contents, source, errorReporter));
 
@@ -627,12 +627,12 @@ class AngularDriver
           final tplParser = new TemplateParser()
             ..parse(view.templateText, source, offset: view.templateOffset);
 
-          final document = tplParser.document;
+          final document = tplParser.rawAst;
           final parser =
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-              .convert(firstElement(tplParser.document));
+              .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
           setIgnoredErrors(template, document);
           new TemplateResolver(
@@ -744,7 +744,7 @@ class AngularDriver
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-              .convert(firstElement(tplParser.document));
+              .convertFromAstList(tplParser.rawAst);
           template.ast.accept(new NgContentRecorder(directive, errorReporter));
         }
       }

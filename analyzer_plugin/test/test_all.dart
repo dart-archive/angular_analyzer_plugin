@@ -8,7 +8,6 @@ import 'offsetting_constant_value_visitor_test.dart'
 import 'resolver_test.dart' as resolver_test;
 import 'selector_test.dart' as selector_test;
 
-/// Utility for manually running all tests.
 void main() {
   defineReflectiveSuite(() {
     resolver_test.main();

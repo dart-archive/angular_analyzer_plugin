@@ -9,7 +9,9 @@ import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'abstract_angular.dart';
@@ -241,6 +243,7 @@ class TitleComponent {
   bool get title => _title;
 }
 ''');
+
     final code = r"""
 <title-comp title='anything can go here'></title-comp>
 """;
@@ -284,6 +287,7 @@ class TitleComponent {
   @Input() int titleInput;
 }
 ''');
+
     final code = r"""
 <title-comp titleInput='string binding'></title-comp>
 """;
@@ -666,7 +670,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.UNOPENED_MUSTACHE, code, "}}");
+        AngularWarningCode.UNOPENED_MUSTACHE, code, '}}');
   }
 
   // ignore: non_constant_identifier_names
@@ -1158,8 +1162,13 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "invalid*property");
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4(']', 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new Tuple4(']', 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
+      new Tuple4('[', 14, NgParserWarningCode.SUFFIX_PROPERTY, []),
+      new Tuple4('*property', 9, AngularWarningCode.TEMPLATE_ATTR_NOT_USED, []),
+    ]);
   }
 
   // ignore: non_constant_identifier_names
@@ -1192,8 +1201,14 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_PROPERTY_NAME, code, "border&radius");
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4(
+          "]='pixels'", 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new Tuple4("]='pixels'", 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
+      new Tuple4('&radius', 1, NgParserWarningCode.UNEXPECTED_TOKEN, []),
+      new Tuple4('[style', 14, NgParserWarningCode.SUFFIX_PROPERTY, []),
+    ]);
   }
 
   // ignore: non_constant_identifier_names
@@ -1209,11 +1224,16 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "p|x");
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4(
+          "]='pixels'", 0, AngularWarningCode.NONEXIST_INPUT_BOUND, ['']),
+      new Tuple4("]='pixels'", 1,
+          NgParserWarningCode.EXPECTED_WHITESPACE_BEFORE_NEW_DECORATOR, []),
+      new Tuple4('|x', 1, NgParserWarningCode.UNEXPECTED_TOKEN, []),
+      new Tuple4('[style', 23, NgParserWarningCode.SUFFIX_PROPERTY, []),
+    ]);
   }
 
-  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_heightPercent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1221,7 +1241,7 @@ class TestPanel {
   int percentage; // 1
 }
 ''');
-    final code = r"""
+    var code = r"""
 <span [style.height.%]='percentage'></span>
 """;
     _addHtmlSource(code);
@@ -1972,10 +1992,11 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertMultipleErrorsInCodeAtPositions(code, {
-      ParserErrorCode.UNEXPECTED_TOKEN: '}',
-      StaticTypeWarningCode.UNDEFINED_GETTER: 'length'
-    });
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4('}1', 1, ParserErrorCode.UNEXPECTED_TOKEN, ['}']),
+      new Tuple4('length', 6, StaticTypeWarningCode.UNDEFINED_GETTER,
+          ['length', 'int']),
+    ]);
   }
 
   // ignore: non_constant_identifier_names
@@ -2669,29 +2690,29 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_ngFor_variousKinds_useLowerIdentifier() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
-class TestPanel {
-  List<String> items = [];
-}
-''');
-    _addHtmlSource(r"""
-<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
-  {{item1.length}}
-</template>
-<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
-  {{item2.length}}
-</li>
-<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
-  {{item3.length}}
-</li>
-<div #lowerEl></div>
-""");
-    await _resolveSingleTemplate(dartSource);
-    errorListener.assertNoErrors();
-  }
+//  Future test_ngFor_variousKinds_useLowerIdentifier() async {
+//    _addDartSource(r'''
+//@Component(selector: 'test-panel')
+//@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+//class TestPanel {
+//  List<String> items = [];
+//}
+//''');
+//    _addHtmlSource(r"""
+//<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
+//  {{item1.length}}
+//</template>
+//<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
+//  {{item2.length}}
+//</li>
+//<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
+//  {{item3.length}}
+//</li>
+//<div #lowerEl></div>
+//""");
+//    await _resolveSingleTemplate(dartSource);
+//    errorListener.assertNoErrors();
+//  }
 
   // ignore: non_constant_identifier_names
   Future test_ngFor_hash_instead_of_let() async {
@@ -2942,7 +2963,6 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertErrorsWithCodes([
-      HtmlErrorCode.PARSE_ERROR,
       ParserErrorCode.EXPECTED_LIST_OR_MAP_LITERAL,
       ParserErrorCode.EXPECTED_TOKEN,
       ParserErrorCode.EXPECTED_TYPE_NAME,
@@ -3063,8 +3083,12 @@ class TestPanel {
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY, code, "<ng-content>");
+    assertMultipleErrorsExplicit(htmlSource, code, [
+      new Tuple4('<ng-content', 12,
+          NgParserWarningCode.NGCONTENT_MUST_CLOSE_IMMEDIATELY, []),
+      new Tuple4(
+          '</ng-content>', 13, NgParserWarningCode.DANGLING_CLOSE_ELEMENT, []),
+    ]);
   }
 
   // ignore: non_constant_identifier_names

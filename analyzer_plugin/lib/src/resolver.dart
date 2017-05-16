@@ -242,6 +242,12 @@ class AngularScopeVisitor extends AngularAstVisitor {
   bool visitingRoot = true;
 
   @override
+  void visitDocumentInfo(DocumentInfo document) {
+    visitingRoot = false;
+    visitElementInScope(document);
+  }
+
+  @override
   void visitElementInfo(ElementInfo element) {
     final isRoot = visitingRoot;
     visitingRoot = false;
@@ -659,6 +665,14 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
   final results = <ElementInfo>[];
 
   @override
+  void visitDocumentInfo(DocumentInfo document) {
+    visitingRoot = false;
+    for (NodeInfo child in document.childNodes) {
+      child.accept(this);
+    }
+  }
+
+  @override
   void visitElementInfo(ElementInfo element) {
     if (element.isOrHasTemplateAttribute && !visitingRoot) {
       results.add(element);
@@ -963,7 +977,7 @@ class NgContentRecorder extends AngularScopeVisitor {
       return;
     }
 
-    // We don't actually check if selectors.length > 2, because the html parser
+    // We don't actually check if selectors.length > 2, because the parser
     // reports that.
     try {
       final selectorAttr = selectorAttrs.first;

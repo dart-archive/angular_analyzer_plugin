@@ -5,12 +5,9 @@ import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/engine.dart';
-import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
-import 'package:angular_analyzer_plugin/src/angular_html_parser.dart';
 
 class OffsettingConstantEvaluator extends utils.ConstantEvaluator {
   bool offsetsAreValid = true;
@@ -207,24 +204,4 @@ class AnnotationProcessorMixin {
     }
     return false;
   }
-}
-
-List<AnalysisError> filterParserErrors(
-    AngularHtmlParser parser, String content, Source source) {
-  final errors = <AnalysisError>[];
-  final parseErrors = parser.errors;
-
-  for (final parseError in parseErrors) {
-    // Append error codes that are useful to this analyzer
-    if (parseError.errorCode == 'eof-in-tag-name') {
-      final span = parseError.span;
-      errors.add(new AnalysisError(
-          source,
-          span.start.offset,
-          span.length,
-          HtmlErrorCode.PARSE_ERROR,
-          [parseError.errorCode, content.substring(span.start.offset)]));
-    }
-  }
-  return errors;
 }

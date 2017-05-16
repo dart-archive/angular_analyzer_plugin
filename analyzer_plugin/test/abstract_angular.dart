@@ -10,6 +10,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:typed_mock/typed_mock.dart';
+import 'package:tuple/tuple.dart';
 import 'package:unittest/unittest.dart';
 
 import 'package:analysis_server/src/analysis_server.dart';
@@ -337,28 +338,36 @@ class NgFor {
     expect(errorListener.errors.single.length, snippet.length);
   }
 
-  /// Assert multiple [errCode] is reported for [code], highlighting the [snippet].
-  void assertMultipleErrorsInCodeAtPositions(
-      String code, Map<ErrorCode, String> errCodesAndSnippet) {
-    final expectedErrors = <ErrorCode, Map<int, String>>{};
-    errCodesAndSnippet.forEach((errCode, snippet) {
-      final snippetIndex = code.indexOf(snippet);
-      expect(snippetIndex, greaterThan(-1),
-          reason: 'Error in test: snippet $snippet not part of code $code');
-      expectedErrors
-          .putIfAbsent(errCode, () => <int, String>{})
-          .putIfAbsent(snippetIndex, () => snippet);
-    });
-    errorListener.assertErrorsWithCodes(expectedErrors.keys);
-
-    errorListener.errors.forEach((currErr) {
-      expect(expectedErrors.containsKey(currErr.errorCode), true);
+  /// For [expectedErrors], it is a List of Tuple4 (1 per error):
+  ///   code segment where offset begins,
+  ///   length of error highlight,
+  ///   errorCode,
+  ///   and optional error args - pass empty list if not needed.
+  void assertMultipleErrorsExplicit(
+    Source source,
+    String code,
+    List<Tuple4<String, int, ErrorCode, List<Object>>> expectedErrors,
+  ) {
+    final realErrors = errorListener.errors;
+    for (Tuple4 expectedError in expectedErrors) {
+      final offset = code.indexOf(expectedError.item1);
+      assert(offset != -1);
+      final currentExpectedError = new AnalysisError(
+        source,
+        offset,
+        expectedError.item2,
+        expectedError.item3,
+        expectedError.item4,
+      );
       expect(
-          expectedErrors[currErr.errorCode].containsKey(currErr.offset), true);
-      expect(currErr.length,
-          expectedErrors[currErr.errorCode][currErr.offset].length,
-          verbose: true);
-    });
+        realErrors.contains(currentExpectedError),
+        true,
+        reason: 'Expected error code ${expectedError.item3} never occurs at '
+            'location $offset of length ${expectedError.item2}.',
+      );
+      expect(realErrors.length, expectedErrors.length,
+          reason: 'Expected error counts do not  match.');
+    }
   }
 }
 

@@ -67,6 +67,9 @@ class DartSnippetExtractor extends AngularAstVisitor {
   AstNode dartSnippet;
   int offset;
 
+  @override
+  void visitDocumentInfo(DocumentInfo document) {}
+
   // don't recurse, findTarget already did that
   @override
   void visitElementInfo(ElementInfo element) {}
@@ -95,7 +98,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
   @override
   void visitMustache(Mustache mustache) {
     if (offsetContained(
-        offset, mustache.expression.offset, mustache.expression.length)) {
+        offset, mustache.exprBegin, mustache.exprEnd - mustache.exprBegin)) {
       dartSnippet = mustache.expression;
     }
   }
@@ -137,7 +140,11 @@ class LocalVariablesExtractor extends AngularAstVisitor {
 
   // don't recurse, findTarget already did that
   @override
+  void visitDocumentInfo(DocumentInfo document) {}
+
+  @override
   void visitElementInfo(ElementInfo element) {}
+
   @override
   void visitTextAttr(TextAttribute attr) {}
 
@@ -161,6 +168,9 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   CompletionRequestImpl request;
 
   ReplacementRangeCalculator(this.request);
+
+  @override
+  void visitDocumentInfo(DocumentInfo document) {}
 
   // don't recurse, findTarget already did that
   @override
@@ -283,10 +293,15 @@ class TemplateCompleter {
       ..accept(new ReplacementRangeCalculator(request));
     final extractor = new DartSnippetExtractor()..offset = request.offset;
     target.accept(extractor);
+
+    // If [CompletionRequest] is in
+    // [StatementsBoundAttribute],
+    // [ExpressionsBoundAttribute],
+    // [Mustache],
+    // [TemplateAttribute].
     if (extractor.dartSnippet != null) {
       final dartRequest = new EmbeddedDartCompletionRequest.from(
           request, extractor.dartSnippet);
-
       final range =
           new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
       (request as CompletionRequestImpl)
@@ -296,10 +311,15 @@ class TemplateCompleter {
       dartRequest.libraryElement = template.view.classElement.library;
       final memberContributor = new TypeMemberContributor();
       final inheritedContributor = new InheritedReferenceContributor();
+
       suggestions
-        ..addAll(inheritedContributor.computeSuggestionsForClass(
-            template.view.classElement, dartRequest,
-            skipChildClass: false))
+        ..addAll(
+          inheritedContributor.computeSuggestionsForClass(
+            template.view.classElement,
+            dartRequest,
+            skipChildClass: false,
+          ),
+        )
         ..addAll(await memberContributor.computeSuggestions(dartRequest));
 
       if (dartRequest.opType.includeIdentifiers) {
@@ -307,28 +327,27 @@ class TemplateCompleter {
         target.accept(varExtractor);
         if (varExtractor.variables != null) {
           addLocalVariables(
-              suggestions, varExtractor.variables, dartRequest.opType);
+            suggestions,
+            varExtractor.variables,
+            dartRequest.opType,
+          );
         }
       }
-    } else if (target is ElementInfo &&
-        target.openingSpan == null &&
-        target.localName == 'html' &&
-        target.childNodes.isNotEmpty &&
-        target.childNodes.length == 2 &&
-        target.childNodes[1] is ElementInfo &&
-        (target.childNodes[1] as ElementInfo).localName == 'body' &&
-        (target.childNodes[1] as ElementInfo).childNodes.isEmpty) {
-      //On an empty document
-      suggestHtmlTags(template, suggestions);
-    } else if (target is ElementInfo &&
-        target.openingSpan != null &&
-        target.openingNameSpan != null &&
-        (offsetContained(request.offset, target.openingSpan.offset,
-            target.openingSpan.length))) {
-      if (!offsetContained(request.offset, target.openingNameSpan.offset,
+    } else if (target is ElementInfo) {
+      if (target.closingSpan != null &&
+          offsetContained(request.offset, target.closingSpan.offset,
+              target.closingSpan.length)) {
+        if (request.offset ==
+            (target.closingSpan.offset + target.closingSpan.length)) {
+          // In closing tag, but could be directly after it; ex: '</div>^'.
+          suggestHtmlTags(template, suggestions);
+          if (target.parent != null || target.parent is! DocumentInfo) {
+            suggestTransclusions(target.parent, suggestions);
+          }
+        }
+      } else if (!offsetContained(request.offset, target.openingNameSpan.offset,
           target.openingNameSpan.length)) {
-        // TODO suggest these things if the target is ExpressionBoundInput with
-        // boundType of input
+        // If request is not in [openingNameSpan], suggest decorators.
         suggestInputs(target.boundDirectives, suggestions,
             standardHtmlAttributes, target.boundStandardInputs, typeProvider,
             includePlainAttributes: true);
@@ -338,28 +357,12 @@ class TemplateCompleter {
           suggestStarAttrs(template, suggestions);
         }
       } else {
+        // Otherwise, suggest HTML tags and transclusions.
         suggestHtmlTags(template, suggestions);
-        if (target.parent != null) {
+        if (target.parent != null || target.parent is! DocumentInfo) {
           suggestTransclusions(target.parent, suggestions);
         }
       }
-    } else if (target is ElementInfo &&
-        target.openingSpan != null &&
-        target.openingNameSpan != null &&
-        target.closingSpan != null &&
-        target.closingNameSpan != null &&
-        request.offset ==
-            (target.closingSpan.offset + target.closingSpan.length)) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target.parent, suggestions);
-    } else if (target is ElementInfo &&
-        target.openingSpan != null &&
-        request.offset == target.childNodesMaxEnd) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target, suggestions);
-    } else if (target is ElementInfo) {
-      suggestHtmlTags(template, suggestions);
-      suggestTransclusions(target, suggestions);
     } else if (target is AttributeInfo && target.parent is TemplateAttribute) {
       // `let foo`. Nothing to suggest.
       if (target is TextAttribute && target.name.startsWith("let-")) {
@@ -394,7 +397,10 @@ class TemplateCompleter {
         suggestStarAttrs(template, suggestions);
       }
       suggestInputsInTemplate(target, suggestions);
-    } else if (target is TextAttribute) {
+    } else if (target is TextAttribute &&
+        target.nameOffset != null &&
+        offsetContained(
+            request.offset, target.nameOffset, target.name.length)) {
       suggestInputs(
           target.parent.boundDirectives,
           suggestions,
@@ -408,6 +414,7 @@ class TemplateCompleter {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target.parent, suggestions);
     }
+
     return suggestions;
   }
 
