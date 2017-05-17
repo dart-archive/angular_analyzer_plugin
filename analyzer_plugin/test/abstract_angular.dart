@@ -124,7 +124,6 @@ class AbstractAngularTest {
       packageResolver,
       new ResourceUriResolver(resourceProvider)
     ]);
-    final source = sf.resolveUri(null, DartSdk.DART_HTML);
     final testPath = resourceProvider.convertPath('/test');
     final contextRoot = new ContextRoot(testPath, []);
 
@@ -139,7 +138,6 @@ class AbstractAngularTest {
         new AnalysisOptionsImpl());
     angularDriver = new AngularDriver(new MockNotificationManager(), dartDriver,
         scheduler, byteStore, sf, new FileContentOverlay());
-    angularDriver.getStandardHtml();
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();
