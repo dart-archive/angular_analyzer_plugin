@@ -285,7 +285,7 @@ class TemplateCompleter {
     CompletionRequest request,
     Template template,
     List<OutputElement> standardHtmlEvents,
-    List<InputElement> standardHtmlAttributes,
+    Set<InputElement> standardHtmlAttributes,
   ) async {
     final suggestions = <CompletionSuggestion>[];
     final typeProvider = template.view.component.classElement.enclosingElement
@@ -470,7 +470,7 @@ class TemplateCompleter {
   void suggestInputs(
     List<DirectiveBinding> directives,
     List<CompletionSuggestion> suggestions,
-    List<InputElement> standardHtmlAttributes,
+    Set<InputElement> standardHtmlAttributes,
     List<InputBinding> boundStandardAttributes,
     TypeProvider typeProvider, {
     ExpressionBoundAttribute currentAttr,
@@ -704,7 +704,7 @@ class TemplateCompleter {
 
   CompletionSuggestion _createInputSuggestion(InputElement inputElement,
       int defaultRelevance, protocol.Element element) {
-    final completion = '[${inputElement.alternativeName ?? inputElement.name}]';
+    final completion = '[${inputElement.name}]';
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
@@ -726,7 +726,7 @@ class TemplateCompleter {
 
   protocol.Element _createInputElement(
       InputElement inputElement, protocol.ElementKind kind) {
-    final name = '[${inputElement.alternativeName ?? inputElement.name}]';
+    final name = '[${inputElement.name}]';
     final location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
     final flags = protocol.Element
@@ -738,7 +738,7 @@ class TemplateCompleter {
       InputElement inputElement,
       int defaultRelevance,
       protocol.Element element) {
-    final completion = inputElement.alternativeName ?? inputElement.name;
+    final completion = inputElement.name;
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
@@ -746,7 +746,7 @@ class TemplateCompleter {
 
   protocol.Element _createPlainAttributeElement(
       InputElement inputElement, protocol.ElementKind kind) {
-    final name = inputElement.alternativeName ?? inputElement.name;
+    final name = inputElement.name;
     final location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
     final flags = protocol.Element

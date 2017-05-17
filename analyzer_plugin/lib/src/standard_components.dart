@@ -14,10 +14,10 @@ class StandardHtml {
   /// In attributes, there can be multiple strings that point to the
   /// same [InputElement] generated from [alternativeInputs] (below).
   /// This will provide a static source of unique [InputElement]s.
-  final List<InputElement> uniqueAttributeElements;
+  final Set<InputElement> uniqueAttributeElements;
 
   StandardHtml(this.components, this.events, this.attributes)
-      : uniqueAttributeElements = new Set.from(attributes.values).toList();
+      : uniqueAttributeElements = new Set.from(attributes.values);
 }
 
 class StandardAngular {
@@ -69,9 +69,9 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       final inputElements = _buildInputs(false);
       for (final inputElement in inputElements) {
         attributes[inputElement.name] = inputElement;
-        final alt = inputElement.alternativeName;
-        if (alt != null) {
-          attributes[alt] = inputElement;
+        final originalName = inputElement.originalName;
+        if (originalName != null) {
+          attributes[originalName] = inputElement;
         }
       }
     } else {
@@ -142,18 +142,19 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   List<InputElement> _buildInputs(bool skipHtmlElement) =>
       _captureAspects((inputMap, accessor) {
         final name = accessor.displayName;
-        final alternativeName = alternativeInputs[name];
+        final prettyName = alternativeInputs[name];
+        final originalName = prettyName == null ? null : name;
         if (!inputMap.containsKey(name)) {
           if (accessor.isSetter) {
             inputMap[name] = new InputElement(
-              name,
+              prettyName ?? name,
               accessor.nameOffset,
               accessor.nameLength,
               accessor.source,
               accessor,
               new SourceRange(accessor.nameOffset, accessor.nameLength),
               accessor.variable.type,
-              alternativeName: alternativeName,
+              originalName: originalName,
             );
           }
         }
