@@ -22,7 +22,7 @@ class PluginIntegrationTest {
     resourceProvider = PhysicalResourceProvider.INSTANCE;
     plugin = new AngularAnalysisPlugin(resourceProvider);
     final versionCheckParams = new protocol.PluginVersionCheckParams(
-        "~/.dartServer/.analysis-driver", "1.0.0");
+        "~/.dartServer/.analysis-driver", "../deps/sdk/sdk", "1.0.0");
     plugin.handlePluginVersionCheck(versionCheckParams);
   }
 
