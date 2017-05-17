@@ -33,8 +33,13 @@ echo 'angular_analyzer_plugin:analyzer_plugin/lib' >> .packages
 echo done
 echo
 
-echo Adding server to .packages
+echo Adding server plugin to .packages
 echo 'angular_analyzer_server_plugin:server_plugin/lib' >> .packages
+echo done
+echo
+
+echo Adding new plugin to .packages
+echo 'angular_analysis_plugin:new_plugin/lib' >> .packages
 echo done
 echo
 
