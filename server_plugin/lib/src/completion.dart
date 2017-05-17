@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'package:quiver/core.dart';
 
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show Element, ElementKind;
@@ -258,7 +259,7 @@ class AngularCompletionContributor extends CompletionContributor {
     assert(driver.standardHtml != null);
 
     final events = driver.standardHtml.events.values;
-    final attributes = driver.standardHtml.attributes.values;
+    final attributes = driver.standardHtml.uniqueAttributeElements;
     final templates = await driver.getTemplatesForFile(filePath);
 
     if (templates.isEmpty) {
@@ -284,7 +285,7 @@ class TemplateCompleter {
     CompletionRequest request,
     Template template,
     List<OutputElement> standardHtmlEvents,
-    List<InputElement> standardHtmlAttributes,
+    Set<InputElement> standardHtmlAttributes,
   ) async {
     final suggestions = <CompletionSuggestion>[];
     final typeProvider = template.view.component.classElement.enclosingElement
@@ -414,7 +415,6 @@ class TemplateCompleter {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target.parent, suggestions);
     }
-
     return suggestions;
   }
 
@@ -470,7 +470,7 @@ class TemplateCompleter {
   void suggestInputs(
     List<DirectiveBinding> directives,
     List<CompletionSuggestion> suggestions,
-    List<InputElement> standardHtmlAttributes,
+    Set<InputElement> standardHtmlAttributes,
     List<InputBinding> boundStandardAttributes,
     TypeProvider typeProvider, {
     ExpressionBoundAttribute currentAttr,

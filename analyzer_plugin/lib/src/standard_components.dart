@@ -11,7 +11,13 @@ class StandardHtml {
   final Map<String, OutputElement> events;
   final Map<String, InputElement> attributes;
 
-  StandardHtml(this.components, this.events, this.attributes);
+  /// In attributes, there can be multiple strings that point to the
+  /// same [InputElement] generated from [alternativeInputs] (below).
+  /// This will provide a static source of unique [InputElement]s.
+  final Set<InputElement> uniqueAttributeElements;
+
+  StandardHtml(this.components, this.events, this.attributes)
+      : uniqueAttributeElements = new Set.from(attributes.values);
 }
 
 class StandardAngular {
@@ -38,6 +44,14 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     "PictureElement": "picture"
   };
 
+  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
+  static const alternativeInputs = const {
+    'className': 'class',
+    'innerHTML': 'innerHtml',
+    'readOnly': 'readonly',
+    'tabIndex': 'tabindex',
+  };
+
   ClassElement classElement;
 
   BuildStandardHtmlComponentsVisitor(
@@ -55,6 +69,10 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       final inputElements = _buildInputs(false);
       for (final inputElement in inputElements) {
         attributes[inputElement.name] = inputElement;
+        final originalName = inputElement.originalName;
+        if (originalName != null) {
+          attributes[originalName] = inputElement;
+        }
       }
     } else {
       final specialTagName = specialElementClasses[classElement.name];
@@ -124,16 +142,20 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   List<InputElement> _buildInputs(bool skipHtmlElement) =>
       _captureAspects((inputMap, accessor) {
         final name = accessor.displayName;
+        final prettyName = alternativeInputs[name];
+        final originalName = prettyName == null ? null : name;
         if (!inputMap.containsKey(name)) {
           if (accessor.isSetter) {
             inputMap[name] = new InputElement(
-                name,
-                accessor.nameOffset,
-                accessor.nameLength,
-                accessor.source,
-                accessor,
-                new SourceRange(accessor.nameOffset, accessor.nameLength),
-                accessor.variable.type);
+              prettyName ?? name,
+              accessor.nameOffset,
+              accessor.nameLength,
+              accessor.source,
+              accessor,
+              new SourceRange(accessor.nameOffset, accessor.nameLength),
+              accessor.variable.type,
+              originalName: originalName,
+            );
           }
         }
       }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them

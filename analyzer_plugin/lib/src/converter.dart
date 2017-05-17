@@ -22,15 +22,6 @@ class HtmlTreeConverter {
   final Source templateSource;
   final AnalysisErrorListener errorListener;
 
-  // Following Angular2 Logic:
-  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
-  static const attrToPropMap = const {
-    'class': 'className',
-    'innerHtml': 'innerHTML',
-    'readonly': 'readOnly',
-    'tabindex': 'tabIndex',
-  };
-
   HtmlTreeConverter(this.dartParser, this.templateSource, this.errorListener);
 
   DocumentInfo convertFromAstList(List<StandaloneTemplateAst> asts) {
@@ -284,7 +275,6 @@ class HtmlTreeConverter {
         ));
       }
     }
-
     bananas.map(_convertExpressionBoundAttribute).forEach(returnAttributes.add);
     events.map(_convertStatementsBoundAttribute).forEach(returnAttributes.add);
     properties
@@ -468,8 +458,6 @@ class HtmlTreeConverter {
       ));
     }
     final valueOffset = parsed.valueToken?.innerValue?.offset;
-
-    propName = attrToPropMap[propName] ?? propName;
 
     return new ExpressionBoundAttribute(
         propName,

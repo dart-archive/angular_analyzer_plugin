@@ -378,6 +378,60 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_duplicate_standardHtml() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+  directives: const [MyTagComponent])
+class TestPanel {}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent {
+  @Input()
+  String readonly;
+}
+''');
+    final code = r'''
+<my-tag [readonly]="'blah'"></my-tag>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_alt_standardHtml() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    final code = r"""
+<span [class]='text'></span>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_orig_standardHtml() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    final code = r"""
+<span [className]='text'></span>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',

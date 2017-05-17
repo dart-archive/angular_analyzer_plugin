@@ -365,6 +365,15 @@ class HtmlElement extends Element {
   bool get hidden => null;
   @DomName('HTMLElement.hidden')
   set hidden(bool value) => null;
+  
+  @DomName('HTMLElement.className')
+  void set className(String s){}
+  @DomName('HTMLElement.innerHtml')
+  void set innerHtml(String s){}
+  @DomName('HTMLElement.readOnly')
+  void set readOnly(bool b){}
+  @DomName('HTMLElement.tabIndex')
+  void set tabIndex(int i){}
 }
 
 dynamic JS(a, b, c, d) {}
