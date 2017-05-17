@@ -38,6 +38,14 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     "PictureElement": "picture"
   };
 
+  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
+  static const alternativeInputs = const {
+    'className': const ['class'],
+    'innerHTML': const ['innerHtml'],
+    'readOnly': const ['readonly'],
+    'tabIndex': const ['tabindex'],
+  };
+
   ClassElement classElement;
 
   BuildStandardHtmlComponentsVisitor(
@@ -55,6 +63,9 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       final inputElements = _buildInputs(false);
       for (final inputElement in inputElements) {
         attributes[inputElement.name] = inputElement;
+        for (final alt in inputElement.alternativeNames) {
+          attributes[alt] = inputElement;
+        }
       }
     } else {
       final specialTagName = specialElementClasses[classElement.name];
@@ -124,16 +135,19 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   List<InputElement> _buildInputs(bool skipHtmlElement) =>
       _captureAspects((inputMap, accessor) {
         final name = accessor.displayName;
+        final alternativeNames = alternativeInputs[name] ?? <String>[];
         if (!inputMap.containsKey(name)) {
           if (accessor.isSetter) {
             inputMap[name] = new InputElement(
-                name,
-                accessor.nameOffset,
-                accessor.nameLength,
-                accessor.source,
-                accessor,
-                new SourceRange(accessor.nameOffset, accessor.nameLength),
-                accessor.variable.type);
+              name,
+              accessor.nameOffset,
+              accessor.nameLength,
+              accessor.source,
+              accessor,
+              new SourceRange(accessor.nameOffset, accessor.nameLength),
+              accessor.variable.type,
+              alternativeNames: alternativeNames,
+            );
           }
         }
       }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them

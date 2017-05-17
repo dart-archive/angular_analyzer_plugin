@@ -309,9 +309,13 @@ class InputElement extends AngularElementImpl {
   /// names of a input and the setter are the same.
   final SourceRange setterRange;
 
+  final List<String> alternativeNames;
+
   InputElement(String name, int nameOffset, int nameLength, Source source,
-      this.setter, this.setterRange, this.setterType)
-      : super(name, nameOffset, nameLength, source);
+      this.setter, this.setterRange, this.setterType,
+      {List<String> alternativeNames})
+      : alternativeNames = alternativeNames ?? <String>[],
+        super(name, nameOffset, nameLength, source);
 
   @override
   String toString() => 'InputElement($name, $nameOffset, $nameLength, $setter)';

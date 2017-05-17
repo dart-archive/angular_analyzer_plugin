@@ -1175,6 +1175,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   void _resolveInputBoundAttributeValues(ExpressionBoundAttribute attribute) {
     var inputMatched = false;
 
+    // Check if input exists on bound directives.
     for (final directiveBinding in attribute.parent.boundDirectives) {
       for (final input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
@@ -1191,11 +1192,11 @@ class SingleScopeResolver extends AngularScopeVisitor {
       }
     }
 
+    // Check if input exists from standard html attributes.
     if (!inputMatched) {
       final standardHtmlAttribute = standardHtmlAttributes[attribute.name];
       if (standardHtmlAttribute != null) {
         _typecheckMatchingInput(attribute, standardHtmlAttribute);
-
         final range =
             new SourceRange(attribute.nameOffset, attribute.name.length);
         template.addRange(range, standardHtmlAttribute);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'package:quiver/core.dart';
 
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show Element, ElementKind;
@@ -414,8 +415,7 @@ class TemplateCompleter {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target.parent, suggestions);
     }
-
-    return suggestions;
+    return new Set.from(suggestions).toList();
   }
 
   void suggestTransclusions(
@@ -492,14 +492,14 @@ class TemplateCompleter {
             final relevance = input.setterType.displayName == 'String'
                 ? DART_RELEVANCE_DEFAULT
                 : DART_RELEVANCE_DEFAULT - 1;
-            suggestions.add(_createPlainAttributeSuggestions(
+            suggestions.addAll(_createPlainAttributeSuggestions(
                 input,
                 relevance,
                 _createPlainAttributeElement(
                     input, protocol.ElementKind.SETTER)));
           }
         }
-        suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
+        suggestions.addAll(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
     }
@@ -518,14 +518,16 @@ class TemplateCompleter {
           final relevance = input.setterType.displayName == 'String'
               ? DART_RELEVANCE_DEFAULT - 2
               : DART_RELEVANCE_DEFAULT - 3;
-          suggestions.add(_createPlainAttributeSuggestions(
+          suggestions.addAll(_createPlainAttributeSuggestions(
               input,
               relevance,
               _createPlainAttributeElement(
                   input, protocol.ElementKind.SETTER)));
         }
       }
-      suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 2,
+      suggestions.addAll(_createInputSuggestion(
+          input,
+          DART_RELEVANCE_DEFAULT - 2,
           _createInputElement(input, protocol.ElementKind.SETTER)));
     }
   }
@@ -702,12 +704,26 @@ class TemplateCompleter {
         location: location);
   }
 
-  CompletionSuggestion _createInputSuggestion(InputElement inputElement,
+  List<CompletionSuggestion> _createInputSuggestion(InputElement inputElement,
       int defaultRelevance, protocol.Element element) {
-    final completion = '[${inputElement.name}]';
-    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
-        defaultRelevance, completion, completion.length, 0, false, false,
-        element: element);
+    final completionNames = <String>[];
+    final suggestions = <CompletionSuggestion>[];
+    completionNames
+      ..add(inputElement.name)
+      ..addAll(inputElement.alternativeNames);
+    for (final name in completionNames) {
+      final completion = '[$name]';
+      suggestions.add(new CompletionSuggestion(
+          CompletionSuggestionKind.INVOCATION,
+          defaultRelevance,
+          completion,
+          completion.length,
+          0,
+          false,
+          false,
+          element: element));
+    }
+    return suggestions;
   }
 
   CompletionSuggestion _createInputInTemplateSuggestion(
@@ -734,14 +750,27 @@ class TemplateCompleter {
     return new protocol.Element(kind, name, flags, location: location);
   }
 
-  CompletionSuggestion _createPlainAttributeSuggestions(
+  List<CompletionSuggestion> _createPlainAttributeSuggestions(
       InputElement inputElement,
       int defaultRelevance,
       protocol.Element element) {
-    final completion = inputElement.name;
-    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
-        defaultRelevance, completion, completion.length, 0, false, false,
-        element: element);
+    final completionNames = <String>[];
+    final suggestions = <CompletionSuggestion>[];
+    completionNames
+      ..add(inputElement.name)
+      ..addAll(inputElement.alternativeNames);
+    for (final completion in completionNames) {
+      suggestions.add(new CompletionSuggestion(
+          CompletionSuggestionKind.INVOCATION,
+          defaultRelevance,
+          completion,
+          completion.length,
+          0,
+          false,
+          false,
+          element: element));
+    }
+    return suggestions;
   }
 
   protocol.Element _createPlainAttributeElement(
