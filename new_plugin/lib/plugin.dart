@@ -9,7 +9,7 @@ import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:analyzer/src/generated/sdk.dart';
+import 'package:front_end/src/base/performace_logger.dart';
 import 'package:analyzer_plugin/plugin/plugin.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
@@ -39,7 +39,6 @@ class AngularAnalysisPlugin extends ServerPlugin {
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
     final root = new ContextRoot(contextRoot.root, contextRoot.exclude);
     // TODO new API to get this path safely?
-    final sdkManager = new DartSdkManager('/home/mfairhurst/.dart-sdk', true);
     final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
       ..analysisDriverScheduler = analysisDriverScheduler
@@ -105,17 +104,17 @@ class AngularAnalysisPlugin extends ServerPlugin {
   @override
   void onError(Object exception, StackTrace stackTrace) {
     print('Communication Exception: $exception\n$stackTrace');
+    // ignore: only_throw_errors
     throw exception;
   }
 
   @override
   void sendNotificationsForSubscriptions(
       Map<String, List<plugin.AnalysisService>> subscriptions) {
-    subscriptions
-        .forEach((String filePath, List<plugin.AnalysisService> services) {
+    subscriptions.forEach((filePath, services) {
       // TODO(brianwilkerson) Get the results for this file.
       AnalysisResult result;
-      for (plugin.AnalysisService service in services) {
+      for (final service in services) {
         sendNotificationForSubscription(filePath, service, result);
       }
     });
