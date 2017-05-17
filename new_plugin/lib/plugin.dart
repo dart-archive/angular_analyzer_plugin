@@ -9,7 +9,6 @@ import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:analyzer/src/generated/sdk.dart';
 import 'package:front_end/src/base/performace_logger.dart';
 import 'package:analyzer_plugin/plugin/plugin.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
@@ -19,7 +18,6 @@ import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 //import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
-import 'package:front_end/src/base/performace_logger.dart';
 
 class AngularAnalysisPlugin extends ServerPlugin {
   AngularAnalysisPlugin(ResourceProvider provider) : super(provider);
@@ -106,17 +104,17 @@ class AngularAnalysisPlugin extends ServerPlugin {
   @override
   void onError(Object exception, StackTrace stackTrace) {
     print('Communication Exception: $exception\n$stackTrace');
+    // ignore: only_throw_errors
     throw exception;
   }
 
   @override
   void sendNotificationsForSubscriptions(
       Map<String, List<plugin.AnalysisService>> subscriptions) {
-    subscriptions
-        .forEach((String filePath, List<plugin.AnalysisService> services) {
+    subscriptions.forEach((filePath, services) {
       // TODO(brianwilkerson) Get the results for this file.
       AnalysisResult result;
-      for (plugin.AnalysisService service in services) {
+      for (final service in services) {
         sendNotificationForSubscription(filePath, service, result);
       }
     });

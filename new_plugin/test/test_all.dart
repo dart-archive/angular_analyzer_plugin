@@ -4,6 +4,7 @@ import 'plugin_test.dart' as plugin_test;
 
 /// Utility for manually running all tests.
 void main() {
+  // ignore: unnecessary_lambdas
   defineReflectiveSuite(() {
     plugin_test.main();
   }, name: 'Angular Plugin tests');
