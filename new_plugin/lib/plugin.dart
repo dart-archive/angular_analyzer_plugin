@@ -39,7 +39,6 @@ class AngularAnalysisPlugin extends ServerPlugin {
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
     final root = new ContextRoot(contextRoot.root, contextRoot.exclude);
     // TODO new API to get this path safely?
-    final sdkManager = new DartSdkManager('/home/mfairhurst/.dart-sdk', true);
     final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
       ..analysisDriverScheduler = analysisDriverScheduler
