@@ -398,7 +398,7 @@ class MyTagComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_inputBinding_standardHtml() async {
+  Future test_expression_inputBinding_alt_standardHtml() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -407,6 +407,23 @@ class TestPanel {
 ''');
     final code = r"""
 <span [class]='text'></span>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_orig_standardHtml() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text; // 1
+}
+''');
+    final code = r"""
+<span [className]='text'></span>
 """;
     await angularDriver.getStandardHtml();
     _addHtmlSource(code);

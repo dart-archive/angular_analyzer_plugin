@@ -1414,6 +1414,27 @@ class OtherComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_standardHtmlInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+}
+    ''');
+
+    addTestSource('<div [^></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestSetter('[class]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertNotSuggested('[className]');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeInputNotStarted() async {
     final dartSource = newSource(
         '/completionTest.dart',
@@ -1437,6 +1458,27 @@ class OtherComp {
     expect(replacementLength, 0);
     assertSuggestSetter('[name]');
     assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputNotStarted_standardHtmlInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+}
+    ''');
+
+    addTestSource('<div ^></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[class]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertNotSuggested('[className]');
   }
 
   // ignore: non_constant_identifier_names
@@ -1474,6 +1516,27 @@ class OtherComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeInputNotStarted_plain_standardHtmlInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+}
+    ''');
+
+    addTestSource('<div ^></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('class', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertNotSuggested('className');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeInputAsPlainAttributeStarted() async {
     final dartSource = newSource(
         '/completionTest.dart',
@@ -1505,6 +1568,27 @@ class OtherComp {
     assertSuggestSetter('[myDynamicInput]');
     assertSuggestSetter('myDynamicInput',
         relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputStarted_plain_standardHtmlInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+}
+    ''');
+
+    addTestSource('<div cla^></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 3);
+    expect(replacementLength, 3);
+    assertSuggestSetter('class', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertNotSuggested('className');
   }
 
   // ignore: non_constant_identifier_names

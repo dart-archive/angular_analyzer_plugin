@@ -259,7 +259,8 @@ class AngularCompletionContributor extends CompletionContributor {
     assert(driver.standardHtml != null);
 
     final events = driver.standardHtml.events.values;
-    final attributes = driver.standardHtml.attributes.values;
+    final attributes =
+        new Set.from(driver.standardHtml.attributes.values).toList();
     final templates = await driver.getTemplatesForFile(filePath);
 
     if (templates.isEmpty) {
@@ -415,7 +416,7 @@ class TemplateCompleter {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target.parent, suggestions);
     }
-    return new Set.from(suggestions).toList();
+    return suggestions;
   }
 
   void suggestTransclusions(
@@ -492,14 +493,14 @@ class TemplateCompleter {
             final relevance = input.setterType.displayName == 'String'
                 ? DART_RELEVANCE_DEFAULT
                 : DART_RELEVANCE_DEFAULT - 1;
-            suggestions.addAll(_createPlainAttributeSuggestions(
+            suggestions.add(_createPlainAttributeSuggestions(
                 input,
                 relevance,
                 _createPlainAttributeElement(
                     input, protocol.ElementKind.SETTER)));
           }
         }
-        suggestions.addAll(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
+        suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
     }
@@ -518,16 +519,14 @@ class TemplateCompleter {
           final relevance = input.setterType.displayName == 'String'
               ? DART_RELEVANCE_DEFAULT - 2
               : DART_RELEVANCE_DEFAULT - 3;
-          suggestions.addAll(_createPlainAttributeSuggestions(
+          suggestions.add(_createPlainAttributeSuggestions(
               input,
               relevance,
               _createPlainAttributeElement(
                   input, protocol.ElementKind.SETTER)));
         }
       }
-      suggestions.addAll(_createInputSuggestion(
-          input,
-          DART_RELEVANCE_DEFAULT - 2,
+      suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 2,
           _createInputElement(input, protocol.ElementKind.SETTER)));
     }
   }
@@ -704,26 +703,12 @@ class TemplateCompleter {
         location: location);
   }
 
-  List<CompletionSuggestion> _createInputSuggestion(InputElement inputElement,
+  CompletionSuggestion _createInputSuggestion(InputElement inputElement,
       int defaultRelevance, protocol.Element element) {
-    final completionNames = <String>[];
-    final suggestions = <CompletionSuggestion>[];
-    completionNames
-      ..add(inputElement.name)
-      ..addAll(inputElement.alternativeNames);
-    for (final name in completionNames) {
-      final completion = '[$name]';
-      suggestions.add(new CompletionSuggestion(
-          CompletionSuggestionKind.INVOCATION,
-          defaultRelevance,
-          completion,
-          completion.length,
-          0,
-          false,
-          false,
-          element: element));
-    }
-    return suggestions;
+    final completion = '[${inputElement.alternativeName ?? inputElement.name}]';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
   }
 
   CompletionSuggestion _createInputInTemplateSuggestion(
@@ -742,7 +727,7 @@ class TemplateCompleter {
 
   protocol.Element _createInputElement(
       InputElement inputElement, protocol.ElementKind kind) {
-    final name = '[${inputElement.name}]';
+    final name = '[${inputElement.alternativeName ?? inputElement.name}]';
     final location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
     final flags = protocol.Element
@@ -750,32 +735,19 @@ class TemplateCompleter {
     return new protocol.Element(kind, name, flags, location: location);
   }
 
-  List<CompletionSuggestion> _createPlainAttributeSuggestions(
+  CompletionSuggestion _createPlainAttributeSuggestions(
       InputElement inputElement,
       int defaultRelevance,
       protocol.Element element) {
-    final completionNames = <String>[];
-    final suggestions = <CompletionSuggestion>[];
-    completionNames
-      ..add(inputElement.name)
-      ..addAll(inputElement.alternativeNames);
-    for (final completion in completionNames) {
-      suggestions.add(new CompletionSuggestion(
-          CompletionSuggestionKind.INVOCATION,
-          defaultRelevance,
-          completion,
-          completion.length,
-          0,
-          false,
-          false,
-          element: element));
-    }
-    return suggestions;
+    final completion = inputElement.alternativeName ?? inputElement.name;
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
   }
 
   protocol.Element _createPlainAttributeElement(
       InputElement inputElement, protocol.ElementKind kind) {
-    final name = inputElement.name;
+    final name = inputElement.alternativeName ?? inputElement.name;
     final location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
     final flags = protocol.Element
