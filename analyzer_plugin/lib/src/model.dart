@@ -309,6 +309,9 @@ class InputElement extends AngularElementImpl {
   /// names of a input and the setter are the same.
   final SourceRange setterRange;
 
+  /// A given input can have an alternative name, or more 'conventional' name
+  /// that differs from the name provided by dart:html source.
+  /// For example: source -> 'className', but prefer 'class'.
   final alternativeName;
 
   InputElement(String name, int nameOffset, int nameLength, Source source,

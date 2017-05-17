@@ -11,7 +11,13 @@ class StandardHtml {
   final Map<String, OutputElement> events;
   final Map<String, InputElement> attributes;
 
-  StandardHtml(this.components, this.events, this.attributes);
+  /// In attributes, there can be multiple strings that point to the
+  /// same [InputElement] generated from [alternativeInputs] (below).
+  /// This will provide a static source of unique [InputElement]s.
+  final List<InputElement> uniqueAttributeElements;
+
+  StandardHtml(this.components, this.events, this.attributes)
+      : uniqueAttributeElements = new Set.from(attributes.values).toList();
 }
 
 class StandardAngular {

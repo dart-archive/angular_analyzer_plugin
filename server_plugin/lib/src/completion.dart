@@ -259,8 +259,7 @@ class AngularCompletionContributor extends CompletionContributor {
     assert(driver.standardHtml != null);
 
     final events = driver.standardHtml.events.values;
-    final attributes =
-        new Set.from(driver.standardHtml.attributes.values).toList();
+    final attributes = driver.standardHtml.uniqueAttributeElements;
     final templates = await driver.getTemplatesForFile(filePath);
 
     if (templates.isEmpty) {
