@@ -243,17 +243,18 @@ class Attribute {
 
 class ContentChild extends Query {
   const ContentChild(dynamic /* Type | String */ selector,
-              {dynamic read: null}) : super(selector);
+              {dynamic read: null}) : super(selector, read: read);
 }
 
 class ContentChildren extends Query {
   const ContentChildren(dynamic /* Type | String */ selector,
-              {dynamic read: null}) : super(selector);
+              {dynamic read: null}) : super(selector, read: read);
 }
 
 class Query extends DependencyMetadata {
   final dynamic /* Type | String */ selector;
-  const DependencyMetadata(this.selector) : super();
+  final dynamic /* String | Function? */ read;
+  const DependencyMetadata(this.selector, {this.read}) : super();
 }
 
 class DependencyMetadata {
@@ -263,6 +264,7 @@ class DependencyMetadata {
 class TemplateRef {}
 class ElementRef {}
 class QueryList<T> implements Iterable<T> {}
+class ViewContainerRef {}
 ''');
     newSource(
         '/angular2/src/core/async.dart',

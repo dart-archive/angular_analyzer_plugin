@@ -219,7 +219,10 @@ class ContentChild {
   final ContentChildField field;
   final AbstractQueriedChildType query;
 
-  ContentChild(this.field, this.query);
+  /// Look up a symbol from the injector. We don't track the injector yet.
+  final String read;
+
+  ContentChild(this.field, this.query, {this.read});
 }
 
 /// The model of an Angular component.
