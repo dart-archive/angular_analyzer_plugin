@@ -2163,8 +2163,8 @@ class TestPanel {
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel',
+  templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(Element e) {}
 }
