@@ -330,8 +330,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   final DartVariableManager dartVariableManager;
   final AnalysisErrorListener errorListener;
 
-  List<AbstractDirective> directives;
-
   PrepareScopeVisitor(
       this.internalVariables,
       this.localVariables,
@@ -351,7 +349,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
 
     _defineLocalVariablesForAttributes(element.attributes);
 
-    directives = element.directives;
     super.visitScopeRootTemplateElement(element);
   }
 
@@ -377,7 +374,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
 
     _defineLocalVariablesForAttributes(element.attributes);
 
-    directives = element.directives;
     super.visitScopeRootElementWithTemplateAttribute(element);
   }
 
@@ -385,7 +381,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   void visitBorderScopeTemplateAttribute(TemplateAttribute attr) {
     // Border to the next scope. Make sure the virtual properties are bound
     // to the scope we're building now. But nothing else.
-    directives = attr.directives;
     visitTemplateAttr(attr);
   }
 
@@ -400,7 +395,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
 
     _defineLocalVariablesForAttributes(element.attributes);
 
-    directives = element.directives;
     super.visitElementInScope(element);
   }
 
