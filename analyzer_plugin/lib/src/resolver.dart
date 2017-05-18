@@ -1207,7 +1207,21 @@ class SingleScopeResolver extends AngularScopeVisitor {
       }
     }
 
-    if (!inputMatched) {
+    // Star bindings like `*ngFor` create a harmlessly empty and unmatched
+    // `ngFor` input binding. Don't report those as errors, based on this bool.
+    final isTemplatePrefix = attribute.parent is TemplateAttribute &&
+        (attribute.parent as TemplateAttribute).virtualAttributes[0] ==
+            attribute;
+
+    // When the first virtual attribute matches a binding (like `ngIf`), flag it
+    // if its empty. Only for the first. All others (like `trackBy`) are checked
+    // in [EmbeddedDartParser.parseTemplateVirtualAttributes]
+    if (inputMatched && isTemplatePrefix && attribute.expression == null) {
+      errorReporter.reportErrorForOffset(
+          AngularWarningCode.EMPTY_BINDING, attribute.offset, attribute.length);
+    }
+
+    if (!inputMatched && !isTemplatePrefix) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.nameOffset,

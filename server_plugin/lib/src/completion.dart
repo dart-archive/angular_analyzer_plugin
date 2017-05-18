@@ -33,53 +33,60 @@ import 'embedded_dart_completion_request.dart';
 bool offsetContained(int offset, int start, int length) =>
     start <= offset && start + length >= offset;
 
-AngularAstNode findTarget(int offset, AngularAstNode root) {
-  for (final child in root.children) {
-    // `*ngIf="x"` creates, inside the template attr, a property binding named
-    // `ngIf`, which will confuse our autocompleter. Skip it.
-    if (root is TemplateAttribute &&
-        child is AttributeInfo &&
-        child.name == root.prefix) {
-      continue;
-    }
-
-    if (child is ElementInfo) {
-      if (child.isSynthetic) {
-        final target = findTarget(offset, child);
-        if (!(target is ElementInfo && target.openingSpan == null)) {
-          return target;
-        }
-      } else {
-        if (offsetContained(offset, child.openingNameSpan.offset,
-            child.openingNameSpan.length)) {
-          return child;
-        } else if (offsetContained(offset, child.offset, child.length)) {
-          return findTarget(offset, child);
-        }
-      }
-    } else if (offsetContained(offset, child.offset, child.length)) {
-      return findTarget(offset, child);
-    }
-  }
-  return root;
-}
-
-class DartSnippetExtractor extends AngularAstVisitor {
+class CompletionTargetExtractor implements AngularAstVisitor {
   AstNode dartSnippet;
-  int offset;
+  AngularAstNode target;
+  final int offset;
+
+  CompletionTargetExtractor(this.offset);
+
+  /// Check if the [node] contains a [child] node which contains the completion
+  /// [offset]. If so, visit the [child] which likely will call this again.
+  /// Otherwise, mark [node] as the [target].
+  ///
+  /// returns true if a [child] was selected, otherwise false.
+  bool recurseToTarget(AngularAstNode node) {
+    for (final child in node.children) {
+      if (offsetContained(offset, child.offset, child.length)) {
+        child.accept(this);
+        return true;
+      }
+    }
+
+    target = node;
+    return false;
+  }
 
   @override
-  void visitDocumentInfo(DocumentInfo document) {}
-
-  // don't recurse, findTarget already did that
-  @override
-  void visitElementInfo(ElementInfo element) {}
+  void visitDocumentInfo(DocumentInfo document) {
+    recurseToTarget(document);
+  }
 
   @override
-  void visitTextAttr(TextAttribute attr) {}
+  void visitElementInfo(ElementInfo element) {
+    // Don't choose tag two in `<tag-one<tag-two></tag-one>`
+    if (offsetContained(offset, element.openingNameSpan.offset,
+        element.openingNameSpan.length)) {
+      target = element;
+      return;
+    }
+
+    recurseToTarget(element);
+  }
+
+  @override
+  void visitTextAttr(TextAttribute attr) {
+    recurseToTarget(attr);
+  }
+
+  @override
+  void visitTextInfo(TextInfo textInfo) {
+    recurseToTarget(textInfo);
+  }
 
   @override
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    target = attr;
     if (attr.expression != null &&
         offsetContained(
             offset, attr.expression.offset, attr.expression.length)) {
@@ -89,6 +96,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    target = attr;
     for (final statement in attr.statements) {
       if (offsetContained(offset, statement.offset, statement.length)) {
         dartSnippet = statement;
@@ -98,6 +106,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitMustache(Mustache mustache) {
+    target = mustache;
+
     if (offsetContained(
         offset, mustache.exprBegin, mustache.exprEnd - mustache.exprBegin)) {
       dartSnippet = mustache.expression;
@@ -106,8 +116,16 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
+    // Don't check children if we're not targeting the value. Otherwise we'll
+    // always find a synthetic attr that "shadows" the template name itself.
     if (attr.value == null ||
         !offsetContained(offset, attr.valueOffset, attr.value.length)) {
+      target = attr;
+      return;
+    }
+
+    if (recurseToTarget(attr)) {
+      // don't try to fill a dartSnippet here if this isn't the target
       return;
     }
 
@@ -120,8 +138,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
     }
 
     if (attributeToAppendTo != null &&
-        attributeToAppendTo is TextAttribute &&
-        !attributeToAppendTo.name.startsWith("let")) {
+        attributeToAppendTo is ExpressionBoundAttribute &&
+        attributeToAppendTo.expression == null) {
       final analysisErrorListener = new IgnoringAnalysisErrorListener();
       final dartParser =
           new EmbeddedDartParser(null, analysisErrorListener, null);
@@ -136,10 +154,10 @@ class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
   void onError(AnalysisError error) {}
 }
 
-class LocalVariablesExtractor extends AngularAstVisitor {
+class LocalVariablesExtractor implements AngularAstVisitor {
   Map<String, LocalVariable> variables;
 
-  // don't recurse, findTarget already did that
+  // don't recurse
   @override
   void visitDocumentInfo(DocumentInfo document) {}
 
@@ -148,6 +166,9 @@ class LocalVariablesExtractor extends AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {}
+
+  @override
+  void visitTextInfo(TextInfo text) {}
 
   @override
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
@@ -163,9 +184,14 @@ class LocalVariablesExtractor extends AngularAstVisitor {
   void visitMustache(Mustache mustache) {
     variables = mustache.localVariables;
   }
+
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {
+    variables = attr.localVariables;
+  }
 }
 
-class ReplacementRangeCalculator extends AngularAstVisitor {
+class ReplacementRangeCalculator implements AngularAstVisitor {
   CompletionRequestImpl request;
 
   ReplacementRangeCalculator(this.request);
@@ -173,7 +199,6 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   @override
   void visitDocumentInfo(DocumentInfo document) {}
 
-  // don't recurse, findTarget already did that
   @override
   void visitElementInfo(ElementInfo element) {
     if (element.openingSpan == null) {
@@ -290,10 +315,10 @@ class TemplateCompleter {
     final suggestions = <CompletionSuggestion>[];
     final typeProvider = template.view.component.classElement.enclosingElement
         .enclosingElement.context.typeProvider;
-    final target = findTarget(request.offset, template.ast)
+    final extractor = new CompletionTargetExtractor(request.offset);
+    template.ast.accept(extractor);
+    final target = extractor.target
       ..accept(new ReplacementRangeCalculator(request));
-    final extractor = new DartSnippetExtractor()..offset = request.offset;
-    target.accept(extractor);
 
     // If [CompletionRequest] is in
     // [StatementsBoundAttribute],

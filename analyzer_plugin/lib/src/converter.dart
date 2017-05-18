@@ -815,8 +815,17 @@ class EmbeddedDartParser {
             expression,
             ExpressionBoundType.input));
       } else {
-        attributes.add(new TextAttribute.synthetic(
-            key, keyOffset, null, null, originalName, originalNameOffset, []));
+        // Check for empty `of` and `trackBy` bindings, but NOT empty `ngIf`!
+        // NgFor (and other star directives) often result in a harmless, empty
+        // `[ngFor]` as a first attr. Don't flag it unless it matches an input
+        // (like `ngIf` does), which is checked by [SingleScopeResolver].
+        if (attributes.isNotEmpty) {
+          errorReporter.reportErrorForOffset(AngularWarningCode.EMPTY_BINDING,
+              originalNameOffset, originalName.length);
+        }
+
+        attributes.add(new ExpressionBoundAttribute(key, keyOffset, null, null,
+            originalName, originalNameOffset, null, ExpressionBoundType.input));
       }
     }
 

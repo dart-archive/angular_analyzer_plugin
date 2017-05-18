@@ -606,6 +606,50 @@ class MyComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeDotMemberInNgIf() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgIf])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngIf="text.^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('length', 'int');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInNgIf() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgIf])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngIf="^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('text', 'String');
+    assertSuggestMethod('toString', 'Object', 'String');
+    assertSuggestGetter('hashCode', 'int');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeDotMemberInNgFor() async {
     final dartSource = newSource(
         '/completionTest.dart',

@@ -317,11 +317,14 @@ import 'metadata.dart';
 
 @Directive(
     selector: "[ngFor][ngForOf]",
-    inputs: const ["ngForOf", "ngForTemplate"])
+    inputs: const ["ngForOf", "ngForTemplate", "ngForTrackBy"])
 class NgFor {
   NgFor(TemplateRef tpl);
   set ngForOf(dynamic value) {}
+  set ngForTrackBy(TrackByFn value) {}
 }
+
+typedef dynamic TrackByFn(num index, dynamic item);
 ''');
   }
 

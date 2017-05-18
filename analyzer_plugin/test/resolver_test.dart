@@ -2810,6 +2810,40 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_ngForSugar_noDartExpressionError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+}
+''');
+    final code = r'''
+<li *ngFor="let item of"></li>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.EMPTY_BINDING, code, 'of');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_ngForSugar_noTrackByExpressionError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+class TestPanel {
+  List items;
+}
+''');
+    final code = r'''
+<li *ngFor="let item of items; trackBy:"></li>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, 'trackBy');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_ngIf_star() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -2847,6 +2881,41 @@ class TestPanel {
         AngularWarningCode.STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE,
         code,
         "ngIf");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_ngIf_emptyStarError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+class TestPanel {
+  String text; // 1
+}
+''');
+    final code = r'''
+<span *ngIf=""></span>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    // TODO would be nice if this selected ""
+    assertErrorInCodeAtPosition(AngularWarningCode.EMPTY_BINDING, code, 'ngIf');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_ngIf_starNoAttrError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+class TestPanel {
+  String text; // 1
+}
+''');
+    final code = r'''
+<span *ngIf></span>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.EMPTY_BINDING, code, 'ngIf');
   }
 
   // ignore: non_constant_identifier_names
