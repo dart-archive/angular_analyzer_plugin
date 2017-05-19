@@ -445,16 +445,16 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   /// Return type must be a class to later resolve conflicts should they exist.
   /// This is a shortlived variable existing only in the scope of
   /// element tag, therefore don't use [internalVariables].
-  Map<String, List<ClassElement>> _defineExportAsVariables(
+  Map<String, List<InternalVariable>> _defineExportAsVariables(
       List<AbstractDirective> directives) {
-    final exportAsMap = <String, List<ClassElement>>{};
+    final exportAsMap = <String, List<InternalVariable>>{};
     for (final directive in directives) {
       final exportAs = directive.exportAs;
       if (exportAs != null) {
         final name = exportAs.name;
-        final classElement = directive.classElement;
-        exportAsMap.putIfAbsent(name, () => <ClassElement>[]);
-        exportAsMap[name].add(classElement);
+        final type = directive.classElement.type;
+        exportAsMap.putIfAbsent(name, () => <InternalVariable>[]);
+        exportAsMap[name].add(new InternalVariable(name, exportAs, type));
       }
     }
     return exportAsMap;
@@ -464,7 +464,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   void _defineReferenceVariablesForAttributes(
       List<AbstractDirective> directives,
       List<AttributeInfo> attributes,
-      Map<String, List<ClassElement>> exportAsMap) {
+      Map<String, List<InternalVariable>> exportAsMap) {
     for (final attribute in attributes) {
       var offset = attribute.nameOffset;
       var name = attribute.name;
@@ -482,19 +482,21 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
 
         // maybe an internal variable reference
         DartType type;
-        ClassElement classElement;
+        AngularElement angularElement;
 
         if (refValue == null) {
           // Find the corresponding Component to assign reference to.
           for (final directive in directives) {
             if (directive is Component) {
-              classElement = directive.classElement;
+              final classElement = directive.classElement;
+              type = classElement.type;
+              angularElement = new DartElement(classElement);
               break;
             }
           }
         } else {
-          final classElements = exportAsMap[refValue];
-          if (classElements == null || classElements.isEmpty) {
+          final internalVars = exportAsMap[refValue];
+          if (internalVars == null || internalVars.isEmpty) {
             errorListener.onError(new AnalysisError(
               templateSource,
               attribute.valueOffset,
@@ -502,7 +504,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
               AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
               [attribute.value],
             ));
-          } else if (classElements.length > 1) {
+          } else if (internalVars.length > 1) {
             errorListener.onError(new AnalysisError(
               templateSource,
               attribute.valueOffset,
@@ -511,16 +513,17 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
               [attribute.value],
             ));
           } else {
-            classElement = classElements[0];
+            final internalVar = internalVars[0];
+            type = internalVar.type;
+            angularElement = internalVar.element;
           }
         }
 
-        if (classElement != null) {
-          type = classElement.type;
+        if (angularElement != null) {
           if (attribute.value != null) {
             template.addRange(
               new SourceRange(attribute.valueOffset, attribute.valueLength),
-              new DartElement(classElement),
+              angularElement,
             );
           }
 

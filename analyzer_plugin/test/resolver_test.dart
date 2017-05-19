@@ -2164,14 +2164,17 @@ class TestPanel {
 import 'dart:html';
 
 @Component(selector: 'test-panel',
-  templateUrl: 'test_panel.html')
+  directives: const [MyDivComponent])
+@View(templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(Element e) {}
 }
+@Component(selector: 'my-div', template: '')
+class MyDivComponent{}
 ''');
     _addHtmlSource(r"""
 <h1 (click)='handleClick(myTargetElement)'>
-  <div #myTargetElement></div>
+  <my-div #myTargetElement></my-div>
 </h1>
 """);
     await _resolveSingleTemplate(dartSource);
