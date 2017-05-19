@@ -4233,6 +4233,29 @@ class SomeOtherDirective {
 
   Future
       // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentChildLetBound_readValueIsAlwaysOk() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child')
+@View(template: '')
+class HasContentChild {
+  @ContentChild('contentChild', read: ViewContainerRef)
+  ViewContainerRef foo;
+}
+''');
+    final code = r"""
+<has-content-child><div #contentChild></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef_deeplyNested() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

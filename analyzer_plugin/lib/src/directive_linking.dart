@@ -381,18 +381,35 @@ class ContentChildLinker {
     }
   }
 
+  /// See [getFieldWithInheritance]
+  DartObject getSelectorWithInheritance(DartObject value) =>
+      getFieldWithInheritance(value, 'selector');
+
+  /// See [getFieldWithInheritance]
+  String getReadWithInheritance(DartObject value) {
+    final constantVal = getFieldWithInheritance(value, 'read');
+    if (constantVal.isNull) {
+      return null;
+    }
+
+    // TODO: track more types of these values, once we use this.
+    return constantVal.toStringValue() ??
+        constantVal.toTypeValue()?.toString() ??
+        constantVal.toString();
+  }
+
   /// ConstantValue.getField() doesn't look up the inheritance tree. Rather than
   /// hardcoding the inheritance tree in our code, look up the inheritance tree
   /// until either it ends, or we find a "selector" field.
-  DartObject getSelectorWithInheritance(DartObject value) {
-    final selector = value.getField("selector");
+  DartObject getFieldWithInheritance(DartObject value, String field) {
+    final selector = value.getField(field);
     if (selector != null) {
       return selector;
     }
 
-    final _super = value.getField("(super)");
+    final _super = value.getField('(super)');
     if (_super != null) {
-      return getSelectorWithInheritance(_super);
+      return getFieldWithInheritance(_super, field);
     }
 
     return null;
@@ -422,27 +439,34 @@ class ContentChildLinker {
     }
 
     final annotation = annotations.first;
+    final annotationValue = annotation.computeConstantValue();
 
-    // constantValue.getField() doesn't do inheritance. Do that ourself.
-    final value = getSelectorWithInheritance(annotation.computeConstantValue());
+    // `constantValue.getField()` doesn't do inheritance. Do that ourself.
+    final value = getSelectorWithInheritance(annotationValue);
+    final read = getReadWithInheritance(annotationValue);
+
     if (value?.toStringValue() != null) {
-      final setterType = transformSetterTypeFn(
-          bindingSynthesizer.getSetterType(member), field, annotationName);
+      // Take the type -- except, we can't validate DI symbols via `read`.
+      final setterType = read == null
+          ? transformSetterTypeFn(
+              bindingSynthesizer.getSetterType(member), field, annotationName)
+          : _context.typeProvider.dynamicType;
+
       destinationArray.add(new ContentChild(field,
-          new LetBoundQueriedChildType(value.toStringValue(), setterType)));
+          new LetBoundQueriedChildType(value.toStringValue(), setterType),
+          read: read));
     } else if (value?.toTypeValue() != null) {
       final type = value.toTypeValue();
       final referencedDirective =
           await _directiveMatcher.matchDirective(type.element);
+
+      AbstractQueriedChildType query;
       if (referencedDirective != null) {
-        destinationArray.add(new ContentChild(
-            field, new DirectiveQueriedChildType(referencedDirective)));
-      } else if (type.element.name == "ElementRef") {
-        destinationArray
-            .add(new ContentChild(field, new ElementRefQueriedChildType()));
-      } else if (type.element.name == "TemplateRef") {
-        destinationArray
-            .add(new ContentChild(field, new TemplateRefQueriedChildType()));
+        query = new DirectiveQueriedChildType(referencedDirective);
+      } else if (type.element.name == 'ElementRef') {
+        query = new ElementRefQueriedChildType();
+      } else if (type.element.name == 'TemplateRef') {
+        query = new TemplateRefQueriedChildType();
       } else {
         _errorReporter.reportErrorForOffset(
             AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,
@@ -452,9 +476,13 @@ class ContentChildLinker {
         return;
       }
 
-      final setterType = transformSetterTypeFn(
-          bindingSynthesizer.getSetterType(member), field, annotationName);
-      checkQueriedTypeAssignableTo(setterType, type, field, annotationName);
+      destinationArray.add(new ContentChild(field, query, read: read));
+
+      if (read == null) {
+        final setterType = transformSetterTypeFn(
+            bindingSynthesizer.getSetterType(member), field, annotationName);
+        checkQueriedTypeAssignableTo(setterType, type, field, annotationName);
+      }
     } else {
       _errorReporter.reportErrorForOffset(
           AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,

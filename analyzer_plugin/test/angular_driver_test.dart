@@ -2686,6 +2686,35 @@ class ContentChildComp {}
     assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
         code, 'QueryList<String>');
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_withReadSet() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp, read: ViewContainerRef)
+  ViewContainerRef contentChild;
+  @ContentChildren(ContentChildComp, read: ViewContainerRef)
+  QueryList<ViewContainerRef> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(childrens.first.read, equals('ViewContainerRef'));
+    final childs = component.contentChildren;
+    expect(childs, hasLength(1));
+    expect(childs.first.read, equals('ViewContainerRef'));
+    // validate
+    errorListener.assertNoErrors();
+  }
 }
 
 @reflectiveTest
