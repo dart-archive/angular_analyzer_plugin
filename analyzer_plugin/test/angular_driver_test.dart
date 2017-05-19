@@ -2708,10 +2708,10 @@ class ContentChildComp {}
     final component = directives.first;
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
-    expect(childrens.first.read, equals("ViewContainerRef"));
+    expect(childrens.first.read, equals('ViewContainerRef'));
     final childs = component.contentChildren;
     expect(childs, hasLength(1));
-    expect(childs.first.read, equals("ViewContainerRef"));
+    expect(childs.first.read, equals('ViewContainerRef'));
     // validate
     errorListener.assertNoErrors();
   }

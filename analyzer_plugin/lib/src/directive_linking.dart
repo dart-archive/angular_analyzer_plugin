@@ -383,11 +383,11 @@ class ContentChildLinker {
 
   /// See [getFieldWithInheritance]
   DartObject getSelectorWithInheritance(DartObject value) =>
-      getFieldWithInheritance(value, "selector");
+      getFieldWithInheritance(value, 'selector');
 
   /// See [getFieldWithInheritance]
   String getReadWithInheritance(DartObject value) {
-    final constantVal = getFieldWithInheritance(value, "read");
+    final constantVal = getFieldWithInheritance(value, 'read');
     if (constantVal.isNull) {
       return null;
     }
@@ -407,7 +407,7 @@ class ContentChildLinker {
       return selector;
     }
 
-    final _super = value.getField("(super)");
+    final _super = value.getField('(super)');
     if (_super != null) {
       return getFieldWithInheritance(_super, field);
     }
@@ -463,9 +463,9 @@ class ContentChildLinker {
       AbstractQueriedChildType query;
       if (referencedDirective != null) {
         query = new DirectiveQueriedChildType(referencedDirective);
-      } else if (type.element.name == "ElementRef") {
+      } else if (type.element.name == 'ElementRef') {
         query = new ElementRefQueriedChildType();
-      } else if (type.element.name == "TemplateRef") {
+      } else if (type.element.name == 'TemplateRef') {
         query = new TemplateRefQueriedChildType();
       } else {
         _errorReporter.reportErrorForOffset(
