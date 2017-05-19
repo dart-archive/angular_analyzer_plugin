@@ -2163,23 +2163,24 @@ class TestPanel {
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'test-panel',
-  directives: const [MyDivComponent])
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [MyDivComponent])
 class TestPanel {
-  void handleClick(Element e) {}
+  void handleClick(String s) {}
 }
-@Component(selector: 'my-div', template: '')
-class MyDivComponent{}
+@Component(selector: 'myDiv', template: '')
+class MyDivComponent {
+  String someString = 'asdf';
+}
 ''');
     _addHtmlSource(r"""
-<h1 (click)='handleClick(myTargetElement)'>
-  <my-div #myTargetElement></my-div>
+<h1 (click)='handleClick(myTargetElement.someString)'>
+  <myDiv #myTargetElement></myDiv>
 </h1>
 """);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    _assertElement("myTargetElement)").local.at("myTargetElement>");
+    _assertElement("myTargetElement.someString)").local.at("myTargetElement>");
   }
 
   // ignore: non_constant_identifier_names
@@ -2205,6 +2206,20 @@ class TestPanel {}
     _assertElement("exportedValue'>").angular.at("exportedValue')");
     _assertElement("value.aaa").local.at("value=");
     _assertElement("aaa}}").dart.getter.at('aaa; // 1');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_letVariable_in_nonTemplate() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    final html = r'''<div let-value></div>''';
+    _addHtmlSource(html);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_LET_BINDING, html, 'let-value');
   }
 
   // ignore: non_constant_identifier_names
@@ -2271,6 +2286,29 @@ class TestPanel {}
         AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
         code,
         "noSuchExportedValue");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_localVariable_exportAs_ambiguous() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', 
+  directives: const [Directive1, Directive2])
+class TestPanel {}
+
+@Directive(selector: '[dir1]', exportAs: 'ambiguous')
+class Directive1 {}
+
+@Directive(selector: '[dir2]', exportAs: 'ambiguous')
+class Directive2 {}
+''');
+    final code = r"""
+<div dir1 dir2 #value="ambiguous"></div>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DIRECTIVE_EXPORTED_BY_AMBIGIOUS, code, 'ambiguous');
   }
 
   // ignore: non_constant_identifier_names
@@ -2725,25 +2763,26 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_ngFor_templateElementVar() async {
+  Future test_hashRef_templateElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@View(templateUrl: 'test_panel.html', 
+  directives: const [NgFor, HasTemplateInputComponent])
 class TestPanel {
-  List<String> items = [];
+}
+@Component(selector: 'has-template-input', template: '')
+class HasTemplateInputComponent {
+  @Input()
+  TemplateRef myTemplate;
 }
 ''');
     _addHtmlSource(r"""
-<template ngFor var-item [ngForOf]='items' var-i='index'>
-  <li>{{i}} {{item.length}}</li>
-</template>
+<template #templateRef></template>
+<has-template-input [myTemplate]="templateRef"></has-template-input>
 """);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    _assertElement("item [").local.declaration.type('String');
-    _assertElement("i='index").local.declaration.type('int');
-    _assertElement("i}}").local.at("i='index");
-    _assertElement("item.").local.at('item [');
+    _assertElement(r'templateRef"').local.at('templateRef>');
   }
 
   // ignore: non_constant_identifier_names

@@ -481,7 +481,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
         final refValue = attribute.value;
 
         // maybe an internal variable reference
-        DartType type;
+        var type = typeProvider.dynamicType;
         AngularElement angularElement;
 
         if (refValue == null) {
@@ -519,25 +519,22 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
           }
         }
 
-        if (angularElement != null) {
-          if (attribute.value != null) {
-            template.addRange(
-              new SourceRange(attribute.valueOffset, attribute.valueLength),
-              angularElement,
-            );
-          }
-
-          final localVariableElement =
-              dartVariableManager.newLocalVariableElement(-1, name, type);
-          final localVariable = new LocalVariable(
-              name, offset, name.length, templateSource, localVariableElement);
-          localVariables[name] = localVariable;
+        if (attribute.value != null) {
           template.addRange(
-            new SourceRange(
-                localVariable.nameOffset, localVariable.name.length),
-            localVariable,
+            new SourceRange(attribute.valueOffset, attribute.valueLength),
+            angularElement,
           );
         }
+
+        final localVariableElement =
+            dartVariableManager.newLocalVariableElement(offset, name, type);
+        final localVariable = new LocalVariable(
+            name, offset, name.length, templateSource, localVariableElement);
+        localVariables[name] = localVariable;
+        template.addRange(
+          new SourceRange(localVariable.nameOffset, localVariable.name.length),
+          localVariable,
+        );
       }
     }
   }
