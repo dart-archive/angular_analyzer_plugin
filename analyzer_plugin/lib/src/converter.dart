@@ -397,7 +397,7 @@ class HtmlTreeConverter {
     final value = ast.value;
     if ((value == null || value.isEmpty) &&
         !ast.prefixToken.errorSynthetic &&
-        !ast.suffixToken.errorSynthetic) {
+        (!ast?.suffixToken?.errorSynthetic ?? true)) {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
     }
@@ -462,8 +462,9 @@ class HtmlTreeConverter {
 
     final value = parsed.valueToken?.innerValue?.lexeme;
     if ((value == null || value.isEmpty) &&
-        !parsed.prefixToken.errorSynthetic &&
-        !parsed.suffixToken.errorSynthetic) {
+            !parsed.prefixToken.errorSynthetic &&
+            !parsed?.suffixToken?.errorSynthetic ??
+        true) {
       errorListener.onError(new AnalysisError(
         templateSource,
         origNameOffset,
