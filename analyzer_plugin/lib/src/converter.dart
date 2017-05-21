@@ -172,6 +172,7 @@ class HtmlTreeConverter {
         events: node.events,
         properties: node.properties,
         references: node.references,
+        isTemplate: true,
       );
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
@@ -247,32 +248,44 @@ class HtmlTreeConverter {
   }
 
   List<AttributeInfo> _convertAttributes({
-    List<ParsedAttributeAst> attributes: const [],
-    List<ParsedBananaAst> bananas: const [],
-    List<ParsedEventAst> events: const [],
-    List<ParsedPropertyAst> properties: const [],
-    List<ParsedReferenceAst> references: const [],
-    List<ParsedStarAst> stars: const [],
+    List<AttributeAst> attributes: const [],
+    List<BananaAst> bananas: const [],
+    List<EventAst> events: const [],
+    List<PropertyAst> properties: const [],
+    List<ReferenceAst> references: const [],
+    List<StarAst> stars: const [],
+    bool isTemplate: false,
   }) {
     final returnAttributes = <AttributeInfo>[];
 
     for (final attribute in attributes) {
-      if (attribute.name == 'template') {
-        returnAttributes.add(_convertTemplateAttribute(attribute));
-      } else {
-        String value;
-        int valueOffset;
-        if (attribute.valueToken != null) {
-          value = attribute.valueToken.innerValue.lexeme;
-          valueOffset = attribute.valueToken.innerValue.offset;
+      if (attribute is ParsedAttributeAst) {
+        if (attribute.name == 'template') {
+          returnAttributes.add(_convertTemplateAttribute(attribute));
+        } else if (attribute.name.startsWith('let-') && !isTemplate) {
+          final offset = attribute.nameOffset;
+          final length = attribute.name.length;
+          errorListener.onError(new AnalysisError(
+            templateSource,
+            offset,
+            length,
+            AngularWarningCode.INVALID_LET_BINDING,
+          ));
+        } else {
+          String value;
+          int valueOffset;
+          if (attribute.valueToken != null) {
+            value = attribute.valueToken.innerValue.lexeme;
+            valueOffset = attribute.valueToken.innerValue.offset;
+          }
+          returnAttributes.add(new TextAttribute(
+            attribute.name,
+            attribute.nameOffset,
+            value,
+            valueOffset,
+            dartParser.findMustaches(value, valueOffset),
+          ));
         }
-        returnAttributes.add(new TextAttribute(
-          attribute.name,
-          attribute.nameOffset,
-          value,
-          valueOffset,
-          dartParser.findMustaches(value, valueOffset),
-        ));
       }
     }
     bananas.map(_convertExpressionBoundAttribute).forEach(returnAttributes.add);
@@ -282,18 +295,20 @@ class HtmlTreeConverter {
         .forEach(returnAttributes.add);
 
     for (final reference in references) {
-      String value;
-      int valueOffset;
-      if (reference.valueToken != null) {
-        value = reference.valueToken.innerValue.lexeme;
-        valueOffset = reference.valueToken.innerValue.offset;
+      if (reference is ParsedReferenceAst) {
+        String value;
+        int valueOffset;
+        if (reference.valueToken != null) {
+          value = reference.valueToken.innerValue.lexeme;
+          valueOffset = reference.valueToken.innerValue.offset;
+        }
+        returnAttributes.add(new TextAttribute(
+            '${reference.prefixToken.lexeme}${reference.nameToken.lexeme}',
+            reference.prefixToken.offset,
+            value,
+            valueOffset,
+            dartParser.findMustaches(value, valueOffset)));
       }
-      returnAttributes.add(new TextAttribute(
-          '${reference.prefixToken.lexeme}${reference.nameToken.lexeme}',
-          reference.prefixToken.offset,
-          value,
-          valueOffset,
-          dartParser.findMustaches(value, valueOffset)));
     }
 
     stars.map(_convertTemplateAttribute).forEach(returnAttributes.add);
@@ -370,26 +385,30 @@ class HtmlTreeConverter {
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
       ParsedEventAst ast) {
+    final prefixToken = ast.prefixToken;
+    final nameToken = ast.nameToken;
+    final suffixToken = ast.suffixToken;
+
     final prefixComponent =
-        (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme);
+        (prefixToken.errorSynthetic ? '' : prefixToken.lexeme);
     final suffixComponent =
-        ((ast.suffixToken == null) || ast.suffixToken.errorSynthetic)
+        ((suffixToken == null) || suffixToken.errorSynthetic)
             ? ''
-            : ast.suffixToken.lexeme;
+            : suffixToken.lexeme;
     final origName = '$prefixComponent${ast.name}$suffixComponent';
-    final origNameOffset = ast.prefixToken.offset;
+    final origNameOffset = prefixToken.offset;
 
     final value = ast.value;
     if ((value == null || value.isEmpty) &&
-        !ast.prefixToken.errorSynthetic &&
-        !ast.suffixToken.errorSynthetic) {
+        !prefixToken.errorSynthetic &&
+        (suffixToken == null ? true : !suffixToken.errorSynthetic)) {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
     }
     final valueOffset = ast.valueOffset;
 
-    final propName = ast.nameToken.lexeme;
-    final propNameOffset = ast.nameToken.offset;
+    final propName = nameToken.lexeme;
+    final propNameOffset = nameToken.offset;
 
     return new StatementsBoundAttribute(
         propName,
@@ -406,20 +425,22 @@ class HtmlTreeConverter {
     var bound = ExpressionBoundType.input;
 
     final parsed = ast as ParsedDecoratorAst;
+    final suffixToken = parsed.suffixToken;
+    final nameToken = parsed.nameToken;
+    final prefixToken = parsed.prefixToken;
+
     String origName;
     {
-      final _prefix =
-          parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme;
-      final _suffix =
-          (parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
-              ? ''
-              : parsed.suffixToken.lexeme;
-      origName = '$_prefix${parsed.nameToken.lexeme}$_suffix';
+      final _prefix = prefixToken.errorSynthetic ? '' : prefixToken.lexeme;
+      final _suffix = (suffixToken == null || suffixToken.errorSynthetic)
+          ? ''
+          : suffixToken.lexeme;
+      origName = '$_prefix${nameToken.lexeme}$_suffix';
     }
-    final origNameOffset = parsed.prefixToken.offset;
+    final origNameOffset = prefixToken.offset;
 
-    var propName = parsed.nameToken.lexeme;
-    var propNameOffset = parsed.nameToken.offset;
+    var propName = nameToken.lexeme;
+    var propNameOffset = nameToken.offset;
 
     if (ast is ParsedPropertyAst) {
       final name = ast.name;
@@ -438,7 +459,7 @@ class HtmlTreeConverter {
         if (replacePropName) {
           final _unitName = ast.unit == null ? '' : '.${ast.unit}';
           propName = '${ast.postfix}$_unitName';
-          propNameOffset = parsed.nameToken.offset + name.length + '.'.length;
+          propNameOffset = nameToken.offset + name.length + '.'.length;
         }
       }
     } else {
@@ -447,8 +468,8 @@ class HtmlTreeConverter {
 
     final value = parsed.valueToken?.innerValue?.lexeme;
     if ((value == null || value.isEmpty) &&
-        !parsed.prefixToken.errorSynthetic &&
-        !parsed.suffixToken.errorSynthetic) {
+        !prefixToken.errorSynthetic &&
+        (suffixToken == null ? true : !suffixToken.errorSynthetic)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         origNameOffset,

@@ -247,6 +247,10 @@ class AngularWarningCode extends ErrorCode {
       'The binding {} is not a valid dart identifer, attribute, style, or class'
       ' binding');
 
+  static const INVALID_LET_BINDING = const AngularWarningCode(
+      'INVALID_LET_BINDING',
+      "'let-' bindings can only be used <template> elements, use '#' instead");
+
   /// An error code indicating that ngIf or ngFor were used without a template
   static const STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE =
       const AngularWarningCode(
@@ -258,6 +262,12 @@ class AngularWarningCode extends ErrorCode {
   static const NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME =
       const AngularWarningCode('NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME',
           'No directives matching this element are exported by the name {0}');
+
+  /// An error code indicating in <div dir1 dir2 #y="x">, x is ambigious since
+  /// both directives dir1 and dir2 have same exportAs name "x".
+  static const DIRECTIVE_EXPORTED_BY_AMBIGIOUS = const AngularWarningCode(
+      'DIRECTIVE_EXPORTED_BY_AMBIGIOUS',
+      "More than one directive's exportAs value matches '{0}'.");
 
   /// An error code indicating that a custom component appears to require a star.
   static const AngularWarningCode CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE =

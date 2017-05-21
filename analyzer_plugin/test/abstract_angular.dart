@@ -76,7 +76,8 @@ ResolvedRange getResolvedRangeAtString(
     }
     return false;
   }, orElse: () {
-    fail('ResolvedRange at $offset was not found in [\n${ranges.join('\n')}]');
+    fail(
+        'ResolvedRange at $offset of $str was not found in [\n${ranges.join('\n')}]');
     return null;
   });
 }
