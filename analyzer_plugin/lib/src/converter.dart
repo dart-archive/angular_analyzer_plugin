@@ -385,26 +385,30 @@ class HtmlTreeConverter {
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
       ParsedEventAst ast) {
+    final prefixToken = ast.prefixToken;
+    final nameToken = ast.nameToken;
+    final suffixToken = ast.suffixToken;
+
     final prefixComponent =
-        (ast.prefixToken.errorSynthetic ? '' : ast.prefixToken.lexeme);
+        (prefixToken.errorSynthetic ? '' : prefixToken.lexeme);
     final suffixComponent =
-        ((ast.suffixToken == null) || ast.suffixToken.errorSynthetic)
+        ((suffixToken == null) || suffixToken.errorSynthetic)
             ? ''
-            : ast.suffixToken.lexeme;
+            : suffixToken.lexeme;
     final origName = '$prefixComponent${ast.name}$suffixComponent';
-    final origNameOffset = ast.prefixToken.offset;
+    final origNameOffset = prefixToken.offset;
 
     final value = ast.value;
     if ((value == null || value.isEmpty) &&
-        !ast.prefixToken.errorSynthetic &&
-        (!ast?.suffixToken?.errorSynthetic ?? true)) {
+        !prefixToken.errorSynthetic &&
+        (suffixToken == null ? true : !suffixToken.errorSynthetic)) {
       errorListener.onError(new AnalysisError(templateSource, origNameOffset,
           origName.length, AngularWarningCode.EMPTY_BINDING, [ast.name]));
     }
     final valueOffset = ast.valueOffset;
 
-    final propName = ast.nameToken.lexeme;
-    final propNameOffset = ast.nameToken.offset;
+    final propName = nameToken.lexeme;
+    final propNameOffset = nameToken.offset;
 
     return new StatementsBoundAttribute(
         propName,
@@ -421,20 +425,22 @@ class HtmlTreeConverter {
     var bound = ExpressionBoundType.input;
 
     final parsed = ast as ParsedDecoratorAst;
+    final suffixToken = parsed.suffixToken;
+    final nameToken = parsed.nameToken;
+    final prefixToken = parsed.prefixToken;
+
     String origName;
     {
-      final _prefix =
-          parsed.prefixToken.errorSynthetic ? '' : parsed.prefixToken.lexeme;
-      final _suffix =
-          (parsed.suffixToken == null || parsed.suffixToken.errorSynthetic)
-              ? ''
-              : parsed.suffixToken.lexeme;
-      origName = '$_prefix${parsed.nameToken.lexeme}$_suffix';
+      final _prefix = prefixToken.errorSynthetic ? '' : prefixToken.lexeme;
+      final _suffix = (suffixToken == null || suffixToken.errorSynthetic)
+          ? ''
+          : suffixToken.lexeme;
+      origName = '$_prefix${nameToken.lexeme}$_suffix';
     }
-    final origNameOffset = parsed.prefixToken.offset;
+    final origNameOffset = prefixToken.offset;
 
-    var propName = parsed.nameToken.lexeme;
-    var propNameOffset = parsed.nameToken.offset;
+    var propName = nameToken.lexeme;
+    var propNameOffset = nameToken.offset;
 
     if (ast is ParsedPropertyAst) {
       final name = ast.name;
@@ -453,7 +459,7 @@ class HtmlTreeConverter {
         if (replacePropName) {
           final _unitName = ast.unit == null ? '' : '.${ast.unit}';
           propName = '${ast.postfix}$_unitName';
-          propNameOffset = parsed.nameToken.offset + name.length + '.'.length;
+          propNameOffset = nameToken.offset + name.length + '.'.length;
         }
       }
     } else {
@@ -462,9 +468,8 @@ class HtmlTreeConverter {
 
     final value = parsed.valueToken?.innerValue?.lexeme;
     if ((value == null || value.isEmpty) &&
-            !parsed.prefixToken.errorSynthetic &&
-            !parsed?.suffixToken?.errorSynthetic ??
-        true) {
+        !prefixToken.errorSynthetic &&
+        (suffixToken == null ? true : !suffixToken.errorSynthetic)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         origNameOffset,
