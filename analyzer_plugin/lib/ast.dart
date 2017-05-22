@@ -195,8 +195,6 @@ class TextAttribute extends AttributeInfo {
 }
 
 class Mustache extends AngularAstNode {
-  static const EMPTY_LIST = const <Mustache>[];
-
   Expression expression;
   @override
   final int offset;

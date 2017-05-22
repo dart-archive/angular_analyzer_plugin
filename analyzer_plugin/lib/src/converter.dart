@@ -298,8 +298,7 @@ class HtmlTreeConverter {
             '${reference.prefixToken.lexeme}${reference.nameToken.lexeme}',
             reference.prefixToken.offset,
             value,
-            valueOffset,
-            Mustache.EMPTY_LIST));
+            valueOffset, const <Mustache>[]));
       }
     }
 
@@ -316,8 +315,7 @@ class HtmlTreeConverter {
             '${letBinding.prefixToken.lexeme}${letBinding.nameToken.lexeme}',
             letBinding.prefixToken.offset,
             value,
-            valueOffset,
-            Mustache.EMPTY_LIST));
+            valueOffset, <Mustache>[]));
       }
     }
 
