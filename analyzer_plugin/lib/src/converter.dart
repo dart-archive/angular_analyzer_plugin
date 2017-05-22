@@ -173,7 +173,6 @@ class HtmlTreeConverter {
         properties: node.properties,
         references: node.references,
         letBindings: node.letBindings,
-        isTemplate: true,
       );
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
@@ -256,7 +255,6 @@ class HtmlTreeConverter {
     List<ReferenceAst> references: const [],
     List<StarAst> stars: const [],
     List<LetBindingAst> letBindings: const [],
-    bool isTemplate: false,
   }) {
     final returnAttributes = <AttributeInfo>[];
 
