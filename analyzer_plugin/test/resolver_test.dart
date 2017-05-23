@@ -2219,7 +2219,9 @@ class TestPanel {}
     _addHtmlSource(html);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_LET_BINDING, html, 'let-value');
+        NgParserWarningCode.INVALID_LET_BINDING_IN_NONTEMPLATE,
+        html,
+        ' let-value');
   }
 
   // ignore: non_constant_identifier_names

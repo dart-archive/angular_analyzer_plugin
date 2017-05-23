@@ -15,8 +15,6 @@ import 'package:angular_analyzer_plugin/tasks.dart';
 
 /// An abstract model of an Angular directive.
 abstract class AbstractDirective {
-  static const EMPTY_LIST = const <AbstractDirective>[];
-
   /// The [ClassElement] this annotation is associated with.
   final dart.ClassElement classElement;
 
@@ -291,8 +289,6 @@ class Directive extends AbstractDirective {
 
 /// An Angular template in an HTML file.
 class HtmlTemplate extends Template {
-  static const EMPTY_LIST = const <HtmlTemplate>[];
-
   /// The [Source] of the template.
   final Source source;
 
@@ -301,8 +297,6 @@ class HtmlTemplate extends Template {
 
 /// The model for an Angular input.
 class InputElement extends AngularElementImpl {
-  static const EMPTY_LIST = const <InputElement>[];
-
   final dart.PropertyAccessorElement setter;
 
   final dart.DartType setterType;
@@ -330,8 +324,6 @@ class InputElement extends AngularElementImpl {
 
 /// The model for an Angular output.
 class OutputElement extends AngularElementImpl {
-  static const EMPTY_LIST = const <OutputElement>[];
-
   final dart.PropertyAccessorElement getter;
 
   final dart.DartType eventType;
@@ -390,8 +382,6 @@ class NgContent {
 /// An Angular template.
 /// Templates can be embedded into Dart.
 class Template {
-  static const EMPTY_LIST = const <Template>[];
-
   /// The [View] that describes the template.
   final View view;
 
@@ -429,8 +419,6 @@ class Template {
 
 /// The model of an Angular view.
 class View implements AnalysisTarget {
-  static const EMPTY_LIST = const <View>[];
-
   /// The [ClassElement] this view is associated with.
   final dart.ClassElement classElement;
 

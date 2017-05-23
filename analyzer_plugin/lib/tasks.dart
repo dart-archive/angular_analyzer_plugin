@@ -247,10 +247,6 @@ class AngularWarningCode extends ErrorCode {
       'The binding {} is not a valid dart identifer, attribute, style, or class'
       ' binding');
 
-  static const INVALID_LET_BINDING = const AngularWarningCode(
-      'INVALID_LET_BINDING',
-      "'let-' bindings can only be used <template> elements, use '#' instead");
-
   /// An error code indicating that ngIf or ngFor were used without a template
   static const STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE =
       const AngularWarningCode(

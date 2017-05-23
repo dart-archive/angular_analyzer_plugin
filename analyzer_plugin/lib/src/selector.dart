@@ -220,7 +220,6 @@ class ClassSelector extends Selector {
 
 /// The element name based selector.
 class ElementNameSelector extends Selector {
-  static const EMPTY_LIST = const <ElementNameSelector>[];
   final AngularElement nameElement;
 
   ElementNameSelector(this.nameElement);

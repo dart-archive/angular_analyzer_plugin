@@ -172,7 +172,7 @@ class HtmlTreeConverter {
         events: node.events,
         properties: node.properties,
         references: node.references,
-        isTemplate: true,
+        letBindings: node.letBindings,
       );
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
@@ -254,7 +254,7 @@ class HtmlTreeConverter {
     List<PropertyAst> properties: const [],
     List<ReferenceAst> references: const [],
     List<StarAst> stars: const [],
-    bool isTemplate: false,
+    List<LetBindingAst> letBindings: const [],
   }) {
     final returnAttributes = <AttributeInfo>[];
 
@@ -262,15 +262,6 @@ class HtmlTreeConverter {
       if (attribute is ParsedAttributeAst) {
         if (attribute.name == 'template') {
           returnAttributes.add(_convertTemplateAttribute(attribute));
-        } else if (attribute.name.startsWith('let-') && !isTemplate) {
-          final offset = attribute.nameOffset;
-          final length = attribute.name.length;
-          errorListener.onError(new AnalysisError(
-            templateSource,
-            offset,
-            length,
-            AngularWarningCode.INVALID_LET_BINDING,
-          ));
         } else {
           String value;
           int valueOffset;
@@ -288,6 +279,7 @@ class HtmlTreeConverter {
         }
       }
     }
+
     bananas.map(_convertExpressionBoundAttribute).forEach(returnAttributes.add);
     events.map(_convertStatementsBoundAttribute).forEach(returnAttributes.add);
     properties
@@ -306,8 +298,24 @@ class HtmlTreeConverter {
             '${reference.prefixToken.lexeme}${reference.nameToken.lexeme}',
             reference.prefixToken.offset,
             value,
-            valueOffset,
-            dartParser.findMustaches(value, valueOffset)));
+            valueOffset, const <Mustache>[]));
+      }
+    }
+
+    // Guaranteed to be empty for non-template elements.
+    for (final letBinding in letBindings) {
+      if (letBinding is ParsedLetBindingAst) {
+        String value;
+        int valueOffset;
+        if (letBinding.valueToken != null) {
+          value = letBinding.valueToken.innerValue.lexeme;
+          valueOffset = letBinding.valueToken.innerValue.offset;
+        }
+        returnAttributes.add(new TextAttribute(
+            '${letBinding.prefixToken.lexeme}${letBinding.nameToken.lexeme}',
+            letBinding.prefixToken.offset,
+            value,
+            valueOffset, <Mustache>[]));
       }
     }
 
