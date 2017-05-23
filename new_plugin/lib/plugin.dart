@@ -29,7 +29,7 @@ class AngularAnalysisPlugin extends ServerPlugin {
   String get name => 'Angular Analysis Plugin';
 
   @override
-  String get version => '1.0.0';
+  String get version => '1.0.0-alpha.0';
 
   @override
   String get contactInfo =>
