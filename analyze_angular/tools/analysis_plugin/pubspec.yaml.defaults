@@ -11,6 +11,8 @@ dependency_overrides:
     path: ABSOLUTE_PATH_TO_REPO/new_plugin
   analysis_server:
     path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analysis_server
+  analyzer:
+    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analyzer
   front_end:
     path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/front_end
   analyzer_plugin:
