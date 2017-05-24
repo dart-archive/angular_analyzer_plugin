@@ -62,9 +62,16 @@ class AngularDriver
   }
 
   // ignore: close_sinks
-  final _resultsController = new StreamController<DirectivesResult>();
+  final _dartResultsController = new StreamController<DirectivesResult>();
 
-  Stream<DirectivesResult> get resultsStream => _resultsController.stream;
+  Stream<DirectivesResult> get dartResultsStream =>
+      _dartResultsController.stream;
+
+  // ignore: close_sinks
+  final _htmlResultsController = new StreamController<DirectivesResult>();
+
+  Stream<DirectivesResult> get htmlResultsStream =>
+      _htmlResultsController.stream;
 
   @override
   ApiSignature getUnitElementHash(String path) =>
@@ -94,7 +101,8 @@ class AngularDriver
   /// Notify the driver that the client is going to stop using it.
   @override
   void dispose() {
-    _resultsController.close();
+    _dartResultsController.close();
+    _htmlResultsController.close();
   }
 
   void addFile(String path) {
@@ -354,18 +362,19 @@ class AngularDriver
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
         ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
-      final result = new DirectivesResult.withFilename(htmlPath, [], errors);
-      _resultsController.add(result);
+      final result = new DirectivesResult(htmlPath, [], errors);
+      _htmlResultsController.add(result);
       return result;
     }
 
-    final result = new DirectivesResult.withFilename(htmlPath, [], []);
+    final result = new DirectivesResult(htmlPath, [], []);
 
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
       final pairResult = await resolveHtmlFrom(htmlPath, dartContext);
       result.directives.addAll(pairResult.directives);
       result.errors.addAll(pairResult.errors);
+      result.fullyResolvedDirectives.addAll(pairResult.fullyResolvedDirectives);
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
@@ -382,7 +391,7 @@ class AngularDriver
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
-    _resultsController.add(result);
+    _htmlResultsController.add(result);
     return result;
   }
 
@@ -392,6 +401,7 @@ class AngularDriver
     if (!isDartFile && !filePath.endsWith('.html')) {
       return templates;
     }
+
     final directiveResults = isDartFile
         ? await resolveDart(
             filePath,
@@ -417,7 +427,7 @@ class AngularDriver
     return templates;
   }
 
-  Future<DifectivesResult> resolveHtmlFrom(
+  Future<DirectivesResult> resolveHtmlFrom(
       String htmlPath, String dartPath) async {
     final result = await getDirectives(dartPath);
     final directives = result.directives;
@@ -583,9 +593,9 @@ class AngularDriver
           ..setDartHtmlTemplates(path, summary.referencedHtmlFiles)
           ..setDartImports(path, summary.referencedDartFiles);
 
-        final result = new DirectivesResult.withFilename(
+        final result = new DirectivesResult(
             path, [], deserializeErrors(getSource(path), summary.errors));
-        _resultsController.add(result);
+        _dartResultsController.add(result);
         return result;
       }
     }
@@ -675,10 +685,9 @@ class AngularDriver
       ..hasDartTemplates = hasDartTemplate;
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
-    final directivesResult = new DirectivesResult.withFilename(
-        path, directives, errors,
+    final directivesResult = new DirectivesResult(path, directives, errors,
         fullyResolvedDirectives: fullyResolvedDirectives);
-    _resultsController.add(directivesResult);
+    _dartResultsController.add(directivesResult);
     return directivesResult;
   }
 
@@ -890,9 +899,12 @@ class DirectivesResult {
   final List<AbstractDirective> directives;
   final List<AbstractDirective> fullyResolvedDirectives = [];
   final List<AnalysisError> errors;
-  DirectivesResult.withFilename(this.filename, this.directives, this.errors,
+
+  DirectivesResult(this.filename, this.directives, this.errors,
       {List<AbstractDirective> fullyResolvedDirectives: const []}) {
+    // Use `addAll` instead of initializing it to `const []` when not specified,
+    // so that the result is not const and we can add to it, while still being
+    // final.
     this.fullyResolvedDirectives.addAll(fullyResolvedDirectives);
   }
-  DirectivesResult(this.directives, this.errors) : filename = null;
 }

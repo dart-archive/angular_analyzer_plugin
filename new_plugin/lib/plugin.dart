@@ -21,6 +21,7 @@ import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
+import 'package:meta/meta.dart';
 
 class AngularAnalysisPlugin extends ServerPlugin {
   AngularAnalysisPlugin(ResourceProvider provider) : super(provider);
@@ -60,7 +61,10 @@ class AngularAnalysisPlugin extends ServerPlugin {
         sourceFactory,
         fileContentOverlay);
 
-    driver.resultsStream.listen(onResult);
+    driver.dartResultsStream
+        .listen((result) => onResult(result, driver, templatesOnly: true));
+    driver.htmlResultsStream
+        .listen((result) => onResult(result, driver, templatesOnly: false));
     return driver;
   }
 
@@ -68,8 +72,8 @@ class AngularAnalysisPlugin extends ServerPlugin {
       (subscriptionManager.servicesForFile(filePath) ?? const [])
           .contains(service);
 
-  void onResult(DirectivesResult result) {
-    // TODO(mfairhurst) Get the right analysis options.
+  void onResult(DirectivesResult result, AngularDriver driver,
+      {@required bool templatesOnly}) {
     final collector = new NavigationCollectorImpl();
     final filename = result.filename;
 
@@ -78,14 +82,12 @@ class AngularAnalysisPlugin extends ServerPlugin {
       return;
     }
 
-    final contextRoot = contextRootContaining(filename);
-    final driver = (driverMap[contextRoot] as AngularDriver);
     final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
 
     new AngularNavigation()
       ..computeNavigation(
           collector, driver.getSource(filename), 0, 0, lineInfo, result,
-          templatesOnly: false);
+          templatesOnly: templatesOnly);
     collector.createRegions();
     channel.sendNotification(new plugin.AnalysisNavigationParams(
             filename, collector.regions, collector.targets, collector.files)
