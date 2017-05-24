@@ -453,6 +453,8 @@ class AngularDriver
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
 
+    final fullyResolvedDirectives = <AbstractDirective>[];
+
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
@@ -500,11 +502,14 @@ class AngularDriver
           } else {
             errors.addAll(tplErrorListener.errors.where(rightErrorType));
           }
+
+          fullyResolvedDirectives.add(directive);
         }
       }
     }
 
-    return new DirectivesResult(directives, errors);
+    return new DirectivesResult(htmlPath, directives, errors,
+        fullyResolvedDirectives: fullyResolvedDirectives);
   }
 
   @override
@@ -723,7 +728,9 @@ class AngularDriver
     final bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
-      return new DirectivesResult(await resynthesizeDirectives(summary, path),
+      return new DirectivesResult(
+          path,
+          await resynthesizeDirectives(summary, path),
           deserializeErrors(getSource(path), summary.errors));
     }
 
@@ -769,7 +776,7 @@ class AngularDriver
 
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
       ..addAll(viewExtractor.errorListener.errors);
-    final result = new DirectivesResult(directives, errors);
+    final result = new DirectivesResult(path, directives, errors);
     final summary = serializeDartResult(result);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
