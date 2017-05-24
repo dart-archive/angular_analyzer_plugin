@@ -4,12 +4,13 @@
 import 'dart:async';
 
 import 'package:analysis_server/src/services/completion/completion_core.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
+import 'package:analysis_server/src/domains/analysis/navigation.dart';
 import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
+import 'package:analyzer/src/generated/source.dart';
 import 'package:front_end/src/base/performace_logger.dart';
 import 'package:analyzer_plugin/plugin/plugin.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
@@ -18,6 +19,7 @@ import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
+import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 
 class AngularAnalysisPlugin extends ServerPlugin {
@@ -50,13 +52,44 @@ class AngularAnalysisPlugin extends ServerPlugin {
 
     final sourceFactory = dartDriver.sourceFactory;
 
-    return new AngularDriver(
+    final driver = new AngularDriver(
         new ChannelNotificationManager(channel),
         dartDriver,
         analysisDriverScheduler,
         byteStore,
         sourceFactory,
         fileContentOverlay);
+
+    driver.resultsStream.listen(onResult);
+    return driver;
+  }
+
+  bool fileHasSubscription(String filePath, plugin.AnalysisService service) =>
+      (subscriptionManager.servicesForFile(filePath) ?? const [])
+          .contains(service);
+
+  void onResult(DirectivesResult result) {
+    // TODO(mfairhurst) Get the right analysis options.
+    final collector = new NavigationCollectorImpl();
+    final filename = result.filename;
+
+    if (filename == null ||
+        !fileHasSubscription(filename, plugin.AnalysisService.NAVIGATION)) {
+      return;
+    }
+
+    final contextRoot = contextRootContaining(filename);
+    final driver = (driverMap[contextRoot] as AngularDriver);
+    final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
+
+    new AngularNavigation()
+      ..computeNavigation(
+          collector, driver.getSource(filename), 0, 0, lineInfo, result,
+          templatesOnly: false);
+    collector.createRegions();
+    channel.sendNotification(new plugin.AnalysisNavigationParams(
+            filename, collector.regions, collector.targets, collector.files)
+        .toNotification());
   }
 
   void sendNotificationForSubscription(

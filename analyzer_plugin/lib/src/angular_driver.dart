@@ -61,6 +61,11 @@ class AngularDriver
             null;
   }
 
+  // ignore: close_sinks
+  final _resultsController = new StreamController<DirectivesResult>();
+
+  Stream<DirectivesResult> get resultsStream => _resultsController.stream;
+
   @override
   ApiSignature getUnitElementHash(String path) =>
       dartDriver.getUnitKeyByPath(path);
@@ -89,7 +94,7 @@ class AngularDriver
   /// Notify the driver that the client is going to stop using it.
   @override
   void dispose() {
-    // TODO anything we need to do here?
+    _resultsController.close();
   }
 
   void addFile(String path) {
@@ -349,10 +354,12 @@ class AngularDriver
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
         ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
-      return new DirectivesResult([], errors);
+      final result = new DirectivesResult.withFilename(htmlPath, [], errors);
+      _resultsController.add(result);
+      return result;
     }
 
-    final result = new DirectivesResult([], []);
+    final result = new DirectivesResult.withFilename(htmlPath, [], []);
 
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
@@ -375,6 +382,7 @@ class AngularDriver
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
+    _resultsController.add(result);
     return result;
   }
 
@@ -409,7 +417,7 @@ class AngularDriver
     return templates;
   }
 
-  Future<DirectivesResult> resolveHtmlFrom(
+  Future<DifectivesResult> resolveHtmlFrom(
       String htmlPath, String dartPath) async {
     final result = await getDirectives(dartPath);
     final directives = result.directives;
@@ -575,8 +583,10 @@ class AngularDriver
           ..setDartHtmlTemplates(path, summary.referencedHtmlFiles)
           ..setDartImports(path, summary.referencedDartFiles);
 
-        return new DirectivesResult(
-            [], deserializeErrors(getSource(path), summary.errors));
+        final result = new DirectivesResult.withFilename(
+            path, [], deserializeErrors(getSource(path), summary.errors));
+        _resultsController.add(result);
+        return result;
       }
     }
 
@@ -604,6 +614,7 @@ class AngularDriver
 
     final htmlViews = <String>[];
     final usesDart = <String>[];
+    final fullyResolvedDirectives = <AbstractDirective>[];
 
     var hasDartTemplate = false;
     for (final directive in directives) {
@@ -640,6 +651,7 @@ class AngularDriver
                 (e) => !view.template.ignoredErrors.contains(e.errorCode.name)))
             ..addAll(tplErrorListener.errors.where((e) =>
                 !view.template.ignoredErrors.contains(e.errorCode.name)));
+          fullyResolvedDirectives.add(directive);
         } else if (view?.templateUriSource != null) {
           _htmlFilesToAnalyze.add(view.templateUriSource.fullName);
           htmlViews.add(view.templateUriSource.fullName);
@@ -663,7 +675,11 @@ class AngularDriver
       ..hasDartTemplates = hasDartTemplate;
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
-    return new DirectivesResult(directives, errors);
+    final directivesResult = new DirectivesResult.withFilename(
+        path, directives, errors,
+        fullyResolvedDirectives: fullyResolvedDirectives);
+    _resultsController.add(directivesResult);
+    return directivesResult;
   }
 
   List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) =>
@@ -870,7 +886,13 @@ class AngularDriver
 }
 
 class DirectivesResult {
-  List<AbstractDirective> directives;
-  List<AnalysisError> errors;
-  DirectivesResult(this.directives, this.errors);
+  final String filename;
+  final List<AbstractDirective> directives;
+  final List<AbstractDirective> fullyResolvedDirectives = [];
+  final List<AnalysisError> errors;
+  DirectivesResult.withFilename(this.filename, this.directives, this.errors,
+      {List<AbstractDirective> fullyResolvedDirectives: const []}) {
+    this.fullyResolvedDirectives.addAll(fullyResolvedDirectives);
+  }
+  DirectivesResult(this.directives, this.errors) : filename = null;
 }

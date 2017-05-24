@@ -8,51 +8,38 @@ import 'package:analyzer/src/dart/element/member.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:meta/meta.dart';
 
-class AngularNavigationContributor implements NavigationContributor {
-  @override
-  void computeNavigation(NavigationCollector collector, AnalysisContext context,
-      Source source, int offset, int length) {
-    //LineInfo lineInfo = context.computeResult(source, LINE_INFO);
-    //// in Dart
-    //{
-    //  List<Source> librarySources = context.getLibrariesContaining(source);
-    //  for (Source librarySource in librarySources) {
-    //    // directives
-    //    {
-    //      List<AbstractDirective> directives =
-    //          context.getResult(target, DIRECTIVES_IN_UNIT);
-    //      for (AbstractDirective template in directives) {
-    //        _addDirectiveRegions(collector, lineInfo, template);
-    //      }
-    //    }
-    //    // templates
-    //    {
-    //      List<Template> templates = context.getResult(target, DART_TEMPLATES);
-    //      for (Template template in templates) {
-    //        _addTemplateRegions(collector, lineInfo, template);
-    //      }
-    //    }
-    //    // views
-    //    {
-    //      List<View> views = context.getResult(target, VIEWS2);
-    //      for (View view in views) {
-    //        _addViewRegions(collector, lineInfo, view);
-    //      }
-    //    }
-    //  }
-    //}
-    // in HTML
+class AngularNavigation {
+  void computeNavigation(NavigationCollector collector, Source source,
+      int offset, int length, LineInfo lineInfo, DirectivesResult result,
+      {@required bool templatesOnly}) {
+    // in Dart
     {
-      //List<HtmlTemplate> templates = context.getResult(source, HTML_TEMPLATES);
-      //if (templates.isNotEmpty) {
-      //  HtmlTemplate template = templates.first;
-      //  _addTemplateRegions(collector, lineInfo, template);
-      //}
+      // directives
+      final directives = result.fullyResolvedDirectives;
+      final views = directives
+          .map((d) => d is Component ? d.view : null)
+          .where((v) => v != null);
+
+      if (!templatesOnly) {
+        for (final directive in directives) {
+          _addDirectiveRegions(collector, lineInfo, directive);
+        }
+        for (final view in views) {
+          _addViewRegions(collector, lineInfo, view);
+        }
+      }
+
+      final templates = views.map((v) => v.template);
+      for (final template in templates) {
+        _addTemplateRegions(collector, lineInfo, template);
+      }
     }
   }
 
-  void addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
+  void _addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
       AbstractDirective directive) {
     for (final input in directive.inputs) {
       final setter = input.setter;
@@ -75,7 +62,7 @@ class AngularNavigationContributor implements NavigationContributor {
     }
   }
 
-  void addTemplateRegions(
+  void _addTemplateRegions(
       NavigationCollector collector, LineInfo lineInfo, Template template) {
     for (final resolvedRange in template.ranges) {
       final offset = resolvedRange.range.offset;
@@ -94,7 +81,7 @@ class AngularNavigationContributor implements NavigationContributor {
     }
   }
 
-  void addViewRegions(
+  void _addViewRegions(
       NavigationCollector collector, LineInfo lineInfo, View view) {
     if (view.templateUriSource != null) {
       collector.addRegion(
