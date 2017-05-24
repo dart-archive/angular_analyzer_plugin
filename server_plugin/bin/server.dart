@@ -18,6 +18,4 @@ void main(List<String> args) {
     //new AngularServerPlugin()
   ];
   final server = starter.start(args);
-
-  //new ng.Starter().start(server);
 }
