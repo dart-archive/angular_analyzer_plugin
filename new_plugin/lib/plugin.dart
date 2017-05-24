@@ -136,8 +136,8 @@ class AngularAnalysisPlugin extends ServerPlugin {
     final contributor = new AngularCompletionContributor(driver);
     final performance = new CompletionPerformance();
     final fileSource = resourceProvider.getFile(filePath).createSource();
-    final request = new CompletionRequestImpl(
-        analysisResult, resourceProvider, fileSource, parameters.offset, performance, null);
+    final request = new CompletionRequestImpl(analysisResult, resourceProvider,
+        fileSource, parameters.offset, performance, null);
     final DartCompletionRequestImpl dartRequest =
         await DartCompletionRequestImpl.from(request);
     final suggestions = await contributor.computeSuggestions(dartRequest);
