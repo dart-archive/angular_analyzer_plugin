@@ -46,6 +46,7 @@ class AngularNavigation {
       if (setter == null) {
         continue;
       }
+      // TODO(mfairhurst) proper ranges for setters defined in other files
       final offsetLineLocation = lineInfo.getLocation(setter.nameOffset);
       if (setter != null) {
         collector.addRegion(
@@ -67,7 +68,10 @@ class AngularNavigation {
     for (final resolvedRange in template.ranges) {
       final offset = resolvedRange.range.offset;
       final element = resolvedRange.element;
-      final offsetLineLocation = lineInfo.getLocation(offset);
+      final compilationElement = element.compilationElement;
+      // TODO(mfairhurst) proper ranges for template to template references
+      final offsetLineLocation = (compilationElement?.lineInfo ?? lineInfo)
+          .getLocation(element.nameOffset);
       collector.addRegion(
           offset,
           resolvedRange.range.length,

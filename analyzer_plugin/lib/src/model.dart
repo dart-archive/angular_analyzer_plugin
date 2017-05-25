@@ -81,6 +81,8 @@ abstract class AngularElement {
 
   /// Return the [Source] of this element.
   Source get source;
+
+  dart.CompilationUnitElement get compilationElement;
 }
 
 /// The base class for concrete implementations of an [AngularElement].
@@ -96,6 +98,9 @@ class AngularElementImpl implements AngularElement {
 
   @override
   final Source source;
+
+  @override
+  dart.CompilationUnitElement get compilationElement => null;
 
   AngularElementImpl(this.name, this.nameOffset, this.nameLength, this.source);
 
@@ -257,6 +262,10 @@ class Component extends AbstractDirective {
 /// An [AngularElement] representing a [dart.Element].
 class DartElement extends AngularElementImpl {
   final dart.Element element;
+
+  @override
+  dart.CompilationUnitElement get compilationElement =>
+      element.getAncestor((e) => e is dart.CompilationUnitElement);
 
   DartElement(dart.Element element)
       : element = element,
