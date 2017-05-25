@@ -82,6 +82,15 @@ class AngularAnalysisPlugin extends ServerPlugin {
       return;
     }
 
+    if (result.cacheResult) {
+      // get a non-cached result, so we have an AST.
+      // TODO(mfairhurst) make this assurance in a less hacky way
+      templatesOnly
+          ? driver.resolveDart(filename, withDirectives: true)
+          : driver.resolveHtml(filename, ignoreCache: true);
+      return;
+    }
+
     final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
 
     new AngularNavigation()

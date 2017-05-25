@@ -362,7 +362,7 @@ class AngularDriver
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
         ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
-      final result = new DirectivesResult(htmlPath, [], errors);
+      final result = new DirectivesResult.fromCache(htmlPath, errors);
       _htmlResultsController.add(result);
       return result;
     }
@@ -598,8 +598,8 @@ class AngularDriver
           ..setDartHtmlTemplates(path, summary.referencedHtmlFiles)
           ..setDartImports(path, summary.referencedDartFiles);
 
-        final result = new DirectivesResult(
-            path, [], deserializeErrors(getSource(path), summary.errors));
+        final result = new DirectivesResult.fromCache(
+            path, deserializeErrors(getSource(path), summary.errors));
         _dartResultsController.add(result);
         return result;
       }
@@ -907,11 +907,18 @@ class DirectivesResult {
   final List<AbstractDirective> fullyResolvedDirectives = [];
   final List<AnalysisError> errors;
 
+  bool cacheResult;
+
   DirectivesResult(this.filename, this.directives, this.errors,
-      {List<AbstractDirective> fullyResolvedDirectives: const []}) {
+      {List<AbstractDirective> fullyResolvedDirectives: const []})
+      : cacheResult = false {
     // Use `addAll` instead of initializing it to `const []` when not specified,
     // so that the result is not const and we can add to it, while still being
     // final.
     this.fullyResolvedDirectives.addAll(fullyResolvedDirectives);
   }
+
+  DirectivesResult.fromCache(this.filename, this.errors)
+      : directives = const [],
+        cacheResult = true;
 }
