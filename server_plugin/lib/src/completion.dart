@@ -85,6 +85,15 @@ class CompletionTargetExtractor implements AngularAstVisitor {
   }
 
   @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {
+    if (binding.isPrefix) {
+      target = binding.parent;
+    } else {
+      visitTextAttr(binding);
+    }
+  }
+
+  @override
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
     target = attr;
     if (attr.expression != null &&
@@ -116,16 +125,7 @@ class CompletionTargetExtractor implements AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
-    // Don't check children if we're not targeting the value. Otherwise we'll
-    // always find a synthetic attr that "shadows" the template name itself.
-    if (attr.value == null ||
-        !offsetContained(offset, attr.valueOffset, attr.value.length)) {
-      target = attr;
-      return;
-    }
-
     if (recurseToTarget(attr)) {
-      // don't try to fill a dartSnippet here if this isn't the target
       return;
     }
 
@@ -138,8 +138,7 @@ class CompletionTargetExtractor implements AngularAstVisitor {
     }
 
     if (attributeToAppendTo != null &&
-        attributeToAppendTo is ExpressionBoundAttribute &&
-        attributeToAppendTo.expression == null) {
+        attributeToAppendTo is EmptyStarBinding) {
       final analysisErrorListener = new IgnoringAnalysisErrorListener();
       final dartParser =
           new EmbeddedDartParser(null, analysisErrorListener, null);
@@ -166,6 +165,9 @@ class LocalVariablesExtractor implements AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {}
+
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {}
 
   @override
   void visitTextInfo(TextInfo text) {}
@@ -262,6 +264,10 @@ class ReplacementRangeCalculator implements AngularAstVisitor {
         ..replacementLength = attr.originalName.length;
     }
   }
+
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) =>
+      visitTextAttr(binding);
 }
 
 /// Contributor to contribute angular entities.

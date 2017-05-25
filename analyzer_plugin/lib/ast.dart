@@ -40,6 +40,9 @@ abstract class AngularAstVisitor {
   void visitElementInfo(ElementInfo elementInfo) =>
       _visitAllChildren(elementInfo);
 
+  void visitEmptyStarBinding(EmptyStarBinding emptyBinding) =>
+      visitTextAttr(emptyBinding);
+
   void _visitAllChildren(AngularAstNode node) {
     for (final child in node.children) {
       child.accept(this);
@@ -194,6 +197,23 @@ class TextAttribute extends AttributeInfo {
   void accept(AngularAstVisitor visitor) => visitor.visitTextAttr(this);
 }
 
+/// `*ngFor` creates an empty text attribute, which is harmless. But so do the
+/// less harmless cases of empty `*ngIf`, and or `*ngFor="let item of"`, etc.
+class EmptyStarBinding extends TextAttribute {
+  // is this an empty binding in the middle of the star, or is it the original
+  // prefix binding which is usually harmless to be empty?
+  bool isPrefix;
+
+  EmptyStarBinding(
+      String name, int nameOffset, String originalName, int originalNameOffset,
+      {@required this.isPrefix})
+      : super.synthetic(
+            name, nameOffset, null, null, originalName, originalNameOffset, []);
+
+  @override
+  void accept(AngularAstVisitor visitor) => visitor.visitEmptyStarBinding(this);
+}
+
 class Mustache extends AngularAstNode {
   Expression expression;
   @override
@@ -229,7 +249,7 @@ abstract class NodeInfo extends AngularAstNode {
 /// An AngularAstNode which has directives, such as [ElementInfo] and
 /// [TemplateAttribute]. Contains an array of [DirectiveBinding]s because those
 /// contain more info than just the bound directive.
-abstract class HasDirectives {
+abstract class HasDirectives extends AngularAstNode {
   List<DirectiveBinding> get boundDirectives;
   List<OutputBinding> get boundStandardOutputs;
   List<InputBinding> get boundStandardInputs;

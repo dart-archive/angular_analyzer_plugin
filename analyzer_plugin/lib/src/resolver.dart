@@ -1207,27 +1207,36 @@ class SingleScopeResolver extends AngularScopeVisitor {
       }
     }
 
-    // Star bindings like `*ngFor` create a harmlessly empty and unmatched
-    // `ngFor` input binding. Don't report those as errors, based on this bool.
-    final isTemplatePrefix = attribute.parent is TemplateAttribute &&
-        (attribute.parent as TemplateAttribute).virtualAttributes[0] ==
-            attribute;
-
-    // When the first virtual attribute matches a binding (like `ngIf`), flag it
-    // if its empty. Only for the first. All others (like `trackBy`) are checked
-    // in [EmbeddedDartParser.parseTemplateVirtualAttributes]
-    if (inputMatched && isTemplatePrefix && attribute.expression == null) {
-      errorReporter.reportErrorForOffset(
-          AngularWarningCode.EMPTY_BINDING, attribute.offset, attribute.length);
-    }
-
-    if (!inputMatched && !isTemplatePrefix) {
+    if (!inputMatched) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.nameOffset,
           attribute.name.length,
           AngularWarningCode.NONEXIST_INPUT_BOUND,
           [attribute.name]));
+    }
+  }
+
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {
+    // When the first virtual attribute matches a binding (like `ngIf`), flag it
+    // if its empty. Only for the first. All others (like `trackBy`) are checked
+    // in [EmbeddedDartParser.parseTemplateVirtualAttributes]
+    if (!binding.isPrefix) {
+      return;
+    }
+
+    // catch *ngIf without a value
+    if (binding.parent.boundDirectives
+        .map((binding) => binding.boundDirective)
+        .any((directive) =>
+            directive.inputs.any((input) => input.name == binding.name))) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          binding.nameOffset,
+          binding.name.length,
+          AngularWarningCode.EMPTY_BINDING,
+          [binding.name]));
     }
   }
 
@@ -1239,11 +1248,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
     for (final directiveBinding in attribute.parent.boundDirectives) {
       for (final input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
-          final inputType = input.setterType;
-
           // Typecheck all but HTML inputs. For those, `width="10"` becomes
           // `setAttribute("width", "10")`, which is ok. But for directives and
           // components, this becomes `.someIntProp = "10"` which doesn't work.
+          final inputType = input.setterType;
           if (!directiveBinding.boundDirective.isHtml &&
               !typeProvider.stringType.isAssignableTo(inputType)) {
             errorListener.onError(new AnalysisError(
