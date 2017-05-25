@@ -103,6 +103,36 @@ class AngularAnalysisPlugin extends ServerPlugin {
         .toNotification());
   }
 
+  @override
+  Future<plugin.AnalysisGetNavigationResult> handleAnalysisGetNavigation(
+      plugin.AnalysisGetNavigationParams params) async {
+    final filename = params.file;
+    final contextRoot = contextRootContaining(filename);
+
+    if (contextRoot == null) {
+      // empty resp
+      return super.handleAnalysisGetNavigation(params);
+    }
+
+    final driver = (driverMap[contextRoot] as AngularDriver);
+
+    final templatesOnly = filename.endsWith('.html');
+    final result = templatesOnly
+        ? await driver.resolveDart(filename, withDirectives: true)
+        : await driver.resolveHtml(filename, ignoreCache: true);
+
+    final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
+
+    final collector = new NavigationCollectorImpl();
+    new AngularNavigation()
+      ..computeNavigation(
+          collector, driver.getSource(filename), 0, 0, lineInfo, result,
+          templatesOnly: templatesOnly);
+    collector.createRegions();
+    return new plugin.AnalysisGetNavigationResult(
+        collector.files, collector.targets, collector.regions);
+  }
+
   void sendNotificationForSubscription(
       String fileName, plugin.AnalysisService service, AnalysisResult result) {
     switch (service) {
