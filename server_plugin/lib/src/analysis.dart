@@ -18,7 +18,7 @@ class AngularNavigation {
     // in Dart
     {
       // directives
-      final directives = result.fullyResolvedDirectives;
+      final directives = result.directives;
       final views = directives
           .map((d) => d is Component ? d.view : null)
           .where((v) => v != null);
@@ -32,8 +32,10 @@ class AngularNavigation {
         }
       }
 
-      final templates = views.map((v) => v.template);
-      for (final template in templates) {
+      final resolvedTemplates = result.fullyResolvedDirectives
+          .map((d) => d is Component ? d.view?.template : null)
+          .where((v) => v != null);
+      for (final template in resolvedTemplates) {
         _addTemplateRegions(collector, lineInfo, template);
       }
     }

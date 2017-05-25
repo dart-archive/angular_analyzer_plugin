@@ -1,4 +1,4 @@
-library angular2.src.analysis.server_plugin.analysis_test;
+import 'dart:async';
 
 import 'package:analysis_server/plugin/analysis/navigation/navigation_core.dart';
 import 'package:analysis_server/plugin/analysis/occurrences/occurrences_core.dart';
@@ -27,6 +27,7 @@ import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:plugin/manager.dart';
 import 'package:plugin/plugin.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -38,7 +39,7 @@ import 'mock_sdk.dart';
 void main() {
   defineReflectiveSuite(() {
     // TODO get these working again in the latest SDK
-    //defineReflectiveTests(AngularNavigationContributorTest);
+    defineReflectiveTests(AngularNavigationTest);
     //defineReflectiveTests(AngularOccurrencesContributorTest);
     defineReflectiveTests(EmptyTest);
   });
@@ -53,8 +54,27 @@ class EmptyTest {
 }
 
 @reflectiveTest
-class AngularNavigationContributorTest extends AbstractAngularTaskTest {
+class AngularNavigationTest extends AbstractAngularTest {
   String code;
+
+  /// Compute all the views declared in the given [dartSource], and resolve the
+  /// external template of all the views.
+  Future<DirectivesResult> resolveLinkedHtml(Source dartSource) async {
+    final result = await angularDriver.resolveDart(dartSource.fullName);
+    for (var d in result.directives) {
+      if (d is Component && d.view.templateUriSource != null) {
+        final htmlPath = d.view.templateUriSource.fullName;
+        return await angularDriver.resolveHtml(htmlPath);
+      }
+    }
+
+    return null;
+  }
+
+  /// Compute all the views declared in the given [dartSource], and return its
+  /// result
+  Future<DirectivesResult> resolveDart(Source dartSource) async =>
+      await angularDriver.resolveDart(dartSource.fullName);
 
   List<_RecordedNavigationRegion> regions = <_RecordedNavigationRegion>[];
   NavigationCollector collector = new NavigationCollectorMock();
@@ -73,7 +93,7 @@ class AngularNavigationContributorTest extends AbstractAngularTaskTest {
   }
 
   // ignore: non_constant_identifier_names
-  void test_dart_templates() {
+  Future test_dart_templates() async {
     addAngularSources();
     code = r'''
 import '/angular2/src/core/metadata.dart';
@@ -100,11 +120,11 @@ class User {
 }
 ''';
     final source = newSource('/test.dart', code);
-    //LibrarySpecificUnit target = new LibrarySpecificUnit(source, source);
-    //computeResult(target, DART_TEMPLATES);
     // compute navigation regions
-    new AngularNavigationContributor()
-        .computeNavigation(collector, context, source, null, null);
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        collector, null, null, null, new LineInfo.fromContent(code), result,
+        templatesOnly: false);
     // input references setter
     {
       _findRegionString('text', ': my-text');
@@ -157,7 +177,7 @@ class User {
   }
 
   // ignore: non_constant_identifier_names
-  void test_dart_view_templateUrl() {
+  Future test_dart_view_templateUrl() async {
     addAngularSources();
     code = r'''
 import '/angular2/src/core/metadata.dart';
@@ -168,17 +188,10 @@ class TextPanel {}
 ''';
     final dartSource = newSource('/test.dart', code);
     newSource('/text_panel.html', "");
-    // compute views, so that we have the TEMPLATE_VIEWS result
-    //{
-    //  LibrarySpecificUnit target =
-    //      new LibrarySpecificUnit(dartSource, dartSource);
-    //  computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
-    //}
-    //// compute Angular templates
-    //computeResult(htmlSource, HTML_TEMPLATES);
-    // compute navigation regions
-    new AngularNavigationContributor()
-        .computeNavigation(collector, context, dartSource, null, null);
+    final result = await resolveDart(dartSource);
+    new AngularNavigation().computeNavigation(
+        collector, null, null, null, new LineInfo.fromContent(code), result,
+        templatesOnly: false);
     // input references setter
     {
       _findRegionString("'text_panel.html'", ')');
@@ -189,7 +202,7 @@ class TextPanel {}
   }
 
   // ignore: non_constant_identifier_names
-  void test_html_templates() {
+  Future test_html_templates() async {
     addAngularSources();
     final dartCode = r'''
 import '/angular2/src/core/metadata.dart';
@@ -205,19 +218,12 @@ class TextPanel {
   {{text}}
 </div>
 """;
-    newSource('/test.dart', dartCode);
-    final htmlSource = newSource('/text_panel.html', htmlCode);
-    // compute views, so that we have the TEMPLATE_VIEWS result
-    //{
-    //  LibrarySpecificUnit target =
-    //      new LibrarySpecificUnit(dartSource, dartSource);
-    //  computeResult(target, VIEWS_WITH_HTML_TEMPLATES2);
-    //}
-    //// compute Angular templates
-    //computeResult(htmlSource, HTML_TEMPLATES);
-    // compute navigation regions
-    new AngularNavigationContributor()
-        .computeNavigation(collector, context, htmlSource, null, null);
+    final dartSource = newSource('/test.dart', dartCode);
+    newSource('/text_panel.html', htmlCode);
+    final result = await resolveLinkedHtml(dartSource);
+    new AngularNavigation().computeNavigation(
+        collector, null, null, null, new LineInfo.fromContent(htmlCode), result,
+        templatesOnly: false);
     // template references field
     {
       _findRegionString('text', "}}", codeOverride: htmlCode);
