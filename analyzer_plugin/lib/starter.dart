@@ -96,40 +96,40 @@ class Starter {
     CompletionPerformance performance,
     String completionId,
   ) async {
-//    final filePath = (request.toJson()['params'] as Map)['file'];
-//    final source =
-//        new FileSource(server.resourceProvider.getFile(filePath), filePath);
-//
-//    if (server.contextManager.isInAnalysisRoot(filePath)) {
-//      for (final driverPath in angularDrivers.keys) {
-//        if (server.contextManager.getContextFolderFor(filePath).path ==
-//            driverPath) {
-//          final driver = angularDrivers[driverPath];
-//
-//          final completionContributor =
-//              new AngularCompletionContributor(driver);
-//          final completionRequest = new CompletionRequestImpl(
-//              null, // AnalysisResult - unneeded for AngularCompletion
-//              server.resourceProvider,
-//              source,
-//              params.offset,
-//              performance,
-//              server.ideOptions);
-//          completionHandler.setNewRequest(completionRequest);
-//          server.sendResponse(new CompletionGetSuggestionsResult(completionId)
-//              .toResponse(request.id));
-//          final suggestions =
-//              await completionContributor.computeSuggestions(completionRequest);
-//          completionHandler
-//            ..sendCompletionNotification(
-//                completionId,
-//                completionRequest.replacementOffset,
-//                completionRequest.replacementLength,
-//                suggestions)
-//            ..ifMatchesRequestClear(completionRequest);
-//        }
-//      }
-//    }
+    final filePath = (request.toJson()['params'] as Map)['file'];
+    final source =
+        new FileSource(server.resourceProvider.getFile(filePath), filePath);
+
+    if (server.contextManager.isInAnalysisRoot(filePath)) {
+      for (final driverPath in angularDrivers.keys) {
+        if (server.contextManager.getContextFolderFor(filePath).path ==
+            driverPath) {
+          final driver = angularDrivers[driverPath];
+
+          final completionContributor =
+              new AngularCompletionContributor(driver);
+          final completionRequest = new CompletionRequestImpl(
+              null, // AnalysisResult - unneeded for AngularCompletion
+              server.resourceProvider,
+              source,
+              params.offset,
+              performance,
+              server.ideOptions);
+          completionHandler.setNewRequest(completionRequest);
+          server.sendResponse(new CompletionGetSuggestionsResult(completionId)
+              .toResponse(request.id));
+          final suggestions =
+              await completionContributor.computeSuggestions(completionRequest);
+          completionHandler
+            ..sendCompletionNotification(
+                completionId,
+                completionRequest.replacementOffset,
+                completionRequest.replacementLength,
+                suggestions)
+            ..ifMatchesRequestClear(completionRequest);
+        }
+      }
+    }
   }
 }
 
