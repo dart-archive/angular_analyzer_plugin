@@ -86,8 +86,8 @@ class AngularAnalysisPlugin extends ServerPlugin {
       // get a non-cached result, so we have an AST.
       // TODO(mfairhurst) make this assurance in a less hacky way
       templatesOnly
-          ? driver.resolveDart(filename, withDirectives: true)
-          : driver.resolveHtml(filename, ignoreCache: true);
+          ? driver.resolveHtml(filename, ignoreCache: true)
+          : driver.resolveDart(filename, withDirectives: true);
       return;
     }
 
@@ -118,8 +118,9 @@ class AngularAnalysisPlugin extends ServerPlugin {
 
     final templatesOnly = filename.endsWith('.html');
     final result = templatesOnly
-        ? await driver.resolveDart(filename, withDirectives: true)
-        : await driver.resolveHtml(filename, ignoreCache: true);
+        ? await driver.resolveHtml(filename, ignoreCache: true)
+        : await driver.resolveDart(filename,
+            withDirectives: true, onlyIfChangedSignature: false);
 
     final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
 
