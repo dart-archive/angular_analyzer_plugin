@@ -144,9 +144,9 @@ class AngularAnalysisPlugin extends ServerPlugin {
       performance,
       null, //ideOptions; not used.
     );
-//    final DartCompletionRequestImpl dartRequest =
-//        await DartCompletionRequestImpl.from(request);
-    final suggestions = await contributor.computeSuggestions(request);
+    final DartCompletionRequestImpl dartRequest =
+        await DartCompletionRequestImpl.from(request);
+    final suggestions = await contributor.computeSuggestions(dartRequest);
     return new plugin.CompletionGetSuggestionsResult(
         request.replacementOffset, request.replacementLength, suggestions);
   }

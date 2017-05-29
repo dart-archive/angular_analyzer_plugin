@@ -368,9 +368,7 @@ class TemplateCompleter {
         suggestBananas(
           target.boundDirectives,
           suggestions,
-          standardHtmlAttributes,
           target.boundStandardInputs,
-          standardHtmlEvents,
           target.boundStandardOutputs,
         );
         if (!target.isOrHasTemplateAttribute) {
@@ -415,9 +413,7 @@ class TemplateCompleter {
         suggestBananas(
           target.parent.boundDirectives,
           suggestions,
-          standardHtmlAttributes,
           target.parent.boundStandardInputs,
-          standardHtmlEvents,
           target.parent.boundStandardOutputs,
           currentAttr: target,
         );
@@ -448,9 +444,7 @@ class TemplateCompleter {
       suggestBananas(
         target.parent.boundDirectives,
         suggestions,
-        standardHtmlAttributes,
         target.parent.boundStandardInputs,
-        standardHtmlEvents,
         target.parent.boundStandardOutputs,
       );
     } else if (target is TextInfo) {
@@ -638,9 +632,7 @@ class TemplateCompleter {
   void suggestBananas(
       List<DirectiveBinding> directives,
       List<CompletionSuggestion> suggestions,
-      Set<InputElement> standardHtmlAttributes,
       List<InputBinding> boundStandardAttributes,
-      List<OutputElement> standardHtmlEvents,
       List<OutputBinding> boundStandardOutputs,
       {BoundAttributeInfo currentAttr}) {
     // Handle potential two-way found in bound directives

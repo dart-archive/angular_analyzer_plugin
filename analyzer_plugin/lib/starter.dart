@@ -26,8 +26,8 @@ class Starter {
     ContextBuilder.onCreateAnalysisDriver = onCreateAnalysisDriver;
     server
       ..onResultErrorSupplementor = sumErrors
-      ..onNoAnalysisResult = sendHtmlResult;
-    //..onNoAnalysisCompletion = sendAngularCompletions;
+      ..onNoAnalysisResult = sendHtmlResult
+      ..onNoAnalysisCompletion = sendAngularCompletions;
   }
 
   void onCreateAnalysisDriver(
