@@ -267,12 +267,23 @@ class AngularCompletionContributor extends CompletionContributor {
     }
     final templateCompleter = new TemplateCompleter();
     for (final template in templates) {
-      suggestions.addAll(await templateCompleter.computeSuggestions(
-        request,
-        template,
-        events,
-        attributes,
-      ));
+      // Indicates template comes from .html file.
+      final isFromHtmlFile = template.view.templateUriSource != null;
+
+      // A single .dart file can have multiple templates; find
+      // template for where autocompletion request occurred on.
+      final isFromValidDartTemplate =
+          template.view.templateOffset <= request.offset &&
+              request.offset < template.view.end;
+
+      if (isFromHtmlFile || isFromValidDartTemplate) {
+        suggestions.addAll(await templateCompleter.computeSuggestions(
+          request,
+          template,
+          events,
+          attributes,
+        ));
+      }
     }
     return suggestions;
   }
@@ -354,6 +365,14 @@ class TemplateCompleter {
             includePlainAttributes: true);
         suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
             target.boundStandardOutputs);
+        suggestBananas(
+          target.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.boundStandardInputs,
+          standardHtmlEvents,
+          target.boundStandardOutputs,
+        );
         if (!target.isOrHasTemplateAttribute) {
           suggestStarAttrs(template, suggestions);
         }
@@ -378,16 +397,31 @@ class TemplateCompleter {
         suggestInputsInTemplate(target.parent, suggestions);
       }
     } else if (target is ExpressionBoundAttribute &&
-        target.bound == ExpressionBoundType.input &&
         offsetContained(request.offset, target.originalNameOffset,
             target.originalName.length)) {
-      suggestInputs(
+      var requestBananasWithinInput = false;
+      if (target.bound == ExpressionBoundType.input) {
+        requestBananasWithinInput = target.nameOffset == request.offset;
+        suggestInputs(
+            target.parent.boundDirectives,
+            suggestions,
+            standardHtmlAttributes,
+            target.parent.boundStandardInputs,
+            typeProvider,
+            currentAttr: target);
+      }
+      if (requestBananasWithinInput ||
+          target.bound == ExpressionBoundType.twoWay) {
+        suggestBananas(
           target.parent.boundDirectives,
           suggestions,
           standardHtmlAttributes,
           target.parent.boundStandardInputs,
-          typeProvider,
-          currentAttr: target);
+          standardHtmlEvents,
+          target.parent.boundStandardOutputs,
+          currentAttr: target,
+        );
+      }
     } else if (target is StatementsBoundAttribute) {
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs,
@@ -411,6 +445,14 @@ class TemplateCompleter {
           includePlainAttributes: true);
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs);
+      suggestBananas(
+        target.parent.boundDirectives,
+        suggestions,
+        standardHtmlAttributes,
+        target.parent.boundStandardInputs,
+        standardHtmlEvents,
+        target.parent.boundStandardOutputs,
+      );
     } else if (target is TextInfo) {
       suggestHtmlTags(template, suggestions);
       suggestTransclusions(target.parent, suggestions);
@@ -593,6 +635,65 @@ class TemplateCompleter {
     }
   }
 
+  void suggestBananas(
+      List<DirectiveBinding> directives,
+      List<CompletionSuggestion> suggestions,
+      Set<InputElement> standardHtmlAttributes,
+      List<InputBinding> boundStandardAttributes,
+      List<OutputElement> standardHtmlEvents,
+      List<OutputBinding> boundStandardOutputs,
+      {BoundAttributeInfo currentAttr}) {
+    // Handle potential two-way found in bound directives
+    for (final directive in directives) {
+      final usedInputs = new HashSet.from(directive.inputBindings
+          .where((b) => b.attribute != currentAttr)
+          .map((b) => b.boundInput)).toSet();
+      final usedOutputs = new HashSet.from(directive.outputBindings
+          .where((b) => b.attribute != currentAttr)
+          .map((b) => b.boundOutput)).toSet();
+
+      final availableInputs = new HashSet.from(directive.boundDirective.inputs)
+          .difference(usedInputs);
+      final availableOutputs =
+          new HashSet.from(directive.boundDirective.outputs)
+              .difference(usedOutputs);
+      for (final input in availableInputs) {
+        final inputName = input.name;
+        final complementName = '${input.name}Change';
+        final output = availableOutputs
+            .firstWhere((o) => o.name == complementName, orElse: () => null);
+        if (output != null) {
+          suggestions.add(_createBananaSuggestion(input, DART_RELEVANCE_DEFAULT,
+              _createBananaElement(input, protocol.ElementKind.SETTER)));
+        }
+      }
+    }
+
+    // Handle standard HTML two-ways (if any) - Potentially don't need?
+    final usedStdInputs = new HashSet.from(boundStandardAttributes
+        .where((b) => b.attribute != currentAttr)
+        .map((b) => b.boundInput)).toSet();
+    final usedStdOutputs = new HashSet.from(boundStandardOutputs
+        .where((b) => b.attribute != currentAttr)
+        .map((b) => b.boundOutput)).toSet();
+
+    final availableStdInputs =
+        new HashSet.from(standardHtmlAttributes).difference(usedStdInputs);
+    final availableStdOutputs =
+        new HashSet.from(standardHtmlEvents).difference(usedStdOutputs);
+
+    for (final input in availableStdInputs) {
+      final inputName = input.name;
+      final complementName = '${input.name}Change';
+      final output = availableStdOutputs
+          .firstWhere((o) => o.name == complementName, orElse: () => null);
+      if (output != null) {
+        suggestions.add(_createBananaSuggestion(input, DART_RELEVANCE_DEFAULT,
+            _createBananaElement(input, protocol.ElementKind.SETTER)));
+      }
+    }
+  }
+
   void suggestStarAttrs(
       Template template, List<CompletionSuggestion> suggestions) {
     template.view.directives.where((d) => d.looksLikeTemplate).forEach(
@@ -770,6 +871,24 @@ class TemplateCompleter {
     final flags = protocol.Element.makeFlags();
     return new protocol.Element(kind, name, flags,
         location: location, returnType: outputElement.eventType.toString());
+  }
+
+  CompletionSuggestion _createBananaSuggestion(InputElement inputElement,
+      int defaultRelevance, protocol.Element element) {
+    final completion = '[(${inputElement.name})]';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element, returnType: inputElement.setterType.toString());
+  }
+
+  protocol.Element _createBananaElement(
+      InputElement inputElement, protocol.ElementKind kind) {
+    final name = '[(${inputElement.name})]';
+    final location = new Location(inputElement.source.fullName,
+        inputElement.nameOffset, inputElement.nameLength, 0, 0);
+    final flags = protocol.Element.makeFlags();
+    return new protocol.Element(kind, name, flags,
+        location: location, returnType: inputElement.setterType.toString());
   }
 
   CompletionSuggestion _createStarAttrSuggestion(AttributeSelector selector,
