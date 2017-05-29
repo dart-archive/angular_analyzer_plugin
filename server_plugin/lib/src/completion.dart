@@ -644,6 +644,7 @@ class TemplateCompleter {
       List<OutputBinding> boundStandardOutputs,
       {BoundAttributeInfo currentAttr}) {
     // Handle potential two-way found in bound directives
+    // There are no standard event/attribute that fall under two-way binding.
     for (final directive in directives) {
       final usedInputs = new HashSet.from(directive.inputBindings
           .where((b) => b.attribute != currentAttr)
@@ -666,30 +667,6 @@ class TemplateCompleter {
           suggestions.add(_createBananaSuggestion(input, DART_RELEVANCE_DEFAULT,
               _createBananaElement(input, protocol.ElementKind.SETTER)));
         }
-      }
-    }
-
-    // Handle standard HTML two-ways (if any) - Potentially don't need?
-    final usedStdInputs = new HashSet.from(boundStandardAttributes
-        .where((b) => b.attribute != currentAttr)
-        .map((b) => b.boundInput)).toSet();
-    final usedStdOutputs = new HashSet.from(boundStandardOutputs
-        .where((b) => b.attribute != currentAttr)
-        .map((b) => b.boundOutput)).toSet();
-
-    final availableStdInputs =
-        new HashSet.from(standardHtmlAttributes).difference(usedStdInputs);
-    final availableStdOutputs =
-        new HashSet.from(standardHtmlEvents).difference(usedStdOutputs);
-
-    for (final input in availableStdInputs) {
-      final inputName = input.name;
-      final complementName = '${input.name}Change';
-      final output = availableStdOutputs
-          .firstWhere((o) => o.name == complementName, orElse: () => null);
-      if (output != null) {
-        suggestions.add(_createBananaSuggestion(input, DART_RELEVANCE_DEFAULT,
-            _createBananaElement(input, protocol.ElementKind.SETTER)));
       }
     }
   }

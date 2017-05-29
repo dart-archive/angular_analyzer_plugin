@@ -926,7 +926,7 @@ class MyComp {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_completeInputOutput() async {
+  Future test_completeInputOutputBanana() async {
     final dartSource = newSource(
         '/completionTest.dart',
         '''
@@ -939,6 +939,9 @@ class MyComp {
 class OtherComp {
   @Input() String name;
   @Output() EventEmitter<String> nameEvent;
+  
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
 }
     ''');
 
@@ -948,15 +951,18 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
-    assertSuggestGetter("(nameEvent)", "String");
-    assertSuggestGetter("(click)", "MouseEvent",
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestGetter('(nameEvent)', 'String');
+    assertSuggestGetter('(click)', 'MouseEvent',
         relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('[twoWay]');
+    assertSuggestGetter('(twoWayChange)', 'String');
+    assertSuggestSetter('[(twoWay)]', returnType: 'String');
   }
 
   // ignore: non_constant_identifier_names
-  Future test_completeInputOutput_at_incompleteTag_with_newTag() async {
+  Future test_completeInputOutputBanana_at_incompleteTag_with_newTag() async {
     final dartSource = newSource(
         '/completionTest.dart',
         '''
@@ -969,6 +975,9 @@ class MyComp {
 class OtherComp {
   @Input() String name;
   @Output() EventEmitter<String> nameEvent;
+  
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
 }
     ''');
 
@@ -978,11 +987,14 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
-    assertSuggestGetter("(nameEvent)", "String");
-    assertSuggestGetter("(click)", "MouseEvent",
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestGetter('(nameEvent)', 'String');
+    assertSuggestGetter('(click)', 'MouseEvent',
         relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('[twoWay]');
+    assertSuggestGetter('(twoWayChange)', 'String');
+    assertSuggestSetter('[(twoWay)]', returnType: 'String');
   }
 
   // ignore: non_constant_identifier_names
@@ -1045,7 +1057,63 @@ class OtherComp {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_completeInputOutput_at_incompleteTag_with_EOF() async {
+  Future test_completeBananaStarted_at_incompleteTag_bracketStart() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [^<div></div>');
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+
+    assertNotSuggested('(nameChange)');
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaStarted_at_incompleteTag_bananaStart() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [(^<div></div>');
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 2);
+    expect(replacementLength, 2);
+
+    assertNotSuggested('(nameChange)');
+    assertNotSuggested('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeInputOutputBanana_at_incompleteTag_with_EOF() async {
     final dartSource = newSource(
         '/completionTest.dart',
         '''
@@ -1058,6 +1126,9 @@ class MyComp {
 class OtherComp {
   @Input() String name;
   @Output() EventEmitter<String> nameEvent;
+  
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
 }
     ''');
 
@@ -1067,11 +1138,14 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertSuggestSetter("[name]");
-    assertSuggestSetter("[hidden]", relevance: DART_RELEVANCE_DEFAULT - 2);
-    assertSuggestGetter("(nameEvent)", "String");
-    assertSuggestGetter("(click)", "MouseEvent",
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[hidden]', relevance: DART_RELEVANCE_DEFAULT - 2);
+    assertSuggestGetter('(nameEvent)', 'String');
+    assertSuggestGetter('(click)', 'MouseEvent',
         relevance: DART_RELEVANCE_DEFAULT - 1);
+    assertSuggestSetter('[twoWay]');
+    assertSuggestGetter('(twoWayChange)', 'String');
+    assertSuggestSetter('[(twoWay)]', returnType: 'String');
   }
 
   // ignore: non_constant_identifier_names
@@ -1131,6 +1205,62 @@ class OtherComp {
     assertSuggestGetter("(nameEvent)", "String");
     assertSuggestGetter("(click)", "MouseEvent",
         relevance: DART_RELEVANCE_DEFAULT - 1);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaStarted1_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [^');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertNotSuggested('(nameChange)');
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaStarted2_at_incompleteTag_with_EOF() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [(^');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 2);
+    expect(replacementLength, 2);
+    assertNotSuggested('(nameChange)');
+    assertNotSuggested('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
   }
 
   // ignore: non_constant_identifier_names
@@ -1382,6 +1512,118 @@ class OtherComp {
     expect(replacementLength, 0);
     assertNotSuggested("[name]");
     assertNotSuggested("(nameEvent)");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaNotSuggestedTwice() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [(name)]="\'bob\'" ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('[name]');
+    assertNotSuggested('(nameChange)');
+    assertNotSuggested('[(name)]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaNotSuggested_after_inputUsed() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [name]="\'bob\'" ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('[name]');
+    assertSuggestGetter('(nameChange)', 'String');
+    assertNotSuggested('[(name)]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaNotSuggested_after_outputUsed() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag (nameChange)="" ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[name]');
+    assertNotSuggested('(nameChange)');
+    assertNotSuggested('[(name)]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaSuggestsItself() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [(name^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 6);
+    expect(replacementLength, 6);
+    assertNotSuggested('[name]');
+    assertNotSuggested('(nameChange)');
+    assertSuggestSetter('[(name)]', returnType: 'String');
   }
 
   // ignore: non_constant_identifier_names
@@ -1679,6 +1921,124 @@ class OtherComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeBananaNotStarted() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+    assertSuggestGetter('(nameChange)', 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaStarted1() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 1);
+    expect(replacementLength, 1);
+    assertSuggestSetter('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+    assertNotSuggested('(nameChange)');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaStarted2() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [(^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 2);
+    expect(replacementLength, 2);
+    assertNotSuggested('[name]');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+    assertNotSuggested('(nameChange)');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBananaReplacing() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [OtherComp])
+class MyComp {
+}
+@Component(template: '', selector: 'my-tag')
+class OtherComp {
+  @Input() String name;
+  @Output() EventEmitter<String> nameChange;
+  
+  @Input() String codename;
+  @Output() EventEmitter<String> codenameChange;
+}
+    ''');
+
+    addTestSource('<my-tag [(^name)]></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 2);
+    expect(replacementLength, '[(name)]'.length);
+    assertNotSuggested('[name]');
+    assertNotSuggested('(nameChange)');
+    assertNotSuggested('[codename]');
+    assertNotSuggested('(codenameChange)');
+    assertSuggestSetter('[(name)]', returnType: 'String');
+    assertSuggestSetter('[(codename)]', returnType: 'String');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_noCompleteInOutputInCloseTag() async {
     final dartSource = newSource(
         '/completionTest.dart',
@@ -1692,6 +2052,9 @@ class MyComp {
 class OtherComp {
   @Input() String name;
   @Output() EventEmitter event;
+  
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
 }
     ''');
 
@@ -1701,10 +2064,13 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertNotSuggested("[name]");
-    assertNotSuggested("[hidden]");
-    assertNotSuggested("(event)");
-    assertNotSuggested("(click)");
+    assertNotSuggested('[name]');
+    assertNotSuggested('[hidden]');
+    assertNotSuggested('(event)');
+    assertNotSuggested('(click)');
+    assertNotSuggested('[twoWay]');
+    assertNotSuggested('(twoWayChange)');
+    assertNotSuggested('[(twoWay)]');
   }
 
   // ignore: non_constant_identifier_names
@@ -1750,6 +2116,9 @@ class MyComp {
 class OtherComp {
   @Input() String name;
   @Output() EventEmitter event;
+  
+  @Input() String twoWay;
+  @Output() EventEmitter<String> twoWayChange;
 }
     ''');
 
@@ -1759,10 +2128,13 @@ class OtherComp {
     await computeSuggestions();
     expect(replacementOffset, 0);
     expect(replacementLength, '<my-tag'.length);
-    assertNotSuggested("[name]");
-    assertNotSuggested("[hidden]");
-    assertNotSuggested("(event)");
-    assertNotSuggested("(click)");
+    assertNotSuggested('[name]');
+    assertNotSuggested('[hidden]');
+    assertNotSuggested('(event)');
+    assertNotSuggested('(click)');
+    assertNotSuggested('[twoWay]');
+    assertNotSuggested('(twoWayChange)');
+    assertNotSuggested('[(twoWay)]');
   }
 
   // ignore: non_constant_identifier_names

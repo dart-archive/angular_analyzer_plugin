@@ -417,7 +417,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   CompletionSuggestion assertSuggestSetter(String name,
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
-      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION}) {
+      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
+      String returnType: 'dynamic'}) {
     final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
@@ -431,7 +432,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     //expect(element.parameters, isNull);
     // TODO (danrubel) it would be better if this was always null
     if (element.returnType != null) {
-      expect(element.returnType, 'dynamic');
+      expect(element.returnType, returnType);
     }
     assertHasNoParameterInfo(cs);
     return cs;
