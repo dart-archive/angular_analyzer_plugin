@@ -19,5 +19,5 @@ void main(List<String> args) {
   ];
   final server = starter.start(args);
 
-  new ng.Starter().start(server);
+  //new ng.Starter().start(server);
 }

@@ -360,7 +360,7 @@ class TemplateCompleter {
       } else if (!offsetContained(request.offset, target.openingNameSpan.offset,
           target.openingNameSpan.length)) {
         // If request is not in [openingNameSpan], suggest decorators.
-        suggestInputs(target.boundDirectives, suggestions,
+        suggestInputs(target.boundDirectives, target.availableDirectives, suggestions,
             standardHtmlAttributes, target.boundStandardInputs, typeProvider,
             includePlainAttributes: true);
         suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
@@ -402,6 +402,7 @@ class TemplateCompleter {
         requestBananasWithinInput = target.nameOffset == request.offset;
         suggestInputs(
             target.parent.boundDirectives,
+            target.parent.availableDirectives,
             suggestions,
             standardHtmlAttributes,
             target.parent.boundStandardInputs,
@@ -434,6 +435,7 @@ class TemplateCompleter {
             request.offset, target.nameOffset, target.name.length)) {
       suggestInputs(
           target.parent.boundDirectives,
+          target.parent.availableDirectives,
           suggestions,
           standardHtmlAttributes,
           target.parent.boundStandardInputs,
@@ -505,6 +507,7 @@ class TemplateCompleter {
 
   void suggestInputs(
     List<DirectiveBinding> directives,
+    List<AbstractDirective> availableDirectives,
     List<CompletionSuggestion> suggestions,
     Set<InputElement> standardHtmlAttributes,
     List<InputBinding> boundStandardAttributes,
@@ -535,6 +538,14 @@ class TemplateCompleter {
                     input, protocol.ElementKind.SETTER)));
           }
         }
+        suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
+            _createInputElement(input, protocol.ElementKind.SETTER)));
+      }
+    }
+
+    //Todo(Max): Polish this up - causing crashes
+    for (final directive in availableDirectives) {
+      for (final input in directive.inputs) {
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
             _createInputElement(input, protocol.ElementKind.SETTER)));
       }
