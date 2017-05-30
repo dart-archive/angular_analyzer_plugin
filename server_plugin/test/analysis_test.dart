@@ -233,6 +233,179 @@ class TextPanel {
     }
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_searchRange_perfectMatch() async {
+    addAngularSources();
+    code = r'''
+import '/angular2/src/core/metadata.dart';
+
+@Component(
+    selector: 'test-comp', template: '{{fieldOne}}{{fieldTwo}}', directives: [])
+class TestComponent {
+  String fieldOne;
+  String fieldTwo;
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        collector,
+        null,
+        code.indexOf("fieldOne}}"),
+        "fieldOne".length,
+        new LineInfo.fromContent(code),
+        result,
+        templatesOnly: false);
+    _findRegionString('fieldOne', '}}');
+    expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+    expect(targetLocation.file, '/test.dart');
+    expect(targetLocation.offset, code.indexOf('fieldOne;'));
+
+    expect(regions, hasLength(1));
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_searchRange_narrowMiss() async {
+    addAngularSources();
+    code = r'''
+import '/angular2/src/core/metadata.dart';
+
+@Component(
+    selector: 'test-comp', template: '{{fieldOne}}{{fieldTwo}}', directives: [])
+class TestComponent {
+  String fieldOne;
+  String fieldTwo;
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        collector,
+        null,
+        code.indexOf("}}{{"),
+        "}}{{".length,
+        new LineInfo.fromContent(code),
+        result,
+        templatesOnly: false);
+    expect(regions, hasLength(0));
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_searchRange_overlapLeftAndRight() async {
+    addAngularSources();
+    code = r'''
+import '/angular2/src/core/metadata.dart';
+
+@Component(
+    selector: 'test-comp', template: '{{fieldOne}}{{fieldTwo}}', directives: [])
+class TestComponent {
+  String fieldOne;
+  String fieldTwo;
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        collector,
+        null,
+        code.indexOf("e}}{{f"),
+        "e}}{{f".length,
+        new LineInfo.fromContent(code),
+        result,
+        templatesOnly: false);
+    {
+      _findRegionString('fieldOne', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldOne;'));
+    }
+    {
+      _findRegionString('fieldTwo', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldTwo;'));
+    }
+
+    expect(regions, hasLength(2));
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_searchRange_fitPerfectlyLeftAndRight() async {
+    addAngularSources();
+    code = r'''
+import '/angular2/src/core/metadata.dart';
+
+@Component(
+    selector: 'test-comp', template: '{{fieldOne}}{{fieldTwo}}', directives: [])
+class TestComponent {
+  String fieldOne;
+  String fieldTwo;
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        collector,
+        null,
+        code.indexOf("fieldOne}}{{fieldTwo"),
+        "fieldOne}}{{fieldTwo".length,
+        new LineInfo.fromContent(code),
+        result,
+        templatesOnly: false);
+    {
+      _findRegionString('fieldOne', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldOne;'));
+    }
+    {
+      _findRegionString('fieldTwo', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldTwo;'));
+    }
+
+    expect(regions, hasLength(2));
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_searchRange_overlapsEntirely() async {
+    addAngularSources();
+    code = r'''
+import '/angular2/src/core/metadata.dart';
+
+@Component(
+    selector: 'test-comp', template: 'blah {{fieldOne}} blah', directives: [])
+class TestComponent {
+  String fieldOne;
+  String fieldTwo;
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        collector,
+        null,
+        code.indexOf(" {{"),
+        " {{fieldOne}} ".length,
+        new LineInfo.fromContent(code),
+        result,
+        templatesOnly: false);
+    {
+      _findRegionString('fieldOne', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldOne;'));
+    }
+
+    expect(regions, hasLength(1));
+  }
+
   void _findRegion(int offset, int length) {
     for (final region in regions) {
       if (region.offset == offset && region.length == length) {

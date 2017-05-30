@@ -15,59 +15,64 @@ class AngularNavigation {
   void computeNavigation(NavigationCollector collector, Source source,
       int offset, int length, LineInfo lineInfo, DirectivesResult result,
       {@required bool templatesOnly}) {
-    // in Dart
-    {
-      // directives
-      final directives = result.directives;
-      final views = directives
-          .map((d) => d is Component ? d.view : null)
-          .where((v) => v != null);
+    final span = offset != null && length != null
+        ? new SourceRange(offset, length)
+        : null;
+    final directives = result.directives;
+    final views = directives
+        .map((d) => d is Component ? d.view : null)
+        .where((v) => v != null);
 
-      if (!templatesOnly) {
-        for (final directive in directives) {
-          _addDirectiveRegions(collector, lineInfo, directive);
-        }
-        for (final view in views) {
-          _addViewRegions(collector, lineInfo, view);
-        }
+    if (!templatesOnly) {
+      // special dart navigable regions
+      for (final directive in directives) {
+        _addDirectiveRegions(collector, lineInfo, directive, span);
       }
+      for (final view in views) {
+        _addViewRegions(collector, lineInfo, view, span);
+      }
+    }
 
-      final resolvedTemplates = result.fullyResolvedDirectives
-          .map((d) => d is Component ? d.view?.template : null)
-          .where((v) => v != null);
-      for (final template in resolvedTemplates) {
-        _addTemplateRegions(collector, lineInfo, template);
-      }
+    final resolvedTemplates = result.fullyResolvedDirectives
+        .map((d) => d is Component ? d.view?.template : null)
+        .where((v) => v != null);
+    for (final template in resolvedTemplates) {
+      _addTemplateRegions(collector, lineInfo, template, span);
     }
   }
 
   void _addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
-      AbstractDirective directive) {
+      AbstractDirective directive, SourceRange targetRange) {
     for (final input in directive.inputs) {
+      if (!rangesOverlap(input.setterRange, targetRange)) {
+        continue;
+      }
       final setter = input.setter;
       if (setter == null) {
         continue;
       }
       // TODO(mfairhurst) proper ranges for setters defined in other files
       final offsetLineLocation = lineInfo.getLocation(setter.nameOffset);
-      if (setter != null) {
-        collector.addRegion(
-            input.setterRange.offset,
-            input.setterRange.length,
-            protocol.convertElementKind(setter.kind),
-            new protocol.Location(
-                setter.source.fullName,
-                setter.nameOffset,
-                setter.nameLength,
-                offsetLineLocation.lineNumber,
-                offsetLineLocation.columnNumber));
-      }
+      collector.addRegion(
+          input.setterRange.offset,
+          input.setterRange.length,
+          protocol.convertElementKind(setter.kind),
+          new protocol.Location(
+              setter.source.fullName,
+              setter.nameOffset,
+              setter.nameLength,
+              offsetLineLocation.lineNumber,
+              offsetLineLocation.columnNumber));
     }
   }
 
-  void _addTemplateRegions(
-      NavigationCollector collector, LineInfo lineInfo, Template template) {
+  void _addTemplateRegions(NavigationCollector collector, LineInfo lineInfo,
+      Template template, SourceRange targetRange) {
     for (final resolvedRange in template.ranges) {
+      if (!rangesOverlap(resolvedRange.range, targetRange)) {
+        continue;
+      }
+
       final offset = resolvedRange.range.offset;
       final element = resolvedRange.element;
       final compilationElement = element.compilationElement;
@@ -87,9 +92,10 @@ class AngularNavigation {
     }
   }
 
-  void _addViewRegions(
-      NavigationCollector collector, LineInfo lineInfo, View view) {
-    if (view.templateUriSource != null) {
+  void _addViewRegions(NavigationCollector collector, LineInfo lineInfo,
+      View view, SourceRange targetRange) {
+    if (view.templateUriSource != null &&
+        rangesOverlap(view.templateUrlRange, targetRange)) {
       collector.addRegion(
           view.templateUrlRange.offset,
           view.templateUrlRange.length,
@@ -97,6 +103,10 @@ class AngularNavigation {
           new protocol.Location(view.templateUriSource.fullName, 0, 0, 1, 1));
     }
   }
+
+  bool rangesOverlap(SourceRange a, SourceRange b) =>
+      // <a><b></b></a> or <a><b></a></b>, but not <a></a><b></b>.
+      a == null || b == null || a.contains(b.offset) || b.contains(a.offset);
 }
 
 class AngularOccurrencesContributor implements OccurrencesContributor {
