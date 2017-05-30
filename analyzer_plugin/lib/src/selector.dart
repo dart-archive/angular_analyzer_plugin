@@ -38,6 +38,16 @@ class AndSelector extends Selector {
   }
 
   @override
+  bool availableTo(ElementView element) {
+    for (final selector in selectors) {
+      if (!selector.availableTo(element)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
   String toString() => selectors.join(' && ');
 
   @override
@@ -110,6 +120,9 @@ class AttributeSelector extends Selector {
   }
 
   @override
+  bool availableTo(ElementView element) => true;
+
+  @override
   String toString() {
     final name = nameElement.name;
     if (value != null) {
@@ -151,6 +164,9 @@ class AttributeValueRegexSelector extends Selector {
 
     return SelectorMatch.NoMatch;
   }
+
+  @override
+  bool availableTo(ElementView element) => true;
 
   @override
   String toString() => '[*=$regexpStr]';
@@ -201,6 +217,19 @@ class ClassSelector extends Selector {
   }
 
   @override
+  bool availableTo(ElementView element) {
+    final name = nameElement.name;
+    final val = element.attributes['class'];
+    if (val == null) {
+      return false;
+    }
+    if (!val.split(' ').contains(name)) {
+      return false;
+    }
+    return true;
+  }
+
+  @override
   String toString() => '.${nameElement.name}';
 
   @override
@@ -243,6 +272,12 @@ class ElementNameSelector extends Selector {
       template.addRange(element.closingNameSpan, nameElement);
     }
     return SelectorMatch.TagMatch;
+  }
+
+  @override
+  bool availableTo(ElementView element) {
+    final name = nameElement.name;
+    return element.localName == name;
   }
 
   @override
@@ -295,6 +330,16 @@ class OrSelector extends Selector {
   }
 
   @override
+  bool availableTo(ElementView element) {
+    for (final selector in selectors) {
+      if (selector.availableTo(element)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @override
   String toString() => selectors.join(' || ');
 
   @override
@@ -327,6 +372,9 @@ class NotSelector extends Selector {
       condition.match(element, template) == SelectorMatch.NoMatch
           ? SelectorMatch.NonTagMatch
           : SelectorMatch.NoMatch;
+
+  @override
+  bool availableTo(ElementView element) => !condition.availableTo(element);
 
   @override
   String toString() => ":not($condition)";
@@ -363,6 +411,9 @@ class ContainsSelector extends Selector {
       SelectorMatch.NoMatch;
 
   @override
+  bool availableTo(ElementView element) => true;
+
+  @override
   String toString() => ":contains($regex)";
 
   @override
@@ -384,6 +435,11 @@ abstract class Selector {
   /// Check whether the given [element] matches this selector.
   /// If yes, then record resolved ranges into [template].
   SelectorMatch match(ElementView element, Template template);
+
+  /// Check whether the given [element] can potentially match with
+  /// this selector. Or simply put, if there is no violation
+  /// then the given [element] is 'availableTo' this selector.
+  bool availableTo(ElementView element);
 
   /// See [HtmlTagForSelector] for info on what this does.
   List<HtmlTagForSelector> refineTagSuggestions(

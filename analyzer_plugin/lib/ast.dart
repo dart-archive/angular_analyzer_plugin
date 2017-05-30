@@ -369,6 +369,7 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   final boundStandardOutputs = <OutputBinding>[];
   @override
   final boundStandardInputs = <InputBinding>[];
+  final availableDirectives = <AbstractDirective>[];
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();

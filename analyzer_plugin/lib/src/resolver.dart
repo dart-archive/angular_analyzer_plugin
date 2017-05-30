@@ -803,6 +803,14 @@ class DirectiveResolver extends AngularAstVisitor {
       }
     }
 
+    for (final directive in allDirectives) {
+      if (directive is! Component &&
+          !element.boundDirectives.contains(directive) &&
+          directive.selector.availableTo(elementView)) {
+        element.availableDirectives.add(directive);
+      }
+    }
+
     if (!element.isTemplate) {
       _checkNoStructuralDirectives(element.attributes);
     }
