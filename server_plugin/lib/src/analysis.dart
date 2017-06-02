@@ -41,8 +41,11 @@ class AngularNavigation {
     }
   }
 
-  void _addDirectiveRegions(NavigationCollector collector, LineInfo lineInfo,
-      AbstractDirective directive, SourceRange targetRange) {
+  void _addDirectiveRegions(
+      NavigationCollector collector,
+      LineInfo fileLineInfo,
+      AbstractDirective directive,
+      SourceRange targetRange) {
     for (final input in directive.inputs) {
       if (!rangesOverlap(input.setterRange, targetRange)) {
         continue;
@@ -51,7 +54,12 @@ class AngularNavigation {
       if (setter == null) {
         continue;
       }
-      // TODO(mfairhurst) proper ranges for setters defined in other files
+
+      final compilationElement =
+          setter.getAncestor((e) => e is engine.CompilationUnitElement);
+      final lineInfo =
+          (compilationElement as engine.CompilationUnitElement).lineInfo;
+
       final offsetLineLocation = lineInfo.getLocation(setter.nameOffset);
       collector.addRegion(
           input.setterRange.offset,
@@ -66,7 +74,7 @@ class AngularNavigation {
     }
   }
 
-  void _addTemplateRegions(NavigationCollector collector, LineInfo lineInfo,
+  void _addTemplateRegions(NavigationCollector collector, LineInfo fileLineInfo,
       Template template, SourceRange targetRange) {
     for (final resolvedRange in template.ranges) {
       if (!rangesOverlap(resolvedRange.range, targetRange)) {
@@ -75,10 +83,15 @@ class AngularNavigation {
 
       final offset = resolvedRange.range.offset;
       final element = resolvedRange.element;
-      final compilationElement = element.compilationElement;
-      // TODO(mfairhurst) proper ranges for template to template references
-      final offsetLineLocation = (compilationElement?.lineInfo ?? lineInfo)
-          .getLocation(element.nameOffset);
+
+      final lineInfo = element.compilationElement?.lineInfo ??
+          new LineInfo.fromContent(element.source.contents.data);
+
+      if (lineInfo == null) {
+        continue;
+      }
+
+      final offsetLineLocation = lineInfo.getLocation(element.nameOffset);
       collector.addRegion(
           offset,
           resolvedRange.range.length,
