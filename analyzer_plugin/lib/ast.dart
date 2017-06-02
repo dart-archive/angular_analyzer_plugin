@@ -104,7 +104,7 @@ class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   @override
   final boundStandardInputs = <InputBinding>[];
   @override
-  final availableDirectives = <AbstractDirective>[];
+  final availableDirectives = new Set<AbstractDirective>();
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();
@@ -233,7 +233,7 @@ abstract class NodeInfo extends AngularAstNode {
 /// contain more info than just the bound directive.
 abstract class HasDirectives {
   List<DirectiveBinding> get boundDirectives;
-  List<AbstractDirective> get availableDirectives;
+  Set<AbstractDirective> get availableDirectives;
   List<OutputBinding> get boundStandardOutputs;
   List<InputBinding> get boundStandardInputs;
 }
@@ -373,7 +373,7 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   @override
   final boundStandardInputs = <InputBinding>[];
   @override
-  final availableDirectives = <AbstractDirective>[];
+  final availableDirectives = new Set<AbstractDirective>();
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();

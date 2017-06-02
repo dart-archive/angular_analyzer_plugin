@@ -10,7 +10,7 @@ import 'package:meta/meta.dart';
 enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
 
 /// The [Selector] that matches all of the given [selectors].
-class AndSelector extends Selector {
+class AndSelector extends Selector implements CompoundSelector {
   final List<Selector> selectors;
 
   AndSelector(this.selectors);
@@ -45,6 +45,20 @@ class AndSelector extends Selector {
       }
     }
     return true;
+  }
+
+  @override
+  List<AttributeSelector> get getAttributeSelectors {
+    final attributeSelectors = <AttributeSelector>[];
+    for (final selector in selectors) {
+      if (selector is AttributeSelector) {
+        attributeSelectors.add(selector);
+      } else if (selector is CompoundSelector) {
+        attributeSelectors
+            .addAll((selector as CompoundSelector).getAttributeSelectors);
+      }
+    }
+    return attributeSelectors;
   }
 
   @override
@@ -119,6 +133,7 @@ class AttributeSelector extends Selector {
     return SelectorMatch.NonTagMatch;
   }
 
+  // Want to always return true since this doesn't narrow scope.
   @override
   bool availableTo(ElementView element) => true;
 
@@ -166,7 +181,8 @@ class AttributeValueRegexSelector extends Selector {
   }
 
   @override
-  bool availableTo(ElementView element) => true;
+  bool availableTo(ElementView element) =>
+      match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
   String toString() => '[*=$regexpStr]';
@@ -212,22 +228,14 @@ class ClassSelector extends Selector {
     // add resolved range
     final valueOffset = element.attributeValueSpans['class'].offset;
     final offset = valueOffset + index;
-    template.addRange(new SourceRange(offset, name.length), nameElement);
+    template?.addRange(new SourceRange(offset, name.length), nameElement);
     return SelectorMatch.NonTagMatch;
   }
 
+  // Returns true if the element has a 'class' attribute.
   @override
-  bool availableTo(ElementView element) {
-    final name = nameElement.name;
-    final val = element.attributes['class'];
-    if (val == null) {
-      return false;
-    }
-    if (!val.split(' ').contains(name)) {
-      return false;
-    }
-    return true;
-  }
+  bool availableTo(ElementView element) =>
+      match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
   String toString() => '.${nameElement.name}';
@@ -275,10 +283,8 @@ class ElementNameSelector extends Selector {
   }
 
   @override
-  bool availableTo(ElementView element) {
-    final name = nameElement.name;
-    return element.localName == name;
-  }
+  bool availableTo(ElementView element) =>
+      nameElement.name == element.localName;
 
   @override
   String toString() => nameElement.name;
@@ -310,7 +316,7 @@ abstract class ElementView {
 }
 
 /// The [Selector] that matches one of the given [selectors].
-class OrSelector extends Selector {
+class OrSelector extends Selector implements CompoundSelector {
   final List<Selector> selectors;
 
   OrSelector(this.selectors);
@@ -337,6 +343,20 @@ class OrSelector extends Selector {
       }
     }
     return false;
+  }
+
+  @override
+  List<AttributeSelector> get getAttributeSelectors {
+    final attributeSelectors = <AttributeSelector>[];
+    for (final selector in selectors) {
+      if (selector is AttributeSelector) {
+        attributeSelectors.add(selector);
+      } else if (selector is CompoundSelector) {
+        attributeSelectors
+            .addAll((selector as CompoundSelector).getAttributeSelectors);
+      }
+    }
+    return attributeSelectors;
   }
 
   @override
@@ -374,7 +394,14 @@ class NotSelector extends Selector {
           : SelectorMatch.NoMatch;
 
   @override
-  bool availableTo(ElementView element) => !condition.availableTo(element);
+  bool availableTo(ElementView element) {
+    if (condition is AttributeSelector) {
+      // Need separate logic since AttributeSelector.availableTo
+      // always returns true.
+      return condition.match(element, null) == SelectorMatch.NoMatch;
+    }
+    return !condition.availableTo(element);
+  }
 
   @override
   String toString() => ":not($condition)";
@@ -438,7 +465,8 @@ abstract class Selector {
 
   /// Check whether the given [element] can potentially match with
   /// this selector. Or simply put, if there is no violation
-  /// then the given [element] is 'availableTo' this selector.
+  /// then the given [element] is 'availableTo' this selector without
+  /// contradiction.
   bool availableTo(ElementView element);
 
   /// See [HtmlTagForSelector] for info on what this does.
@@ -455,6 +483,10 @@ abstract class Selector {
   }
 
   void recordElementNameSelectors(List<ElementNameSelector> recordingList);
+}
+
+abstract class CompoundSelector {
+  List<AttributeSelector> get getAttributeSelectors;
 }
 
 enum _SelectorRegexMatch {
