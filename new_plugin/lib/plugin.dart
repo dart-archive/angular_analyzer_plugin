@@ -95,7 +95,7 @@ class AngularAnalysisPlugin extends ServerPlugin {
 
     new AngularNavigation()
       ..computeNavigation(
-          collector, driver.getSource(filename), 0, 0, lineInfo, result,
+          collector, driver.getSource(filename), null, null, lineInfo, result,
           templatesOnly: templatesOnly);
     collector.createRegions();
     channel.sendNotification(new plugin.AnalysisNavigationParams(
