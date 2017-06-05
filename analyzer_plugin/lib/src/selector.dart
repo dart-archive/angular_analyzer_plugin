@@ -232,7 +232,7 @@ class ClassSelector extends Selector {
     return SelectorMatch.NonTagMatch;
   }
 
-  // Returns true if the element has a 'class' attribute.
+  // Returns true if the element matches the '.<className>'.
   @override
   bool availableTo(ElementView element) =>
       match(element, null) == SelectorMatch.NonTagMatch;
