@@ -141,6 +141,7 @@ class AttributeSelectorTest extends _SelectorTest {
         new AttributeSelector(nameElement, null, isWildcard: false);
     when(element.attributes).thenReturn({'not-kind': 'no-matter'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -151,6 +152,7 @@ class AttributeSelectorTest extends _SelectorTest {
     when(element.attributeNameSpans)
         .thenReturn({'kind': _newStringSpan(100, "kind")});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    expect(selector.availableTo(element), equals(false));
   }
 
   // ignore: non_constant_identifier_names
@@ -163,6 +165,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -176,6 +179,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -188,6 +192,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -201,6 +206,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -211,6 +217,7 @@ class AttributeSelectorTest extends _SelectorTest {
         .thenReturn({'indatrue': _newStringSpan(100, "indatrue")});
     // verify
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -218,14 +225,6 @@ class AttributeSelectorTest extends _SelectorTest {
     final selector =
         new AttributeSelector(nameElement, 'daffy', isWildcard: false);
     expect(selector.toString(), '[kind=daffy]');
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_availableTo() {
-    final selector =
-        new AttributeSelector(nameElement, null, isWildcard: false);
-    // Should always return true for simple attribute selector
-    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
@@ -251,14 +250,14 @@ class ClassSelectorTest extends _SelectorTest {
   void test_match_false_noClass() {
     when(element.attributes).thenReturn({'not-class': 'no-matter'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    expect(selector.availableTo(element), equals(false));
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names
   void test_match_false_noSuchClass() {
     when(element.attributes).thenReturn({'class': 'not-nice'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    expect(selector.availableTo(element), equals(false));
+    expect(selector.availableTo(element), equals(true));
   }
 
   // ignore: non_constant_identifier_names

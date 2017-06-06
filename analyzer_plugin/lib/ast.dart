@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:meta/meta.dart';
 
@@ -104,7 +105,7 @@ class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   @override
   final boundStandardInputs = <InputBinding>[];
   @override
-  final availableDirectives = new Set<AbstractDirective>();
+  final availableDirectives = <AbstractDirective, List<AttributeSelector>>{};
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();
@@ -233,7 +234,7 @@ abstract class NodeInfo extends AngularAstNode {
 /// contain more info than just the bound directive.
 abstract class HasDirectives {
   List<DirectiveBinding> get boundDirectives;
-  Set<AbstractDirective> get availableDirectives;
+  Map<AbstractDirective, List<AttributeSelector>> get availableDirectives;
   List<OutputBinding> get boundStandardOutputs;
   List<InputBinding> get boundStandardInputs;
 }
@@ -373,7 +374,7 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   @override
   final boundStandardInputs = <InputBinding>[];
   @override
-  final availableDirectives = new Set<AbstractDirective>();
+  final availableDirectives = <AbstractDirective, List<AttributeSelector>>{};
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();

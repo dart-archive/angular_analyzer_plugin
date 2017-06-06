@@ -381,7 +381,6 @@ class TemplateCompleter {
           suggestions,
           suggestPlainAttributes: true,
           suggestInputs: true,
-          suggestOutputs: true,
           suggestBananas: true,
         );
         if (!target.isOrHasTemplateAttribute) {
@@ -442,11 +441,6 @@ class TemplateCompleter {
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs,
           currentAttr: target);
-      suggestFromAvailableDirectives(
-        target.parent.availableDirectives,
-        suggestions,
-        suggestOutputs: true,
-      );
     } else if (target is TemplateAttribute) {
       if (offsetContained(request.offset, target.originalNameOffset,
           target.originalName.length)) {
@@ -477,7 +471,6 @@ class TemplateCompleter {
         suggestions,
         suggestPlainAttributes: true,
         suggestInputs: true,
-        suggestOutputs: true,
         suggestBananas: true,
       );
     } else if (target is TextInfo) {
@@ -741,24 +734,18 @@ class TemplateCompleter {
   /// and extracts non-violating plain-text attribute-directives
   /// and inputs (if name overlaps with attribute-directive).
   void suggestFromAvailableDirectives(
-    Set<AbstractDirective> availableDirectives,
+    Map<AbstractDirective, List<AttributeSelector>> availableDirectives,
     List<CompletionSuggestion> suggestions, {
     bool suggestInputs: false,
-    bool suggestOutputs: false,
     bool suggestBananas: false,
     bool suggestPlainAttributes: false,
   }) {
-    for (final directive in availableDirectives) {
-      final selector = directive.selector;
+    availableDirectives.forEach((directive, selectors) {
       final attributeSelectors = <String, AttributeSelector>{};
       final validInputs = <InputElement>[];
 
-      if (selector is AttributeSelector) {
-        attributeSelectors[selector.nameElement.name] = selector;
-      } else if (selector is CompoundSelector) {
-        for (final s in (selector as CompoundSelector).getAttributeSelectors) {
-          attributeSelectors[s.nameElement.name] = s;
-        }
+      for (final aSelector in selectors) {
+        attributeSelectors[aSelector.nameElement.name] = aSelector;
       }
 
       for (final input in directive.inputs) {
@@ -773,19 +760,9 @@ class TemplateCompleter {
         final output = directive.outputs.firstWhere(
             (output) => output.name == outputComplement,
             orElse: () => null);
-        if (output != null) {
-          if (suggestBananas) {
-            suggestions.add(_createBananaSuggestion(
-                input,
-                DART_RELEVANCE_DEFAULT,
-                _createBananaElement(input, protocol.ElementKind.SETTER)));
-          }
-          if (suggestOutputs) {
-            suggestions.add(_createOutputSuggestion(
-                output,
-                DART_RELEVANCE_DEFAULT,
-                _createOutputElement(output, protocol.ElementKind.GETTER)));
-          }
+        if (output != null && suggestBananas) {
+          suggestions.add(_createBananaSuggestion(input, DART_RELEVANCE_DEFAULT,
+              _createBananaElement(input, protocol.ElementKind.SETTER)));
         }
         if (suggestInputs) {
           suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
@@ -804,7 +781,7 @@ class TemplateCompleter {
                   protocol.ElementKind.SETTER)));
         });
       }
-    }
+    });
   }
 
   void addLocalVariables(List<CompletionSuggestion> suggestions,

@@ -810,7 +810,8 @@ class DirectiveResolver extends AngularAstVisitor {
       if (directive is Directive &&
           directive.selector.availableTo(elementView) &&
           !directive.looksLikeTemplate) {
-        element.availableDirectives.add(directive);
+        element.availableDirectives[directive] =
+            directive.selector.getAttributeSelectors(elementView);
       }
     }
 

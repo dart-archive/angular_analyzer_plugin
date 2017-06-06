@@ -10,7 +10,7 @@ import 'package:meta/meta.dart';
 enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
 
 /// The [Selector] that matches all of the given [selectors].
-class AndSelector extends Selector implements CompoundSelector {
+class AndSelector extends Selector {
   final List<Selector> selectors;
 
   AndSelector(this.selectors);
@@ -38,28 +38,14 @@ class AndSelector extends Selector implements CompoundSelector {
   }
 
   @override
-  bool availableTo(ElementView element) {
-    for (final selector in selectors) {
-      if (!selector.availableTo(element)) {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool availableTo(ElementView element) =>
+      selectors.every((selector) => selector.availableTo(element));
 
   @override
-  List<AttributeSelector> get getAttributeSelectors {
-    final attributeSelectors = <AttributeSelector>[];
-    for (final selector in selectors) {
-      if (selector is AttributeSelector) {
-        attributeSelectors.add(selector);
-      } else if (selector is CompoundSelector) {
-        attributeSelectors
-            .addAll((selector as CompoundSelector).getAttributeSelectors);
-      }
-    }
-    return attributeSelectors;
-  }
+  List<AttributeSelector> getAttributeSelectors(ElementView element) =>
+      selectors
+          .expand((selector) => selector.getAttributeSelectors(element))
+          .toList();
 
   @override
   String toString() => selectors.join(' && ');
@@ -135,7 +121,14 @@ class AttributeSelector extends Selector {
 
   // Want to always return true since this doesn't narrow scope.
   @override
-  bool availableTo(ElementView element) => true;
+  bool availableTo(ElementView element) =>
+      value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
+
+  @override
+  List<AttributeSelector> getAttributeSelectors(ElementView element) =>
+      (isWildcard || match(element, null) == SelectorMatch.NonTagMatch)
+          ? []
+          : [this];
 
   @override
   String toString() {
@@ -176,13 +169,15 @@ class AttributeValueRegexSelector extends Selector {
         return SelectorMatch.NonTagMatch;
       }
     }
-
     return SelectorMatch.NoMatch;
   }
 
   @override
   bool availableTo(ElementView element) =>
       match(element, null) == SelectorMatch.NonTagMatch;
+
+  @override
+  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
 
   @override
   String toString() => '[*=$regexpStr]';
@@ -232,10 +227,13 @@ class ClassSelector extends Selector {
     return SelectorMatch.NonTagMatch;
   }
 
-  // Returns true if the element matches the '.<className>'.
+  // Always return true - classes can always be added to satisfy without
+  // having to remove or change existing classes.
   @override
-  bool availableTo(ElementView element) =>
-      match(element, null) == SelectorMatch.NonTagMatch;
+  bool availableTo(ElementView element) => true;
+
+  @override
+  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
 
   @override
   String toString() => '.${nameElement.name}';
@@ -287,6 +285,9 @@ class ElementNameSelector extends Selector {
       nameElement.name == element.localName;
 
   @override
+  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
+
+  @override
   String toString() => nameElement.name;
 
   @override
@@ -316,7 +317,7 @@ abstract class ElementView {
 }
 
 /// The [Selector] that matches one of the given [selectors].
-class OrSelector extends Selector implements CompoundSelector {
+class OrSelector extends Selector {
   final List<Selector> selectors;
 
   OrSelector(this.selectors);
@@ -336,28 +337,14 @@ class OrSelector extends Selector implements CompoundSelector {
   }
 
   @override
-  bool availableTo(ElementView element) {
-    for (final selector in selectors) {
-      if (selector.availableTo(element)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  bool availableTo(ElementView element) =>
+      selectors.any((selector) => selector.availableTo(element));
 
   @override
-  List<AttributeSelector> get getAttributeSelectors {
-    final attributeSelectors = <AttributeSelector>[];
-    for (final selector in selectors) {
-      if (selector is AttributeSelector) {
-        attributeSelectors.add(selector);
-      } else if (selector is CompoundSelector) {
-        attributeSelectors
-            .addAll((selector as CompoundSelector).getAttributeSelectors);
-      }
-    }
-    return attributeSelectors;
-  }
+  List<AttributeSelector> getAttributeSelectors(ElementView element) =>
+      selectors
+          .expand((selector) => selector.getAttributeSelectors(element))
+          .toList();
 
   @override
   String toString() => selectors.join(' || ');
@@ -394,14 +381,11 @@ class NotSelector extends Selector {
           : SelectorMatch.NoMatch;
 
   @override
-  bool availableTo(ElementView element) {
-    if (condition is AttributeSelector) {
-      // Need separate logic since AttributeSelector.availableTo
-      // always returns true.
-      return condition.match(element, null) == SelectorMatch.NoMatch;
-    }
-    return !condition.availableTo(element);
-  }
+  bool availableTo(ElementView element) =>
+      condition.match(element, null) == SelectorMatch.NoMatch;
+
+  @override
+  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
 
   @override
   String toString() => ":not($condition)";
@@ -438,7 +422,10 @@ class ContainsSelector extends Selector {
       SelectorMatch.NoMatch;
 
   @override
-  bool availableTo(ElementView element) => true;
+  bool availableTo(ElementView element) => false;
+
+  @override
+  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
 
   @override
   String toString() => ":contains($regex)";
@@ -467,7 +454,14 @@ abstract class Selector {
   /// this selector. Or simply put, if there is no violation
   /// then the given [element] is 'availableTo' this selector without
   /// contradiction.
+  ///
+  /// Policy is 'availableTo' is true if selector can match
+  /// without having to change/remove existing decorator.
   bool availableTo(ElementView element);
+
+  /// Returns a list of all [AttributeSelector]s that does not
+  /// violate the current selector's rules as defined by [availableTo].
+  List<AttributeSelector> getAttributeSelectors(ElementView element);
 
   /// See [HtmlTagForSelector] for info on what this does.
   List<HtmlTagForSelector> refineTagSuggestions(
@@ -483,10 +477,6 @@ abstract class Selector {
   }
 
   void recordElementNameSelectors(List<ElementNameSelector> recordingList);
-}
-
-abstract class CompoundSelector {
-  List<AttributeSelector> get getAttributeSelectors;
 }
 
 enum _SelectorRegexMatch {
