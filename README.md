@@ -44,9 +44,13 @@ You can now use this in projects on your local system which a correctly configur
 
 ## Chart of Current Features
 
-All regular dart errors (that is to say, errors defined purely by the dart language spec) are not shown in this list.
+We plug into many editors with varying degrees of support. Anything that supports dart analysis in theory supports our plugin, but in practice that's not always the case. We do sometimes contribute back to editor plugins to make our plugin work better, so let us know what you use and what does or doesn't work.
 
-Autocomplete is available in a branch, and only in editors that support it, and maybe with bugs (many don't replace the correct content during autocomplete within html, for instance).
+Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
+--------------|------------|---------------|------------|-------------
+IntelliJ | :white_check_mark: | :white_check_mark: | :warning: some support in EAP | :no_pedestrians:
+Vim (special setup required) | :white_check_mark: | :white_check_mark: | :white_check_mark: | :no_pedestrians:
+others | :question: let us know! | :question: let us know! | :question: let us know! | :question: let us know!
 
 Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 --------------|------------|---------------|------------|-------------
@@ -54,32 +58,34 @@ Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 
 Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 ----------------|------------|---------------|------------|-------------
-`<input [value]="firstName">` | :white_check_mark: soundness of expression, type of expression, existence of `value` on element or directive | :last_quarter_moon: in some editors | :x: | :x:
-`<input bind-value="firstName">` | :white_check_mark: | :last_quarter_moon: in some editors; complete inside binding but binding not suggested | :x: | :x:
-`<div [attr.role]="myAriaRole">` | :last_quarter_moon: soundness of expression, but no other validation | :last_quarter_moon: in some editors; complete inside binding but binding not suggested | :x: | :x:
-`<div [class.extra-sparkle]="isDelightful">` | :white_check_mark: validity of clasname, soundness of expression, type of expression must be bool | :last_quarter_moon: in some editors; complete inside binding but binding not suggested | :x: | :x:
-`<div [style.width.px]="mySize">` | :waning_gibbous_moon: soundness of expression, css properties are generally checked but not against a dictionary, same for units, expression must type to `int` if units are present | :last_quarter_moon: in some editors; complete inside binding but binding not suggested | :x: | :x:
-`<button (click)="readRainbow($event)">` | :white_check_mark: in some editors; soundness of expression, type of `$event`, existence of output on component/element and DOM events which propagate can be tracked anywhere | :last_quarter_moon: in some editors | :x: | :x:
-`<button on-click="readRainbow($event)">` | :white_check_mark | :last_quarter_moon: in some editors; complete inside binding but binding not suggested | :x: | :x:
-`<div title="Hello {{ponyName}}">` | :white_check_mark: in some editors; soundness of expression, matching mustache delimiters |:last_quarter_moon: in some editors | :x: | :x:
-`<p>Hello {{ponyName}}</p>` | :white_check_mark: in some editors; soundness of expression, matching mustache delimiters |:last_quarter_moon: in some editors | :x: | :x:
-`<my-cmp></my-cmp>` | :white_check_mark: in some editors; Existence of directive |:last_quarter_moon: in some editors | :x: | :x:
-`<my-cmp [(title)]="name">` | :white_check_mark: soundness of expression, existence of `title` input and `titleChange` output on directive or component with proper type | :last_quarter_moon: in some editors; complete inside binding but binding not suggested | :x: | :x:
-`<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: in some editors; Type of new variable tracked and checked in other expressions |:last_quarter_moon: in some editors | :x: | :x:
-`<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: in some editors |:last_quarter_moon: in some editors | :x: | :x:
-`<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :last_quarter_moon: in some editors; complete inside binding but binding not suggested  | :x: | :x:
-`<p>Card No.: {{cardNumber | myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:
+`<div stringInput="string">` | :white_check_mark: typecheck is string input on component | :white_check_mark: | :x: | :x:
+`<input [value]="firstName">` | :white_check_mark: soundness of expression, type of expression, existence of `value` on element or directive | :white_check_mark: | :x: | :x:
+`<input bind-value="firstName">` | :white_check_mark: | :skull: | :x: | :x:
+`<div [attr.role]="myAriaRole">` | :last_quarter_moon: soundness of expression, but no other validation | :last_quarter_moon: complete inside binding but binding not suggested | :x: | :x:
+`<div [class.extra-sparkle]="isDelightful">` | :white_check_mark: validity of clasname, soundness of expression, type of expression must be bool | :last_quarter_moon: complete inside binding but binding not suggested | :x: | :x:
+`<div [style.width.px]="mySize">` | :waning_gibbous_moon: soundness of expression, css properties are generally checked but not against a dictionary, same for units, expression must type to `int` if units are present | :last_quarter_moon: complete inside binding but binding not suggested | :x: | :x:
+`<button (click)="readRainbow($event)">` | :white_check_mark: soundness of expression, type of `$event`, existence of output on component/element and DOM events which propagate can be tracked anywhere | :white_check_mark: | :x: | :x:
+`<button on-click="readRainbow($event)">` | :white_check_mark: | :skull: | :x: | :x:
+`<div title="Hello {{ponyName}}">` | :white_check_mark: soundness of expression, matching mustache delimiters | :white_check_mark: | :x: | :x:
+`<p>Hello {{ponyName}}</p>` | :white_check_mark: soundness of expression, matching mustache delimiters | :white_check_mark: | :x: | :x:
+`<my-cmp></my-cmp>` | :white_check_mark: existence of directive |:white_check_mark: | :x: | :x:
+`<my-cmp [(title)]="name">` | :white_check_mark: soundness of expression, existence of `title` input and `titleChange` output on directive or component with proper type | :white_check_mark: | :x: | :x:
+`<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: type of new variable tracked and checked in other expressions | :white_check_mark: | :x: | :x:
+`<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: |:white_check_mark: | :x: | :x:
+`<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :white_check_mark: | :x: | :x:
+`<p>Card No.: {{cardNumber \| myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:
+`<my-component @deferred>` | :x: | :x: | :x: | :x:
 
 Built-in directives | Validation | Auto-Complete | Navigation | Refactoring
 --------------------|------------|---------------|------------|-------------
-`<section *ngIf="showSection">` | :white_check_mark: type checking, check for the star | :last_quarter_moon: in some editors; complete inside binding but binding not suggested  | :x: | :x:
-`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star, catch accidental usage of `#item` | :last_quarter_moon: in some editors; complete after of only  | :x: | :x:
-`<div [ngClass]="{active: isActive, disabled: isDisabled}">` | :warning: Requires quotes around key value strings to work | :last_quarter_moon: in some editors;  | :x: | :x:
+`<section *ngIf="showSection">` | :white_check_mark: type checking, check for the star | :white_check_mark: | :x: | :x:
+`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star, catch accidental usage of `#item` | :white_check_mark: | :x: | :x:
+`<div [ngClass]="{active: isActive, disabled: isDisabled}">` | :warning: Requires quotes around key value strings to work | :white_check_mark: | :x: | :x:
 
 Forms | Validation | Auto-Complete | Navigation | Refactoring
 ------|------------|---------------|------------|-------------
-`<input [(ngModel)]="userName">` | :white_check_mark: | :last_quarter_moon: in some editors; completion inside binding but binding not suggested  | :x: | :x:
-`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :last_quarter_moon: in some editors; completion of variable but ngForm not suggested  | :x: | :x:
+`<input [(ngModel)]="userName">` | :white_check_mark: | :white_check_mark: | :x: | :x:
+`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :last_quarter_moon: completion of variable but ngForm not suggested | :x: | :x:
 
 Class decorators | Validation | Auto-Complete | Navigation | Refactoring
 -----------------|------------|---------------|------------|-------------
@@ -102,19 +108,20 @@ Directive configuration | Validation | Auto-Complete | Navigation | Refactoring
 Component Configuration | Validation | Auto-Complete | Navigation | Refactoring
 ------------------------|------------|---------------|------------|-------------
 `viewProviders: [MyService, provide(...)]` | :x: | :x: | :x: | :x:
-`template: 'Hello {{name}}'` | :white_check_mark: | :last_quarter_moon: in some editors | :x: | :x:
+`template: 'Hello {{name}}'` | :white_check_mark: | :white_check_mark: | :x: | :x:
 `templateUrl: 'my-component.html'` | :white_check_mark: | :x: | :x: | :x:
 `styles: ['.primary {color: red}']` | :x: | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `styleUrls: ['my-component.css']` | :x: | :x: | :x: | :x:
 `directives: [MyDirective, MyComponent]` | :white_check_mark: must be directives or lists of directives, configuration affects view errors | :x: | :x: | :x:
 `pipes: [MyPipe, OtherPipe]` | :x: | :x: | :x: | :x:
+`exports: [Class, Enum, staticFn]` | :x: | :x: | :x: | :x:
 
 Class field decorators for directives and components | Validation | Auto-Complete | Navigation | Refactoring
 -----------------------------------------------------|------------|---------------|------------|-------------
 `@Input() myProperty;` | :white_check_mark: | :no_pedestrians: | :x: | :x:
 `@Input("name") myProperty;` | :white_check_mark: | :no_pedestrians: | :x: | :x:
-`@Output() myEvent = new EventEmitter();` | :white_check_mark: Subtype of `Stream<T>` required, streamed type determines `$event` type | :no_pedestrians: | :x: | :x:
-`@Output("name") myEvent = new EventEmitter();` | :white_check_mark: | :no_pedestrians: | :x: | :x:
+`@Output() myEvent = new Stream<X>();` | :white_check_mark: Subtype of `Stream<T>` required, streamed type determines `$event` type | :no_pedestrians: | :x: | :x:
+`@Output("name") myEvent = new Stream<X>();` | :white_check_mark: | :no_pedestrians: | :x: | :x:
 `@Attribute("name") String ctorArg` | :white_check_mark: | :x: | :x: | :x:
 `@HostBinding('[class.valid]') isValid;` | :x: | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `@HostListener('click', ['$event']) onClick(e) {...}` | :x: | :x: | :x: | :x:
@@ -127,10 +134,10 @@ Transclusions| Validation | Auto-Complete | Navigation | Refactoring
 -----------------------------------------------------|------------|---------------|------------|-------------
 `<ng-content></ng-content>` | :white_check_mark: | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `<my-comp>text content</my-comp>` | :white_check_mark: | :x: | :x: | :x:
-`<ng-content select="foo"></ng-content>` | :white_check_mark: | :last_quarter_moon: in some editors | :x: | :x:
-`<my-comp><foo></foo></my-comp>` | :white_check_mark: | :last_quarter_moon: in some editors | :x: | :x:
-`<ng-content select=".foo[bar]"></ng-content>` | :white_check_mark: | :last_quarter_moon: in some editors | :x: | :x:
-`<my-comp><div class="foo" bar></div></my-comp>` | :white_check_mark: | :last_quarter_moon: in some editors | :x: | :x:
+`<ng-content select="foo"></ng-content>` | :white_check_mark: | :white_check_mark: | :x: | :x:
+`<my-comp><foo></foo></my-comp>` | :white_check_mark: | :white_check_mark: | :x: | :x:
+`<ng-content select=".foo[bar]"></ng-content>` | :white_check_mark: | :white_check_mark: | :x: | :x:
+`<my-comp><div class="foo" bar></div></my-comp>` | :white_check_mark: | :white_check_mark: | :x: | :x:
 
 Directive and component change detection and lifecycle hooks (implemented as class methods) | Validation | Auto-Complete | Navigation | Refactoring
 --------------------------------------------------------------------------------------------|------------|---------------|------------|-------------
