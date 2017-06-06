@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:quiver/core.dart';
 
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show Element, ElementKind;
@@ -8,7 +7,6 @@ import 'package:analysis_server/src/provisional/completion/completion_core.dart'
 import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
-import 'package:analysis_server/src/services/completion/dart/optype.dart';
 import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
 import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
 import 'package:analyzer/error/error.dart';
@@ -16,6 +14,7 @@ import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
+import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';

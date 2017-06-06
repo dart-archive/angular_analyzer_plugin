@@ -113,8 +113,7 @@ class Starter {
               server.resourceProvider,
               source,
               params.offset,
-              performance,
-              server.ideOptions);
+              performance);
           completionHandler.setNewRequest(completionRequest);
           server.sendResponse(new CompletionGetSuggestionsResult(completionId)
               .toResponse(request.id));

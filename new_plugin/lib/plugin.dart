@@ -136,14 +136,8 @@ class AngularAnalysisPlugin extends ServerPlugin {
     final contributor = new AngularCompletionContributor(driver);
     final performance = new CompletionPerformance();
     final fileSource = resourceProvider.getFile(filePath).createSource();
-    final request = new CompletionRequestImpl(
-      analysisResult,
-      resourceProvider,
-      fileSource,
-      parameters.offset,
-      performance,
-      null, //ideOptions; not used.
-    );
+    final request = new CompletionRequestImpl(analysisResult, resourceProvider,
+        fileSource, parameters.offset, performance);
     final suggestions = await contributor.computeSuggestions(request);
     return new plugin.CompletionGetSuggestionsResult(
         request.replacementOffset, request.replacementLength, suggestions);
