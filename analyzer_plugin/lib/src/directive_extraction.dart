@@ -238,7 +238,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     final descList = _getListLiteralNamedArgument(
         node, const <String>['inputs', 'properties']);
     if (descList == null) {
-      return InputElement.EMPTY_LIST;
+      return const <InputElement>[];
     }
     // Create an input for each element.
     final inputElements = <InputElement>[];
@@ -256,7 +256,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     final descList =
         _getListLiteralNamedArgument(node, const <String>['outputs']);
     if (descList == null) {
-      return OutputElement.EMPTY_LIST;
+      return const <OutputElement>[];
     }
     // Create an output for each element.
     final outputs = <OutputElement>[];

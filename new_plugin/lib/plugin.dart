@@ -1,10 +1,11 @@
 // Copyright (c) 2017, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-//import 'dart:async';
+import 'dart:async';
 
-//import 'package:analysis_server/src/services/completion/completion_core.dart';
-//import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
+import 'package:analysis_server/src/services/completion/completion_core.dart';
+import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
+import 'package:analysis_server/src/services/completion/completion_performance.dart';
 import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
@@ -16,7 +17,7 @@ import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
-//import 'package:angular_analyzer_server_plugin/src/completion.dart';
+import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 
 class AngularAnalysisPlugin extends ServerPlugin {
@@ -29,7 +30,7 @@ class AngularAnalysisPlugin extends ServerPlugin {
   String get name => 'Angular Analysis Plugin';
 
   @override
-  String get version => '1.0.0';
+  String get version => '1.0.0-alpha.0';
 
   @override
   String get contactInfo =>
@@ -120,25 +121,25 @@ class AngularAnalysisPlugin extends ServerPlugin {
     });
   }
 
-  //@override
-  //Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
-  //    plugin.CompletionGetSuggestionsParams parameters) async {
-  //  final filePath = parameters.file;
-  //  final contextRoot = contextRootContaining(filePath);
-  //  if (contextRoot == null) {
-  //    // Return an error from the request.
-  //    throw new plugin.RequestFailure(plugin.RequestErrorFactory
-  //        .pluginError('Failed to analyze $filePath', null));
-  //  }
-  //  final AngularDriver driver = driverMap[contextRoot];
-  //  final analysisResult = await driver.dartDriver.getResult(filePath);
-  //  final contributor = new AngularCompletionContributor(driver);
-  //  final request = new CompletionRequestImpl(
-  //      analysisResult, resourceProvider, null, parameters.offset, null, null);
-  //  final DartCompletionRequestImpl dartRequest =
-  //      await DartCompletionRequestImpl.from(request);
-  //  final suggestions = await contributor.computeSuggestions(dartRequest);
-  //  return new plugin.CompletionGetSuggestionsResult(
-  //      request.replacementOffset, request.replacementLength, suggestions);
-  //}
+  @override
+  Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
+      plugin.CompletionGetSuggestionsParams parameters) async {
+    final filePath = parameters.file;
+    final contextRoot = contextRootContaining(filePath);
+    if (contextRoot == null) {
+      // Return an error from the request.
+      throw new plugin.RequestFailure(plugin.RequestErrorFactory
+          .pluginError('Failed to analyze $filePath', null));
+    }
+    final AngularDriver driver = driverMap[contextRoot];
+    final analysisResult = await driver.dartDriver.getResult(filePath);
+    final contributor = new AngularCompletionContributor(driver);
+    final performance = new CompletionPerformance();
+    final fileSource = resourceProvider.getFile(filePath).createSource();
+    final request = new CompletionRequestImpl(analysisResult, resourceProvider,
+        fileSource, parameters.offset, performance);
+    final suggestions = await contributor.computeSuggestions(request);
+    return new plugin.CompletionGetSuggestionsResult(
+        request.replacementOffset, request.replacementLength, suggestions);
+  }
 }

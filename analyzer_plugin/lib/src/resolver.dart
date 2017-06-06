@@ -330,8 +330,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   final DartVariableManager dartVariableManager;
   final AnalysisErrorListener errorListener;
 
-  List<AbstractDirective> directives;
-
   PrepareScopeVisitor(
       this.internalVariables,
       this.localVariables,
@@ -343,41 +341,49 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
 
   @override
   void visitScopeRootTemplateElement(ElementInfo element) {
+    final exportAsMap = _defineExportAsVariables(element.directives);
     for (final directive in element.directives) {
-      _defineDirectiveVariables(element.attributes, directive);
       // This must be here for <template> tags.
       _defineNgForVariables(element.attributes, directive);
     }
 
-    _defineLocalVariablesForAttributes(element.attributes);
+    _defineReferenceVariablesForAttributes(
+        element.directives, element.attributes, exportAsMap);
+    _defineLetVariablesForAttributes(element.attributes);
 
-    directives = element.directives;
     super.visitScopeRootTemplateElement(element);
+  }
+
+  @override
+  void visitBorderScopeTemplateElement(ElementInfo element) {
+    final exportAsMap = _defineExportAsVariables(element.directives);
+    _defineReferenceVariablesForAttributes(
+        element.directives, element.attributes, exportAsMap);
   }
 
   @override
   void visitScopeRootElementWithTemplateAttribute(ElementInfo element) {
     final templateAttr = element.templateAttribute;
 
+    final exportAsMap = _defineExportAsVariables(element.directives);
+
     // If this is how our scope begins, like we're within an ngFor, then
     // let the ngFor alter the current scope.
     for (final directive in templateAttr.directives) {
-      _defineDirectiveVariables(templateAttr.virtualAttributes, directive);
       _defineNgForVariables(templateAttr.virtualAttributes, directive);
     }
 
-    _defineLocalVariablesForAttributes(templateAttr.virtualAttributes);
+    _defineLetVariablesForAttributes(templateAttr.virtualAttributes);
 
     // Make sure the regular element also alters the current scope
     for (final directive in element.directives) {
-      _defineDirectiveVariables(element.attributes, directive);
       // This must be here for <template> tags.
       _defineNgForVariables(element.attributes, directive);
     }
 
-    _defineLocalVariablesForAttributes(element.attributes);
+    _defineReferenceVariablesForAttributes(
+        element.directives, element.attributes, exportAsMap);
 
-    directives = element.directives;
     super.visitScopeRootElementWithTemplateAttribute(element);
   }
 
@@ -385,22 +391,15 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   void visitBorderScopeTemplateAttribute(TemplateAttribute attr) {
     // Border to the next scope. Make sure the virtual properties are bound
     // to the scope we're building now. But nothing else.
-    directives = attr.directives;
     visitTemplateAttr(attr);
   }
 
   @override
   void visitElementInScope(ElementInfo element) {
+    final exportAsMap = _defineExportAsVariables(element.directives);
     // Regular element or component. Look for `#var`s.
-    for (final directive in element.directives) {
-      _defineDirectiveVariables(element.attributes, directive);
-      // This must be here for <template> tags.
-      _defineNgForVariables(element.attributes, directive);
-    }
-
-    _defineLocalVariablesForAttributes(element.attributes);
-
-    directives = element.directives;
+    _defineReferenceVariablesForAttributes(
+        element.directives, element.attributes, exportAsMap);
     super.visitElementInScope(element);
   }
 
@@ -442,80 +441,146 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
     }
   }
 
-  /// Defines type of variables defined by the given [directive].
-  void _defineDirectiveVariables(
-      List<AttributeInfo> attributes, AbstractDirective directive) {
-    // add "exportAs"
-    {
+  /// Provides a map for 'exportAs' string to list ofclass element.
+  /// Return type must be a class to later resolve conflicts should they exist.
+  /// This is a shortlived variable existing only in the scope of
+  /// element tag, therefore don't use [internalVariables].
+  Map<String, List<InternalVariable>> _defineExportAsVariables(
+      List<AbstractDirective> directives) {
+    final exportAsMap = <String, List<InternalVariable>>{};
+    for (final directive in directives) {
       final exportAs = directive.exportAs;
       if (exportAs != null) {
         final name = exportAs.name;
         final type = directive.classElement.type;
-        internalVariables[name] = new InternalVariable(name, exportAs, type);
+        exportAsMap.putIfAbsent(name, () => <InternalVariable>[]);
+        exportAsMap[name].add(new InternalVariable(name, exportAs, type));
       }
     }
-    // add "$implicit
-    if (directive is Component) {
-      final classElement = directive.classElement;
-      internalVariables[r'$implicit'] = new InternalVariable(
-          r'$implicit', new DartElement(classElement), classElement.type);
-    }
+    return exportAsMap;
   }
 
-  /// Define new local variables into [localVariables] for `#name` attributes.
-  void _defineLocalVariablesForAttributes(List<AttributeInfo> attributes) {
+  /// Define reference variables [localVariables] for `#name` attributes.
+  void _defineReferenceVariablesForAttributes(
+      List<AbstractDirective> directives,
+      List<AttributeInfo> attributes,
+      Map<String, List<InternalVariable>> exportAsMap) {
     for (final attribute in attributes) {
       var offset = attribute.nameOffset;
       var name = attribute.name;
 
       // check if defines local variable
-      final isLet = name.startsWith('let-'); // ng-for
       final isRef = name.startsWith('ref-'); // not ng-for
       final isHash = name.startsWith('#'); // not ng-for
       final isVar =
           name.startsWith('var-'); // either (deprecated but still works)
-      if (isHash || isLet || isVar || isRef) {
+      if (isHash || isVar || isRef) {
         final prefixLen = isHash ? 1 : 4;
         name = name.substring(prefixLen);
         offset += prefixLen;
-
-        // prepare internal variable name
-        final internalName = attribute.value ?? r'$implicit';
+        final refValue = attribute.value;
 
         // maybe an internal variable reference
-        DartType type;
-        final internalVar = internalVariables[internalName];
-        if (internalVar != null) {
-          type = internalVar.type;
-          // add internal variable reference
-          if (attribute.value != null) {
-            template.addRange(
-                new SourceRange(attribute.valueOffset, attribute.valueLength),
-                internalVar.element);
+        var type = typeProvider.dynamicType;
+        AngularElement angularElement;
+
+        if (refValue == null) {
+          // Find the corresponding Component to assign reference to.
+          for (final directive in directives) {
+            if (directive is Component) {
+              final classElement = directive.classElement;
+              type = classElement.type;
+              angularElement = new DartElement(classElement);
+              break;
+            }
           }
-        } else if (attribute.value != null) {
-          errorListener.onError(new AnalysisError(
+        } else {
+          final internalVars = exportAsMap[refValue];
+          if (internalVars == null || internalVars.isEmpty) {
+            errorListener.onError(new AnalysisError(
               templateSource,
               attribute.valueOffset,
               attribute.value.length,
               AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
-              [attribute.value]));
+              [attribute.value],
+            ));
+          } else if (internalVars.length > 1) {
+            errorListener.onError(new AnalysisError(
+              templateSource,
+              attribute.valueOffset,
+              attribute.value.length,
+              AngularWarningCode.DIRECTIVE_EXPORTED_BY_AMBIGIOUS,
+              [attribute.value],
+            ));
+          } else {
+            final internalVar = internalVars[0];
+            type = internalVar.type;
+            angularElement = internalVar.element;
+          }
         }
 
-        // any unmatched values should be dynamic to prevent secondary errors
-        type ??= typeProvider.dynamicType;
+        if (attribute.value != null) {
+          template.addRange(
+            new SourceRange(attribute.valueOffset, attribute.valueLength),
+            angularElement,
+          );
+        }
 
-        // add a new local variable with type
+        final localVariableElement =
+            dartVariableManager.newLocalVariableElement(offset, name, type);
+        final localVariable = new LocalVariable(
+            name, offset, name.length, templateSource, localVariableElement);
+        localVariables[name] = localVariable;
+        template.addRange(
+          new SourceRange(localVariable.nameOffset, localVariable.name.length),
+          localVariable,
+        );
+      }
+    }
+  }
+
+  /// Define reference variables [localVariables] for `#name` attributes.
+  ///
+  /// Begin by defining the type as 'dynamic'.
+  /// In cases of *ngFor, this dynamic type is overwritten only if
+  /// the value is defined within [internalVariables]. If value is null,
+  /// it defaults to '$implicit'. If value is provided but isn't one of
+  /// known implicit variables of ngFor, we can't throw an error since
+  /// the value could still be defined.
+  /// if '$implicit' is not defined within [internalVariables], we again
+  /// default it to dynamicType.
+  void _defineLetVariablesForAttributes(List<AttributeInfo> attributes) {
+    for (final attribute in attributes) {
+      var offset = attribute.nameOffset;
+      var name = attribute.name;
+      final value = attribute.value;
+
+      if (name.startsWith('let-')) {
+        final prefixLength = 'let-'.length;
+        name = name.substring(prefixLength);
+        offset += prefixLength;
+        var type = typeProvider.dynamicType;
+
+        final internalVar = internalVariables[value ?? r'$implicit'];
+        if (internalVar != null) {
+          type = internalVar.type;
+          if (value != null) {
+            template.addRange(
+              new SourceRange(attribute.valueOffset, attribute.valueLength),
+              internalVar.element,
+            );
+          }
+        }
+
         final localVariableElement =
             dartVariableManager.newLocalVariableElement(-1, name, type);
         final localVariable = new LocalVariable(
             name, offset, name.length, templateSource, localVariableElement);
         localVariables[name] = localVariable;
-        // add local declaration
         template.addRange(
-            new SourceRange(
-                localVariable.nameOffset, localVariable.name.length),
-            localVariable);
+          new SourceRange(offset, name.length),
+          localVariable,
+        );
       }
     }
   }

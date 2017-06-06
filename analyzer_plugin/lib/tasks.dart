@@ -259,6 +259,12 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode('NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME',
           'No directives matching this element are exported by the name {0}');
 
+  /// An error code indicating in <div dir1 dir2 #y="x">, x is ambigious since
+  /// both directives dir1 and dir2 have same exportAs name "x".
+  static const DIRECTIVE_EXPORTED_BY_AMBIGIOUS = const AngularWarningCode(
+      'DIRECTIVE_EXPORTED_BY_AMBIGIOUS',
+      "More than one directive's exportAs value matches '{0}'.");
+
   /// An error code indicating that a custom component appears to require a star.
   static const AngularWarningCode CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE =
       const AngularWarningCode(
