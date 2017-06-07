@@ -359,9 +359,14 @@ class TemplateCompleter {
       } else if (!offsetContained(request.offset, target.openingNameSpan.offset,
           target.openingNameSpan.length)) {
         // If request is not in [openingNameSpan], suggest decorators.
-        suggestInputs(target.boundDirectives, suggestions,
-            standardHtmlAttributes, target.boundStandardInputs, typeProvider,
-            includePlainAttributes: true);
+        suggestInputs(
+          target.boundDirectives,
+          suggestions,
+          standardHtmlAttributes,
+          target.boundStandardInputs,
+          typeProvider,
+          includePlainAttributes: true,
+        );
         suggestOutputs(target.boundDirectives, suggestions, standardHtmlEvents,
             target.boundStandardOutputs);
         suggestBananas(
@@ -369,6 +374,13 @@ class TemplateCompleter {
           suggestions,
           target.boundStandardInputs,
           target.boundStandardOutputs,
+        );
+        suggestFromAvailableDirectives(
+          target.availableDirectives,
+          suggestions,
+          suggestPlainAttributes: true,
+          suggestInputs: true,
+          suggestBananas: true,
         );
         if (!target.isOrHasTemplateAttribute) {
           suggestStarAttrs(template, suggestions);
@@ -396,9 +408,11 @@ class TemplateCompleter {
     } else if (target is ExpressionBoundAttribute &&
         offsetContained(request.offset, target.originalNameOffset,
             target.originalName.length)) {
-      var requestBananasWithinInput = false;
-      if (target.bound == ExpressionBoundType.input) {
-        requestBananasWithinInput = target.nameOffset == request.offset;
+      final _suggestInputs = target.bound == ExpressionBoundType.input;
+      var _suggestBananas = target.bound == ExpressionBoundType.twoWay;
+
+      if (_suggestInputs) {
+        _suggestBananas = target.nameOffset == request.offset;
         suggestInputs(
             target.parent.boundDirectives,
             suggestions,
@@ -407,8 +421,7 @@ class TemplateCompleter {
             typeProvider,
             currentAttr: target);
       }
-      if (requestBananasWithinInput ||
-          target.bound == ExpressionBoundType.twoWay) {
+      if (_suggestBananas) {
         suggestBananas(
           target.parent.boundDirectives,
           suggestions,
@@ -417,6 +430,12 @@ class TemplateCompleter {
           currentAttr: target,
         );
       }
+      suggestFromAvailableDirectives(
+        target.parent.availableDirectives,
+        suggestions,
+        suggestBananas: _suggestBananas,
+        suggestInputs: _suggestInputs,
+      );
     } else if (target is StatementsBoundAttribute) {
       suggestOutputs(target.parent.boundDirectives, suggestions,
           standardHtmlEvents, target.parent.boundStandardOutputs,
@@ -445,6 +464,13 @@ class TemplateCompleter {
         suggestions,
         target.parent.boundStandardInputs,
         target.parent.boundStandardOutputs,
+      );
+      suggestFromAvailableDirectives(
+        target.parent.availableDirectives,
+        suggestions,
+        suggestPlainAttributes: true,
+        suggestInputs: true,
+        suggestBananas: true,
       );
     } else if (target is TextInfo) {
       suggestHtmlTags(template, suggestions);
@@ -528,10 +554,14 @@ class TemplateCompleter {
                 ? DART_RELEVANCE_DEFAULT
                 : DART_RELEVANCE_DEFAULT - 1;
             suggestions.add(_createPlainAttributeSuggestions(
-                input,
+                input.name,
                 relevance,
                 _createPlainAttributeElement(
-                    input, protocol.ElementKind.SETTER)));
+                  input.name,
+                  input.nameOffset,
+                  input.source.fullName,
+                  protocol.ElementKind.SETTER,
+                )));
           }
         }
         suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
@@ -554,10 +584,14 @@ class TemplateCompleter {
               ? DART_RELEVANCE_DEFAULT - 2
               : DART_RELEVANCE_DEFAULT - 3;
           suggestions.add(_createPlainAttributeSuggestions(
-              input,
+              input.name,
               relevance,
               _createPlainAttributeElement(
-                  input, protocol.ElementKind.SETTER)));
+                input.name,
+                input.nameOffset,
+                input.source.fullName,
+                protocol.ElementKind.SETTER,
+              )));
         }
       }
       suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT - 2,
@@ -695,6 +729,60 @@ class TemplateCompleter {
     }
   }
 
+  /// Goes through all the available, but not yet-bound directives
+  /// and extracts non-violating plain-text attribute-directives
+  /// and inputs (if name overlaps with attribute-directive).
+  void suggestFromAvailableDirectives(
+    Map<AbstractDirective, List<AttributeSelector>> availableDirectives,
+    List<CompletionSuggestion> suggestions, {
+    bool suggestInputs: false,
+    bool suggestBananas: false,
+    bool suggestPlainAttributes: false,
+  }) {
+    availableDirectives.forEach((directive, selectors) {
+      final attributeSelectors = <String, AttributeSelector>{};
+      final validInputs = <InputElement>[];
+
+      for (final aSelector in selectors) {
+        attributeSelectors[aSelector.nameElement.name] = aSelector;
+      }
+
+      for (final input in directive.inputs) {
+        if (attributeSelectors.keys.contains(input.name)) {
+          attributeSelectors.remove(input.name);
+          validInputs.add(input);
+        }
+      }
+
+      for (final input in validInputs) {
+        final outputComplement = '${input.name}Change';
+        final output = directive.outputs.firstWhere(
+            (output) => output.name == outputComplement,
+            orElse: () => null);
+        if (output != null && suggestBananas) {
+          suggestions.add(_createBananaSuggestion(input, DART_RELEVANCE_DEFAULT,
+              _createBananaElement(input, protocol.ElementKind.SETTER)));
+        }
+        if (suggestInputs) {
+          suggestions.add(_createInputSuggestion(input, DART_RELEVANCE_DEFAULT,
+              _createInputElement(input, protocol.ElementKind.SETTER)));
+        }
+      }
+
+      if (suggestPlainAttributes) {
+        attributeSelectors.forEach((name, selector) {
+          final nameOffset = selector.nameElement.nameOffset;
+          final locationSource = selector.nameElement.source.fullName;
+          suggestions.add(_createPlainAttributeSuggestions(
+              name,
+              DART_RELEVANCE_DEFAULT,
+              _createPlainAttributeElement(name, nameOffset, locationSource,
+                  protocol.ElementKind.SETTER)));
+        });
+      }
+    });
+  }
+
   void addLocalVariables(List<CompletionSuggestion> suggestions,
       Map<String, LocalVariable> localVars, OpType optype) {
     for (final eachVar in localVars.values) {
@@ -804,20 +892,15 @@ class TemplateCompleter {
   }
 
   CompletionSuggestion _createPlainAttributeSuggestions(
-      InputElement inputElement,
-      int defaultRelevance,
-      protocol.Element element) {
-    final completion = inputElement.name;
-    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
-        defaultRelevance, completion, completion.length, 0, false, false,
-        element: element);
-  }
+          String completion, int defaultRelevance, protocol.Element element) =>
+      new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+          defaultRelevance, completion, completion.length, 0, false, false,
+          element: element);
 
-  protocol.Element _createPlainAttributeElement(
-      InputElement inputElement, protocol.ElementKind kind) {
-    final name = inputElement.name;
-    final location = new Location(inputElement.source.fullName,
-        inputElement.nameOffset, inputElement.nameLength, 0, 0);
+  protocol.Element _createPlainAttributeElement(String name, int nameOffset,
+      String locationSource, protocol.ElementKind kind) {
+    final location =
+        new Location(locationSource, nameOffset, name.length, 0, 0);
     final flags = protocol.Element
         .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
     return new protocol.Element(kind, name, flags, location: location);

@@ -3,7 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver;
 import 'dart:collection';
 import 'package:meta/meta.dart';
 
-import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/ast.dart' hide Directive;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
@@ -772,6 +772,7 @@ class DirectiveResolver extends AngularAstVisitor {
     }
 
     final elementView = new ElementViewImpl(element.attributes, element);
+    final unmatchedDirectives = <AbstractDirective>[];
 
     final containingDirectivesCount = outerBindings.length;
     for (final directive in allDirectives) {
@@ -800,6 +801,17 @@ class DirectiveResolver extends AngularAstVisitor {
               AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
               [directive.classElement.name]);
         }
+      } else {
+        unmatchedDirectives.add(directive);
+      }
+    }
+
+    for (final directive in unmatchedDirectives) {
+      if (directive is Directive &&
+          directive.selector.availableTo(elementView) &&
+          !directive.looksLikeTemplate) {
+        element.availableDirectives[directive] =
+            directive.selector.getAttributeSelectors(elementView);
       }
     }
 
