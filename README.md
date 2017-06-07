@@ -44,13 +44,15 @@ You can now use this in projects on your local system which a correctly configur
 
 ## Chart of Current Features
 
-We plug into many editors with varying degrees of support. Anything that supports dart analysis in theory supports our plugin, but in practice that's not always the case. We do sometimes contribute back to editor plugins to make our plugin work better, so let us know what you use and what does or doesn't work.
+We plug into many editors with varying degrees of support. In theory anything that supports Dart analysis also supports our plugin, but in practice that's not always the case.
 
 Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 --------------|------------|---------------|------------|-------------
 IntelliJ | :white_check_mark: | :white_check_mark: | :warning: some support in EAP | :no_pedestrians:
 Vim (special setup required) | :white_check_mark: | :white_check_mark: | :white_check_mark: | :no_pedestrians:
 others | :question: let us know! | :question: let us know! | :question: let us know! | :question: let us know!
+
+If you are using an editor with Dart support that's not in this list, then please let us know what does or doesn't work. We can sometimes contribute fixes, too!
 
 Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 --------------|------------|---------------|------------|-------------
