@@ -10,12 +10,12 @@ import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show ElementKind;
 import 'package:analyzer_plugin/protocol/protocol_common.dart'
     hide Element, ElementKind;
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
-import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
-import 'package:analysis_server/src/services/completion/completion_core.dart';
-import 'package:analysis_server/src/services/completion/completion_performance.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/utilities/completion/relevance.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
@@ -30,29 +30,32 @@ abstract class AbstractCompletionContributorTest
     extends BaseCompletionContributorTest {
   CompletionContributor contributor;
   CompletionRequest request;
+  CompletionResolveResult result;
 
   @override
-  void setUp() {
+  Future<Null> setUp() async {
     super.setUp();
     contributor = createContributor();
+    result = await createResult();
   }
 
   CompletionContributor createContributor();
+  Future<CompletionResolveResult> createResult();
 
   @override
   Future computeSuggestions([int times = 200]) async {
     final request = new CompletionRequestImpl(
       null,
-      null,
-      testSource,
+      result,
       completionOffset,
-      new CompletionPerformance(),
     );
+    final collector = new CompletionCollectorImpl();
 
     // Request completions
-    suggestions = await contributor.computeSuggestions(request);
-    replacementOffset = request.replacementOffset;
-    replacementLength = request.replacementLength;
+    await contributor.computeSuggestions(request, collector);
+    suggestions = collector.suggestions;
+    replacementOffset = collector.offset;
+    replacementLength = collector.length;
     expect(suggestions, isNotNull, reason: 'expected suggestions');
   }
 

@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
-import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
+import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
@@ -17,14 +18,34 @@ void main() {
 @reflectiveTest
 class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  void setUp() {
+  Future<Null> setUp() async {
     testFile = '/completionTest.dart';
-    super.setUp();
+    await super.setUp();
   }
 
   @override
   CompletionContributor createContributor() =>
       new AngularCompletionContributor(angularDriver);
+
+  @override
+  Future<CompletionResolveResult> createResult() async {
+    final templates = await angularDriver.getTemplatesForFile(testFile);
+    if (templates.isEmpty) {
+      return null;
+    }
+
+    await angularDriver.getStandardHtml();
+    assert(angularDriver.standardHtml != null);
+    final events = angularDriver.standardHtml.events.values;
+    final attributes = angularDriver.standardHtml.uniqueAttributeElements;
+
+    return new CompletionResolveResult(
+      testFile,
+      templates,
+      events,
+      attributes,
+    );
+  }
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -530,15 +551,34 @@ class MyChildComponent2{}
 @reflectiveTest
 class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  void setUp() {
+  Future<Null> setUp() async {
     testFile = '/completionTest.html';
-    super.setUp();
-    createContributor();
+    await super.setUp();
   }
 
   @override
   CompletionContributor createContributor() =>
       new AngularCompletionContributor(angularDriver);
+
+  @override
+  Future<CompletionResolveResult> createResult() async {
+    final templates = await angularDriver.getTemplatesForFile(testFile);
+    if (templates.isEmpty) {
+      return null;
+    }
+
+    await angularDriver.getStandardHtml();
+    assert(angularDriver.standardHtml != null);
+    final events = angularDriver.standardHtml.events.values;
+    final attributes = angularDriver.standardHtml.uniqueAttributeElements;
+
+    return new CompletionResolveResult(
+      testFile,
+      templates,
+      events,
+      attributes,
+    );
+  }
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {

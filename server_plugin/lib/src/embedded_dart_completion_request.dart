@@ -1,25 +1,26 @@
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
-import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart'
+    as new_core;
+import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
+import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
+import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart'
+    as old_core;
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/file_system/file_system.dart';
-import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
-import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
-
 import 'package:analyzer/dart/ast/ast.dart';
 
-class EmbeddedDartCompletionRequest implements DartCompletionRequest {
+class EmbeddedDartCompletionRequest implements old_core.DartCompletionRequest {
   factory EmbeddedDartCompletionRequest.from(
-      CompletionRequest request, AstNode dart) {
+      new_core.CompletionRequest request, AstNode dart) {
     request.checkAborted();
+    final filePath = request.result.path;
+    final resourceProvider = request.resourceProvider;
+    final libSource = resourceProvider.getFile(filePath).createSource();
 
-    Source libSource;
-    libSource = request.source;
-
-    return new EmbeddedDartCompletionRequest._(request.result,
-        request.resourceProvider, libSource, request.source, request.offset)
+    return new EmbeddedDartCompletionRequest._(
+        request.result, resourceProvider, libSource, libSource, request.offset)
       .._updateTargets(dart);
   }
 

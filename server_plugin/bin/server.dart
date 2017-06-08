@@ -8,9 +8,7 @@ import 'package:angular_analyzer_plugin/starter.dart' as ng;
 //import 'package:angular_analyzer_server_plugin/plugin.dart';
 import 'package:plugin/plugin.dart';
 
-/**
- * Create and run an analysis server with Angular plugins.
- */
+/// Create and run an analysis server with Angular plugins.
 void main(List<String> args) {
   final starter = new ServerStarter();
   starter.userDefinedPlugins = <Plugin>[
@@ -19,5 +17,5 @@ void main(List<String> args) {
   ];
   final server = starter.start(args);
 
-  new ng.Starter().start(server);
+  //new ng.Starter().start(server);
 }
