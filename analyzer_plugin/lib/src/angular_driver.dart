@@ -403,7 +403,7 @@ class AngularDriver
         final match = isDartFile
             ? view.source.toString() == filePath
             : view.templateUriSource?.fullName == filePath;
-        if (match) {
+        if (match && view.template != null) {
           templates.add(view.template);
         }
       }
