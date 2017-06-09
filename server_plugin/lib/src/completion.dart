@@ -253,6 +253,10 @@ class AngularCompletionContributor extends CompletionContributor {
     final path = request.result.path;
     final templates = await driver.getTemplatesForFile(path);
     if (templates.isEmpty) {
+      // Todo(Max): Once fix added in plugin architecture, remove offset/length.
+      collector
+        ..offset = request.offset
+        ..length = 0;
       return null;
     }
 
