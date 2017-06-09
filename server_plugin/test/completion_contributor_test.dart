@@ -10,8 +10,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'completion_contributor_test_util.dart';
 
 void main() {
-  // TODO: get these working again on the latest SDK
-  //defineReflectiveTests(DartCompletionContributorTest);
+  defineReflectiveTests(DartCompletionContributorTest);
   defineReflectiveTests(HtmlCompletionContributorTest);
 }
 
@@ -148,7 +147,7 @@ class MyComponent {}
     inputs: const ['myDynamicInput'])
 class MyChildComponent {
   @Input() String stringInput;
-  @Input() String intInput;
+  @Input() int intInput;
   @Output() EventEmitter<String> myEvent;
   
   bool _myDynamicInput = false;
