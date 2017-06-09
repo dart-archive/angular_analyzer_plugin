@@ -253,14 +253,17 @@ class AngularCompletionContributor extends CompletionContributor {
   @override
   Future<Null> computeSuggestions(
       CompletionRequest request, CompletionCollector collector) async {
-    // Templates is null
-    if (request.result == null) {
-      return;
+    final path = request.result.path;
+    final templates = await driver.getTemplatesForFile(path);
+    if (templates.isEmpty) {
+      return null;
     }
-    final result = request.result as CompletionResolveResult;
-    final templates = result.templates;
-    final events = result.standardHtmlEvents;
-    final attributes = result.standardHtmlAttributes;
+
+    await driver.getStandardHtml();
+    assert(driver.standardHtml != null);
+
+    final events = driver.standardHtml.events.values;
+    final attributes = driver.standardHtml.uniqueAttributeElements;
 
     final templateCompleter = new TemplateCompleter();
     for (final template in templates) {

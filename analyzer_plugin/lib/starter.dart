@@ -122,23 +122,7 @@ class Starter {
           server.sendResponse(new CompletionGetSuggestionsResult(completionId)
               .toResponse(request.id));
 
-          final templates = await driver.getTemplatesForFile(filePath);
-          CompletionResolveResult result;
-          if (templates == null) {
-            result = null;
-          } else {
-            await driver.getStandardHtml();
-            assert(driver.standardHtml != null);
-
-            final events = driver.standardHtml.events.values;
-            final attributes = driver.standardHtml.uniqueAttributeElements;
-            result = new CompletionResolveResult(
-              filePath,
-              templates,
-              events,
-              attributes,
-            );
-          }
+          final result = new CompletionResolveResult(filePath);
           final newRequest = new new_core.CompletionRequestImpl(
               server.resourceProvider, result, params.offset);
           final collector = new new_core.CompletionCollectorImpl();

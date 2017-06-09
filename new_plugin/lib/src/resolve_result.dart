@@ -8,18 +8,8 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 
 class CompletionResolveResult extends NgResolveResult {
-  final List<Template> templates;
-  final List<OutputElement> standardHtmlEvents;
-  final Set<InputElement> standardHtmlAttributes;
-
   // Don't need errors - pass in empty list.
-  CompletionResolveResult(
-    String path,
-    this.templates,
-    this.standardHtmlEvents,
-    this.standardHtmlAttributes,
-  )
-      : super(path, []);
+  CompletionResolveResult(String path) : super(path, []);
 }
 
 class NgResolveResult implements ResolveResult {

@@ -29,27 +29,24 @@ int suggestionComparator(CompletionSuggestion s1, CompletionSuggestion s2) {
 abstract class AbstractCompletionContributorTest
     extends BaseCompletionContributorTest {
   CompletionContributor contributor;
-  CompletionRequest request;
-  CompletionResolveResult result;
+  CompletionCollectorImpl collector;
+  CompletionResolveResult resolveResult;
 
   @override
   Future<Null> setUp() async {
     super.setUp();
     contributor = createContributor();
-    result = await createResult();
+    collector = createCollector();
+    resolveResult = new CompletionResolveResult(testFile);
   }
 
   CompletionContributor createContributor();
-  Future<CompletionResolveResult> createResult();
+  CompletionCollectorImpl createCollector();
 
   @override
   Future computeSuggestions([int times = 200]) async {
-    final request = new CompletionRequestImpl(
-      null,
-      result,
-      completionOffset,
-    );
-    final collector = new CompletionCollectorImpl();
+    final request =
+        new CompletionRequestImpl(null, resolveResult, completionOffset);
 
     // Request completions
     await contributor.computeSuggestions(request, collector);

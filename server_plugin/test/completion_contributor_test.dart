@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:unittest/unittest.dart';
@@ -28,24 +29,7 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
       new AngularCompletionContributor(angularDriver);
 
   @override
-  Future<CompletionResolveResult> createResult() async {
-    final templates = await angularDriver.getTemplatesForFile(testFile);
-    if (templates.isEmpty) {
-      return null;
-    }
-
-    await angularDriver.getStandardHtml();
-    assert(angularDriver.standardHtml != null);
-    final events = angularDriver.standardHtml.events.values;
-    final attributes = angularDriver.standardHtml.uniqueAttributeElements;
-
-    return new CompletionResolveResult(
-      testFile,
-      templates,
-      events,
-      attributes,
-    );
-  }
+  CompletionCollectorImpl createCollector() => new CompletionCollectorImpl();
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -561,24 +545,7 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
       new AngularCompletionContributor(angularDriver);
 
   @override
-  Future<CompletionResolveResult> createResult() async {
-    final templates = await angularDriver.getTemplatesForFile(testFile);
-    if (templates.isEmpty) {
-      return null;
-    }
-
-    await angularDriver.getStandardHtml();
-    assert(angularDriver.standardHtml != null);
-    final events = angularDriver.standardHtml.events.values;
-    final attributes = angularDriver.standardHtml.uniqueAttributeElements;
-
-    return new CompletionResolveResult(
-      testFile,
-      templates,
-      events,
-      attributes,
-    );
-  }
+  CompletionCollectorImpl createCollector() => new CompletionCollectorImpl();
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {

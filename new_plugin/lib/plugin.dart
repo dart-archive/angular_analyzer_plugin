@@ -129,25 +129,8 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
 
   @override
   Future<ResolveResult> getResolveResultForCompletion(
-      AngularDriver driver, String path) async {
-    final templates = await driver.getTemplatesForFile(path);
-    if (templates.isEmpty) {
-      return null;
-    }
-
-    await driver.getStandardHtml();
-    assert(driver.standardHtml != null);
-
-    final events = driver.standardHtml.events.values;
-    final attributes = driver.standardHtml.uniqueAttributeElements;
-
-    return new CompletionResolveResult(
-      path,
-      templates,
-      events,
-      attributes,
-    );
-  }
+          AngularDriver driver, String path) async =>
+      new CompletionResolveResult(path);
 
   @override
   List<CompletionContributor> getCompletionContributors(AngularDriver driver) =>
@@ -157,34 +140,33 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
     driver.completionContributors.add(new AngularCompletionContributor(driver));
   }
 
-
-  @override
-  Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
-      plugin.CompletionGetSuggestionsParams parameters) async {
-    final filePath = parameters.file;
-    final contextRoot = contextRootContaining(filePath);
-    if (contextRoot == null) {
-      // Return an error from the request.
-      throw new plugin.RequestFailure(plugin.RequestErrorFactory
-          .pluginError('Failed to analyze $filePath', null));
-    }
-    final AngularDriver driver = driverMap[contextRoot];
-    //final analysisResult = await driver.dartDriver.getResult(filePath);
-
-    final analysisResult = await getResolveResultForCompletion(driver, filePath);
-    final request = new CompletionRequestImpl(resourceProvider, analysisResult, parameters.offset);
-    final generator = new CompletionGenerator(getCompletionContributors(driver));
-    final result = await generator.generateCompletionResponse(request);
-    result.sendNotifications(channel);
-    return result.result;
-
-//    final contributor = new AngularCompletionContributor(driver);
-//    final performance = new CompletionPerformance();
-//    final fileSource = resourceProvider.getFile(filePath).createSource();
-//    final request = new CompletionRequestImpl(analysisResult, resourceProvider,
-//        fileSource, parameters.offset, performance, null);
-//    final suggestions = await contributor.computeSuggestions(request);
-//    return new plugin.CompletionGetSuggestionsResult(
-//        request.replacementOffset, request.replacementLength, suggestions);
-  }
+//  @override
+//  Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
+//      plugin.CompletionGetSuggestionsParams parameters) async {
+//    final filePath = parameters.file;
+//    final contextRoot = contextRootContaining(filePath);
+//    if (contextRoot == null) {
+//      // Return an error from the request.
+//      throw new plugin.RequestFailure(plugin.RequestErrorFactory
+//          .pluginError('Failed to analyze $filePath', null));
+//    }
+//    final AngularDriver driver = driverMap[contextRoot];
+//    //final analysisResult = await driver.dartDriver.getResult(filePath);
+//
+//    final analysisResult = await getResolveResultForCompletion(driver, filePath);
+//    final request = new CompletionRequestImpl(resourceProvider, analysisResult, parameters.offset);
+//    final generator = new CompletionGenerator(getCompletionContributors(driver));
+//    final result = await generator.generateCompletionResponse(request);
+//    result.sendNotifications(channel);
+//    return result.result;
+//
+////    final contributor = new AngularCompletionContributor(driver);
+////    final performance = new CompletionPerformance();
+////    final fileSource = resourceProvider.getFile(filePath).createSource();
+////    final request = new CompletionRequestImpl(analysisResult, resourceProvider,
+////        fileSource, parameters.offset, performance, null);
+////    final suggestions = await contributor.computeSuggestions(request);
+////    return new plugin.CompletionGetSuggestionsResult(
+////        request.replacementOffset, request.replacementLength, suggestions);
+//  }
 }
