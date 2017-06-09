@@ -4,7 +4,6 @@ import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
-import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 

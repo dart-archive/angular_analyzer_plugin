@@ -3,8 +3,6 @@ import 'package:analyzer/dart/ast/ast.dart' show CompilationUnit;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/file_system/file_system.dart';
-import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 
 class CompletionResolveResult extends NgResolveResult {

@@ -732,7 +732,7 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
   @override
   void visitDocumentInfo(DocumentInfo document) {
     visitingRoot = false;
-    for (NodeInfo child in document.childNodes) {
+    for (final child in document.childNodes) {
       child.accept(this);
     }
   }
