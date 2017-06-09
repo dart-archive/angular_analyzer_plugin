@@ -45,8 +45,8 @@ abstract class AbstractCompletionContributorTest
 
   @override
   Future computeSuggestions([int times = 200]) async {
-    final request =
-        new CompletionRequestImpl(null, resolveResult, completionOffset);
+    final request = new CompletionRequestImpl(
+        resourceProvider, resolveResult, completionOffset);
 
     // Request completions
     await contributor.computeSuggestions(request, collector);

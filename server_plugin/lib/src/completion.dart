@@ -167,9 +167,12 @@ class LocalVariablesExtractor extends AngularAstVisitor {
 
 class ReplacementRangeCalculator extends AngularAstVisitor {
   CompletionRequestImpl request;
-  CompletionCollector collector;
+  int offset;
+  int length = 0;
 
-  ReplacementRangeCalculator(this.request, this.collector);
+  ReplacementRangeCalculator(this.request) {
+    offset = request.offset;
+  }
 
   @override
   void visitDocumentInfo(DocumentInfo document) {}
@@ -184,25 +187,23 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
         element.openingNameSpan.offset + element.openingNameSpan.length;
     if (offsetContained(request.offset, element.openingSpan.offset,
         nameSpanEnd - element.openingSpan.offset)) {
-      collector
-        ..offset = element.openingSpan.offset
-        ..length = element.localName.length + 1;
+      offset = element.openingSpan.offset;
+      length = element.localName.length + 1;
     }
   }
 
   @override
   void visitTextAttr(TextAttribute attr) {
-    collector
-      ..offset = attr.offset
-      ..offset = attr.length;
+    offset = attr.offset;
+    length = attr.length;
   }
 
   @override
   void visitTextInfo(TextInfo textInfo) {
     if (request.offset > textInfo.offset &&
         textInfo.text[request.offset - textInfo.offset - 1] == '<') {
-      collector.offset--;
-      collector.length = 1;
+      offset--;
+      length = 1;
     }
   }
 
@@ -210,9 +211,8 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
     if (offsetContained(
         request.offset, attr.originalNameOffset, attr.originalName.length)) {
-      collector
-        ..offset = attr.originalNameOffset
-        ..length = attr.originalName.length;
+      offset = attr.originalNameOffset;
+      length = attr.originalName.length;
     }
   }
 
@@ -220,9 +220,8 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
     if (offsetContained(
         request.offset, attr.originalNameOffset, attr.originalName.length)) {
-      collector
-        ..offset = attr.originalNameOffset
-        ..length = attr.originalName.length;
+      offset = attr.originalNameOffset;
+      length = attr.originalName.length;
     }
   }
 
@@ -233,9 +232,8 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   void visitTemplateAttr(TemplateAttribute attr) {
     if (offsetContained(
         request.offset, attr.originalNameOffset, attr.originalName.length)) {
-      collector
-        ..offset = attr.originalNameOffset
-        ..length = attr.originalName.length;
+      offset = attr.originalNameOffset;
+      length = attr.originalName.length;
     }
   }
 }
@@ -301,8 +299,7 @@ class TemplateCompleter {
   ) async {
     final typeProvider = template.view.component.classElement.enclosingElement
         .enclosingElement.context.typeProvider;
-    final target = findTarget(request.offset, template.ast)
-      ..accept(new ReplacementRangeCalculator(request, collector));
+    final target = findTarget(request.offset, template.ast);
     final extractor = new DartSnippetExtractor()..offset = request.offset;
     target.accept(extractor);
 
@@ -345,7 +342,14 @@ class TemplateCompleter {
           );
         }
       }
-    } else if (target is ElementInfo) {
+      return null;
+    }
+    final replacementRangeCalculator = new ReplacementRangeCalculator(request);
+    target.accept(replacementRangeCalculator);
+    collector
+      ..offset = replacementRangeCalculator.offset
+      ..length = replacementRangeCalculator.length;
+    if (target is ElementInfo) {
       if (target.closingSpan != null &&
           offsetContained(request.offset, target.closingSpan.offset,
               target.closingSpan.length)) {
