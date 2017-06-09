@@ -17,9 +17,9 @@ void main() {
 @reflectiveTest
 class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  Future<Null> setUp() async {
+  void setUp() {
     testFile = '/completionTest.dart';
-    await super.setUp();
+    super.setUp();
   }
 
   @override
@@ -533,9 +533,9 @@ class MyChildComponent2{}
 @reflectiveTest
 class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   @override
-  Future<Null> setUp() async {
+  void setUp() {
     testFile = '/completionTest.html';
-    await super.setUp();
+    super.setUp();
   }
 
   @override

@@ -33,7 +33,7 @@ abstract class AbstractCompletionContributorTest
   CompletionResolveResult resolveResult;
 
   @override
-  Future<Null> setUp() async {
+  void setUp() {
     super.setUp();
     contributor = createContributor();
     collector = createCollector();
