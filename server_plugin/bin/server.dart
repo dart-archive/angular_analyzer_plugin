@@ -6,9 +6,7 @@ import 'package:analysis_server/starter.dart';
 
 import 'package:angular_analyzer_server_plugin/starter.dart' as ng;
 
-///
 /// Create and run an analysis server with Angular plugins.
-///
 void main(List<String> args) {
   final starter = new ServerStarter();
   final server = starter.start(args);
