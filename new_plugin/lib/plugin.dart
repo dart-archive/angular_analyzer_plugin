@@ -15,6 +15,7 @@ import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:analyzer_plugin/plugin/completion_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -156,19 +157,27 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
     driver.completionContributors.add(new AngularCompletionContributor(driver));
   }
 
-//
-//  @override
-//  Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
-//      plugin.CompletionGetSuggestionsParams parameters) async {
-//    final filePath = parameters.file;
-//    final contextRoot = contextRootContaining(filePath);
-//    if (contextRoot == null) {
-//      // Return an error from the request.
-//      throw new plugin.RequestFailure(plugin.RequestErrorFactory
-//          .pluginError('Failed to analyze $filePath', null));
-//    }
-//    final AngularDriver driver = driverMap[contextRoot];
-//    final analysisResult = await driver.dartDriver.getResult(filePath);
+
+  @override
+  Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
+      plugin.CompletionGetSuggestionsParams parameters) async {
+    final filePath = parameters.file;
+    final contextRoot = contextRootContaining(filePath);
+    if (contextRoot == null) {
+      // Return an error from the request.
+      throw new plugin.RequestFailure(plugin.RequestErrorFactory
+          .pluginError('Failed to analyze $filePath', null));
+    }
+    final AngularDriver driver = driverMap[contextRoot];
+    //final analysisResult = await driver.dartDriver.getResult(filePath);
+
+    final analysisResult = await getResolveResultForCompletion(driver, filePath);
+    final request = new CompletionRequestImpl(resourceProvider, analysisResult, parameters.offset);
+    final generator = new CompletionGenerator(getCompletionContributors(driver));
+    final result = await generator.generateCompletionResponse(request);
+    result.sendNotifications(channel);
+    return result.result;
+
 //    final contributor = new AngularCompletionContributor(driver);
 //    final performance = new CompletionPerformance();
 //    final fileSource = resourceProvider.getFile(filePath).createSource();
@@ -177,5 +186,5 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
 //    final suggestions = await contributor.computeSuggestions(request);
 //    return new plugin.CompletionGetSuggestionsResult(
 //        request.replacementOffset, request.replacementLength, suggestions);
-//  }
+  }
 }
