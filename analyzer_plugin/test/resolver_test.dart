@@ -2765,6 +2765,42 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_letVar_template_cascading() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor, FoobarDirective])
+class TestPanel {
+  List<String> items = [];
+}
+@Directive(selector: '[foobar]')
+class FoobarDirective {
+  @Input()
+  String foobar;
+}
+''');
+    _addHtmlSource(r"""
+<template ngFor let-item [ngForOf]='items' let-i='index'>
+  <template [foobar]="item"></template>
+</template>
+""");
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement("ngFor let").selector.inFileName('ng_for.dart');
+    _assertElement("item [").local.declaration.type('String');
+    _assertSelectorElement("ngForOf]")
+        .selector
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertInputElement("ngForOf]")
+        .input
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertElement("items'").dart.getter.at('items = []');
+    _assertElement("i='index").local.declaration.type('int');
+    _assertElement("item").local.at('item [');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_hashRef_templateElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

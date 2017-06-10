@@ -359,6 +359,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
     final exportAsMap = _defineExportAsVariables(element.directives);
     _defineReferenceVariablesForAttributes(
         element.directives, element.attributes, exportAsMap);
+    super.visitBorderScopeTemplateElement(element);
   }
 
   @override
