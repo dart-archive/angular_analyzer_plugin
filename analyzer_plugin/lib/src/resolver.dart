@@ -163,7 +163,8 @@ class TemplateResolver {
             templateSource,
             typeProvider,
             dartVarManager,
-            errorListener))
+            errorListener,
+            standardAngular))
         // Load $event into the scopes
         ..accept(new PrepareEventScopeVisitor(
             standardHtmlEvents,
@@ -329,6 +330,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   final TypeProvider typeProvider;
   final DartVariableManager dartVariableManager;
   final AnalysisErrorListener errorListener;
+  final StandardAngular standardAngular;
 
   PrepareScopeVisitor(
       this.internalVariables,
@@ -337,7 +339,8 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
       this.templateSource,
       this.typeProvider,
       this.dartVariableManager,
-      this.errorListener);
+      this.errorListener,
+      this.standardAngular);
 
   @override
   void visitScopeRootTemplateElement(ElementInfo element) {
@@ -489,7 +492,10 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
           // Find the corresponding Component to assign reference to.
           for (final directive in directives) {
             if (directive is Component) {
-              final classElement = directive.classElement;
+              var classElement = directive.classElement;
+              if (classElement.name == 'TemplateElement') {
+                classElement = standardAngular.templateRef;
+              }
               type = classElement.type;
               angularElement = new DartElement(classElement);
               break;
