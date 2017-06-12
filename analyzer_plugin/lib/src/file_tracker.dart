@@ -100,6 +100,16 @@ class FileTracker {
     }
     return signature;
   }
+
+  ApiSignature getHtmlDartPairSignature(String htmlPath, String dartPath) {
+    final signature = new ApiSignature()
+      ..addBytes(getHtmlContentHash(htmlPath))
+      ..addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
+    for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
+      signature.addBytes(getHtmlContentHash(subHtmlPath));
+    }
+    return signature;
+  }
 }
 
 class _RelationshipTracker {

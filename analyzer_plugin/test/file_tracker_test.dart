@@ -324,6 +324,46 @@ class FileTrackerTest {
   }
 
   // ignore: non_constant_identifier_names
+  void test_htmlDartPairGetSignature() {
+    _fileTracker
+      ..setDartHtmlTemplates("foo.dart", ["foo.html"])
+      ..setDartHtmlTemplates("foo_test.dart", ["foo.html"])
+      ..setDartImports("foo.dart", ["bar.dart"])
+      ..setDartHtmlTemplates("bar.dart", ["bar.html"]);
+
+    final fooHtmlSignature = new ApiSignature()..addInt(1);
+    final fooDartElementSignature = new ApiSignature()..addInt(2);
+    final fooTestDartElementSignature = new ApiSignature()..addInt(3);
+    final barHtmlSignature = new ApiSignature()..addInt(4);
+
+    when(_fileHasher.getContentHash("foo.html")).thenReturn(fooHtmlSignature);
+    when(_fileHasher.getContentHash("bar.html")).thenReturn(barHtmlSignature);
+    when(_fileHasher.getUnitElementHash("foo.dart"))
+        .thenReturn(fooDartElementSignature);
+    when(_fileHasher.getUnitElementHash("foo_test.dart"))
+        .thenReturn(fooTestDartElementSignature);
+
+    final expectedSignatureFoo = new ApiSignature()
+      ..addBytes(fooHtmlSignature.toByteList())
+      ..addBytes(fooDartElementSignature.toByteList())
+      ..addBytes(barHtmlSignature.toByteList());
+
+    final expectedSignatureFooTest = new ApiSignature()
+      ..addBytes(fooHtmlSignature.toByteList())
+      ..addBytes(fooTestDartElementSignature.toByteList());
+
+    final signatureFoo =
+        _fileTracker.getHtmlDartPairSignature("foo.html", "foo.dart");
+
+    expect(signatureFoo.toHex(), equals(expectedSignatureFoo.toHex()));
+
+    final signatureFooTest =
+        _fileTracker.getHtmlDartPairSignature("foo.html", "foo_test.dart");
+
+    expect(signatureFooTest.toHex(), equals(expectedSignatureFooTest.toHex()));
+  }
+
+  // ignore: non_constant_identifier_names
   void test_minimallyRehashesHtml() {
     final fooHtmlSignature = new ApiSignature()..addInt(1);
     when(_fileHasher.getContentHash("foo.html")).thenReturn(fooHtmlSignature);
