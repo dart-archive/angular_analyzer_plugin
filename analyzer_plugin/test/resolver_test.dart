@@ -2294,7 +2294,7 @@ class TestPanel {}
   Future test_localVariable_exportAs_ambiguous() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', 
+@View(templateUrl: 'test_panel.html',
   directives: const [Directive1, Directive2])
 class TestPanel {}
 
@@ -2805,7 +2805,7 @@ class FoobarDirective {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', 
-  directives: const [NgFor, HasTemplateInputComponent])
+  directives: const [HasTemplateInputComponent])
 class TestPanel {
 }
 @Component(selector: 'has-template-input', template: '')
@@ -2815,12 +2815,12 @@ class HasTemplateInputComponent {
 }
 ''');
     _addHtmlSource(r"""
-<template #templateRef></template>
-<has-template-input [myTemplate]="templateRef"></has-template-input>
+<template #someTemplate></template>
+<has-template-input [myTemplate]="someTemplate"></has-template-input>
 """);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    _assertElement(r'templateRef"').local.at('templateRef>');
+    _assertElement('someTemplate"').local.at('someTemplate>');
   }
 
   // ignore: non_constant_identifier_names
