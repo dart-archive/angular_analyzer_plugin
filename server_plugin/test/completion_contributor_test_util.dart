@@ -47,6 +47,7 @@ abstract class AbstractCompletionContributorTest
       testSource,
       completionOffset,
       new CompletionPerformance(),
+      null,
     );
 
     // Request completions
