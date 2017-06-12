@@ -446,6 +446,11 @@ class TableSectionElement extends HtmlElement {
   @Deprecated("Internal Use Only")
   TableSectionElement.internal_() : super.internal_();
 }
+
+class TemplateElement extends HtmlElement {
+  factory TemplateElement._() { throw new UnsupportedError("Not supported"); }
+  factory TemplateElement() => document.createElement("template");
+}
 ''');
 
 const _LIB_INTERCEPTORS = const _MockSdkLibrary(
