@@ -111,6 +111,7 @@ class DirectiveLinker {
             selector: selector,
             inputs: inputs,
             outputs: outputs,
+            isHtml: false,
             ngContents: ngContents,
             elementTags: elementTags,
             contentChildFields: contentChildFields,
