@@ -15,7 +15,6 @@ import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:analyzer_plugin/plugin/completion_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
-import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -129,14 +128,19 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
 
   @override
   Future<ResolveResult> getResolveResultForCompletion(
-          AngularDriver driver, String path) async =>
-      new CompletionResolveResult(path);
+      AngularDriver driver, String path) async {
+    final templates = await driver.getTemplatesForFile(path);
+    return new CompletionResolveResult(path, templates);
+  }
 
   @override
   List<CompletionContributor> getCompletionContributors(AngularDriver driver) =>
       driver.completionContributors;
 
   void _loadCompletionContributors(AngularDriver driver) {
-    driver.completionContributors.add(new AngularCompletionContributor(driver));
+    driver.completionContributors
+      ..add(new AngularCompletionContributor(driver))
+      ..add(new NgInheritedReferenceContributor())
+      ..add(new NgTypeMemberContributor());
   }
 }

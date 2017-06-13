@@ -7,13 +7,10 @@ import 'package:analyzer/dart/analysis/results.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 
 class CompletionResolveResult extends NgResolveResult {
-  final Template templates;
+  final List<Template> templates;
 
   // Don't need errors - pass in empty list.
-  CompletionResolveResult(
-    String path,
-    this.templates)
-      : super(path, []);
+  CompletionResolveResult(String path, this.templates) : super(path, []);
 }
 
 class NgResolveResult implements ResolveResult {
@@ -44,6 +41,6 @@ class NgResolveResult implements ResolveResult {
   @override
   Uri get uri => null;
 
-  NgResolveResult(this.path, this.errors, {this.libraryElement,
-      this.typeProvider});
+  NgResolveResult(this.path, this.errors,
+      {this.libraryElement, this.typeProvider});
 }

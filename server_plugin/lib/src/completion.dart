@@ -10,12 +10,10 @@ import 'package:analyzer_plugin/utilities/completion/type_member_contributor.dar
 import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart'
-    show ReplacementRange;
+import 'package:analyzer_plugin/src/utilities/completion/replacement_range.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/src/converter.dart';
@@ -24,14 +22,10 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
-
 import 'package:analysis_server/src/protocol_server.dart'
     show CompletionSuggestion, CompletionSuggestionKind, Location;
-
 import 'package:analysis_server/src/protocol_server.dart'
     show CompletionSuggestion;
-
-import 'embedded_dart_completion_request.dart';
 
 bool offsetContained(int offset, int start, int length) =>
     start <= offset && start + length >= offset;
@@ -241,21 +235,150 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   }
 }
 
+/// Extension of [TypeMemberContributor] to allow for Dart-based
+/// completion within Angular context.
+class NgTypeMemberContributor extends TypeMemberContributor {
+  @override
+  @override
+  Future<Null> computeSuggestions(
+      CompletionRequest request, CompletionCollector collector,
+      {AstNode entryPoint: null}) async {
+    final result = request.result as CompletionResolveResult;
+    final templates = result.templates;
+
+    for (final template in templates) {
+      // Check if this template is valid.
+      final isFromHtmlFile = template.view.templateUriSource != null;
+      final isFromValidDartTemplate =
+          template.view.templateOffset <= request.offset &&
+              request.offset < template.view.end;
+      if (!isFromHtmlFile && !isFromValidDartTemplate) {
+        continue;
+      }
+      final initialSuggestionLength = collector.suggestionsLength;
+      final typeProvider = template.view.component.classElement.enclosingElement
+          .enclosingElement.context.typeProvider;
+      final target = findTarget(request.offset, template.ast);
+      final extractor = new DartSnippetExtractor()..offset = request.offset;
+      target.accept(extractor);
+
+      // If completion request is in
+      // [StatementsBoundAttribute],
+      // [ExpressionsBoundAttribute],
+      // [Mustache],
+      // [TemplateAttribute] on dot-target.
+      if (extractor.dartSnippet != null) {
+        final entryPoint = extractor.dartSnippet;
+        final completionTarget = new CompletionTarget.forOffset(
+            null, request.offset,
+            entryPoint: entryPoint);
+
+        if (!collector.offsetIsSet) {
+          final range =
+              new ReplacementRange.compute(request.offset, completionTarget);
+          collector
+            ..offset = range.offset
+            ..length = range.length;
+        }
+
+        final classElement = template.view.classElement;
+        final libraryElement = classElement.library;
+
+        final dartResolveResult = new NgResolveResult(request.result.path, [],
+            libraryElement: libraryElement, typeProvider: typeProvider);
+        final dartRequest = new CompletionRequestImpl(
+            request.resourceProvider, dartResolveResult, request.offset);
+
+        await super
+            .computeSuggestions(dartRequest, collector, entryPoint: entryPoint);
+
+        if (collector.suggestionsLength != initialSuggestionLength &&
+            !collector.offsetIsSet) {
+          final range =
+              new ReplacementRange.compute(request.offset, completionTarget);
+          collector
+            ..offset = range.offset
+            ..length = range.length;
+        }
+      }
+    }
+  }
+}
+
 /// Extension of [InheritedReferenceContributor] to allow for Dart-based
 /// completion within Angular context.
 class NgInheritedReferenceContributor extends InheritedReferenceContributor {
   @override
-  @override
   Future<Null> computeSuggestions(
-      CompletionRequest request,
-      CompletionCollector collector, {
-        ClassElement classElement,
-        AstNode entryPoint,
-        bool skipChildClass,
-      }) async {
+      CompletionRequest request, CompletionCollector collector) async {
+    final result = request.result as CompletionResolveResult;
+    final templates = result.templates;
+
+    for (final template in templates) {
+      // Check if this template is valid.
+      final isFromHtmlFile = template.view.templateUriSource != null;
+      final isFromValidDartTemplate =
+          template.view.templateOffset <= request.offset &&
+              request.offset < template.view.end;
+      if (!isFromHtmlFile && !isFromValidDartTemplate) {
+        continue;
+      }
+      final initialSuggestionLength = collector.suggestionsLength;
+      final typeProvider = template.view.component.classElement.enclosingElement
+          .enclosingElement.context.typeProvider;
+      final target = findTarget(request.offset, template.ast);
+      final extractor = new DartSnippetExtractor()..offset = request.offset;
+      target.accept(extractor);
+
+      if (extractor.dartSnippet != null) {
+        final entryPoint = extractor.dartSnippet;
+        final completionTarget = new CompletionTarget.forOffset(
+            null, request.offset,
+            entryPoint: entryPoint);
+
+        final optype =
+            defineOpType(completionTarget, request.offset, entryPoint);
+        final classElement = template.view.classElement;
+        final libraryElement = classElement.library;
+
+        final dartResolveResult = new NgResolveResult(request.result.path, [],
+            libraryElement: libraryElement, typeProvider: typeProvider);
+        final dartRequest = new CompletionRequestImpl(
+            request.resourceProvider, dartResolveResult, request.offset);
+
+        await super.computeSuggestionsForClass(
+          dartRequest,
+          collector,
+          classElement: classElement,
+          entryPoint: entryPoint,
+          optype: optype,
+          skipChildClass: false,
+        );
+
+        if (optype.includeIdentifiers) {
+          final varExtractor = new LocalVariablesExtractor();
+          target.accept(varExtractor);
+          if (varExtractor.variables != null) {
+            addLocalVariables(
+              collector,
+              varExtractor.variables,
+              optype,
+            );
+          }
+        }
+
+        if (collector.suggestionsLength != initialSuggestionLength &&
+            !collector.offsetIsSet) {
+          final range =
+              new ReplacementRange.compute(request.offset, completionTarget);
+          collector
+            ..offset = range.offset
+            ..length = range.length;
+        }
+      }
+    }
   }
 
-  @override
   OpType defineOpType(CompletionTarget target, int offset, AstNode entryPoint) {
     final optype = new OpType.forCompletion(target, offset);
 
@@ -265,7 +388,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
       optype
         ..includeReturnValueSuggestions = true
         ..includeTypeNameSuggestions = true
-      // expressions always have nonvoid returns
+        // expressions always have nonvoid returns
         ..includeVoidReturnSuggestions = !(entryPoint is Expression);
     }
 
@@ -275,6 +398,47 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
       optype.includeVoidReturnSuggestions = false;
     }
     return optype;
+  }
+
+  void addLocalVariables(CompletionCollector collector,
+      Map<String, LocalVariable> localVars, OpType optype) {
+    for (final eachVar in localVars.values) {
+      collector.addSuggestion(_addLocalVariableSuggestion(
+          eachVar,
+          eachVar.dartVariable.type,
+          protocol.ElementKind.LOCAL_VARIABLE,
+          optype,
+          relevance: DART_RELEVANCE_LOCAL_VARIABLE));
+    }
+  }
+
+  CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
+      DartType typeName, protocol.ElementKind elemKind, OpType optype,
+      {int relevance: DART_RELEVANCE_DEFAULT}) {
+    // ignore: parameter_assignments
+    relevance = optype.returnValueSuggestionsFilter(
+            variable.dartVariable.type, relevance) ??
+        DART_RELEVANCE_DEFAULT;
+    return _createLocalSuggestion(variable, relevance, typeName,
+        _createLocalElement(variable, elemKind, typeName));
+  }
+
+  CompletionSuggestion _createLocalSuggestion(LocalVariable localVar,
+      int defaultRelevance, DartType type, protocol.Element element) {
+    final completion = localVar.name;
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        returnType: type.toString(), element: element);
+  }
+
+  protocol.Element _createLocalElement(
+      LocalVariable localVar, protocol.ElementKind kind, DartType type) {
+    final name = localVar.name;
+    final location = new Location(localVar.source.fullName, localVar.nameOffset,
+        localVar.nameLength, 0, 0);
+    final flags = protocol.Element.makeFlags();
+    return new protocol.Element(kind, name, flags,
+        location: location, returnType: type.toString());
   }
 }
 
@@ -291,15 +455,8 @@ class AngularCompletionContributor extends CompletionContributor {
   @override
   Future<Null> computeSuggestions(
       CompletionRequest request, CompletionCollector collector) async {
-    final path = request.result.path;
-    final templates = await driver.getTemplatesForFile(path);
-    if (templates.isEmpty) {
-      // Todo(Max): Once fix added in plugin architecture, remove offset/length.
-      collector
-        ..offset = request.offset
-        ..length = 0;
-      return null;
-    }
+    final result = request.result as CompletionResolveResult;
+    final templates = result.templates;
 
     await driver.getStandardHtml();
     assert(driver.standardHtml != null);
@@ -344,76 +501,82 @@ class TemplateCompleter {
     final typeProvider = template.view.component.classElement.enclosingElement
         .enclosingElement.context.typeProvider;
     final target = findTarget(request.offset, template.ast);
-    final extractor = new DartSnippetExtractor()..offset = request.offset;
-    target.accept(extractor);
+    final initialSuggestionsCount = collector.suggestionsLength;
+//    final extractor = new DartSnippetExtractor()..offset = request.offset;
+//    target.accept(extractor);
 
-    // If [CompletionRequest] is in
-    // [StatementsBoundAttribute],
-    // [ExpressionsBoundAttribute],
-    // [Mustache],
-    // [TemplateAttribute].
-    if (extractor.dartSnippet != null) {
-      final dartRequestOLD = new EmbeddedDartCompletionRequest.from(
-          request, extractor.dartSnippet);
-//      final range =
-//          new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
-      final entryPoint = extractor.dartSnippet;
-      final completionTarget =
-          new CompletionTarget.forOffset(null, request.offset, entryPoint: entryPoint);
-      final tempOpType =  new OpType.forCompletion(completionTarget, request.offset);
-
-      final range = new ReplacementRange.compute(request.offset, completionTarget);
-      collector
-        ..offset = range.offset
-        ..length = range.length;
-
-//      dartRequest.libraryElement = template.view.classElement.library;
-      final classElement = template.view.classElement;
-      final libraryElement = classElement.library;
-
-      final dartResolveResult = new NgResolveResult(request.result.path, [],
-          libraryElement, typeProvider);
-      final dartRequest = new CompletionRequestImpl(
-          request.resourceProvider, dartResolveResult, request.offset);
-
-      final inheritedReferenceContributor = new InheritedReferenceContributor();
-      final typeMemberContributor = new TypeMemberContributor();
-
-      await inheritedReferenceContributor.computeSuggestions(
-          dartRequest, collector, classElement: classElement, entryPoint: entryPoint, overrideOptype: dartRequestOLD.opType, skipChildClass: false);
-      await typeMemberContributor.computeSuggestions(dartRequest, collector, entryPoint: entryPoint);
-
-//      final memberContributor = new TypeMemberContributor();
-//      final inheritedContributor = new InheritedReferenceContributor();
-//      inheritedContributor
-//          .computeSuggestionsForClass(
-//            template.view.classElement,
-//            dartRequest,
-//            skipChildClass: false,
-//          )
-//          .forEach(collector.addSuggestion);
-//      await memberContributor
-//          .computeSuggestions(dartRequest)
-//          .then((results) => results.forEach(collector.addSuggestion));
+//    // If [CompletionRequest] is in
+//    // [StatementsBoundAttribute],
+//    // [ExpressionsBoundAttribute],
+//    // [Mustache],
+//    // [TemplateAttribute].
+//    if (extractor.dartSnippet != null) {
+//      final dartRequestOLD = new EmbeddedDartCompletionRequest.from(
+//          request, extractor.dartSnippet);
+////      final range =
+////          new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
+//      final entryPoint = extractor.dartSnippet;
+//      final completionTarget = new CompletionTarget.forOffset(
+//          null, request.offset,
+//          entryPoint: entryPoint);
+//      final tempOpType =
+//          new OpType.forCompletion(completionTarget, request.offset);
 //
-      if (dartRequestOLD.opType.includeIdentifiers) {
-        final varExtractor = new LocalVariablesExtractor();
-        target.accept(varExtractor);
-        if (varExtractor.variables != null) {
-          addLocalVariables(
-            collector,
-            varExtractor.variables,
-            dartRequestOLD.opType,
-          );
-        }
-      }
-      return null;
-    }
+//      final range =
+//          new ReplacementRange.compute(request.offset, completionTarget);
+//      collector
+//        ..offset = range.offset
+//        ..length = range.length;
+//
+////      dartRequest.libraryElement = template.view.classElement.library;
+//      final classElement = template.view.classElement;
+//      final libraryElement = classElement.library;
+//
+//      final dartResolveResult = new NgResolveResult(request.result.path, [],
+//          libraryElement: libraryElement, typeProvider: typeProvider);
+//      final dartRequest = new CompletionRequestImpl(
+//          request.resourceProvider, dartResolveResult, request.offset);
+//
+//      final inheritedReferenceContributor = new InheritedReferenceContributor();
+//      final typeMemberContributor = new TypeMemberContributor();
+//
+//      await inheritedReferenceContributor.computeSuggestions(
+//          dartRequest, collector,
+//          classElement: classElement,
+//          entryPoint: entryPoint,
+//          optype: dartRequestOLD.opType,
+//          skipChildClass: false);
+//      await typeMemberContributor.computeSuggestions(dartRequest, collector,
+//          entryPoint: entryPoint);
+//
+////      final memberContributor = new TypeMemberContributor();
+////      final inheritedContributor = new InheritedReferenceContributor();
+////      inheritedContributor
+////          .computeSuggestionsForClass(
+////            template.view.classElement,
+////            dartRequest,
+////            skipChildClass: false,
+////          )
+////          .forEach(collector.addSuggestion);
+////      await memberContributor
+////          .computeSuggestions(dartRequest)
+////          .then((results) => results.forEach(collector.addSuggestion));
+////
+//      if (dartRequestOLD.opType.includeIdentifiers) {
+//        final varExtractor = new LocalVariablesExtractor();
+//        target.accept(varExtractor);
+//        if (varExtractor.variables != null) {
+//          addLocalVariables(
+//            collector,
+//            varExtractor.variables,
+//            dartRequestOLD.opType,
+//          );
+//        }
+//      }
+//      return null;
+//    }
     final replacementRangeCalculator = new ReplacementRangeCalculator(request);
     target.accept(replacementRangeCalculator);
-    collector
-      ..offset = replacementRangeCalculator.offset
-      ..length = replacementRangeCalculator.length;
     if (target is ElementInfo) {
       if (target.closingSpan != null &&
           offsetContained(request.offset, target.closingSpan.offset,
@@ -548,6 +711,13 @@ class TemplateCompleter {
     } else if (target is TextInfo) {
       suggestHtmlTags(template, collector);
       suggestTransclusions(target.parent, collector);
+    }
+
+    if (collector.suggestionsLength != initialSuggestionsCount &&
+        !collector.offsetIsSet) {
+      collector
+        ..offset = replacementRangeCalculator.offset
+        ..length = replacementRangeCalculator.length;
     }
   }
 

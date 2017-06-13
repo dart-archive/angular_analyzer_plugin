@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
-import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -23,11 +22,14 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   }
 
   @override
-  CompletionContributor createContributor() =>
-      new AngularCompletionContributor(angularDriver);
-
-  @override
-  CompletionCollectorImpl createCollector() => new CompletionCollectorImpl();
+  List<CompletionContributor> createContributors() {
+    final contributors = <CompletionContributor>[];
+    contributors
+      ..add(new AngularCompletionContributor(angularDriver))
+      ..add(new NgInheritedReferenceContributor())
+      ..add(new NgTypeMemberContributor());
+    return contributors;
+  }
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -539,11 +541,14 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   }
 
   @override
-  CompletionContributor createContributor() =>
-      new AngularCompletionContributor(angularDriver);
-
-  @override
-  CompletionCollectorImpl createCollector() => new CompletionCollectorImpl();
+  List<CompletionContributor> createContributors() {
+    final contributors = <CompletionContributor>[];
+    contributors
+      ..add(new AngularCompletionContributor(angularDriver))
+      ..add(new NgInheritedReferenceContributor())
+      ..add(new NgTypeMemberContributor());
+    return contributors;
+  }
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -670,8 +675,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -691,8 +696,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 1);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -712,8 +717,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let item'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -733,8 +738,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let i'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 

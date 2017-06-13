@@ -28,28 +28,34 @@ int suggestionComparator(CompletionSuggestion s1, CompletionSuggestion s2) {
 
 abstract class AbstractCompletionContributorTest
     extends BaseCompletionContributorTest {
-  CompletionContributor contributor;
+  List<CompletionContributor> contributors;
   CompletionCollectorImpl collector;
-  CompletionResolveResult resolveResult;
 
   @override
   void setUp() {
     super.setUp();
-    contributor = createContributor();
-    collector = createCollector();
-    resolveResult = new CompletionResolveResult(testFile);
+    contributors = createContributors();
   }
 
-  CompletionContributor createContributor();
-  CompletionCollectorImpl createCollector();
+  List<CompletionContributor> createContributors();
 
   @override
   Future computeSuggestions([int times = 200]) async {
+    final templates = await angularDriver.getTemplatesForFile(testFile);
+    final resolveResult = new CompletionResolveResult(testFile, templates);
     final request = new CompletionRequestImpl(
         resourceProvider, resolveResult, completionOffset);
+    final collector = new CompletionCollectorImpl();
 
     // Request completions
-    await contributor.computeSuggestions(request, collector);
+    for (final contributor in contributors) {
+      await contributor.computeSuggestions(request, collector);
+    }
+    if (!collector.offsetIsSet) {
+      collector
+        ..offset = request.offset
+        ..length = 0;
+    }
     suggestions = collector.suggestions;
     replacementOffset = collector.offset;
     replacementLength = collector.length;

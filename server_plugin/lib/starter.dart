@@ -19,6 +19,7 @@ import 'package:analysis_server/src/domain_completion.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart'
     as new_core;
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 
 class Starter {
   final angularDrivers = <String, AngularDriver>{};
@@ -109,8 +110,11 @@ class Starter {
             driverPath) {
           final driver = angularDrivers[driverPath];
 
-          final completionContributor =
-              new AngularCompletionContributor(driver);
+          final contributors = <CompletionContributor>[];
+          contributors
+            ..add(new AngularCompletionContributor(driver))
+            ..add(new NgTypeMemberContributor())
+            ..add(new NgInheritedReferenceContributor());
           final completionRequest = new CompletionRequestImpl(
             null, // AnalysisResult - unneeded for AngularCompletion
             server.resourceProvider,
@@ -122,12 +126,20 @@ class Starter {
           server.sendResponse(new CompletionGetSuggestionsResult(completionId)
               .toResponse(request.id));
 
-          final result = new CompletionResolveResult(filePath);
+          final templates = await driver.getTemplatesForFile(filePath);
+          final result = new CompletionResolveResult(filePath, templates);
           final newRequest = new new_core.CompletionRequestImpl(
               server.resourceProvider, result, params.offset);
           final collector = new new_core.CompletionCollectorImpl();
 
-          await completionContributor.computeSuggestions(newRequest, collector);
+          for (final contributor in contributors) {
+            await contributor.computeSuggestions(newRequest, collector);
+          }
+          if (!collector.offsetIsSet) {
+            collector
+              ..offset = params.offset
+              ..length = 0;
+          }
           final suggestions = collector.suggestions;
 
           completionHandler
