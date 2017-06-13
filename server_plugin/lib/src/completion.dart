@@ -5,14 +5,17 @@ import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show Element, ElementKind;
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
+import 'package:analyzer_plugin/utilities/completion/inherited_reference_contributor.dart';
+import 'package:analyzer_plugin/utilities/completion/type_member_contributor.dart';
 import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
-import 'package:analysis_server/src/services/completion/dart/type_member_contributor.dart';
-import 'package:analysis_server/src/services/completion/dart/inherited_reference_contributor.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
+import 'package:analysis_server/src/services/completion/dart/completion_manager.dart'
+    show ReplacementRange;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/src/converter.dart';
@@ -20,6 +23,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:angular_analysis_plugin/src/resolve_result.dart';
 
 import 'package:analysis_server/src/protocol_server.dart'
     show CompletionSuggestion, CompletionSuggestionKind, Location;
@@ -237,6 +241,43 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   }
 }
 
+/// Extension of [InheritedReferenceContributor] to allow for Dart-based
+/// completion within Angular context.
+class NgInheritedReferenceContributor extends InheritedReferenceContributor {
+  @override
+  @override
+  Future<Null> computeSuggestions(
+      CompletionRequest request,
+      CompletionCollector collector, {
+        ClassElement classElement,
+        AstNode entryPoint,
+        bool skipChildClass,
+      }) async {
+  }
+
+  @override
+  OpType defineOpType(CompletionTarget target, int offset, AstNode entryPoint) {
+    final optype = new OpType.forCompletion(target, offset);
+
+    // if the containing node IS the AST, it means the context decides what's
+    // completable. In that case, that's in our court only.
+    if (target.containingNode == entryPoint) {
+      optype
+        ..includeReturnValueSuggestions = true
+        ..includeTypeNameSuggestions = true
+      // expressions always have nonvoid returns
+        ..includeVoidReturnSuggestions = !(entryPoint is Expression);
+    }
+
+    // NG Expressions (not statements) always must return something. We have to
+    // force that ourselves here.
+    if (entryPoint is Expression) {
+      optype.includeVoidReturnSuggestions = false;
+    }
+    return optype;
+  }
+}
+
 /// Contributor to contribute angular entities.
 class AngularCompletionContributor extends CompletionContributor {
   final AngularDriver driver;
@@ -312,36 +353,57 @@ class TemplateCompleter {
     // [Mustache],
     // [TemplateAttribute].
     if (extractor.dartSnippet != null) {
-      final dartRequest = new EmbeddedDartCompletionRequest.from(
+      final dartRequestOLD = new EmbeddedDartCompletionRequest.from(
           request, extractor.dartSnippet);
-      final range =
-          new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
+//      final range =
+//          new ReplacementRange.compute(dartRequest.offset, dartRequest.target);
+      final entryPoint = extractor.dartSnippet;
+      final completionTarget =
+          new CompletionTarget.forOffset(null, request.offset, entryPoint: entryPoint);
+      final tempOpType =  new OpType.forCompletion(completionTarget, request.offset);
+
+      final range = new ReplacementRange.compute(request.offset, completionTarget);
       collector
         ..offset = range.offset
         ..length = range.length;
 
-      dartRequest.libraryElement = template.view.classElement.library;
-      final memberContributor = new TypeMemberContributor();
-      final inheritedContributor = new InheritedReferenceContributor();
-      inheritedContributor
-          .computeSuggestionsForClass(
-            template.view.classElement,
-            dartRequest,
-            skipChildClass: false,
-          )
-          .forEach(collector.addSuggestion);
-      await memberContributor
-          .computeSuggestions(dartRequest)
-          .then((results) => results.forEach(collector.addSuggestion));
+//      dartRequest.libraryElement = template.view.classElement.library;
+      final classElement = template.view.classElement;
+      final libraryElement = classElement.library;
 
-      if (dartRequest.opType.includeIdentifiers) {
+      final dartResolveResult = new NgResolveResult(request.result.path, [],
+          libraryElement, typeProvider);
+      final dartRequest = new CompletionRequestImpl(
+          request.resourceProvider, dartResolveResult, request.offset);
+
+      final inheritedReferenceContributor = new InheritedReferenceContributor();
+      final typeMemberContributor = new TypeMemberContributor();
+
+      await inheritedReferenceContributor.computeSuggestions(
+          dartRequest, collector, classElement: classElement, entryPoint: entryPoint, overrideOptype: dartRequestOLD.opType, skipChildClass: false);
+      await typeMemberContributor.computeSuggestions(dartRequest, collector, entryPoint: entryPoint);
+
+//      final memberContributor = new TypeMemberContributor();
+//      final inheritedContributor = new InheritedReferenceContributor();
+//      inheritedContributor
+//          .computeSuggestionsForClass(
+//            template.view.classElement,
+//            dartRequest,
+//            skipChildClass: false,
+//          )
+//          .forEach(collector.addSuggestion);
+//      await memberContributor
+//          .computeSuggestions(dartRequest)
+//          .then((results) => results.forEach(collector.addSuggestion));
+//
+      if (dartRequestOLD.opType.includeIdentifiers) {
         final varExtractor = new LocalVariablesExtractor();
         target.accept(varExtractor);
         if (varExtractor.variables != null) {
           addLocalVariables(
             collector,
             varExtractor.variables,
-            dartRequest.opType,
+            dartRequestOLD.opType,
           );
         }
       }

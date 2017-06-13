@@ -4,10 +4,16 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
 
 class CompletionResolveResult extends NgResolveResult {
+  final Template templates;
+
   // Don't need errors - pass in empty list.
-  CompletionResolveResult(String path) : super(path, []);
+  CompletionResolveResult(
+    String path,
+    this.templates)
+      : super(path, []);
 }
 
 class NgResolveResult implements ResolveResult {
@@ -15,10 +21,10 @@ class NgResolveResult implements ResolveResult {
   String get content => null;
 
   @override
-  LibraryElement get libraryElement => null;
+  LibraryElement libraryElement;
 
   @override
-  TypeProvider get typeProvider => null;
+  TypeProvider typeProvider;
 
   @override
   CompilationUnit get unit => null;
@@ -38,5 +44,6 @@ class NgResolveResult implements ResolveResult {
   @override
   Uri get uri => null;
 
-  NgResolveResult(this.path, this.errors);
+  NgResolveResult(this.path, this.errors, {this.libraryElement,
+      this.typeProvider});
 }
