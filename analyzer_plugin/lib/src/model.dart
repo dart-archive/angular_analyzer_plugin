@@ -420,6 +420,15 @@ class Template {
   }
 }
 
+class ExportedIdentifier {
+  final String prefix;
+  final String identifier;
+  final SourceRange span;
+  dart.Element element;
+
+  ExportedIdentifier(this.identifier, this.span, {this.element, this.prefix});
+}
+
 /// The model of an Angular view.
 class View implements AnalysisTarget {
   /// The [ClassElement] this view is associated with.
@@ -433,6 +442,8 @@ class View implements AnalysisTarget {
   final Source templateUriSource;
   final SourceRange templateUrlRange;
   final dart.Annotation annotation;
+
+  final List<ExportedIdentifier> exports;
 
   Map<String, List<AbstractDirective>> _elementTagsInfo;
 
@@ -463,7 +474,8 @@ class View implements AnalysisTarget {
       this.templateUriSource,
       this.templateUrlRange,
       this.annotation,
-      this.directiveReferences}) {
+      this.directiveReferences,
+      this.exports}) {
     // stability/error-recovery: @Component can be missing
     component?.view = this;
   }

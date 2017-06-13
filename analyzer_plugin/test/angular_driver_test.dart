@@ -1499,6 +1499,125 @@ class ContentChildComp {}
 
     errorListener.assertNoErrors();
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasExports() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const foo = null;
+const bar = null;
+
+@Component(selector: 'my-component', template: '',
+    exports: const [foo, bar, ComponentA])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(3));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo,')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('bar'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('bar,')));
+      expect(export.span.length, equals('bar'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    {
+      final export = component.view.exports[2];
+      expect(export.identifier, equals('ComponentA'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('ComponentA]')));
+      expect(export.span.length, equals('ComponentA'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_prefixedExport() async {
+    newSource('/prefixed.dart', 'const foo = null;');
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import '/prefixed.dart' as prefixed;
+
+const foo = null;
+
+@Component(selector: 'my-component', template: '',
+    exports: const [prefixed.foo, foo])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(2));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals('prefixed'));
+      expect(export.span.offset, equals(code.indexOf('prefixed.foo')));
+      expect(export.span.length, equals('prefixed.foo'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo]')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasNonIdentifierExport() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '', exports: const [1])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS, code, '1');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasRepeatedExports() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const foo = null;
+
+@Component(selector: 'my-component', template: '', exports: const [foo, foo])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate. Can't validate position because foo occurs so many times
+    errorListener.assertErrorsWithCodes([AngularWarningCode.DUPLICATE_EXPORT]);
+  }
 }
 
 @reflectiveTest
@@ -3377,6 +3496,92 @@ class ComponentA {
     expect(templates, hasLength(0));
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasExports() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const String foo = 'foo';
+const int bar = 2;
+
+@Component(selector: 'my-component', template: '',
+    exports: const [foo, bar, ComponentA])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(3));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo,')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element.toString(), equals('get foo → String'));
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('bar'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('bar,')));
+      expect(export.span.length, equals('bar'.length));
+      expect(export.element.toString(), equals('get bar → int'));
+    }
+    {
+      final export = component.view.exports[2];
+      expect(export.identifier, equals('ComponentA'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('ComponentA]')));
+      expect(export.span.length, equals('ComponentA'.length));
+      expect(export.element.toString(), equals('class ComponentA'));
+    }
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_prefixedExport() async {
+    newSource('/prefixed.dart', 'const double foo = 2.0;');
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import '/prefixed.dart' as prefixed;
+
+const int foo = 2;
+
+@Component(selector: 'my-component', template: '',
+    exports: const [prefixed.foo, foo])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(2));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals('prefixed'));
+      expect(export.span.offset, equals(code.indexOf('prefixed.foo')));
+      expect(export.span.length, equals('prefixed.foo'.length));
+      expect(export.element.toString(), equals('get foo → double'));
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo]')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element.toString(), equals('get foo → int'));
+    }
+
+    // validate
+    errorListener.assertNoErrors();
   }
 
   static Template _getDartTemplateByClassName(

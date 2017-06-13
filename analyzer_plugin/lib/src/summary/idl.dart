@@ -97,6 +97,8 @@ abstract class SummarizedDirective extends base.SummaryClass {
   List<SummarizedContentChildField> get contentChildFields;
   @Id(16)
   List<SummarizedContentChildField> get contentChildrenFields;
+  @Id(17)
+  List<SummarizedExportedIdentifier> get exports;
 }
 
 abstract class SummarizedAnalysisError extends base.SummaryClass {
@@ -163,4 +165,15 @@ abstract class SummarizedContentChildField extends base.SummaryClass {
   int get typeOffset;
   @Id(4)
   int get typeLength;
+}
+
+abstract class SummarizedExportedIdentifier extends base.SummaryClass {
+  @Id(0)
+  String get name;
+  @Id(1)
+  String get prefix;
+  @Id(2)
+  int get offset;
+  @Id(3)
+  int get length;
 }

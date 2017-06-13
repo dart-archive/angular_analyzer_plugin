@@ -770,6 +770,7 @@ class AngularDriver
       final exportAsOffset = directive?.exportAs?.nameOffset;
       final inputs = <SummarizedBindableBuilder>[];
       final outputs = <SummarizedBindableBuilder>[];
+      final exports = <SummarizedExportedIdentifierBuilder>[];
       final contentChildFields = <SummarizedContentChildFieldBuilder>[];
       final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
       for (final input in directive.inputs) {
@@ -793,6 +794,15 @@ class AngularDriver
           ..nameOffset = nameOffset
           ..propName = propName
           ..propNameOffset = propNameOffset);
+      }
+      if (directive is Component) {
+        for (final export in directive?.view?.exports ?? []) {
+          exports.add(new SummarizedExportedIdentifierBuilder()
+            ..name = export.identifier
+            ..prefix = export.prefix
+            ..offset = export.span.offset
+            ..length = export.span.length);
+        }
       }
       for (final childField in directive.contentChildFields) {
         contentChildFields.add(new SummarizedContentChildFieldBuilder()
@@ -850,6 +860,7 @@ class AngularDriver
         ..ngContents = ngContents
         ..inputs = inputs
         ..outputs = outputs
+        ..exports = exports
         ..subdirectives = dirUseSums
         ..contentChildFields = contentChildFields
         ..contentChildrenFields = contentChildrenFields);

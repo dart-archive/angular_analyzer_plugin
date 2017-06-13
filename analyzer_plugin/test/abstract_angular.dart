@@ -212,6 +212,7 @@ class Component extends Directive {
       dynamic directives,
       dynamic pipes,
       ViewEncapsulation encapsulation,
+      List<String> exports,
       List<String> styles,
       List<String> styleUrls});
 }
@@ -223,6 +224,7 @@ class View {
       dynamic directives,
       dynamic pipes,
       ViewEncapsulation encapsulation,
+      List<String> exports,
       List<String> styles,
       List<String> styleUrls});
 }
