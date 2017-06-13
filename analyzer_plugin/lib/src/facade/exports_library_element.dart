@@ -192,10 +192,8 @@ class ExportsLibraryFacade extends ElementImpl implements LibraryElement {
 
   @override
   List<PrefixElement> get prefixes => _wrappedLib.prefixes
-      .where((prefix) =>
-          _owningComponent?.view?.exports
-              ?.any((export) => export.prefix == prefix.name) ??
-          false)
+      .where((prefix) => _owningComponent.exports
+          .any((export) => export.prefix == prefix.name))
       .toList();
 
   @override
@@ -230,9 +228,9 @@ class _PrefixedExportsLibraryFacade extends ExportsLibraryFacade {
   @override
   Namespace get exportNamespace {
     final map = <String, Element>{};
-    _owningComponent?.view?.exports
-        ?.where((export) => export.prefix == _prefix)
-        ?.forEach((export) => map[export.identifier] = export.element);
+    _owningComponent.exports
+        .where((export) => export.prefix == _prefix)
+        .forEach((export) => map[export.identifier] = export.element);
     return new Namespace(map);
   }
 }

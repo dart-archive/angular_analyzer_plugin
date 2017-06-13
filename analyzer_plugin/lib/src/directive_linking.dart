@@ -193,8 +193,9 @@ class DirectiveLinker {
 
 class ExportLinker {
   final LibraryScope _scope;
+  final ErrorReporter _errorReporter;
 
-  ExportLinker(this._scope);
+  ExportLinker(this._scope, this._errorReporter);
 
   void linkExportsFor(AbstractDirective directive) {
     if (directive is! Component) {
@@ -208,8 +209,29 @@ class ExportLinker {
     }
 
     for (final export in component.view.exports) {
+      if (hasWrongTypeOfPrefix(export)) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
+            export.span.offset,
+            export.span.length);
+        continue;
+      }
+
       export.element = _scope.lookup(getIdentifier(export), null);
     }
+  }
+
+  /// Only report false for known non-import-prefix prefixes, the rest get
+  /// flagged by the dart analyzer already.
+  bool hasWrongTypeOfPrefix(ExportedIdentifier export) {
+    if (export.prefix == '') {
+      return false;
+    }
+
+    final prefixElement =
+        _scope.lookup(getPrefixAsSimpleIdentifier(export), null);
+
+    return prefixElement != null && prefixElement is! PrefixElement;
   }
 
   Identifier getIdentifier(ExportedIdentifier export) => export.prefix == ''
@@ -218,11 +240,14 @@ class ExportLinker {
 
   PrefixedIdentifier getPrefixedIdentifier(ExportedIdentifier export) =>
       astFactory.prefixedIdentifier(
-          astFactory.simpleIdentifier(new StringToken(
-              TokenType.IDENTIFIER, export.prefix, export.span.offset)),
+          getPrefixAsSimpleIdentifier(export),
           new SimpleToken(
               TokenType.PERIOD, export.span.offset + export.prefix.length),
           getSimpleIdentifier(export, offset: export.prefix.length + 1));
+
+  SimpleIdentifier getPrefixAsSimpleIdentifier(ExportedIdentifier export) =>
+      astFactory.simpleIdentifier(new StringToken(
+          TokenType.IDENTIFIER, export.prefix, export.span.offset));
 
   SimpleIdentifier getSimpleIdentifier(ExportedIdentifier export,
           {int offset: 0}) =>
@@ -243,7 +268,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     LibraryElement library,
   ) async {
     final scope = new LibraryScope(library);
-    final exportLinker = new ExportLinker(scope);
+    final exportLinker = new ExportLinker(scope, _errorReporter);
     for (final directive in directivesToLink) {
       if (directive is Component && directive.view != null) {
         for (final reference in directive.view.directiveReferences) {

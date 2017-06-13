@@ -129,21 +129,20 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
 
   @override
   List<PropertyAccessorElement> get accessors =>
-      new List<PropertyAccessorElement>.from((_component?.view?.exports ?? [])
+      new List<PropertyAccessorElement>.from(_component.exports
           .where(_fromThisUnit)
           .map((export) => export.element)
           .where((element) => element is PropertyAccessorElement));
 
   @override
-  List<ClassElement> get enums =>
-      new List<ClassElement>.from((_component?.view?.exports ?? [])
-          .where(_fromThisUnit)
-          .map((export) => export.element)
-          .where((element) => element is ClassElement));
+  List<ClassElement> get enums => new List<ClassElement>.from(_component.exports
+      .where(_fromThisUnit)
+      .map((export) => export.element)
+      .where((element) => element is ClassElement && element.isEnum));
 
   @override
   List<FunctionElement> get functions =>
-      new List<FunctionElement>.from((_component?.view?.exports ?? [])
+      new List<FunctionElement>.from(_component.exports
           .where(_fromThisUnit)
           .map((export) => export.element)
           .where((element) => element is FunctionElement));
@@ -160,12 +159,11 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
       []; // currently never exported
 
   @override
-  List<ClassElement> get types =>
-      new List<ClassElement>.from((_component?.view?.exports ?? [])
-          .where(_fromThisUnit)
-          .map((export) => export.element)
-          .where((element) => element is ClassElement))
-        ..add(_component.classElement);
+  List<ClassElement> get types => new List<ClassElement>.from(_component.exports
+      .where(_fromThisUnit)
+      .map((export) => export.element)
+      .where((element) => element is ClassElement))
+    ..add(_component.classElement);
 
   @override
   Element getElementAt(int offset) => _wrappedUnit.getElementAt(offset);

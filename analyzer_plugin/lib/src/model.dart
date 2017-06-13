@@ -255,6 +255,8 @@ class Component extends AbstractDirective {
             contentChildrenFields: contentChildrenFields) {
     this.ngContents.addAll(ngContents ?? []);
   }
+
+  List<ExportedIdentifier> get exports => view?.exports ?? [];
 }
 
 /// An [AngularElement] representing a [dart.Element].

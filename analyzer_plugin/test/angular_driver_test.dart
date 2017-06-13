@@ -3584,6 +3584,26 @@ class ComponentA {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_hasWrongTypeOfPrefixedIdentifierExport() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '',
+    exports: const [ComponentA.foo])
+class ComponentA {
+  static void foo(){}
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
+        code,
+        'ComponentA.foo');
+  }
+
   static Template _getDartTemplateByClassName(
           List<Template> templates, String className) =>
       templates.firstWhere(

@@ -372,7 +372,7 @@ class AngularWarningCode extends ErrorCode {
   static const EXPORTS_MUST_BE_PLAIN_IDENTIFIERS = const AngularWarningCode(
       'EXPORTS_MUST_BE_PLAIN_IDENTIFIERS', 'Exports must be plain identifiers');
 
-  /// An error code indicating that the exports array got a non-identifier
+  /// An error code indicating that an identifier was exported multiple times
   static const DUPLICATE_EXPORT = const AngularWarningCode(
       'DUPLICATE_EXPORT', 'Duplicate export of identifier {0}');
 
