@@ -128,13 +128,15 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
   Future<ResolveResult> getResolveResultForCompletion(
       AngularDriver driver, String path) async {
     final templates = await driver.getTemplatesForFile(path);
-    return new CompletionResolveResult(path, templates);
+    final standardHtml = await driver.getStandardHtml();
+    assert(standardHtml != null);
+    return new CompletionResolveResult(path, templates, standardHtml);
   }
 
   @override
   List<CompletionContributor> getCompletionContributors(AngularDriver driver) =>
       <CompletionContributor>[
-        new AngularCompletionContributor(driver),
+        new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
         new NgTypeMemberContributor()
       ];

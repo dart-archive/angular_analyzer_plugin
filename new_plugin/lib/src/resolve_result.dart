@@ -5,12 +5,15 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
 
 class CompletionResolveResult extends NgResolveResult {
   final List<Template> templates;
+  final StandardHtml standardHtml;
 
   // Don't need errors - pass in empty list.
-  CompletionResolveResult(String path, this.templates) : super(path, const []);
+  CompletionResolveResult(String path, this.templates, this.standardHtml)
+      : super(path, const []);
 }
 
 class NgResolveResult implements ResolveResult {

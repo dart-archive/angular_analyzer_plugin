@@ -39,7 +39,7 @@ abstract class AbstractCompletionContributorTest
   }
 
   List<CompletionContributor> createContributors() => <CompletionContributor>[
-        new AngularCompletionContributor(angularDriver),
+        new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
         new NgTypeMemberContributor()
       ];
@@ -47,7 +47,9 @@ abstract class AbstractCompletionContributorTest
   @override
   Future computeSuggestions([int times = 200]) async {
     final templates = await angularDriver.getTemplatesForFile(testFile);
-    final resolveResult = new CompletionResolveResult(testFile, templates);
+    final standardHtml = await angularDriver.getStandardHtml();
+    final resolveResult =
+        new CompletionResolveResult(testFile, templates, standardHtml);
     final request = new CompletionRequestImpl(
         resourceProvider, resolveResult, completionOffset);
     final collector = new CompletionCollectorImpl();

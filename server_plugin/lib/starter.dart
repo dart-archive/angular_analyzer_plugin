@@ -111,7 +111,7 @@ class Starter {
           final driver = angularDrivers[driverPath];
 
           final contributors = <CompletionContributor>[
-            new AngularCompletionContributor(driver),
+            new AngularCompletionContributor(),
             new NgTypeMemberContributor(),
             new NgInheritedReferenceContributor()
           ];
@@ -127,7 +127,9 @@ class Starter {
               .toResponse(request.id));
 
           final templates = await driver.getTemplatesForFile(filePath);
-          final result = new CompletionResolveResult(filePath, templates);
+          final standardHtml = await driver.getStandardHtml();
+          final result =
+              new CompletionResolveResult(filePath, templates, standardHtml);
           final newRequest = new new_core.CompletionRequestImpl(
               server.resourceProvider, result, params.offset);
           final collector = new new_core.CompletionCollectorImpl();

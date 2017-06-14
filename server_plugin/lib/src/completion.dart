@@ -242,7 +242,7 @@ class NgTypeMemberContributor extends TypeMemberContributor {
   @override
   Future<Null> computeSuggestions(
       CompletionRequest request, CompletionCollector collector,
-      {AstNode entryPoint: null}) async {
+      {AstNode entryPoint}) async {
     final result = request.result as CompletionResolveResult;
     final templates = result.templates;
 
@@ -434,11 +434,9 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
 
 /// Contributor to contribute angular entities.
 class AngularCompletionContributor extends CompletionContributor {
-  final AngularDriver driver;
-
   /// Initialize a newly created handler to handle requests for the given
   /// [server].
-  AngularCompletionContributor(this.driver);
+  AngularCompletionContributor();
 
   /// Return a [Future] that completes with a list of suggestions
   /// for the given completion [request].
@@ -447,12 +445,9 @@ class AngularCompletionContributor extends CompletionContributor {
       CompletionRequest request, CompletionCollector collector) async {
     final result = request.result as CompletionResolveResult;
     final templates = result.templates;
-
-    await driver.getStandardHtml();
-    assert(driver.standardHtml != null);
-
-    final events = driver.standardHtml.events.values;
-    final attributes = driver.standardHtml.uniqueAttributeElements;
+    final standardHtml = result.standardHtml;
+    final events = standardHtml.events.values;
+    final attributes = standardHtml.uniqueAttributeElements;
 
     final templateCompleter = new TemplateCompleter();
     for (final template in templates) {
