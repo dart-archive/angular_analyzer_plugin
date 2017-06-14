@@ -3604,6 +3604,27 @@ class ComponentA {
         'ComponentA.foo');
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_misspelledPrefixSuppressesWrongPrefixTypeError() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '',
+    exports: const [garbage.garbage])
+class ComponentA {
+  static void foo(){}
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    errorListener.assertErrorsWithCodes(<ErrorCode>[
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      CompileTimeErrorCode.CONST_WITH_NON_CONSTANT_ARGUMENT,
+      CompileTimeErrorCode.NON_CONSTANT_LIST_ELEMENT
+    ]);
+  }
+
   static Template _getDartTemplateByClassName(
           List<Template> templates, String className) =>
       templates.firstWhere(
