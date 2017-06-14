@@ -10,7 +10,7 @@ class CompletionResolveResult extends NgResolveResult {
   final List<Template> templates;
 
   // Don't need errors - pass in empty list.
-  CompletionResolveResult(String path, this.templates) : super(path, []);
+  CompletionResolveResult(String path, this.templates) : super(path, const []);
 }
 
 class NgResolveResult implements ResolveResult {

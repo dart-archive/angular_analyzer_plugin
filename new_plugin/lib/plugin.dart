@@ -59,8 +59,6 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
         sourceFactory,
         fileContentOverlay);
 
-    _loadCompletionContributors(driver);
-
     return driver;
   }
 
@@ -135,12 +133,9 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
 
   @override
   List<CompletionContributor> getCompletionContributors(AngularDriver driver) =>
-      driver.completionContributors;
-
-  void _loadCompletionContributors(AngularDriver driver) {
-    driver.completionContributors
-      ..add(new AngularCompletionContributor(driver))
-      ..add(new NgInheritedReferenceContributor())
-      ..add(new NgTypeMemberContributor());
-  }
+      <CompletionContributor>[
+        new AngularCompletionContributor(driver),
+        new NgInheritedReferenceContributor(),
+        new NgTypeMemberContributor()
+      ];
 }

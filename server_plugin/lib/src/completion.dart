@@ -163,11 +163,10 @@ class LocalVariablesExtractor extends AngularAstVisitor {
 }
 
 class ReplacementRangeCalculator extends AngularAstVisitor {
-  CompletionRequestImpl request;
-  int offset;
-  int length = 0;
+  int offset; // replacementOffset. Initially requestOffset.
+  int length = 0; // replacementLength
 
-  ReplacementRangeCalculator(this.request) {
+  ReplacementRangeCalculator(CompletionRequestImpl request) {
     offset = request.offset;
   }
 
@@ -182,7 +181,7 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
     }
     final nameSpanEnd =
         element.openingNameSpan.offset + element.openingNameSpan.length;
-    if (offsetContained(request.offset, element.openingSpan.offset,
+    if (offsetContained(offset, element.openingSpan.offset,
         nameSpanEnd - element.openingSpan.offset)) {
       offset = element.openingSpan.offset;
       length = element.localName.length + 1;
@@ -197,8 +196,8 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   void visitTextInfo(TextInfo textInfo) {
-    if (request.offset > textInfo.offset &&
-        textInfo.text[request.offset - textInfo.offset - 1] == '<') {
+    if (offset > textInfo.offset &&
+        textInfo.text[offset - textInfo.offset - 1] == '<') {
       offset--;
       length = 1;
     }
@@ -207,7 +206,7 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   @override
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
     if (offsetContained(
-        request.offset, attr.originalNameOffset, attr.originalName.length)) {
+        offset, attr.originalNameOffset, attr.originalName.length)) {
       offset = attr.originalNameOffset;
       length = attr.originalName.length;
     }
@@ -216,7 +215,7 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   @override
   void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
     if (offsetContained(
-        request.offset, attr.originalNameOffset, attr.originalName.length)) {
+        offset, attr.originalNameOffset, attr.originalName.length)) {
       offset = attr.originalNameOffset;
       length = attr.originalName.length;
     }
@@ -228,7 +227,7 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
     if (offsetContained(
-        request.offset, attr.originalNameOffset, attr.originalName.length)) {
+        offset, attr.originalNameOffset, attr.originalName.length)) {
       offset = attr.originalNameOffset;
       length = attr.originalName.length;
     }
@@ -273,14 +272,6 @@ class NgTypeMemberContributor extends TypeMemberContributor {
             null, request.offset,
             entryPoint: entryPoint);
 
-        if (!collector.offsetIsSet) {
-          final range =
-              new ReplacementRange.compute(request.offset, completionTarget);
-          collector
-            ..offset = range.offset
-            ..length = range.length;
-        }
-
         final classElement = template.view.classElement;
         final libraryElement = classElement.library;
 
@@ -289,8 +280,8 @@ class NgTypeMemberContributor extends TypeMemberContributor {
         final dartRequest = new CompletionRequestImpl(
             request.resourceProvider, dartResolveResult, request.offset);
 
-        await super
-            .computeSuggestions(dartRequest, collector, entryPoint: entryPoint);
+        await super.computeSuggestionsWithEntryPoint(
+            dartRequest, collector, entryPoint);
 
         if (collector.suggestionsLength != initialSuggestionLength &&
             !collector.offsetIsSet) {
@@ -349,8 +340,9 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
         await super.computeSuggestionsForClass(
           dartRequest,
           collector,
-          classElement: classElement,
+          classElement,
           entryPoint: entryPoint,
+          target: completionTarget,
           optype: optype,
           skipChildClass: false,
         );
@@ -632,7 +624,7 @@ class TemplateCompleter {
     } else if (target is AttributeInfo && target.parent is TemplateAttribute) {
       // `let foo`. Nothing to suggest.
       if (target is TextAttribute && target.name.startsWith("let-")) {
-        return null;
+        return;
       }
 
       if (offsetContained(request.offset, target.originalNameOffset,
