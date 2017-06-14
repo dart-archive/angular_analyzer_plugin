@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
-import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
+import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -9,8 +8,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'completion_contributor_test_util.dart';
 
 void main() {
-  // TODO: get these working again on the latest SDK
-  //defineReflectiveTests(DartCompletionContributorTest);
+  defineReflectiveTests(DartCompletionContributorTest);
   defineReflectiveTests(HtmlCompletionContributorTest);
 }
 
@@ -21,10 +19,6 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
     testFile = '/completionTest.dart';
     super.setUp();
   }
-
-  @override
-  CompletionContributor createContributor() =>
-      new AngularCompletionContributor(angularDriver);
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -144,7 +138,7 @@ class MyComponent {}
     inputs: const ['myDynamicInput'])
 class MyChildComponent {
   @Input() String stringInput;
-  @Input() String intInput;
+  @Input() int intInput;
   @Output() EventEmitter<String> myEvent;
   
   bool _myDynamicInput = false;
@@ -533,12 +527,7 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   void setUp() {
     testFile = '/completionTest.html';
     super.setUp();
-    createContributor();
   }
-
-  @override
-  CompletionContributor createContributor() =>
-      new AngularCompletionContributor(angularDriver);
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -665,8 +654,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -686,8 +675,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 1);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -707,8 +696,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let item'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -728,8 +717,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let i'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 

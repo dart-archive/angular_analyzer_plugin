@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 import 'dart:async';
 
-import 'package:analysis_server/src/services/completion/completion_core.dart';
-import 'package:analysis_server/src/services/completion/dart/completion_manager.dart';
-import 'package:analysis_server/src/services/completion/completion_performance.dart';
 import 'package:analyzer/context/context_root.dart';
+import 'package:analyzer/dart/analysis/results.dart' show ResolveResult;
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
@@ -15,12 +13,15 @@ import 'package:analyzer_plugin/plugin/plugin.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
+import 'package:analyzer_plugin/plugin/completion_mixin.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
+import 'package:angular_analysis_plugin/src/resolve_result.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 
-class AngularAnalysisPlugin extends ServerPlugin {
+class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
   AngularAnalysisPlugin(ResourceProvider provider) : super(provider);
 
   @override
@@ -50,13 +51,15 @@ class AngularAnalysisPlugin extends ServerPlugin {
 
     final sourceFactory = dartDriver.sourceFactory;
 
-    return new AngularDriver(
+    final driver = new AngularDriver(
         new ChannelNotificationManager(channel),
         dartDriver,
         analysisDriverScheduler,
         byteStore,
         sourceFactory,
         fileContentOverlay);
+
+    return driver;
   }
 
   void sendNotificationForSubscription(
@@ -122,24 +125,19 @@ class AngularAnalysisPlugin extends ServerPlugin {
   }
 
   @override
-  Future<plugin.CompletionGetSuggestionsResult> handleCompletionGetSuggestions(
-      plugin.CompletionGetSuggestionsParams parameters) async {
-    final filePath = parameters.file;
-    final contextRoot = contextRootContaining(filePath);
-    if (contextRoot == null) {
-      // Return an error from the request.
-      throw new plugin.RequestFailure(plugin.RequestErrorFactory
-          .pluginError('Failed to analyze $filePath', null));
-    }
-    final AngularDriver driver = driverMap[contextRoot];
-    final analysisResult = await driver.dartDriver.getResult(filePath);
-    final contributor = new AngularCompletionContributor(driver);
-    final performance = new CompletionPerformance();
-    final fileSource = resourceProvider.getFile(filePath).createSource();
-    final request = new CompletionRequestImpl(analysisResult, resourceProvider,
-        fileSource, parameters.offset, performance);
-    final suggestions = await contributor.computeSuggestions(request);
-    return new plugin.CompletionGetSuggestionsResult(
-        request.replacementOffset, request.replacementLength, suggestions);
+  Future<ResolveResult> getResolveResultForCompletion(
+      AngularDriver driver, String path) async {
+    final templates = await driver.getTemplatesForFile(path);
+    final standardHtml = await driver.getStandardHtml();
+    assert(standardHtml != null);
+    return new CompletionResolveResult(path, templates, standardHtml);
   }
+
+  @override
+  List<CompletionContributor> getCompletionContributors(AngularDriver driver) =>
+      <CompletionContributor>[
+        new AngularCompletionContributor(),
+        new NgInheritedReferenceContributor(),
+        new NgTypeMemberContributor()
+      ];
 }

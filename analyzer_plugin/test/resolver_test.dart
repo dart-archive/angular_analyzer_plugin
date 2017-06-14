@@ -1288,6 +1288,7 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_heightPercent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1295,7 +1296,7 @@ class TestPanel {
   int percentage; // 1
 }
 ''');
-    var code = r"""
+    final code = r"""
 <span [style.height.%]='percentage'></span>
 """;
     _addHtmlSource(code);
