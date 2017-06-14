@@ -16,6 +16,7 @@ import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
+import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
@@ -37,7 +38,11 @@ abstract class AbstractCompletionContributorTest
     contributors = createContributors();
   }
 
-  List<CompletionContributor> createContributors();
+  List<CompletionContributor> createContributors() => <CompletionContributor>[
+        new AngularCompletionContributor(angularDriver),
+        new NgInheritedReferenceContributor(),
+        new NgTypeMemberContributor()
+      ];
 
   @override
   Future computeSuggestions([int times = 200]) async {

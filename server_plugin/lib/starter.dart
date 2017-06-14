@@ -110,11 +110,11 @@ class Starter {
             driverPath) {
           final driver = angularDrivers[driverPath];
 
-          final contributors = <CompletionContributor>[];
-          contributors
-            ..add(new AngularCompletionContributor(driver))
-            ..add(new NgTypeMemberContributor())
-            ..add(new NgInheritedReferenceContributor());
+          final contributors = <CompletionContributor>[
+            new AngularCompletionContributor(driver),
+            new NgTypeMemberContributor(),
+            new NgInheritedReferenceContributor()
+          ];
           final completionRequest = new CompletionRequestImpl(
             null, // AnalysisResult - unneeded for AngularCompletion
             server.resourceProvider,
@@ -135,16 +135,14 @@ class Starter {
           for (final contributor in contributors) {
             await contributor.computeSuggestions(newRequest, collector);
           }
-          if (!collector.offsetIsSet) {
-            collector
-              ..offset = params.offset
-              ..length = 0;
-          }
           final suggestions = collector.suggestions;
 
           completionHandler
             ..sendCompletionNotification(
-                completionId, collector.offset, collector.length, suggestions)
+                completionId,
+                collector.offset ?? params.offset,
+                collector.length ?? 0,
+                suggestions)
             ..ifMatchesRequestClear(completionRequest);
         }
       }

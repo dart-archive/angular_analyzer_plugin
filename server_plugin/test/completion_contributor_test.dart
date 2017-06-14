@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
@@ -19,16 +18,6 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   void setUp() {
     testFile = '/completionTest.dart';
     super.setUp();
-  }
-
-  @override
-  List<CompletionContributor> createContributors() {
-    final contributors = <CompletionContributor>[];
-    contributors
-      ..add(new AngularCompletionContributor(angularDriver))
-      ..add(new NgInheritedReferenceContributor())
-      ..add(new NgTypeMemberContributor());
-    return contributors;
   }
 
   // ignore: non_constant_identifier_names
@@ -538,16 +527,6 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   void setUp() {
     testFile = '/completionTest.html';
     super.setUp();
-  }
-
-  @override
-  List<CompletionContributor> createContributors() {
-    final contributors = <CompletionContributor>[];
-    contributors
-      ..add(new AngularCompletionContributor(angularDriver))
-      ..add(new NgInheritedReferenceContributor())
-      ..add(new NgTypeMemberContributor());
-    return contributors;
   }
 
   // ignore: non_constant_identifier_names
