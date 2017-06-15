@@ -2155,7 +2155,7 @@ class MyDirectiveOne {}
 class MyDirectiveTwo {}
     ''');
 
-    addTestSource('<my-tag myDirectivOne myDirectiveTwo #ref="^"></my-tag>');
+    addTestSource('<my-tag myDirectiveOne myDirectiveTwo #ref="^"></my-tag>');
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
