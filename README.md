@@ -88,7 +88,7 @@ Built-in directives | Validation | Auto-Complete | Navigation | Refactoring
 Forms | Validation | Auto-Complete | Navigation | Refactoring
 ------|------------|---------------|------------|-------------
 `<input [(ngModel)]="userName">` | :white_check_mark: | :white_check_mark: | :x: | :x:
-`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :last_quarter_moon: completion of variable but ngForm not suggested | :x: | :x:
+`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :white_check_mark: | :x: | :x:
 
 Class decorators | Validation | Auto-Complete | Navigation | Refactoring
 -----------------|------------|---------------|------------|-------------

@@ -2138,6 +2138,33 @@ class MyDirective {}
   }
 
   // ignore: non_constant_identifier_names
+  Future test_refValue_should_dedupe() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirectiveOne, MyDirectiveTwo])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirectiveOne]', exportAs: 'foobar')
+class MyDirectiveOne {}
+@Directive(selector: '[myDirectiveTwo]', exportAs: 'foobar')
+class MyDirectiveTwo {}
+    ''');
+
+    addTestSource('<my-tag myDirectivOne myDirectiveTwo #ref="^"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLabel('foobar');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_availDirective_attribute_begin() async {
     final dartSource = newSource(
         '/completionTest.dart',
