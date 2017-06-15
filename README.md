@@ -73,6 +73,7 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 `<my-cmp></my-cmp>` | :white_check_mark: existence of directive |:white_check_mark: | :x: | :x:
 `<my-cmp [(title)]="name">` | :white_check_mark: soundness of expression, existence of `title` input and `titleChange` output on directive or component with proper type | :white_check_mark: | :x: | :x:
 `<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: type of new variable tracked and checked in other expressions | :white_check_mark: | :x: | :x:
+`<video directiveWithExportAs #moviePlayer="exportAsValue">` | :white_check_mark: existence of exportAs value checked within bound directives | :white_check_mark: | :x: | :x:
 `<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: |:white_check_mark: | :x: | :x:
 `<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :white_check_mark: | :x: | :x:
 `<p>Card No.: {{cardNumber \| myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:

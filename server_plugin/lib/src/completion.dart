@@ -904,18 +904,16 @@ class TemplateCompleter {
     // If two directives share same exportAs, still suggest one of them
     // and if they use this, and error will flag - let user resolve
     // rather than not suggesting at all.
-    final seen = new HashSet<String>();
+    final seen = new Set<String>();
     for (final directive in directives) {
       final exportAs = directive.boundDirective.exportAs;
       if (exportAs != null && exportAs.name.isNotEmpty) {
         final exportAsName = exportAs.name;
-        if (exportAsName.isNotEmpty && !seen.contains(exportAsName)) {
-          seen.add(exportAsName);
-          collector.addSuggestion(_createRefValueSuggestion(
-              exportAs,
-              DART_RELEVANCE_DEFAULT,
-              _createRefValueElement(exportAs, protocol.ElementKind.LABEL)));
-        }
+        seen.add(exportAsName);
+        collector.addSuggestion(_createRefValueSuggestion(
+            exportAs,
+            DART_RELEVANCE_DEFAULT,
+            _createRefValueElement(exportAs, protocol.ElementKind.LABEL)));
       }
     }
   }
