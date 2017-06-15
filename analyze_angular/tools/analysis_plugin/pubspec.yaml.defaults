@@ -21,3 +21,5 @@ dependency_overrides:
     path: ABSOLUTE_PATH_TO_REPO/analyzer_plugin
   angular_analyzer_server_plugin:
     path: ABSOLUTE_PATH_TO_REPO/server_plugin
+  kernel:
+    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/kernel

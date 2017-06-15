@@ -15,7 +15,6 @@ import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:meta/meta.dart';
 import 'package:tuple/tuple.dart';
-import 'package:source_span/source_span.dart';
 
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;

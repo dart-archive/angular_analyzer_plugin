@@ -1288,6 +1288,7 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_heightPercent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1295,7 +1296,7 @@ class TestPanel {
   int percentage; // 1
 }
 ''');
-    var code = r"""
+    final code = r"""
 <span [style.height.%]='percentage'></span>
 """;
     _addHtmlSource(code);
@@ -2294,7 +2295,7 @@ class TestPanel {}
   Future test_localVariable_exportAs_ambiguous() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', 
+@View(templateUrl: 'test_panel.html',
   directives: const [Directive1, Directive2])
 class TestPanel {}
 
@@ -2765,11 +2766,47 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_letVar_template_cascading() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [NgFor, FoobarDirective])
+class TestPanel {
+  List<String> items = [];
+}
+@Directive(selector: '[foobar]')
+class FoobarDirective {
+  @Input()
+  String foobar;
+}
+''');
+    _addHtmlSource(r"""
+<template ngFor let-item [ngForOf]='items' let-i='index'>
+  <template [foobar]="item"></template>
+</template>
+""");
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+    _assertElement("ngFor let").selector.inFileName('ng_for.dart');
+    _assertElement("item [").local.declaration.type('String');
+    _assertSelectorElement("ngForOf]")
+        .selector
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertInputElement("ngForOf]")
+        .input
+        .name('ngForOf')
+        .inFileName('ng_for.dart');
+    _assertElement("items'").dart.getter.at('items = []');
+    _assertElement("i='index").local.declaration.type('int');
+    _assertElement("item").local.at('item [');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_hashRef_templateElement() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
 @View(templateUrl: 'test_panel.html', 
-  directives: const [NgFor, HasTemplateInputComponent])
+  directives: const [HasTemplateInputComponent])
 class TestPanel {
 }
 @Component(selector: 'has-template-input', template: '')
@@ -2779,12 +2816,12 @@ class HasTemplateInputComponent {
 }
 ''');
     _addHtmlSource(r"""
-<template #templateRef></template>
-<has-template-input [myTemplate]="templateRef"></has-template-input>
+<template #someTemplate></template>
+<has-template-input [myTemplate]="someTemplate"></has-template-input>
 """);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-    _assertElement(r'templateRef"').local.at('templateRef>');
+    _assertElement('someTemplate"').local.at('someTemplate>');
   }
 
   // ignore: non_constant_identifier_names

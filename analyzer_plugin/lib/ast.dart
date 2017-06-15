@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:meta/meta.dart';
 
@@ -106,6 +107,8 @@ class TemplateAttribute extends BoundAttributeInfo implements HasDirectives {
   final boundStandardOutputs = <OutputBinding>[];
   @override
   final boundStandardInputs = <InputBinding>[];
+  @override
+  final availableDirectives = <AbstractDirective, List<AttributeSelector>>{};
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();
@@ -175,12 +178,15 @@ class StatementsBoundAttribute extends BoundAttributeInfo {
 
 class TextAttribute extends AttributeInfo {
   final List<Mustache> mustaches;
+  final bool isReference;
+
   @override
   List<AngularAstNode> get children => new List<AngularAstNode>.from(mustaches);
 
   TextAttribute(String name, int nameOffset, String value, int valueOffset,
       this.mustaches)
-      : super(name, nameOffset, value, valueOffset, name, nameOffset);
+      : isReference = name.startsWith('#'),
+        super(name, nameOffset, value, valueOffset, name, nameOffset);
 
   TextAttribute.synthetic(
       String name,
@@ -190,7 +196,8 @@ class TextAttribute extends AttributeInfo {
       String originalName,
       int originalNameOffset,
       this.mustaches)
-      : super(name, nameOffset, value, valueOffset, originalName,
+      : isReference = name.startsWith('#'),
+        super(name, nameOffset, value, valueOffset, originalName,
             originalNameOffset);
 
   @override
@@ -251,6 +258,7 @@ abstract class NodeInfo extends AngularAstNode {
 /// contain more info than just the bound directive.
 abstract class HasDirectives extends AngularAstNode {
   List<DirectiveBinding> get boundDirectives;
+  Map<AbstractDirective, List<AttributeSelector>> get availableDirectives;
   List<OutputBinding> get boundStandardOutputs;
   List<InputBinding> get boundStandardInputs;
 }
@@ -389,6 +397,8 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   final boundStandardOutputs = <OutputBinding>[];
   @override
   final boundStandardInputs = <InputBinding>[];
+  @override
+  final availableDirectives = <AbstractDirective, List<AttributeSelector>>{};
 
   List<AbstractDirective> get directives =>
       boundDirectives.map((bd) => bd.boundDirective).toList();

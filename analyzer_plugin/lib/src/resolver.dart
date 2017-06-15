@@ -3,7 +3,7 @@ library angular2.src.analysis.analyzer_plugin.src.resolver;
 import 'dart:collection';
 import 'package:meta/meta.dart';
 
-import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/ast.dart' hide Directive;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
@@ -163,7 +163,8 @@ class TemplateResolver {
             templateSource,
             typeProvider,
             dartVarManager,
-            errorListener))
+            errorListener,
+            standardAngular))
         // Load $event into the scopes
         ..accept(new PrepareEventScopeVisitor(
             standardHtmlEvents,
@@ -329,6 +330,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   final TypeProvider typeProvider;
   final DartVariableManager dartVariableManager;
   final AnalysisErrorListener errorListener;
+  final StandardAngular standardAngular;
 
   PrepareScopeVisitor(
       this.internalVariables,
@@ -337,7 +339,8 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
       this.templateSource,
       this.typeProvider,
       this.dartVariableManager,
-      this.errorListener);
+      this.errorListener,
+      this.standardAngular);
 
   @override
   void visitScopeRootTemplateElement(ElementInfo element) {
@@ -359,6 +362,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
     final exportAsMap = _defineExportAsVariables(element.directives);
     _defineReferenceVariablesForAttributes(
         element.directives, element.attributes, exportAsMap);
+    super.visitBorderScopeTemplateElement(element);
   }
 
   @override
@@ -488,7 +492,10 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
           // Find the corresponding Component to assign reference to.
           for (final directive in directives) {
             if (directive is Component) {
-              final classElement = directive.classElement;
+              var classElement = directive.classElement;
+              if (classElement.name == 'TemplateElement') {
+                classElement = standardAngular.templateRef;
+              }
               type = classElement.type;
               angularElement = new DartElement(classElement);
               break;
@@ -732,7 +739,7 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
   @override
   void visitDocumentInfo(DocumentInfo document) {
     visitingRoot = false;
-    for (NodeInfo child in document.childNodes) {
+    for (final child in document.childNodes) {
       child.accept(this);
     }
   }
@@ -772,6 +779,7 @@ class DirectiveResolver extends AngularAstVisitor {
     }
 
     final elementView = new ElementViewImpl(element.attributes, element);
+    final unmatchedDirectives = <AbstractDirective>[];
 
     final containingDirectivesCount = outerBindings.length;
     for (final directive in allDirectives) {
@@ -800,6 +808,17 @@ class DirectiveResolver extends AngularAstVisitor {
               AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
               [directive.classElement.name]);
         }
+      } else {
+        unmatchedDirectives.add(directive);
+      }
+    }
+
+    for (final directive in unmatchedDirectives) {
+      if (directive is Directive &&
+          directive.selector.availableTo(elementView) &&
+          !directive.looksLikeTemplate) {
+        element.availableDirectives[directive] =
+            directive.selector.getAttributeSelectors(elementView);
       }
     }
 

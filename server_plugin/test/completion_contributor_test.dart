@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
-import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
+import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -9,8 +8,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'completion_contributor_test_util.dart';
 
 void main() {
-  // TODO: get these working again on the latest SDK
-  //defineReflectiveTests(DartCompletionContributorTest);
+  defineReflectiveTests(DartCompletionContributorTest);
   defineReflectiveTests(HtmlCompletionContributorTest);
 }
 
@@ -21,10 +19,6 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
     testFile = '/completionTest.dart';
     super.setUp();
   }
-
-  @override
-  CompletionContributor createContributor() =>
-      new AngularCompletionContributor(angularDriver);
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -144,7 +138,7 @@ class MyComponent {}
     inputs: const ['myDynamicInput'])
 class MyChildComponent {
   @Input() String stringInput;
-  @Input() String intInput;
+  @Input() int intInput;
   @Output() EventEmitter<String> myEvent;
   
   bool _myDynamicInput = false;
@@ -533,12 +527,7 @@ class HtmlCompletionContributorTest extends AbstractCompletionContributorTest {
   void setUp() {
     testFile = '/completionTest.html';
     super.setUp();
-    createContributor();
   }
-
-  @override
-  CompletionContributor createContributor() =>
-      new AngularCompletionContributor(angularDriver);
 
   // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
@@ -709,8 +698,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -730,8 +719,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 1);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -751,8 +740,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let item'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -772,8 +761,8 @@ class MyComp {
 
     await resolveSingleTemplate(dartSource);
     await computeSuggestions();
-    expect(replacementOffset, completionOffset - 'let i'.length);
-    expect(replacementLength, 'let item'.length);
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
     assertNotSuggested('text');
   }
 
@@ -2115,6 +2104,531 @@ class OtherComp {
     assertNotSuggested('[twoWay]');
     assertNotSuggested('(twoWayChange)');
     assertNotSuggested('[(twoWay)]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_refValue_begin() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]', exportAs: 'foo')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDirective #ref="^"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLabel('foo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_refValue_middle() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]', exportAs: 'foobar')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDirective #ref="foo^"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'foo'.length);
+    expect(replacementLength, 'foo'.length);
+    assertSuggestLabel('foobar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_refValue_complete() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]', exportAs: 'foobar')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDirective #ref="^foobar"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 'foobar'.length);
+    assertSuggestLabel('foobar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_refValue_should_dedupe() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirectiveOne, MyDirectiveTwo])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirectiveOne]', exportAs: 'foobar')
+class MyDirectiveOne {}
+@Directive(selector: '[myDirectiveTwo]', exportAs: 'foobar')
+class MyDirectiveTwo {}
+    ''');
+
+    addTestSource('<my-tag myDirectiveOne myDirectiveTwo #ref="^"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLabel('foobar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_begin() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('myDirective');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_wildcard_attribute_begin() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[bar*]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('bar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_middle() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDi^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'myDi'.length);
+    expect(replacementLength, 'myDi'.length);
+    assertSuggestSetter('myDirective');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_complete() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective, MyDirectiveTwo])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {}
+@Directive(selector: '[myDirectiveTwo]')
+class MyDirectiveTwo {}
+    ''');
+
+    addTestSource('<my-tag ^myDirective></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 'myDirective'.length);
+    assertSuggestSetter('myDirectiveTwo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_sharedInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {
+  @Input()
+  String myDirective;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('myDirective');
+    assertSuggestSetter('[myDirective]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_unsharedInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {
+  @Input()
+  String foo;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('[foo]');
+    assertSuggestSetter('myDirective');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_banana_noInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {
+  @Input()
+  String foo;
+  @Output() 
+  EventEmitter<String> myDirectiveChange;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('myDirective');
+    assertNotSuggested('[foo]');
+    assertNotSuggested('(myDirectiveChange)');
+    assertNotSuggested('[(myDirective)]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_sharedBanana() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+class MyDirective {
+  @Input()
+  String myDirective;
+  @Output() 
+  EventEmitter<String> myDirectiveChange;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('myDirective');
+    assertSuggestSetter('[myDirective]');
+    assertNotSuggested('(myDirective)');
+    assertSuggestSetter('[(myDirective)]', returnType: 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_and() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective][foo][bar]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag foo ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('myDirective');
+    assertNotSuggested('foo');
+    assertSuggestSetter('bar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_attrValue1() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[foo=bar][baz]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag foo="blah" ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('foo');
+    assertNotSuggested('baz');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_attrValue2() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[foo=bar][baz]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag foo="bar" ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('foo');
+    assertSuggestSetter('baz');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_or() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective],[foo],[bar]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('myDirective');
+    assertSuggestSetter('foo');
+    assertSuggestSetter('bar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_or_matchOne() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective],[foo],[bar]')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag foo ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('myDirective');
+    assertNotSuggested('bar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_matchInput() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective],[foo],[bar]')
+class MyDirective {
+  @Input()
+  String myDirective;
+}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('myDirective');
+    assertSuggestSetter('[myDirective]');
+    assertSuggestSetter('foo');
+    assertSuggestSetter('bar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_availDirective_attribute_multipleAttribute_matchBanana() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective],[foo],[bar]')
+class MyDirective {
+  @Input()
+  String myDirective;
+  @Output()
+  EventEmitter<String> myDirectiveChange;
+}
+    ''');
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('myDirective');
+    assertSuggestSetter('[myDirective]');
+    assertNotSuggested('(myDirective)');
+    assertSuggestSetter('[(myDirective)]', returnType: 'String');
+    assertSuggestSetter('foo');
+    assertSuggestSetter('bar');
   }
 
   // ignore: non_constant_identifier_names
