@@ -64,6 +64,9 @@ abstract class AbstractDirective {
   @override
   bool operator ==(Object other) =>
       other is AbstractDirective && other.classElement == classElement;
+
+  @override
+  int get hashCode => classElement.hashCode;
 }
 
 /// The base class for all Angular elements.
