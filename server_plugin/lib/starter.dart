@@ -16,6 +16,10 @@ import 'package:analysis_server/src/services/completion/completion_performance.d
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer/src/source/source_resource.dart';
 import 'package:analysis_server/src/domain_completion.dart';
+import 'package:angular_analysis_plugin/src/resolve_result.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart'
+    as new_core;
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 
 class Starter {
   final angularDrivers = <String, AngularDriver>{};
@@ -106,24 +110,40 @@ class Starter {
             driverPath) {
           final driver = angularDrivers[driverPath];
 
-          final completionContributor =
-              new AngularCompletionContributor(driver);
+          final contributors = <CompletionContributor>[
+            new AngularCompletionContributor(),
+            new NgTypeMemberContributor(),
+            new NgInheritedReferenceContributor()
+          ];
           final completionRequest = new CompletionRequestImpl(
-              null, // AnalysisResult - unneeded for AngularCompletion
-              server.resourceProvider,
-              source,
-              params.offset,
-              performance);
+            null, // AnalysisResult - unneeded for AngularCompletion
+            server.resourceProvider,
+            source,
+            params.offset,
+            performance,
+          );
           completionHandler.setNewRequest(completionRequest);
           server.sendResponse(new CompletionGetSuggestionsResult(completionId)
               .toResponse(request.id));
-          final suggestions =
-              await completionContributor.computeSuggestions(completionRequest);
+
+          final templates = await driver.getTemplatesForFile(filePath);
+          final standardHtml = await driver.getStandardHtml();
+          final result =
+              new CompletionResolveResult(filePath, templates, standardHtml);
+          final newRequest = new new_core.CompletionRequestImpl(
+              server.resourceProvider, result, params.offset);
+          final collector = new new_core.CompletionCollectorImpl();
+
+          for (final contributor in contributors) {
+            await contributor.computeSuggestions(newRequest, collector);
+          }
+          final suggestions = collector.suggestions;
+
           completionHandler
             ..sendCompletionNotification(
                 completionId,
-                completionRequest.replacementOffset,
-                completionRequest.replacementLength,
+                collector.offset ?? params.offset,
+                collector.length ?? 0,
                 suggestions)
             ..ifMatchesRequestClear(completionRequest);
         }

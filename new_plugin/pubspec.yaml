@@ -16,6 +16,8 @@ dependency_overrides:
     path: ../analyzer_plugin
   angular_analyzer_server_plugin:
     path: ../server_plugin
+  analyzer:
+    path: ../deps/sdk/pkg/analyzer
   analyzer_plugin:
     path: ../deps/sdk/pkg/analyzer_plugin
   front_end:

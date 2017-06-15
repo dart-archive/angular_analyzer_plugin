@@ -8,6 +8,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:front_end/src/base/api_signature.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/notification_manager.dart';
@@ -50,6 +51,7 @@ class AngularDriver
   FileTracker _fileTracker;
   final lastSignatures = <String, String>{};
   bool _hasAngularImported = false;
+  final completionContributors = <CompletionContributor>[];
 
   AngularDriver(this.notificationManager, this.dartDriver, this._scheduler,
       this.byteStore, SourceFactory sourceFactory, this._contentOverlay) {
@@ -401,7 +403,7 @@ class AngularDriver
         final match = isDartFile
             ? view.source.toString() == filePath
             : view.templateUriSource?.fullName == filePath;
-        if (match) {
+        if (match && view.template != null) {
           templates.add(view.template);
         }
       }

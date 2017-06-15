@@ -10,12 +10,13 @@ import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show ElementKind;
 import 'package:analyzer_plugin/protocol/protocol_common.dart'
     hide Element, ElementKind;
-import 'package:analysis_server/src/provisional/completion/completion_core.dart';
-import 'package:analysis_server/src/provisional/completion/dart/completion_dart.dart';
-import 'package:analysis_server/src/services/completion/completion_core.dart';
-import 'package:analysis_server/src/services/completion/completion_performance.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/utilities/completion/relevance.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analysis_plugin/src/resolve_result.dart';
+import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 
 import 'analysis_test.dart';
@@ -28,31 +29,43 @@ int suggestionComparator(CompletionSuggestion s1, CompletionSuggestion s2) {
 
 abstract class AbstractCompletionContributorTest
     extends BaseCompletionContributorTest {
-  CompletionContributor contributor;
-  CompletionRequest request;
+  List<CompletionContributor> contributors;
+  CompletionCollectorImpl collector;
 
   @override
   void setUp() {
     super.setUp();
-    contributor = createContributor();
+    contributors = createContributors();
   }
 
-  CompletionContributor createContributor();
+  List<CompletionContributor> createContributors() => <CompletionContributor>[
+        new AngularCompletionContributor(),
+        new NgInheritedReferenceContributor(),
+        new NgTypeMemberContributor()
+      ];
 
   @override
   Future computeSuggestions([int times = 200]) async {
+    final templates = await angularDriver.getTemplatesForFile(testFile);
+    final standardHtml = await angularDriver.getStandardHtml();
+    final resolveResult =
+        new CompletionResolveResult(testFile, templates, standardHtml);
     final request = new CompletionRequestImpl(
-      null,
-      null,
-      testSource,
-      completionOffset,
-      new CompletionPerformance(),
-    );
+        resourceProvider, resolveResult, completionOffset);
+    final collector = new CompletionCollectorImpl();
 
     // Request completions
-    suggestions = await contributor.computeSuggestions(request);
-    replacementOffset = request.replacementOffset;
-    replacementLength = request.replacementLength;
+    for (final contributor in contributors) {
+      await contributor.computeSuggestions(request, collector);
+    }
+    if (!collector.offsetIsSet) {
+      collector
+        ..offset = request.offset
+        ..length = 0;
+    }
+    suggestions = collector.suggestions;
+    replacementOffset = collector.offset;
+    replacementLength = collector.length;
     expect(suggestions, isNotNull, reason: 'expected suggestions');
   }
 
@@ -382,6 +395,27 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     expect(element.parameters, isNull);
     expect(element.returnType,
         equals(returnType != null ? returnType : 'dynamic'));
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
+  CompletionSuggestion assertSuggestLabel(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT,
+      String importUri,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
+      String returnType: 'dynamic'}) {
+    final cs = assertSuggest(name,
+        csKind: kind,
+        relevance: relevance,
+        importUri: importUri,
+        elemKind: protocol.ElementKind.LABEL);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LABEL));
+    expect(element.name, equals(name));
+    if (element.returnType != null) {
+      expect(element.returnType, returnType);
+    }
     assertHasNoParameterInfo(cs);
     return cs;
   }
