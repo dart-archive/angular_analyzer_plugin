@@ -185,6 +185,19 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestLibrary(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT}) {
+    final cs = assertSuggest(name,
+        csKind: CompletionSuggestionKind.IDENTIFIER, relevance: relevance);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LIBRARY));
+    expect(element.parameters, isNull);
+    expect(element.returnType, isNull);
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   CompletionSuggestion assertSuggestClass(String name,
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
@@ -284,7 +297,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       {CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       bool isDeprecated: false,
       int relevance: DART_RELEVANCE_DEFAULT,
-      String importUri}) {
+      String importUri,
+      String elementName}) {
     final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
@@ -298,7 +312,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.FUNCTION));
-    expect(element.name, equals(name));
+    expect(element.name, equals(elementName ?? name));
     expect(element.isDeprecated, equals(isDeprecated));
     final param = element.parameters;
     expect(param, isNotNull);
@@ -352,7 +366,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
-      bool isDeprecated: false}) {
+      bool isDeprecated: false,
+      String elementName}) {
     final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
@@ -363,7 +378,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.GETTER));
-    expect(element.name, equals(name));
+    expect(element.name, equals(elementName ?? name));
     expect(element.parameters, isNull);
     expect(element.returnType,
         equals(returnType != null ? returnType : 'dynamic'));

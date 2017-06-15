@@ -428,7 +428,8 @@ class ExportedIdentifier {
   final SourceRange span;
   dart.Element element;
 
-  ExportedIdentifier(this.identifier, this.span, {this.element, this.prefix});
+  ExportedIdentifier(this.identifier, this.span,
+      {this.element, this.prefix: ''});
 }
 
 /// The model of an Angular view.
