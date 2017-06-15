@@ -2063,6 +2063,81 @@ class OtherComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_refValue_begin() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]', exportAs: 'foo')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDirective #ref="^"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLabel('foo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_refValue_middle() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]', exportAs: 'foobar')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDirective #ref="foo^"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset - 'foo'.length);
+    expect(replacementLength, 'foo'.length);
+    assertSuggestLabel('foobar');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_refValue_complete() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, MyDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]', exportAs: 'foobar')
+class MyDirective {}
+    ''');
+
+    addTestSource('<my-tag myDirective #ref="^foobar"></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 'foobar'.length);
+    assertSuggestLabel('foobar');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_availDirective_attribute_begin() async {
     final dartSource = newSource(
         '/completionTest.dart',

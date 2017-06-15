@@ -190,8 +190,11 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {
-    offset = attr.offset;
-    length = attr.length;
+    final inValueScope = attr.isReference &&
+        attr.value != null &&
+        offsetContained(offset, attr.valueOffset, attr.valueLength);
+    offset = inValueScope ? attr.valueOffset : attr.offset;
+    length = inValueScope ? attr.valueLength : attr.length;
   }
 
   @override
@@ -595,32 +598,37 @@ class TemplateCompleter {
         suggestStarAttrs(template, collector);
       }
       suggestInputsInTemplate(target, collector);
-    } else if (target is TextAttribute &&
-        target.nameOffset != null &&
-        offsetContained(
-            request.offset, target.nameOffset, target.name.length)) {
-      suggestInputs(
+    } else if (target is TextAttribute && target.nameOffset != null) {
+      if (offsetContained(
+          request.offset, target.nameOffset, target.name.length)) {
+        suggestInputs(
+            target.parent.boundDirectives,
+            collector,
+            standardHtmlAttributes,
+            target.parent.boundStandardInputs,
+            typeProvider,
+            includePlainAttributes: true);
+        suggestOutputs(target.parent.boundDirectives, collector,
+            standardHtmlEvents, target.parent.boundStandardOutputs);
+        suggestBananas(
           target.parent.boundDirectives,
           collector,
-          standardHtmlAttributes,
           target.parent.boundStandardInputs,
-          typeProvider,
-          includePlainAttributes: true);
-      suggestOutputs(target.parent.boundDirectives, collector,
-          standardHtmlEvents, target.parent.boundStandardOutputs);
-      suggestBananas(
-        target.parent.boundDirectives,
-        collector,
-        target.parent.boundStandardInputs,
-        target.parent.boundStandardOutputs,
-      );
-      suggestFromAvailableDirectives(
-        target.parent.availableDirectives,
-        collector,
-        suggestPlainAttributes: true,
-        suggestInputs: true,
-        suggestBananas: true,
-      );
+          target.parent.boundStandardOutputs,
+        );
+        suggestFromAvailableDirectives(
+          target.parent.availableDirectives,
+          collector,
+          suggestPlainAttributes: true,
+          suggestInputs: true,
+          suggestBananas: true,
+        );
+      } else if (target.value != null &&
+          target.isReference &&
+          offsetContained(
+              request.offset, target.valueOffset, target.value.length)) {
+        suggestRefValues(target.parent.boundDirectives, collector);
+      }
     } else if (target is TextInfo) {
       suggestHtmlTags(template, collector);
       suggestTransclusions(target.parent, collector);
@@ -890,6 +898,28 @@ class TemplateCompleter {
     }
   }
 
+  void suggestRefValues(
+      List<DirectiveBinding> directives, CompletionCollector collector) {
+    // Keep map of all 'exportAs' name seen. Don't suggest same name twice.
+    // If two directives share same exportAs, still suggest one of them
+    // and if they use this, and error will flag - let user resolve
+    // rather than not suggesting at all.
+    final seen = new HashSet<String>();
+    for (final directive in directives) {
+      final exportAs = directive.boundDirective.exportAs;
+      if (exportAs != null && exportAs.name.isNotEmpty) {
+        final exportAsName = exportAs.name;
+        if (exportAsName.isNotEmpty && !seen.contains(exportAsName)) {
+          seen.add(exportAsName);
+          collector.addSuggestion(_createRefValueSuggestion(
+              exportAs,
+              DART_RELEVANCE_DEFAULT,
+              _createRefValueElement(exportAs, protocol.ElementKind.LABEL)));
+        }
+      }
+    }
+  }
+
   /// Goes through all the available, but not yet-bound directives
   /// and extracts non-violating plain-text attribute-directives
   /// and inputs (if name overlaps with attribute-directive).
@@ -958,6 +988,23 @@ class TemplateCompleter {
           optype,
           relevance: DART_RELEVANCE_LOCAL_VARIABLE));
     }
+  }
+
+  CompletionSuggestion _createRefValueSuggestion(
+      AngularElement exportAs, int defaultRelevance, protocol.Element element) {
+    final completion = exportAs.name;
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  protocol.Element _createRefValueElement(
+      AngularElement exportAs, protocol.ElementKind kind) {
+    final name = exportAs.name;
+    final location = new Location(exportAs.source.fullName, exportAs.nameOffset,
+        exportAs.nameLength, 0, 0);
+    final flags = protocol.Element.makeFlags();
+    return new protocol.Element(kind, name, flags, location: location);
   }
 
   CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
