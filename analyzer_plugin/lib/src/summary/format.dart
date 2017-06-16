@@ -5,10 +5,12 @@
 // This file has been automatically generated.  Please do not edit it manually.
 // To regenerate the file, use the script "pkg/analyzer/tool/generate_files".
 
-import 'package:front_end/src/base/flat_buffers.dart' as fb;
-import 'idl.dart' as idl;
 import 'dart:convert' as convert;
+
 import 'package:front_end/src/base/api_signature.dart' as api_sig;
+import 'package:front_end/src/base/flat_buffers.dart' as fb;
+
+import 'idl.dart' as idl;
 
 class PackageBundleBuilder extends Object
     with _PackageBundleMixin
@@ -752,6 +754,7 @@ class SummarizedDirectiveBuilder extends Object
   List<SummarizedDirectiveUseBuilder> _subdirectives;
   List<SummarizedContentChildFieldBuilder> _contentChildFields;
   List<SummarizedContentChildFieldBuilder> _contentChildrenFields;
+  List<SummarizedExportedIdentifierBuilder> _exports;
 
   @override
   bool get isComponent => _isComponent ??= false;
@@ -884,6 +887,14 @@ class SummarizedDirectiveBuilder extends Object
     this._contentChildrenFields = value;
   }
 
+  @override
+  List<SummarizedExportedIdentifierBuilder> get exports =>
+      _exports ??= <SummarizedExportedIdentifierBuilder>[];
+
+  void set exports(List<SummarizedExportedIdentifierBuilder> value) {
+    this._exports = value;
+  }
+
   SummarizedDirectiveBuilder(
       {bool isComponent,
       String selectorStr,
@@ -901,7 +912,8 @@ class SummarizedDirectiveBuilder extends Object
       List<SummarizedBindableBuilder> outputs,
       List<SummarizedDirectiveUseBuilder> subdirectives,
       List<SummarizedContentChildFieldBuilder> contentChildFields,
-      List<SummarizedContentChildFieldBuilder> contentChildrenFields})
+      List<SummarizedContentChildFieldBuilder> contentChildrenFields,
+      List<SummarizedExportedIdentifierBuilder> exports})
       : _isComponent = isComponent,
         _selectorStr = selectorStr,
         _selectorOffset = selectorOffset,
@@ -918,7 +930,8 @@ class SummarizedDirectiveBuilder extends Object
         _outputs = outputs,
         _subdirectives = subdirectives,
         _contentChildFields = contentChildFields,
-        _contentChildrenFields = contentChildrenFields;
+        _contentChildrenFields = contentChildrenFields,
+        _exports = exports;
 
   /**
    * Flush [informative] data recursively.
@@ -930,6 +943,7 @@ class SummarizedDirectiveBuilder extends Object
     _subdirectives?.forEach((b) => b.flushInformative());
     _contentChildFields?.forEach((b) => b.flushInformative());
     _contentChildrenFields?.forEach((b) => b.flushInformative());
+    _exports?.forEach((b) => b.flushInformative());
   }
 
   /**
@@ -995,6 +1009,14 @@ class SummarizedDirectiveBuilder extends Object
         x?.collectApiSignature(signature);
       }
     }
+    if (this._exports == null) {
+      signature.addInt(0);
+    } else {
+      signature.addInt(this._exports.length);
+      for (var x in this._exports) {
+        x?.collectApiSignature(signature);
+      }
+    }
   }
 
   fb.Offset finish(fb.Builder fbBuilder) {
@@ -1009,6 +1031,7 @@ class SummarizedDirectiveBuilder extends Object
     fb.Offset offset_subdirectives;
     fb.Offset offset_contentChildFields;
     fb.Offset offset_contentChildrenFields;
+    fb.Offset offset_exports;
     if (_selectorStr != null) {
       offset_selectorStr = fbBuilder.writeString(_selectorStr);
     }
@@ -1047,6 +1070,10 @@ class SummarizedDirectiveBuilder extends Object
     if (!(_contentChildrenFields == null || _contentChildrenFields.isEmpty)) {
       offset_contentChildrenFields = fbBuilder.writeList(
           _contentChildrenFields.map((b) => b.finish(fbBuilder)).toList());
+    }
+    if (!(_exports == null || _exports.isEmpty)) {
+      offset_exports = fbBuilder
+          .writeList(_exports.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (_isComponent == true) {
@@ -1100,6 +1127,9 @@ class SummarizedDirectiveBuilder extends Object
     if (offset_contentChildrenFields != null) {
       fbBuilder.addOffset(16, offset_contentChildrenFields);
     }
+    if (offset_exports != null) {
+      fbBuilder.addOffset(17, offset_exports);
+    }
     return fbBuilder.endTable();
   }
 }
@@ -1138,6 +1168,7 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedDirectiveUse> _subdirectives;
   List<idl.SummarizedContentChildField> _contentChildFields;
   List<idl.SummarizedContentChildField> _contentChildrenFields;
+  List<idl.SummarizedExportedIdentifier> _exports;
 
   @override
   bool get isComponent {
@@ -1260,6 +1291,15 @@ class _SummarizedDirectiveImpl extends Object
                 _bc, _bcOffset, 16, const <idl.SummarizedContentChildField>[]);
     return _contentChildrenFields;
   }
+
+  @override
+  List<idl.SummarizedExportedIdentifier> get exports {
+    _exports ??= const fb.ListReader<idl.SummarizedExportedIdentifier>(
+            const _SummarizedExportedIdentifierReader())
+        .vTableGet(
+            _bc, _bcOffset, 17, const <idl.SummarizedExportedIdentifier>[]);
+    return _exports;
+  }
 }
 
 abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
@@ -1296,6 +1336,8 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
     if (contentChildrenFields.isNotEmpty)
       _result["contentChildrenFields"] =
           contentChildrenFields.map((_value) => _value.toJson()).toList();
+    if (exports.isNotEmpty)
+      _result["exports"] = exports.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
@@ -1318,6 +1360,7 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
         "subdirectives": subdirectives,
         "contentChildFields": contentChildFields,
         "contentChildrenFields": contentChildrenFields,
+        "exports": exports,
       };
 
   @override
@@ -2270,6 +2313,164 @@ abstract class _SummarizedContentChildFieldMixin
         "nameLength": nameLength,
         "typeOffset": typeOffset,
         "typeLength": typeLength,
+      };
+
+  @override
+  String toString() => convert.JSON.encode(toJson());
+}
+
+class SummarizedExportedIdentifierBuilder extends Object
+    with _SummarizedExportedIdentifierMixin
+    implements idl.SummarizedExportedIdentifier {
+  String _name;
+  String _prefix;
+  int _offset;
+  int _length;
+
+  @override
+  String get name => _name ??= '';
+
+  void set name(String value) {
+    this._name = value;
+  }
+
+  @override
+  String get prefix => _prefix ??= '';
+
+  void set prefix(String value) {
+    this._prefix = value;
+  }
+
+  @override
+  int get offset => _offset ??= 0;
+
+  void set offset(int value) {
+    assert(value == null || value >= 0);
+    this._offset = value;
+  }
+
+  @override
+  int get length => _length ??= 0;
+
+  void set length(int value) {
+    assert(value == null || value >= 0);
+    this._length = value;
+  }
+
+  SummarizedExportedIdentifierBuilder(
+      {String name, String prefix, int offset, int length})
+      : _name = name,
+        _prefix = prefix,
+        _offset = offset,
+        _length = length;
+
+  /**
+   * Flush [informative] data recursively.
+   */
+  void flushInformative() {}
+
+  /**
+   * Accumulate non-[informative] data into [signature].
+   */
+  void collectApiSignature(api_sig.ApiSignature signature) {
+    signature.addString(this._name ?? '');
+    signature.addString(this._prefix ?? '');
+    signature.addInt(this._offset ?? 0);
+    signature.addInt(this._length ?? 0);
+  }
+
+  fb.Offset finish(fb.Builder fbBuilder) {
+    fb.Offset offset_name;
+    fb.Offset offset_prefix;
+    if (_name != null) {
+      offset_name = fbBuilder.writeString(_name);
+    }
+    if (_prefix != null) {
+      offset_prefix = fbBuilder.writeString(_prefix);
+    }
+    fbBuilder.startTable();
+    if (offset_name != null) {
+      fbBuilder.addOffset(0, offset_name);
+    }
+    if (offset_prefix != null) {
+      fbBuilder.addOffset(1, offset_prefix);
+    }
+    if (_offset != null && _offset != 0) {
+      fbBuilder.addUint32(2, _offset);
+    }
+    if (_length != null && _length != 0) {
+      fbBuilder.addUint32(3, _length);
+    }
+    return fbBuilder.endTable();
+  }
+}
+
+class _SummarizedExportedIdentifierReader
+    extends fb.TableReader<_SummarizedExportedIdentifierImpl> {
+  const _SummarizedExportedIdentifierReader();
+
+  @override
+  _SummarizedExportedIdentifierImpl createObject(
+          fb.BufferContext bc, int offset) =>
+      new _SummarizedExportedIdentifierImpl(bc, offset);
+}
+
+class _SummarizedExportedIdentifierImpl extends Object
+    with _SummarizedExportedIdentifierMixin
+    implements idl.SummarizedExportedIdentifier {
+  final fb.BufferContext _bc;
+  final int _bcOffset;
+
+  _SummarizedExportedIdentifierImpl(this._bc, this._bcOffset);
+
+  String _name;
+  String _prefix;
+  int _offset;
+  int _length;
+
+  @override
+  String get name {
+    _name ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 0, '');
+    return _name;
+  }
+
+  @override
+  String get prefix {
+    _prefix ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 1, '');
+    return _prefix;
+  }
+
+  @override
+  int get offset {
+    _offset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 2, 0);
+    return _offset;
+  }
+
+  @override
+  int get length {
+    _length ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 3, 0);
+    return _length;
+  }
+}
+
+abstract class _SummarizedExportedIdentifierMixin
+    implements idl.SummarizedExportedIdentifier {
+  @override
+  Map<String, Object> toJson() {
+    Map<String, Object> _result = <String, Object>{};
+    if (name != '') _result["name"] = name;
+    if (prefix != '') _result["prefix"] = prefix;
+    if (offset != 0) _result["offset"] = offset;
+    if (length != 0) _result["length"] = length;
+    return _result;
+  }
+
+  @override
+  Map<String, Object> toMap() => {
+        "name": name,
+        "prefix": prefix,
+        "offset": offset,
+        "length": length,
       };
 
   @override

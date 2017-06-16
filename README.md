@@ -117,7 +117,7 @@ Component Configuration | Validation | Auto-Complete | Navigation | Refactoring
 `styleUrls: ['my-component.css']` | :x: | :x: | :x: | :x:
 `directives: [MyDirective, MyComponent]` | :white_check_mark: must be directives or lists of directives, configuration affects view errors | :x: | :x: | :x:
 `pipes: [MyPipe, OtherPipe]` | :x: | :x: | :x: | :x:
-`exports: [Class, Enum, staticFn]` | :x: | :x: | :x: | :x:
+`exports: [Class, Enum, staticFn]` | :white_check_mark: | :white_check_mark: | :x: | :x:
 
 Class field decorators for directives and components | Validation | Auto-Complete | Navigation | Refactoring
 -----------------------------------------------------|------------|---------------|------------|-------------

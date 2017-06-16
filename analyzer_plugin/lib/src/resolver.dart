@@ -14,6 +14,7 @@ import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/src/facade/exports_library_element.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
@@ -1482,7 +1483,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
   /// Resolve the given [AstNode] ([expression] or [statement]) and report errors.
   void _resolveDartAstNode(AstNode astNode, bool acceptAssignment) {
     final classElement = view.classElement;
-    final library = classElement.library;
+    final library =
+        new ExportsLibraryFacade(classElement.library, view.component);
     {
       final visitor = new TypeResolverVisitor(
           library, view.source, typeProvider, errorListener);

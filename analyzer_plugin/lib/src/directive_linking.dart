@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/dart/ast/ast.dart'
+    show SimpleIdentifier, PrefixedIdentifier, Identifier;
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/generated/source.dart' show SourceRange, Source;
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
@@ -106,6 +108,7 @@ class DirectiveLinker {
           deserializeContentChildFields(dirSum.contentChildrenFields);
       if (dirSum.isComponent) {
         final ngContents = deserializeNgContents(dirSum.ngContents, source);
+        final exports = deserializeExports(dirSum.exports);
         final component = new Component(classElem,
             exportAs: exportAs,
             selector: selector,
@@ -135,7 +138,8 @@ class DirectiveLinker {
             templateOffset: dirSum.templateOffset,
             templateUriSource: templateUriSource,
             templateUrlRange: templateUrlRange,
-            directiveReferences: subDirectives);
+            directiveReferences: subDirectives,
+            exports: exports);
       } else {
         final directive = new Directive(classElem,
             exportAs: exportAs,
@@ -168,6 +172,14 @@ class DirectiveLinker {
             ngContentSum.selectorStr.length);
       }).toList();
 
+  List<ExportedIdentifier> deserializeExports(
+          List<SummarizedExportedIdentifier> exports) =>
+      exports
+          .map((export) => new ExportedIdentifier(
+              export.name, new SourceRange(export.offset, export.length),
+              prefix: export.prefix))
+          .toList();
+
   List<ContentChildField> deserializeContentChildFields(
           List<SummarizedContentChildField> fieldSums) =>
       fieldSums
@@ -177,6 +189,79 @@ class DirectiveLinker {
               typeRange:
                   new SourceRange(fieldSum.typeOffset, fieldSum.typeLength)))
           .toList();
+}
+
+class ExportLinker {
+  final LibraryScope _scope;
+  final ErrorReporter _errorReporter;
+
+  ExportLinker(this._scope, this._errorReporter);
+
+  void linkExportsFor(AbstractDirective directive) {
+    if (directive is! Component) {
+      return;
+    }
+
+    final Component component = directive;
+
+    if (component?.view?.exports == null) {
+      return;
+    }
+
+    for (final export in component.view.exports) {
+      if (hasWrongTypeOfPrefix(export)) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
+            export.span.offset,
+            export.span.length);
+        continue;
+      }
+
+      final element = _scope.lookup(getIdentifier(export), null);
+      if (element == component.classElement) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+            export.span.offset,
+            export.span.length);
+        continue;
+      }
+
+      export.element = element;
+    }
+  }
+
+  /// Only report false for known non-import-prefix prefixes, the rest get
+  /// flagged by the dart analyzer already.
+  bool hasWrongTypeOfPrefix(ExportedIdentifier export) {
+    if (export.prefix == '') {
+      return false;
+    }
+
+    final prefixElement =
+        _scope.lookup(getPrefixAsSimpleIdentifier(export), null);
+
+    return prefixElement != null && prefixElement is! PrefixElement;
+  }
+
+  Identifier getIdentifier(ExportedIdentifier export) => export.prefix == ''
+      ? getSimpleIdentifier(export)
+      : getPrefixedIdentifier(export);
+
+  PrefixedIdentifier getPrefixedIdentifier(ExportedIdentifier export) =>
+      astFactory.prefixedIdentifier(
+          getPrefixAsSimpleIdentifier(export),
+          new SimpleToken(
+              TokenType.PERIOD, export.span.offset + export.prefix.length),
+          getSimpleIdentifier(export, offset: export.prefix.length + 1));
+
+  SimpleIdentifier getPrefixAsSimpleIdentifier(ExportedIdentifier export) =>
+      astFactory.simpleIdentifier(new StringToken(
+          TokenType.IDENTIFIER, export.prefix, export.span.offset));
+
+  SimpleIdentifier getSimpleIdentifier(ExportedIdentifier export,
+          {int offset: 0}) =>
+      astFactory.simpleIdentifier(new StringToken(TokenType.IDENTIFIER,
+          export.identifier, export.span.offset + offset));
 }
 
 class ChildDirectiveLinker implements DirectiveMatcher {
@@ -192,6 +277,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     LibraryElement library,
   ) async {
     final scope = new LibraryScope(library);
+    final exportLinker = new ExportLinker(scope, _errorReporter);
     for (final directive in directivesToLink) {
       if (directive is Component && directive.view != null) {
         for (final reference in directive.view.directiveReferences) {
@@ -205,6 +291,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
           }
         }
       }
+
+      exportLinker.linkExportsFor(directive);
 
       await new ContentChildLinker(
               directive, this, _standardAngular, _errorReporter)

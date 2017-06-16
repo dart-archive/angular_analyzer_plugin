@@ -4553,6 +4553,203 @@ class HasContentChildTemplateRef {
         "<template second></template>");
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_exportsNoErrors() async {
+    newSource(
+        '/prefixed.dart',
+        r'''
+const double otherAccessor = 2.0;
+enum OtherEnum { otherVal }
+void otherFunction() {}
+class OtherClass {
+  static void otherStatic() {
+  }
+}
+''');
+    _addDartSource(r'''
+import '/prefixed.dart' as prefixed;
+const int myAccessor = 1;
+enum MyEnum { myVal }
+void myFunction() {}
+class MyClass {
+  static void myStatic() {
+  }
+}
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', exports: const [
+  myAccessor,
+  MyEnum,
+  myFunction,
+  MyClass,
+  prefixed.otherAccessor,
+  prefixed.OtherEnum,
+  prefixed.otherFunction,
+  prefixed.OtherClass
+])
+class TestPanel {
+  static void componentStatic() {
+  }
+}
+''');
+    final code = r'''
+static on current class ok:
+{{TestPanel.componentStatic()}}
+exports ok:
+{{myAccessor}}
+{{MyEnum.myVal}}
+{{myFunction()}}
+{{MyClass.myStatic()}}
+{{prefixed.otherAccessor}}
+{{prefixed.OtherEnum.otherVal}}
+{{prefixed.otherFunction()}} 
+{{prefixed.OtherClass.otherStatic()}}
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(18));
+    _assertElement('TestPanel').dart.at('TestPanel {');
+    _assertElement('componentStatic').dart.method.at('componentStatic() {');
+    _assertElement('myAccessor').dart.getter.at('myAccessor = 1');
+    _assertElement('MyEnum').dart.at('MyEnum {');
+    _assertElement('myVal').dart.at('myVal }');
+    _assertElement('myFunction').dart.at('myFunction() {');
+    _assertElement('MyClass').dart.at('MyClass {');
+    _assertElement('myStatic').dart.at('myStatic() {');
+    _assertElement('prefixed').dart.prefix.at('prefixed;');
+    _assertElement('otherAccessor')
+        .dart
+        .getter
+        .inFile('/prefixed.dart')
+        .at('otherAccessor = 2.0');
+    _assertElement('OtherEnum').dart.inFile('/prefixed.dart').at('OtherEnum {');
+    _assertElement('otherVal').dart.inFile('/prefixed.dart').at('otherVal }');
+    _assertElement('otherFunction')
+        .dart
+        .inFile('/prefixed.dart')
+        .at('otherFunction() {');
+    _assertElement('OtherClass')
+        .dart
+        .inFile('/prefixed.dart')
+        .at('OtherClass {');
+    _assertElement('otherStatic')
+        .dart
+        .inFile('/prefixed.dart')
+        .at('otherStatic() {');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_notExportedError() async {
+    newSource(
+        '/prefixed.dart',
+        r'''
+const double otherAccessor = 2.0;
+enum OtherEnum { otherVal }
+void otherFunction() {}
+var otherTopLevel = null;
+typedef void OtherFnTypedef();
+class OtherClass {
+  static void otherStatic() {
+  }
+}
+''');
+    _addDartSource(r'''
+import '/prefixed.dart' as prefixed;
+const int myAccessor = 1;
+enum MyEnum { otherVal }
+void myFunction() {}
+var myTopLevel = null;
+typedef void MyFnTypedef();
+class MyClass {
+  static void myStatic() {
+  }
+}
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', exports: const [])
+class TestPanel {
+}
+''');
+    final code = r'''
+not exported:
+{{myAccessor}}
+{{MyEnum.otherVal}}
+{{myFunction()}}
+{{MyClass.myStatic()}}
+{{prefixed.otherAccessor}}
+{{prefixed.OtherEnum.otherVal}}
+{{prefixed.otherFunction()}} 
+{{prefixed.OtherClass.otherStatic()}}
+can't be exported:
+{{myTopLevel}}
+{{MyFnTypedef}}
+{{prefixed.otherTopLevel}}
+{{prefixed.OtherFnTypedef}}
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(0));
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticTypeWarningCode.UNDEFINED_METHOD,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_exportsCantUsePrefixes() async {
+    newSource('/prefixed.dart', 'const int prefixRequired = 1;');
+    _addDartSource(r'''
+import '/prefixed.dart' as prefixed;
+const int prefixNotAllowed = 1;
+
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html',
+    exports: const [prefixNotAllowed, prefixed.prefixRequired])
+class TestPanel {
+}
+''');
+    final code = r'''
+component class can't be used with a prefix: {{prefixed.TestPanel}}
+{{prefixed.prefixNotAllowed}}
+{{prefixRequired}}
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(2)); // the 'prefixed' prefixes only
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_GETTER,
+      StaticWarningCode.UNDEFINED_GETTER,
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_invalidExportDoesntCrash() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', exports: const [garbage])
+class TestPanel {
+}
+''');
+    final code = '{{garbage}}';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(0));
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';

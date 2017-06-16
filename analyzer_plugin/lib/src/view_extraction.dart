@@ -133,6 +133,8 @@ class ViewExtractor extends AnnotationProcessorMixin {
     }
     final directiveReferences = <DirectiveReference>[];
     findDirectives(annotation, directiveReferences);
+    final exports = <ExportedIdentifier>[];
+    findExports(annotation, exports);
     // Create View.
     return new View(classElement, component, <AbstractDirective>[],
         templateText: templateText,
@@ -140,7 +142,8 @@ class ViewExtractor extends AnnotationProcessorMixin {
         templateUriSource: templateUriSource,
         templateUrlRange: templateUrlRange,
         directiveReferences: directiveReferences,
-        annotation: annotation);
+        annotation: annotation,
+        exports: exports);
   }
 
   Component _findComponentAnnotationOrReportError(ClassElement classElement) {
@@ -183,6 +186,50 @@ class ViewExtractor extends AnnotationProcessorMixin {
         errorReporter.reportErrorForNode(
             AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
       }
+    }
+  }
+
+  void findExports(
+      ast.Annotation annotation, List<ExportedIdentifier> exports) {
+    // ignore: omit_local_variable_types
+    final ast.Expression listExpression =
+        getNamedArgument(annotation, 'exports');
+    final alreadyExported = new HashSet<String>();
+    if (listExpression is ast.ListLiteral) {
+      // ignore: omit_local_variable_types
+      for (final ast.Expression item in listExpression.elements) {
+        if (item is ast.Identifier) {
+          // Be wary: item.name includes prefix for PrefixedIdentifier.
+          var name = item.name;
+
+          // Check dupes BEFORE separating the identifier & prefix
+          if (alreadyExported.contains(name)) {
+            errorReporter.reportErrorForNode(
+                AngularWarningCode.DUPLICATE_EXPORT, item, [name]);
+          }
+          alreadyExported.add(name);
+
+          // Separate the identifier & prefix
+          var prefix = '';
+          if (item is ast.PrefixedIdentifier) {
+            prefix = item.prefix.name;
+            name = item.identifier.name;
+          }
+
+          // Record
+          exports.add(new ExportedIdentifier(
+              name, new SourceRange(item.offset, item.length),
+              prefix: prefix));
+        } else {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS, item);
+        }
+        continue;
+      }
+    } else if (listExpression != null) {
+      // unknown
+      errorReporter.reportErrorForNode(
+          AngularWarningCode.TYPE_LITERAL_EXPECTED, listExpression);
     }
   }
 }

@@ -15,6 +15,8 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/dart/element/element.dart'
+    show PropertyAccessorElement, FunctionElement, ClassElement, LibraryElement;
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
@@ -383,6 +385,21 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
               optype,
             );
           }
+
+          addExportedPrefixSuggestions(collector, template.view);
+        }
+
+        {
+          final entity = completionTarget.entity;
+          final containingNode = completionTarget.containingNode;
+          if (entity is SimpleIdentifier &&
+              containingNode is PrefixedIdentifier &&
+              entity == containingNode?.identifier) {
+            addExportSuggestions(collector, template.view, optype,
+                prefix: containingNode.prefix.name);
+          } else {
+            addExportSuggestions(collector, template.view, optype);
+          }
         }
 
         if (collector.suggestionsLength != initialSuggestionLength &&
@@ -454,6 +471,172 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
     final flags = Element.makeFlags();
     return new Element(kind, name, flags,
         location: location, returnType: type.toString());
+  }
+
+  void addExportSuggestions(
+      CompletionCollector collector, View view, OpType optype,
+      {String prefix}) {
+    if (prefix == null) {
+      collector.addSuggestion(_addExportedClassSuggestion(
+          new ExportedIdentifier(view.classElement.name, null,
+              element: view.classElement),
+          view.classElement.type,
+          ElementKind.CLASS,
+          optype,
+          relevance: DART_RELEVANCE_DEFAULT));
+    }
+
+    final exports = view.exports;
+    if (exports == null) {
+      return;
+    }
+
+    for (final export in exports) {
+      if (prefix != null && export.prefix != prefix) {
+        continue;
+      }
+
+      final element = export.element;
+      if (element is PropertyAccessorElement) {
+        collector.addSuggestion(_addExportedGetterSuggestion(
+            export, element.variable.type, ElementKind.GETTER, optype,
+            relevance: DART_RELEVANCE_DEFAULT, withPrefix: prefix == null));
+      }
+      if (element is FunctionElement) {
+        collector.addSuggestion(_addExportedFunctionSuggestion(
+            export, element.returnType, ElementKind.FUNCTION, optype,
+            relevance: DART_RELEVANCE_DEFAULT, withPrefix: prefix == null));
+      }
+      if (element is ClassElement) {
+        collector.addSuggestion(_addExportedClassSuggestion(
+            export,
+            element.type,
+            element.isEnum ? ElementKind.ENUM : ElementKind.CLASS,
+            optype,
+            relevance: DART_RELEVANCE_DEFAULT,
+            withPrefix: prefix == null));
+      }
+    }
+  }
+
+  void addExportedPrefixSuggestions(CompletionCollector collector, View view) {
+    if (view.exports == null) {
+      return;
+    }
+
+    view.exports
+        .map((export) => export.prefix)
+        .where((prefix) => prefix != '')
+        .toSet()
+        .map((prefix) => _addExportedPrefixSuggestion(
+            prefix, _getPrefixedImport(view.classElement.library, prefix)))
+        .forEach(collector.addSuggestion);
+  }
+
+  LibraryElement _getPrefixedImport(LibraryElement library, String prefix) =>
+      library.imports
+          .where((import) => import.prefix != null)
+          .where((import) => import.prefix.name == prefix)
+          .first
+          .library;
+
+  CompletionSuggestion _addExportedGetterSuggestion(ExportedIdentifier export,
+      DartType typeName, ElementKind elemKind, OpType optype,
+      {int relevance: DART_RELEVANCE_DEFAULT, bool withPrefix: true}) {
+    final element = export.element as PropertyAccessorElement;
+    // ignore: parameter_assignments
+    relevance =
+        optype.returnValueSuggestionsFilter(element.variable.type, relevance) ??
+            DART_RELEVANCE_DEFAULT;
+    return _createExportSuggestion(
+        export,
+        relevance,
+        typeName,
+        _createExportElement(export, elemKind)
+          ..returnType = typeName.toString(),
+        withPrefix: withPrefix)
+      ..returnType = element.returnType.toString();
+  }
+
+  CompletionSuggestion _addExportedFunctionSuggestion(ExportedIdentifier export,
+      DartType typeName, ElementKind elemKind, OpType optype,
+      {int relevance: DART_RELEVANCE_DEFAULT, bool withPrefix: true}) {
+    final element = export.element as FunctionElement;
+    // ignore: parameter_assignments
+    relevance = optype.returnValueSuggestionsFilter(element.type, relevance) ??
+        DART_RELEVANCE_DEFAULT;
+    return _createExportSuggestion(
+        export,
+        relevance,
+        typeName,
+        _createExportFunctionElement(export.element, elemKind, typeName)
+          ..returnType = typeName.toString(),
+        withPrefix: withPrefix)
+      ..returnType = element.returnType.toString()
+      ..parameterNames = element.parameters.map((param) => param.name).toList()
+      ..parameterTypes =
+          element.parameters.map((param) => param.type.toString()).toList()
+      ..requiredParameterCount =
+          element.parameters.where((param) => param.isRequired).length
+      ..hasNamedParameters =
+          element.parameters.any((param) => param.name != null);
+  }
+
+  CompletionSuggestion _addExportedClassSuggestion(ExportedIdentifier export,
+          DartType typeName, ElementKind elemKind, OpType optype,
+          {int relevance: DART_RELEVANCE_DEFAULT, bool withPrefix: true}) =>
+      _createExportSuggestion(
+          export, relevance, typeName, _createExportElement(export, elemKind),
+          withPrefix: withPrefix);
+
+  CompletionSuggestion _addExportedPrefixSuggestion(
+          String prefix, LibraryElement library) =>
+      _createExportedPrefixSuggestion(prefix, DART_RELEVANCE_DEFAULT,
+          _createExportedPrefixElement(prefix, library));
+
+  CompletionSuggestion _createExportSuggestion(ExportedIdentifier export,
+      int defaultRelevance, DartType type, Element element,
+      {bool withPrefix: true}) {
+    final completion = export.prefix.isEmpty || !withPrefix
+        ? export.identifier
+        : '${export.prefix}.${export.identifier}';
+    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
+        defaultRelevance, completion, completion.length, 0, false, false,
+        element: element);
+  }
+
+  Element _createExportElement(ExportedIdentifier export, ElementKind kind) {
+    final name = export.identifier;
+    final location = new Location(export.element.source.fullName,
+        export.element.nameOffset, export.element.nameLength, 0, 0);
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags, location: location);
+  }
+
+  Element _createExportFunctionElement(
+      FunctionElement element, ElementKind kind, DartType type) {
+    final name = element.name;
+    final parameterString = element.parameters.join(', ');
+    final location = new Location(
+        element.source.fullName, element.nameOffset, element.nameLength, 0, 0);
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags,
+        location: location,
+        returnType: type.toString(),
+        parameters: '($parameterString)');
+  }
+
+  CompletionSuggestion _createExportedPrefixSuggestion(
+          String prefix, int defaultRelevance, Element element) =>
+      new CompletionSuggestion(CompletionSuggestionKind.IDENTIFIER,
+          defaultRelevance, prefix, prefix.length, 0, false, false,
+          element: element);
+
+  Element _createExportedPrefixElement(String prefix, LibraryElement library) {
+    final flags = Element.makeFlags();
+    final location = new Location(
+        library.source.fullName, library.nameOffset, library.nameLength, 0, 0);
+    return new Element(ElementKind.LIBRARY, prefix, flags, location: location);
   }
 }
 
@@ -1005,15 +1188,6 @@ class TemplateCompleter {
     });
   }
 
-  void addLocalVariables(CompletionCollector collector,
-      Map<String, LocalVariable> localVars, OpType optype) {
-    for (final eachVar in localVars.values) {
-      collector.addSuggestion(_addLocalVariableSuggestion(eachVar,
-          eachVar.dartVariable.type, ElementKind.LOCAL_VARIABLE, optype,
-          relevance: DART_RELEVANCE_LOCAL_VARIABLE));
-    }
-  }
-
   CompletionSuggestion _createRefValueSuggestion(
       AngularElement exportAs, int defaultRelevance, Element element) {
     final completion = exportAs.name;
@@ -1028,35 +1202,6 @@ class TemplateCompleter {
         exportAs.nameLength, 0, 0);
     final flags = Element.makeFlags();
     return new Element(kind, name, flags, location: location);
-  }
-
-  CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
-      DartType typeName, ElementKind elemKind, OpType optype,
-      {int relevance: DART_RELEVANCE_DEFAULT}) {
-    // ignore: parameter_assignments
-    relevance = optype.returnValueSuggestionsFilter(
-            variable.dartVariable.type, relevance) ??
-        DART_RELEVANCE_DEFAULT;
-    return _createLocalSuggestion(variable, relevance, typeName,
-        _createLocalElement(variable, elemKind, typeName));
-  }
-
-  CompletionSuggestion _createLocalSuggestion(LocalVariable localVar,
-      int defaultRelevance, DartType type, Element element) {
-    final completion = localVar.name;
-    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
-        defaultRelevance, completion, completion.length, 0, false, false,
-        returnType: type.toString(), element: element);
-  }
-
-  Element _createLocalElement(
-      LocalVariable localVar, ElementKind kind, DartType type) {
-    final name = localVar.name;
-    final location = new Location(localVar.source.fullName, localVar.nameOffset,
-        localVar.nameLength, 0, 0);
-    final flags = Element.makeFlags();
-    return new Element(kind, name, flags,
-        location: location, returnType: type.toString());
   }
 
   CompletionSuggestion _createHtmlTagSuggestion(
