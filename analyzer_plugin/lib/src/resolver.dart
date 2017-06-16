@@ -1302,6 +1302,29 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
   }
 
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {
+    // When the first virtual attribute matches a binding (like `ngIf`), flag it
+    // if its empty. Only for the first. All others (like `trackBy`) are checked
+    // in [EmbeddedDartParser.parseTemplateVirtualAttributes]
+    if (!binding.isPrefix) {
+      return;
+    }
+
+    // catch *ngIf without a value
+    if (binding.parent.boundDirectives
+        .map((binding) => binding.boundDirective)
+        .any((directive) =>
+            directive.inputs.any((input) => input.name == binding.name))) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          binding.nameOffset,
+          binding.name.length,
+          AngularWarningCode.EMPTY_BINDING,
+          [binding.name]));
+    }
+  }
+
   /// Resolve input-bound values of [attributes] as strings, if they match. Note,
   /// this does not report an error un unmatched attributes, but it will report
   /// the range, and ensure that input bindings are string-assingable.
@@ -1310,11 +1333,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
     for (final directiveBinding in attribute.parent.boundDirectives) {
       for (final input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
-          final inputType = input.setterType;
-
           // Typecheck all but HTML inputs. For those, `width="10"` becomes
           // `setAttribute("width", "10")`, which is ok. But for directives and
           // components, this becomes `.someIntProp = "10"` which doesn't work.
+          final inputType = input.setterType;
           if (!directiveBinding.boundDirective.isHtml &&
               !typeProvider.stringType.isAssignableTo(inputType)) {
             errorListener.onError(new AnalysisError(

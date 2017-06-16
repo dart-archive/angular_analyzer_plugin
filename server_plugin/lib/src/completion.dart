@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
-    show Element, ElementKind;
+import 'package:analyzer_plugin/protocol/protocol_common.dart'
+    hide AnalysisError;
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:analyzer_plugin/utilities/completion/inherited_reference_contributor.dart';
 import 'package:analyzer_plugin/utilities/completion/type_member_contributor.dart';
+import 'package:analyzer_plugin/utilities/completion/replacement_range.dart';
 import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
-import 'package:analyzer_plugin/src/utilities/completion/replacement_range.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
@@ -22,63 +22,74 @@ import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analysis_plugin/src/resolve_result.dart';
-import 'package:analysis_server/src/protocol_server.dart'
-    show CompletionSuggestion, CompletionSuggestionKind, Location;
-import 'package:analysis_server/src/protocol_server.dart'
-    show CompletionSuggestion;
 
 bool offsetContained(int offset, int start, int length) =>
     start <= offset && start + length >= offset;
 
-AngularAstNode findTarget(int offset, AngularAstNode root) {
-  for (final child in root.children) {
-    // `*ngIf="x"` creates, inside the template attr, a property binding named
-    // `ngIf`, which will confuse our autocompleter. Skip it.
-    if (root is TemplateAttribute &&
-        child is AttributeInfo &&
-        child.name == root.prefix) {
-      continue;
+class CompletionTargetExtractor implements AngularAstVisitor {
+  AstNode dartSnippet;
+  AngularAstNode target;
+  final int offset;
+
+  CompletionTargetExtractor(this.offset);
+
+  /// Check if the [node] contains a [child] node which contains the completion
+  /// [offset]. If so, visit the [child] which likely will call this again.
+  /// Otherwise, mark [node] as the [target].
+  ///
+  /// returns true if a [child] was selected, otherwise false.
+  bool recurseToTarget(AngularAstNode node) {
+    for (final child in node.children) {
+      if (offsetContained(offset, child.offset, child.length)) {
+        child.accept(this);
+        return true;
+      }
     }
 
-    if (child is ElementInfo) {
-      if (child.isSynthetic) {
-        final target = findTarget(offset, child);
-        if (!(target is ElementInfo && target.openingSpan == null)) {
-          return target;
-        }
-      } else {
-        if (offsetContained(offset, child.openingNameSpan.offset,
-            child.openingNameSpan.length)) {
-          return child;
-        } else if (offsetContained(offset, child.offset, child.length)) {
-          return findTarget(offset, child);
-        }
-      }
-    } else if (offsetContained(offset, child.offset, child.length)) {
-      return findTarget(offset, child);
+    target = node;
+    return false;
+  }
+
+  @override
+  void visitDocumentInfo(DocumentInfo document) {
+    recurseToTarget(document);
+  }
+
+  @override
+  void visitElementInfo(ElementInfo element) {
+    // Don't choose tag two in `<tag-one<tag-two></tag-one>`
+    if (offsetContained(offset, element.openingNameSpan.offset,
+        element.openingNameSpan.length)) {
+      target = element;
+      return;
+    }
+
+    recurseToTarget(element);
+  }
+
+  @override
+  void visitTextAttr(TextAttribute attr) {
+    recurseToTarget(attr);
+  }
+
+  @override
+  void visitTextInfo(TextInfo textInfo) {
+    recurseToTarget(textInfo);
+  }
+
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {
+    if (binding.isPrefix) {
+      target = binding.parent;
+    } else {
+      visitTextAttr(binding);
     }
   }
-  return root;
-}
-
-class DartSnippetExtractor extends AngularAstVisitor {
-  AstNode dartSnippet;
-  int offset;
-
-  @override
-  void visitDocumentInfo(DocumentInfo document) {}
-
-  // don't recurse, findTarget already did that
-  @override
-  void visitElementInfo(ElementInfo element) {}
-
-  @override
-  void visitTextAttr(TextAttribute attr) {}
 
   @override
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
+    target = attr;
     if (attr.expression != null &&
         offsetContained(
             offset, attr.expression.offset, attr.expression.length)) {
@@ -88,6 +99,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    target = attr;
     for (final statement in attr.statements) {
       if (offsetContained(offset, statement.offset, statement.length)) {
         dartSnippet = statement;
@@ -97,6 +109,8 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitMustache(Mustache mustache) {
+    target = mustache;
+
     if (offsetContained(
         offset, mustache.exprBegin, mustache.exprEnd - mustache.exprBegin)) {
       dartSnippet = mustache.expression;
@@ -105,8 +119,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
-    if (attr.value == null ||
-        !offsetContained(offset, attr.valueOffset, attr.value.length)) {
+    if (recurseToTarget(attr)) {
       return;
     }
 
@@ -119,8 +132,7 @@ class DartSnippetExtractor extends AngularAstVisitor {
     }
 
     if (attributeToAppendTo != null &&
-        attributeToAppendTo is TextAttribute &&
-        !attributeToAppendTo.name.startsWith("let")) {
+        attributeToAppendTo is EmptyStarBinding) {
       final analysisErrorListener = new IgnoringAnalysisErrorListener();
       final dartParser =
           new EmbeddedDartParser(null, analysisErrorListener, null);
@@ -135,10 +147,10 @@ class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
   void onError(AnalysisError error) {}
 }
 
-class LocalVariablesExtractor extends AngularAstVisitor {
+class LocalVariablesExtractor implements AngularAstVisitor {
   Map<String, LocalVariable> variables;
 
-  // don't recurse, findTarget already did that
+  // don't recurse
   @override
   void visitDocumentInfo(DocumentInfo document) {}
 
@@ -147,6 +159,12 @@ class LocalVariablesExtractor extends AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {}
+
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {}
+
+  @override
+  void visitTextInfo(TextInfo text) {}
 
   @override
   void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
@@ -162,9 +180,14 @@ class LocalVariablesExtractor extends AngularAstVisitor {
   void visitMustache(Mustache mustache) {
     variables = mustache.localVariables;
   }
+
+  @override
+  void visitTemplateAttr(TemplateAttribute attr) {
+    variables = attr.localVariables;
+  }
 }
 
-class ReplacementRangeCalculator extends AngularAstVisitor {
+class ReplacementRangeCalculator implements AngularAstVisitor {
   int offset; // replacementOffset. Initially requestOffset.
   int length = 0; // replacementLength
 
@@ -175,7 +198,6 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
   @override
   void visitDocumentInfo(DocumentInfo document) {}
 
-  // don't recurse, findTarget already did that
   @override
   void visitElementInfo(ElementInfo element) {
     if (element.openingSpan == null) {
@@ -237,6 +259,10 @@ class ReplacementRangeCalculator extends AngularAstVisitor {
       length = attr.originalName.length;
     }
   }
+
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) =>
+      visitTextAttr(binding);
 }
 
 /// Extension of [TypeMemberContributor] to allow for Dart-based
@@ -263,9 +289,8 @@ class NgTypeMemberContributor extends TypeMemberContributor {
       final initialSuggestionLength = collector.suggestionsLength;
       final typeProvider = template.view.component.classElement.enclosingElement
           .enclosingElement.context.typeProvider;
-      final target = findTarget(request.offset, template.ast);
-      final extractor = new DartSnippetExtractor()..offset = request.offset;
-      target.accept(extractor);
+      final extractor = new CompletionTargetExtractor(request.offset);
+      template.ast.accept(extractor);
 
       if (extractor.dartSnippet != null) {
         final entryPoint = extractor.dartSnippet;
@@ -320,9 +345,9 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
       final initialSuggestionLength = collector.suggestionsLength;
       final typeProvider = template.view.component.classElement.enclosingElement
           .enclosingElement.context.typeProvider;
-      final target = findTarget(request.offset, template.ast);
-      final extractor = new DartSnippetExtractor()..offset = request.offset;
-      target.accept(extractor);
+      final extractor = new CompletionTargetExtractor(request.offset);
+      template.ast.accept(extractor);
+      final target = extractor.target;
 
       if (extractor.dartSnippet != null) {
         final entryPoint = extractor.dartSnippet;
@@ -413,17 +438,14 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
   void addLocalVariables(CompletionCollector collector,
       Map<String, LocalVariable> localVars, OpType optype) {
     for (final eachVar in localVars.values) {
-      collector.addSuggestion(_addLocalVariableSuggestion(
-          eachVar,
-          eachVar.dartVariable.type,
-          protocol.ElementKind.LOCAL_VARIABLE,
-          optype,
+      collector.addSuggestion(_addLocalVariableSuggestion(eachVar,
+          eachVar.dartVariable.type, ElementKind.LOCAL_VARIABLE, optype,
           relevance: DART_RELEVANCE_LOCAL_VARIABLE));
     }
   }
 
   CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
-      DartType typeName, protocol.ElementKind elemKind, OpType optype,
+      DartType typeName, ElementKind elemKind, OpType optype,
       {int relevance: DART_RELEVANCE_DEFAULT}) {
     // ignore: parameter_assignments
     relevance = optype.returnValueSuggestionsFilter(
@@ -434,20 +456,20 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
   }
 
   CompletionSuggestion _createLocalSuggestion(LocalVariable localVar,
-      int defaultRelevance, DartType type, protocol.Element element) {
+      int defaultRelevance, DartType type, Element element) {
     final completion = localVar.name;
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         returnType: type.toString(), element: element);
   }
 
-  protocol.Element _createLocalElement(
-      LocalVariable localVar, protocol.ElementKind kind, DartType type) {
+  Element _createLocalElement(
+      LocalVariable localVar, ElementKind kind, DartType type) {
     final name = localVar.name;
     final location = new Location(localVar.source.fullName, localVar.nameOffset,
         localVar.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags,
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags,
         location: location, returnType: type.toString());
   }
 
@@ -459,7 +481,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
           new ExportedIdentifier(view.classElement.name, null,
               element: view.classElement),
           view.classElement.type,
-          protocol.ElementKind.CLASS,
+          ElementKind.CLASS,
           optype,
           relevance: DART_RELEVANCE_DEFAULT));
     }
@@ -477,21 +499,19 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
       final element = export.element;
       if (element is PropertyAccessorElement) {
         collector.addSuggestion(_addExportedGetterSuggestion(
-            export, element.variable.type, protocol.ElementKind.GETTER, optype,
+            export, element.variable.type, ElementKind.GETTER, optype,
             relevance: DART_RELEVANCE_DEFAULT, withPrefix: prefix == null));
       }
       if (element is FunctionElement) {
         collector.addSuggestion(_addExportedFunctionSuggestion(
-            export, element.returnType, protocol.ElementKind.FUNCTION, optype,
+            export, element.returnType, ElementKind.FUNCTION, optype,
             relevance: DART_RELEVANCE_DEFAULT, withPrefix: prefix == null));
       }
       if (element is ClassElement) {
         collector.addSuggestion(_addExportedClassSuggestion(
             export,
             element.type,
-            element.isEnum
-                ? protocol.ElementKind.ENUM
-                : protocol.ElementKind.CLASS,
+            element.isEnum ? ElementKind.ENUM : ElementKind.CLASS,
             optype,
             relevance: DART_RELEVANCE_DEFAULT,
             withPrefix: prefix == null));
@@ -521,7 +541,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
           .library;
 
   CompletionSuggestion _addExportedGetterSuggestion(ExportedIdentifier export,
-      DartType typeName, protocol.ElementKind elemKind, OpType optype,
+      DartType typeName, ElementKind elemKind, OpType optype,
       {int relevance: DART_RELEVANCE_DEFAULT, bool withPrefix: true}) {
     final element = export.element as PropertyAccessorElement;
     // ignore: parameter_assignments
@@ -539,7 +559,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
   }
 
   CompletionSuggestion _addExportedFunctionSuggestion(ExportedIdentifier export,
-      DartType typeName, protocol.ElementKind elemKind, OpType optype,
+      DartType typeName, ElementKind elemKind, OpType optype,
       {int relevance: DART_RELEVANCE_DEFAULT, bool withPrefix: true}) {
     final element = export.element as FunctionElement;
     // ignore: parameter_assignments
@@ -563,7 +583,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
   }
 
   CompletionSuggestion _addExportedClassSuggestion(ExportedIdentifier export,
-          DartType typeName, protocol.ElementKind elemKind, OpType optype,
+          DartType typeName, ElementKind elemKind, OpType optype,
           {int relevance: DART_RELEVANCE_DEFAULT, bool withPrefix: true}) =>
       _createExportSuggestion(
           export, relevance, typeName, _createExportElement(export, elemKind),
@@ -575,7 +595,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
           _createExportedPrefixElement(prefix, library));
 
   CompletionSuggestion _createExportSuggestion(ExportedIdentifier export,
-      int defaultRelevance, DartType type, protocol.Element element,
+      int defaultRelevance, DartType type, Element element,
       {bool withPrefix: true}) {
     final completion = export.prefix.isEmpty || !withPrefix
         ? export.identifier
@@ -585,41 +605,38 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
         element: element);
   }
 
-  protocol.Element _createExportElement(
-      ExportedIdentifier export, protocol.ElementKind kind) {
+  Element _createExportElement(ExportedIdentifier export, ElementKind kind) {
     final name = export.identifier;
     final location = new Location(export.element.source.fullName,
         export.element.nameOffset, export.element.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags, location: location);
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags, location: location);
   }
 
-  protocol.Element _createExportFunctionElement(
-      FunctionElement element, protocol.ElementKind kind, DartType type) {
+  Element _createExportFunctionElement(
+      FunctionElement element, ElementKind kind, DartType type) {
     final name = element.name;
     final parameterString = element.parameters.join(', ');
     final location = new Location(
         element.source.fullName, element.nameOffset, element.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags,
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags,
         location: location,
         returnType: type.toString(),
         parameters: '($parameterString)');
   }
 
   CompletionSuggestion _createExportedPrefixSuggestion(
-          String prefix, int defaultRelevance, protocol.Element element) =>
+          String prefix, int defaultRelevance, Element element) =>
       new CompletionSuggestion(CompletionSuggestionKind.IDENTIFIER,
           defaultRelevance, prefix, prefix.length, 0, false, false,
           element: element);
 
-  protocol.Element _createExportedPrefixElement(
-      String prefix, LibraryElement library) {
-    final flags = protocol.Element.makeFlags();
+  Element _createExportedPrefixElement(String prefix, LibraryElement library) {
+    final flags = Element.makeFlags();
     final location = new Location(
         library.source.fullName, library.nameOffset, library.nameLength, 0, 0);
-    return new protocol.Element(protocol.ElementKind.LIBRARY, prefix, flags,
-        location: location);
+    return new Element(ElementKind.LIBRARY, prefix, flags, location: location);
   }
 }
 
@@ -676,10 +693,15 @@ class TemplateCompleter {
   ) async {
     final typeProvider = template.view.component.classElement.enclosingElement
         .enclosingElement.context.typeProvider;
-    final target = findTarget(request.offset, template.ast);
     final initialSuggestionsCount = collector.suggestionsLength;
     final replacementRangeCalculator = new ReplacementRangeCalculator(request);
-    target.accept(replacementRangeCalculator);
+    final extractor = new CompletionTargetExtractor(request.offset);
+    template.ast.accept(extractor);
+    final target = extractor.target..accept(replacementRangeCalculator);
+
+    if (extractor.dartSnippet != null) {
+      return;
+    }
 
     if (target is ElementInfo) {
       if (target.closingSpan != null &&
@@ -855,8 +877,8 @@ class TemplateCompleter {
           collector.addSuggestion(_createHtmlTagSuggestion(
               tag.toString(),
               RELEVANCE_TRANSCLUSION,
-              _createHtmlTagTransclusionElement(tag.toString(),
-                  protocol.ElementKind.CLASS_TYPE_ALIAS, location)));
+              _createHtmlTagTransclusionElement(
+                  tag.toString(), ElementKind.CLASS_TYPE_ALIAS, location)));
         }
       }
     }
@@ -871,7 +893,7 @@ class TemplateCompleter {
           _createHtmlTagElement(
               elementTagName,
               elementTagMap[elementTagName].first,
-              protocol.ElementKind.CLASS_TYPE_ALIAS));
+              ElementKind.CLASS_TYPE_ALIAS));
       if (currentSuggestion != null) {
         collector.addSuggestion(currentSuggestion);
       }
@@ -910,14 +932,14 @@ class TemplateCompleter {
                   input.name,
                   input.nameOffset,
                   input.source.fullName,
-                  protocol.ElementKind.SETTER,
+                  ElementKind.SETTER,
                 )));
           }
         }
         collector.addSuggestion(_createInputSuggestion(
             input,
             DART_RELEVANCE_DEFAULT,
-            _createInputElement(input, protocol.ElementKind.SETTER)));
+            _createInputElement(input, ElementKind.SETTER)));
       }
     }
 
@@ -942,14 +964,14 @@ class TemplateCompleter {
                 input.name,
                 input.nameOffset,
                 input.source.fullName,
-                protocol.ElementKind.SETTER,
+                ElementKind.SETTER,
               )));
         }
       }
       collector.addSuggestion(_createInputSuggestion(
           input,
           DART_RELEVANCE_DEFAULT - 2,
-          _createInputElement(input, protocol.ElementKind.SETTER)));
+          _createInputElement(input, ElementKind.SETTER)));
     }
   }
 
@@ -975,7 +997,7 @@ class TemplateCompleter {
             templateAttr.prefix,
             input,
             DART_RELEVANCE_DEFAULT,
-            _createInputElement(input, protocol.ElementKind.SETTER)));
+            _createInputElement(input, ElementKind.SETTER)));
       }
     }
   }
@@ -998,7 +1020,7 @@ class TemplateCompleter {
         collector.addSuggestion(_createOutputSuggestion(
             output,
             DART_RELEVANCE_DEFAULT,
-            _createOutputElement(output, protocol.ElementKind.GETTER)));
+            _createOutputElement(output, ElementKind.GETTER)));
       }
     }
 
@@ -1014,7 +1036,7 @@ class TemplateCompleter {
       collector.addSuggestion(_createOutputSuggestion(
           output,
           DART_RELEVANCE_DEFAULT - 1, // just below regular relevance
-          _createOutputElement(output, protocol.ElementKind.GETTER)));
+          _createOutputElement(output, ElementKind.GETTER)));
     }
   }
 
@@ -1048,7 +1070,7 @@ class TemplateCompleter {
           collector.addSuggestion(_createBananaSuggestion(
               input,
               DART_RELEVANCE_DEFAULT,
-              _createBananaElement(input, protocol.ElementKind.SETTER)));
+              _createBananaElement(input, ElementKind.SETTER)));
         }
       }
     }
@@ -1082,7 +1104,7 @@ class TemplateCompleter {
       collector.addSuggestion(_createStarAttrSuggestion(
           selector,
           DART_RELEVANCE_DEFAULT,
-          _createStarAttrElement(selector, protocol.ElementKind.CLASS)));
+          _createStarAttrElement(selector, ElementKind.CLASS)));
     }
   }
 
@@ -1102,7 +1124,7 @@ class TemplateCompleter {
           collector.addSuggestion(_createRefValueSuggestion(
               exportAs,
               DART_RELEVANCE_DEFAULT,
-              _createRefValueElement(exportAs, protocol.ElementKind.LABEL)));
+              _createRefValueElement(exportAs, ElementKind.LABEL)));
         }
       }
     }
@@ -1142,13 +1164,13 @@ class TemplateCompleter {
           collector.addSuggestion(_createBananaSuggestion(
               input,
               DART_RELEVANCE_DEFAULT,
-              _createBananaElement(input, protocol.ElementKind.SETTER)));
+              _createBananaElement(input, ElementKind.SETTER)));
         }
         if (suggestInputs) {
           collector.addSuggestion(_createInputSuggestion(
               input,
               DART_RELEVANCE_DEFAULT,
-              _createInputElement(input, protocol.ElementKind.SETTER)));
+              _createInputElement(input, ElementKind.SETTER)));
         }
       }
 
@@ -1159,61 +1181,31 @@ class TemplateCompleter {
           collector.addSuggestion(_createPlainAttributeSuggestions(
               name,
               DART_RELEVANCE_DEFAULT,
-              _createPlainAttributeElement(name, nameOffset, locationSource,
-                  protocol.ElementKind.SETTER)));
+              _createPlainAttributeElement(
+                  name, nameOffset, locationSource, ElementKind.SETTER)));
         });
       }
     });
   }
 
   CompletionSuggestion _createRefValueSuggestion(
-      AngularElement exportAs, int defaultRelevance, protocol.Element element) {
+      AngularElement exportAs, int defaultRelevance, Element element) {
     final completion = exportAs.name;
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
   }
 
-  protocol.Element _createRefValueElement(
-      AngularElement exportAs, protocol.ElementKind kind) {
+  Element _createRefValueElement(AngularElement exportAs, ElementKind kind) {
     final name = exportAs.name;
     final location = new Location(exportAs.source.fullName, exportAs.nameOffset,
         exportAs.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags, location: location);
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags, location: location);
   }
 
-  CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
-      DartType typeName, protocol.ElementKind elemKind, OpType optype,
-      {int relevance: DART_RELEVANCE_DEFAULT}) {
-    // ignore: parameter_assignments
-    relevance = optype.returnValueSuggestionsFilter(
-            variable.dartVariable.type, relevance) ??
-        DART_RELEVANCE_DEFAULT;
-    return _createLocalSuggestion(variable, relevance, typeName,
-        _createLocalElement(variable, elemKind, typeName));
-  }
-
-  CompletionSuggestion _createLocalSuggestion(LocalVariable localVar,
-      int defaultRelevance, DartType type, protocol.Element element) {
-    final completion = localVar.name;
-    return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
-        defaultRelevance, completion, completion.length, 0, false, false,
-        returnType: type.toString(), element: element);
-  }
-
-  protocol.Element _createLocalElement(
-      LocalVariable localVar, protocol.ElementKind kind, DartType type) {
-    final name = localVar.name;
-    final location = new Location(localVar.source.fullName, localVar.nameOffset,
-        localVar.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags,
-        location: location, returnType: type.toString());
-  }
-
-  CompletionSuggestion _createHtmlTagSuggestion(String elementTagName,
-          int defaultRelevance, protocol.Element element) =>
+  CompletionSuggestion _createHtmlTagSuggestion(
+          String elementTagName, int defaultRelevance, Element element) =>
       new CompletionSuggestion(
           CompletionSuggestionKind.INVOCATION,
           defaultRelevance,
@@ -1224,8 +1216,8 @@ class TemplateCompleter {
           false,
           element: element);
 
-  protocol.Element _createHtmlTagElement(String elementTagName,
-      AbstractDirective directive, protocol.ElementKind kind) {
+  Element _createHtmlTagElement(
+      String elementTagName, AbstractDirective directive, ElementKind kind) {
     final selector = directive.elementTags.firstWhere(
         (currSelector) => currSelector.toString() == elementTagName);
     final offset = selector.nameElement.nameOffset;
@@ -1233,33 +1225,28 @@ class TemplateCompleter {
 
     final location =
         new Location(directive.source.fullName, offset, length, 0, 0);
-    final flags = protocol.Element
-        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, '<$elementTagName', flags,
-        location: location);
+    final flags = Element.makeFlags(
+        isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new Element(kind, '<$elementTagName', flags, location: location);
   }
 
-  protocol.Element _createHtmlTagTransclusionElement(
-      String elementTagName, protocol.ElementKind kind, Location location) {
-    final flags = protocol.Element
-        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, elementTagName, flags,
-        location: location);
+  Element _createHtmlTagTransclusionElement(
+      String elementTagName, ElementKind kind, Location location) {
+    final flags = Element.makeFlags(
+        isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new Element(kind, elementTagName, flags, location: location);
   }
 
-  CompletionSuggestion _createInputSuggestion(InputElement inputElement,
-      int defaultRelevance, protocol.Element element) {
+  CompletionSuggestion _createInputSuggestion(
+      InputElement inputElement, int defaultRelevance, Element element) {
     final completion = '[${inputElement.name}]';
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
   }
 
-  CompletionSuggestion _createInputInTemplateSuggestion(
-      String prefix,
-      InputElement inputElement,
-      int defaultRelevance,
-      protocol.Element element) {
+  CompletionSuggestion _createInputInTemplateSuggestion(String prefix,
+      InputElement inputElement, int defaultRelevance, Element element) {
     final capitalized = inputElement.name.substring(prefix.length);
     final firstLetter = capitalized.substring(0, 1).toLowerCase();
     final remaining = capitalized.substring(1);
@@ -1269,77 +1256,73 @@ class TemplateCompleter {
         element: element);
   }
 
-  protocol.Element _createInputElement(
-      InputElement inputElement, protocol.ElementKind kind) {
+  Element _createInputElement(InputElement inputElement, ElementKind kind) {
     final name = '[${inputElement.name}]';
     final location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
-    final flags = protocol.Element
-        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, name, flags, location: location);
+    final flags = Element.makeFlags(
+        isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new Element(kind, name, flags, location: location);
   }
 
   CompletionSuggestion _createPlainAttributeSuggestions(
-          String completion, int defaultRelevance, protocol.Element element) =>
+          String completion, int defaultRelevance, Element element) =>
       new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
           defaultRelevance, completion, completion.length, 0, false, false,
           element: element);
 
-  protocol.Element _createPlainAttributeElement(String name, int nameOffset,
-      String locationSource, protocol.ElementKind kind) {
+  Element _createPlainAttributeElement(
+      String name, int nameOffset, String locationSource, ElementKind kind) {
     final location =
         new Location(locationSource, nameOffset, name.length, 0, 0);
-    final flags = protocol.Element
-        .makeFlags(isAbstract: false, isDeprecated: false, isPrivate: false);
-    return new protocol.Element(kind, name, flags, location: location);
+    final flags = Element.makeFlags(
+        isAbstract: false, isDeprecated: false, isPrivate: false);
+    return new Element(kind, name, flags, location: location);
   }
 
-  CompletionSuggestion _createOutputSuggestion(OutputElement outputElement,
-      int defaultRelevance, protocol.Element element) {
+  CompletionSuggestion _createOutputSuggestion(
+      OutputElement outputElement, int defaultRelevance, Element element) {
     final completion = '(${outputElement.name})';
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element, returnType: outputElement.eventType.toString());
   }
 
-  protocol.Element _createOutputElement(
-      OutputElement outputElement, protocol.ElementKind kind) {
+  Element _createOutputElement(OutputElement outputElement, ElementKind kind) {
     final name = '(${ outputElement.name})';
     final location = new Location(outputElement.source.fullName,
         outputElement.nameOffset, outputElement.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags,
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags,
         location: location, returnType: outputElement.eventType.toString());
   }
 
-  CompletionSuggestion _createBananaSuggestion(InputElement inputElement,
-      int defaultRelevance, protocol.Element element) {
+  CompletionSuggestion _createBananaSuggestion(
+      InputElement inputElement, int defaultRelevance, Element element) {
     final completion = '[(${inputElement.name})]';
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element, returnType: inputElement.setterType.toString());
   }
 
-  protocol.Element _createBananaElement(
-      InputElement inputElement, protocol.ElementKind kind) {
+  Element _createBananaElement(InputElement inputElement, ElementKind kind) {
     final name = '[(${inputElement.name})]';
     final location = new Location(inputElement.source.fullName,
         inputElement.nameOffset, inputElement.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags,
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags,
         location: location, returnType: inputElement.setterType.toString());
   }
 
-  CompletionSuggestion _createStarAttrSuggestion(AttributeSelector selector,
-      int defaultRelevance, protocol.Element element) {
+  CompletionSuggestion _createStarAttrSuggestion(
+      AttributeSelector selector, int defaultRelevance, Element element) {
     final completion = '*${selector.nameElement.name}';
     return new CompletionSuggestion(CompletionSuggestionKind.IDENTIFIER,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
   }
 
-  protocol.Element _createStarAttrElement(
-      AttributeSelector selector, protocol.ElementKind kind) {
+  Element _createStarAttrElement(AttributeSelector selector, ElementKind kind) {
     final name = '*${selector.nameElement.name}';
     final location = new Location(
         selector.nameElement.source.fullName,
@@ -1347,7 +1330,7 @@ class TemplateCompleter {
         selector.nameElement.name.length,
         0,
         0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags, location: location);
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags, location: location);
   }
 }

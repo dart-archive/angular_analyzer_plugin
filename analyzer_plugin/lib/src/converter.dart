@@ -843,8 +843,21 @@ class EmbeddedDartParser {
             expression,
             ExpressionBoundType.input));
       } else {
-        attributes.add(new TextAttribute.synthetic(
-            key, keyOffset, null, null, originalName, originalNameOffset, []));
+        // A special kind of TextAttr that signifies its special.
+        final binding = new EmptyStarBinding(
+            key, keyOffset, originalName, originalNameOffset,
+            isPrefix: attributes.isEmpty);
+
+        attributes.add(binding);
+
+        // Check for empty `of` and `trackBy` bindings, but NOT empty `ngIf`!
+        // NgFor (and other star directives) often result in a harmless, empty
+        // first attr. Don't flag it unless it matches an input (like `ngIf`
+        // does), which is checked by [SingleScopeResolver].
+        if (!binding.isPrefix) {
+          errorReporter.reportErrorForOffset(AngularWarningCode.EMPTY_BINDING,
+              originalNameOffset, originalName.length);
+        }
       }
     }
 
