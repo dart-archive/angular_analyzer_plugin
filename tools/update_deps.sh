@@ -19,9 +19,7 @@ echo
 echo Copying pub .packages to be useful to this repo
 cat deps/.packages | grep '# Generated' >> .packages
 cat deps/.packages | grep 'angular_ast' >> .packages
-cat deps/.packages | grep 'quiver_hashcode' >> .packages
 cat deps/.packages | grep 'test_reflective_loader' >> .packages
-cat deps/.packages | grep 'tuple' >> .packages
 cat deps/.packages | grep 'typed_mock' >> .packages
 cat deps/.packages | grep 'unittest' >> .packages
 cat deps/.packages | grep 'non_sdk_deps' >> .packages
