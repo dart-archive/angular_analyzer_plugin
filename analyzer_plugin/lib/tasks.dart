@@ -53,6 +53,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
   AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
   AngularWarningCode.DUPLICATE_EXPORT,
+  AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -375,6 +376,12 @@ class AngularWarningCode extends ErrorCode {
   /// An error code indicating that an identifier was exported multiple times
   static const DUPLICATE_EXPORT = const AngularWarningCode(
       'DUPLICATE_EXPORT', 'Duplicate export of identifier {0}');
+
+  /// An error code indicating component Foo exports Foo, which is unnecessary
+  static const COMPONENTS_CANT_EXPORT_THEMSELVES = const AngularWarningCode(
+      'COMPONENTS_CANT_EXPORT_THEMSELVES',
+      'Components export their class by default, and therefore should not be'
+      ' specified in the exports list');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

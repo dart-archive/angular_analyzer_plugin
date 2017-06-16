@@ -217,7 +217,16 @@ class ExportLinker {
         continue;
       }
 
-      export.element = _scope.lookup(getIdentifier(export), null);
+      final element = _scope.lookup(getIdentifier(export), null);
+      if (element == component.classElement) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+            export.span.offset,
+            export.span.length);
+        continue;
+      }
+
+      export.element = element;
     }
   }
 

@@ -1506,10 +1506,11 @@ class ContentChildComp {}
 import 'package:angular2/angular2.dart';
 
 const foo = null;
-const bar = null;
+void bar() {}
+class MyClass {}
 
 @Component(selector: 'my-component', template: '',
-    exports: const [foo, bar, ComponentA])
+    exports: const [foo, bar, MyClass])
 class ComponentA {
 }
 ''';
@@ -1536,10 +1537,10 @@ class ComponentA {
     }
     {
       final export = component.view.exports[2];
-      expect(export.identifier, equals('ComponentA'));
+      expect(export.identifier, equals('MyClass'));
       expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('ComponentA]')));
-      expect(export.span.length, equals('ComponentA'.length));
+      expect(export.span.offset, equals(code.indexOf('MyClass]')));
+      expect(export.span.length, equals('MyClass'.length));
       expect(export.element, isNull); // not yet linked
     }
     // validate
@@ -3504,10 +3505,11 @@ class ComponentA {
 import 'package:angular2/angular2.dart';
 
 const String foo = 'foo';
-const int bar = 2;
+int bar() { return 2; }
+class MyClass {}
 
 @Component(selector: 'my-component', template: '',
-    exports: const [foo, bar, ComponentA])
+    exports: const [foo, bar, MyClass])
 class ComponentA {
 }
 ''';
@@ -3530,15 +3532,15 @@ class ComponentA {
       expect(export.prefix, equals(''));
       expect(export.span.offset, equals(code.indexOf('bar,')));
       expect(export.span.length, equals('bar'.length));
-      expect(export.element.toString(), equals('get bar → int'));
+      expect(export.element.toString(), equals('bar() → int'));
     }
     {
       final export = component.view.exports[2];
-      expect(export.identifier, equals('ComponentA'));
+      expect(export.identifier, equals('MyClass'));
       expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('ComponentA]')));
-      expect(export.span.length, equals('ComponentA'.length));
-      expect(export.element.toString(), equals('class ComponentA'));
+      expect(export.span.offset, equals(code.indexOf('MyClass]')));
+      expect(export.span.length, equals('MyClass'.length));
+      expect(export.element.toString(), equals('class MyClass'));
     }
     // validate
     errorListener.assertNoErrors();
@@ -3602,6 +3604,25 @@ class ComponentA {
         AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
         code,
         'ComponentA.foo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_cannotExportComponentClassItself() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '',
+    exports: const [ComponentA])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+        code,
+        'ComponentA');
   }
 
   // ignore: non_constant_identifier_names
