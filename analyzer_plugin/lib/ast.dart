@@ -175,12 +175,15 @@ class StatementsBoundAttribute extends BoundAttributeInfo {
 
 class TextAttribute extends AttributeInfo {
   final List<Mustache> mustaches;
+  final bool isReference;
+
   @override
   List<AngularAstNode> get children => new List<AngularAstNode>.from(mustaches);
 
   TextAttribute(String name, int nameOffset, String value, int valueOffset,
       this.mustaches)
-      : super(name, nameOffset, value, valueOffset, name, nameOffset);
+      : isReference = name.startsWith('#'),
+        super(name, nameOffset, value, valueOffset, name, nameOffset);
 
   TextAttribute.synthetic(
       String name,
@@ -190,7 +193,8 @@ class TextAttribute extends AttributeInfo {
       String originalName,
       int originalNameOffset,
       this.mustaches)
-      : super(name, nameOffset, value, valueOffset, originalName,
+      : isReference = name.startsWith('#'),
+        super(name, nameOffset, value, valueOffset, originalName,
             originalNameOffset);
 
   @override

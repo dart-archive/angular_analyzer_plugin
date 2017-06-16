@@ -384,6 +384,27 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestLabel(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT,
+      String importUri,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
+      String returnType: 'dynamic'}) {
+    final cs = assertSuggest(name,
+        csKind: kind,
+        relevance: relevance,
+        importUri: importUri,
+        elemKind: protocol.ElementKind.LABEL);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LABEL));
+    expect(element.name, equals(name));
+    if (element.returnType != null) {
+      expect(element.returnType, returnType);
+    }
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   CompletionSuggestion assertSuggestMethod(
       String name, String declaringType, String returnType,
       {int relevance: DART_RELEVANCE_DEFAULT,
