@@ -906,7 +906,7 @@ class TemplateCompleter {
           collector.addSuggestion(_createRefValueSuggestion(
               exportAs,
               DART_RELEVANCE_DEFAULT,
-              _createRefValueElement(exportAs, protocol.ElementKind.LABEL)));
+              _createRefValueElement(exportAs, ElementKind.LABEL)));
         }
       }
     }
@@ -980,20 +980,19 @@ class TemplateCompleter {
   }
 
   CompletionSuggestion _createRefValueSuggestion(
-      AngularElement exportAs, int defaultRelevance, protocol.Element element) {
+      AngularElement exportAs, int defaultRelevance, Element element) {
     final completion = exportAs.name;
     return new CompletionSuggestion(CompletionSuggestionKind.INVOCATION,
         defaultRelevance, completion, completion.length, 0, false, false,
         element: element);
   }
 
-  protocol.Element _createRefValueElement(
-      AngularElement exportAs, protocol.ElementKind kind) {
+  Element _createRefValueElement(AngularElement exportAs, ElementKind kind) {
     final name = exportAs.name;
     final location = new Location(exportAs.source.fullName, exportAs.nameOffset,
         exportAs.nameLength, 0, 0);
-    final flags = protocol.Element.makeFlags();
-    return new protocol.Element(kind, name, flags, location: location);
+    final flags = Element.makeFlags();
+    return new Element(kind, name, flags, location: location);
   }
 
   CompletionSuggestion _addLocalVariableSuggestion(LocalVariable variable,
