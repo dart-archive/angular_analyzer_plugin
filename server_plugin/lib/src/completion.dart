@@ -7,7 +7,6 @@ import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:analyzer_plugin/utilities/completion/inherited_reference_contributor.dart';
 import 'package:analyzer_plugin/utilities/completion/type_member_contributor.dart';
-import 'package:analyzer_plugin/utilities/completion/replacement_range.dart';
 import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
@@ -312,7 +311,7 @@ class NgTypeMemberContributor extends TypeMemberContributor {
         if (collector.suggestionsLength != initialSuggestionLength &&
             !collector.offsetIsSet) {
           final range =
-              new ReplacementRange.compute(request.offset, completionTarget);
+              completionTarget.computeReplacementRange(request.offset);
           collector
             ..offset = range.offset
             ..length = range.length;
@@ -405,7 +404,7 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
         if (collector.suggestionsLength != initialSuggestionLength &&
             !collector.offsetIsSet) {
           final range =
-              new ReplacementRange.compute(request.offset, completionTarget);
+              completionTarget.computeReplacementRange(request.offset);
           collector
             ..offset = range.offset
             ..length = range.length;
