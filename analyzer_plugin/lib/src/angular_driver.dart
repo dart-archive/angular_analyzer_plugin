@@ -59,8 +59,7 @@ class AngularDriver
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
     _hasAngularImported =
-        _sourceFactory.resolveUri(null, "package:angular2/angular2.dart") !=
-            null;
+        _sourceFactory.resolveUri(null, "package:angular/angular.dart") != null;
   }
 
   @override
@@ -270,7 +269,7 @@ class AngularDriver
   Future<StandardAngular> getStandardAngular() async {
     if (standardAngular == null) {
       final source =
-          _sourceFactory.resolveUri(null, "package:angular2/angular2.dart");
+          _sourceFactory.resolveUri(null, "package:angular/angular.dart");
 
       if (source == null) {
         return standardAngular;
