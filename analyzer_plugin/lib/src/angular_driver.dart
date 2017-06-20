@@ -51,6 +51,7 @@ class AngularDriver
   FileTracker _fileTracker;
   final lastSignatures = <String, String>{};
   bool _hasAngularImported = false;
+  bool _hasAngular2Imported = false; // TODO only support package:angular
   final completionContributors = <CompletionContributor>[];
 
   AngularDriver(this.notificationManager, this.dartDriver, this._scheduler,
@@ -58,8 +59,12 @@ class AngularDriver
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
+    // TODO only support package:angular once we all move to that
     _hasAngularImported =
         _sourceFactory.resolveUri(null, "package:angular/angular.dart") != null;
+    _hasAngular2Imported =
+        _sourceFactory.resolveUri(null, "package:angular2/angular2.dart") !=
+            null;
   }
 
   @override
@@ -170,7 +175,8 @@ class AngularDriver
       return;
     }
 
-    if (_hasAngularImported && standardAngular == null) {
+    if ((_hasAngularImported || _hasAngular2Imported) &&
+        standardAngular == null) {
       getStandardAngular(); // ignore: unawaited_futures
       return;
     }
@@ -268,8 +274,11 @@ class AngularDriver
 
   Future<StandardAngular> getStandardAngular() async {
     if (standardAngular == null) {
-      final source =
-          _sourceFactory.resolveUri(null, "package:angular/angular.dart");
+      final source = _sourceFactory.resolveUri(
+          null,
+          _hasAngular2Imported
+              ? "package:angular2/angular2.dart"
+              : "package:angular/angular.dart");
 
       if (source == null) {
         return standardAngular;
