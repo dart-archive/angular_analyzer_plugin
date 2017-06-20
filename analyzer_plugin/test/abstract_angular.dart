@@ -116,7 +116,8 @@ class AbstractAngularTest {
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
     final packageMap = <String, List<Folder>>{
-      "angular2": [resourceProvider.getFolder("/angular2")]
+      "angular2": [resourceProvider.getFolder("/angular2")],
+      "angular": [resourceProvider.getFolder("/angular")]
     };
     final packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
@@ -154,13 +155,20 @@ class AbstractAngularTest {
         r'''
 library angular2;
 
+export 'package:angular/angular.dart';
+''');
+    newSource(
+        '/angular/angular.dart',
+        r'''
+library angular;
+
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
     newSource(
-        '/angular2/src/core/metadata.dart',
+        '/angular/src/core/metadata.dart',
         r'''
 import 'dart:async';
 
@@ -270,7 +278,7 @@ class QueryList<T> implements Iterable<T> {}
 class ViewContainerRef {}
 ''');
     newSource(
-        '/angular2/src/core/async.dart',
+        '/angular/src/core/async.dart',
         r'''
 import 'dart:async';
 
@@ -305,7 +313,7 @@ class EventEmitter<T> extends Stream<T> {
 }
 ''');
     newSource(
-        '/angular2/src/core/ng_if.dart',
+        '/angular/src/core/ng_if.dart',
         r'''
 import 'metadata.dart';
 
@@ -316,7 +324,7 @@ class NgIf {
 }
 ''');
     newSource(
-        '/angular2/src/core/ng_for.dart',
+        '/angular/src/core/ng_for.dart',
         r'''
 import 'metadata.dart';
 

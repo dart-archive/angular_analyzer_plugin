@@ -75,7 +75,7 @@ class AngularNavigationContributorTest extends AbstractAngularTaskTest {
   void test_dart_templates() {
     addAngularSources();
     code = r'''
-import '/angular2/src/core/metadata.dart';
+import '/angular/src/core/metadata.dart';
 
 @Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
@@ -159,7 +159,7 @@ class User {
   void test_dart_view_templateUrl() {
     addAngularSources();
     code = r'''
-import '/angular2/src/core/metadata.dart';
+import '/angular/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -191,7 +191,7 @@ class TextPanel {}
   void test_html_templates() {
     addAngularSources();
     final dartCode = r'''
-import '/angular2/src/core/metadata.dart';
+import '/angular/src/core/metadata.dart';
 
 @Component(selector: 'text-panel')
 @View(templateUrl: 'text_panel.html')
@@ -266,7 +266,7 @@ class AngularOccurrencesContributorTest extends AbstractAngularTaskTest {
   void test_dart_templates() {
     addAngularSources();
     code = r'''
-import '/angular2/src/core/metadata.dart';
+import '/angular/src/core/metadata.dart';
 
 @Component(selector: 'text-panel', inputs: const ['text: my-text'])
 @View(template: r"<div>some text</div>")
@@ -406,9 +406,9 @@ class AbstractAngularTaskTest {
 
   void addAngularSources() {
     newSource(
-        '/angular2/angular2.dart',
+        '/angular/angular.dart',
         r'''
-library angular2;
+library angular;
 
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
@@ -417,9 +417,9 @@ export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
     newSource(
-        '/angular2/src/core/metadata.dart',
+        '/angular/src/core/metadata.dart',
         r'''
-library angular2.src.core.metadata;
+library angular.src.core.metadata;
 
 import 'dart:async';
 
@@ -497,9 +497,9 @@ class Output {
 }
 ''');
     newSource(
-        '/angular2/src/core/async.dart',
+        '/angular/src/core/async.dart',
         r'''
-library angular2.core.facade.async;
+library angular.core.facade.async;
 import 'dart:async';
 
 class EventEmitter<T> extends Stream<T> {
@@ -533,9 +533,9 @@ class EventEmitter<T> extends Stream<T> {
 }
 ''');
     newSource(
-        '/angular2/src/core/ng_if.dart',
+        '/angular/src/core/ng_if.dart',
         r'''
-library angular2.ng_if;
+library angular.ng_if;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
 
@@ -546,9 +546,9 @@ class NgIf {
 }
 ''');
     newSource(
-        '/angular2/src/core/ng_for.dart',
+        '/angular/src/core/ng_for.dart',
         r'''
-library angular2.ng_for;
+library angular.ng_for;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
 
@@ -564,9 +564,9 @@ class NgFor {
 typedef dynamic TrackByFn(num index, dynamic item);
 ''');
     newSource(
-        '/angular2/src/core/linker/template_ref.dart',
+        '/angular/src/core/linker/template_ref.dart',
         r'''
-library angular2.template_ref;
+library angular.template_ref;
 
 class TemplateRef {}
 ''');
@@ -610,7 +610,8 @@ class AbstractAngularTest {
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
     final packageMap = <String, List<Folder>>{
-      "angular2": [resourceProvider.getFolder("/angular2")]
+      "angular2": [resourceProvider.getFolder("/angular2")],
+      "angular": [resourceProvider.getFolder("/angular")]
     };
     final packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
@@ -658,6 +659,13 @@ class AbstractAngularTest {
         r'''
 library angular2;
 
+export 'package:angular/angular.dart';
+''');
+    newSource(
+        '/angular/angular.dart',
+        r'''
+library angular;
+
 export 'src/core/async.dart';
 export 'src/core/metadata.dart';
 export 'src/core/linker/template_ref.dart';
@@ -665,9 +673,9 @@ export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
     newSource(
-        '/angular2/src/core/metadata.dart',
+        '/angular/src/core/metadata.dart',
         r'''
-library angular2.src.core.metadata;
+library angular.src.core.metadata;
 
 import 'dart:async';
 
@@ -745,9 +753,9 @@ class Output {
 }
 ''');
     newSource(
-        '/angular2/src/core/async.dart',
+        '/angular/src/core/async.dart',
         r'''
-library angular2.core.facade.async;
+library angular.core.facade.async;
 import 'dart:async';
 
 class EventEmitter<T> extends Stream<T> {
@@ -781,9 +789,9 @@ class EventEmitter<T> extends Stream<T> {
 }
 ''');
     newSource(
-        '/angular2/src/core/ng_if.dart',
+        '/angular/src/core/ng_if.dart',
         r'''
-library angular2.ng_if;
+library angular.ng_if;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
 
@@ -794,9 +802,9 @@ class NgIf {
 }
 ''');
     newSource(
-        '/angular2/src/core/ng_for.dart',
+        '/angular/src/core/ng_for.dart',
         r'''
-library angular2.ng_for;
+library angular.ng_for;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
 
@@ -812,9 +820,9 @@ class NgFor {
 typedef dynamic TrackByFn(num index, dynamic item);
 ''');
     newSource(
-        '/angular2/src/core/linker/template_ref.dart',
+        '/angular/src/core/linker/template_ref.dart',
         r'''
-library angular2.template_ref;
+library angular.template_ref;
 
 class TemplateRef {}
 ''');
