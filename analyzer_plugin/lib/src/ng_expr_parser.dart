@@ -8,7 +8,7 @@ import 'package:front_end/src/scanner/token.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(Source source, AnalysisErrorListener errorListener)
-      : super(source, errorListener);
+      : super.withoutFasta(source, errorListener);
 
   Token get _currentToken => super.currentToken;
 
