@@ -17,11 +17,13 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/element.dart'
     show PropertyAccessorElement, FunctionElement, ClassElement, LibraryElement;
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
+import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analysis_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:angular_analysis_plugin/src/resolve_result.dart';
 
 bool offsetContained(int offset, int start, int length) =>
     start <= offset && start + length >= offset;
@@ -190,7 +192,7 @@ class ReplacementRangeCalculator implements AngularAstVisitor {
   int offset; // replacementOffset. Initially requestOffset.
   int length = 0; // replacementLength
 
-  ReplacementRangeCalculator(CompletionRequestImpl request) {
+  ReplacementRangeCalculator(CompletionRequest request) {
     offset = request.offset;
   }
 
@@ -264,17 +266,52 @@ class ReplacementRangeCalculator implements AngularAstVisitor {
       visitTextAttr(binding);
 }
 
+/// Used to create a shell [ResolveResult] class for usage in
+/// [TypeMemberContributor] and [InheritedReferenceContributor].
+class _ResolveResultShell implements ResolveResult {
+  @override
+  String get content => null;
+
+  @override
+  LibraryElement libraryElement;
+
+  @override
+  TypeProvider typeProvider;
+
+  @override
+  CompilationUnit get unit => null;
+
+  @override
+  List<AnalysisError> get errors => const [];
+
+  @override
+  LineInfo get lineInfo => null;
+
+  @override
+  final String path;
+
+  @override
+  ResultState get state => null;
+
+  @override
+  Uri get uri => null;
+
+  _ResolveResultShell(this.path, {this.libraryElement, this.typeProvider});
+}
+
 /// Extension of [TypeMemberContributor] to allow for Dart-based
 /// completion within Angular context. Triggered in [StatementsBoundAttribute],
 /// [ExpressionsBoundAttribute], [Mustache], and [TemplateAttribute]
 /// on member variable completion.
-class NgTypeMemberContributor extends TypeMemberContributor {
+class NgTypeMemberContributor extends CompletionContributor {
+  final TypeMemberContributor _typeMemberContributor =
+      new TypeMemberContributor();
+
   @override
   Future<Null> computeSuggestions(
-      CompletionRequest request, CompletionCollector collector,
+      AngularCompletionRequest request, CompletionCollector collector,
       {AstNode entryPoint}) async {
-    final result = request.result as CompletionResolveResult;
-    final templates = result.templates;
+    final templates = request.templates;
 
     for (final template in templates) {
       // Check if this template is valid.
@@ -300,12 +337,11 @@ class NgTypeMemberContributor extends TypeMemberContributor {
         final classElement = template.view.classElement;
         final libraryElement = classElement.library;
 
-        final dartResolveResult = new NgResolveResult(request.result.path, [],
+        final dartResolveResult = new _ResolveResultShell(request.path,
             libraryElement: libraryElement, typeProvider: typeProvider);
-        final dartRequest = new CompletionRequestImpl(
-            request.resourceProvider, dartResolveResult, request.offset);
-
-        await super.computeSuggestionsWithEntryPoint(
+        final dartRequest = new DartCompletionRequestImpl(
+            request.resourceProvider, request.offset, dartResolveResult);
+        await _typeMemberContributor.computeSuggestionsWithEntryPoint(
             dartRequest, collector, entryPoint);
 
         if (collector.suggestionsLength != initialSuggestionLength &&
@@ -325,12 +361,14 @@ class NgTypeMemberContributor extends TypeMemberContributor {
 /// completion within Angular context. Triggered in [StatementsBoundAttribute],
 /// [ExpressionsBoundAttribute], [Mustache], and [TemplateAttribute]
 /// on identifier completion.
-class NgInheritedReferenceContributor extends InheritedReferenceContributor {
+class NgInheritedReferenceContributor extends CompletionContributor {
+  final InheritedReferenceContributor _inheritedReferenceContributor =
+      new InheritedReferenceContributor();
+
   @override
   Future<Null> computeSuggestions(
-      CompletionRequest request, CompletionCollector collector) async {
-    final result = request.result as CompletionResolveResult;
-    final templates = result.templates;
+      AngularCompletionRequest request, CompletionCollector collector) async {
+    final templates = request.templates;
 
     for (final template in templates) {
       // Check if this template is valid.
@@ -359,20 +397,16 @@ class NgInheritedReferenceContributor extends InheritedReferenceContributor {
         final classElement = template.view.classElement;
         final libraryElement = classElement.library;
 
-        final dartResolveResult = new NgResolveResult(request.result.path, [],
+        final dartResolveResult = new _ResolveResultShell(request.path,
             libraryElement: libraryElement, typeProvider: typeProvider);
-        final dartRequest = new CompletionRequestImpl(
-            request.resourceProvider, dartResolveResult, request.offset);
-
-        await super.computeSuggestionsForClass(
-          dartRequest,
-          collector,
-          classElement,
-          entryPoint: entryPoint,
-          target: completionTarget,
-          optype: optype,
-          skipChildClass: false,
-        );
+        final dartRequest = new DartCompletionRequestImpl(
+            request.resourceProvider, request.offset, dartResolveResult);
+        await _inheritedReferenceContributor.computeSuggestionsForClass(
+            dartRequest, collector, classElement,
+            entryPoint: entryPoint,
+            target: completionTarget,
+            optype: optype,
+            skipChildClass: false);
 
         if (optype.includeIdentifiers) {
           final varExtractor = new LocalVariablesExtractor();
@@ -649,10 +683,9 @@ class AngularCompletionContributor extends CompletionContributor {
   /// for the given completion [request].
   @override
   Future<Null> computeSuggestions(
-      CompletionRequest request, CompletionCollector collector) async {
-    final result = request.result as CompletionResolveResult;
-    final templates = result.templates;
-    final standardHtml = result.standardHtml;
+      AngularCompletionRequest request, CompletionCollector collector) async {
+    final templates = request.templates;
+    final standardHtml = request.standardHtml;
     final events = standardHtml.events.values;
     final attributes = standardHtml.uniqueAttributeElements;
 
