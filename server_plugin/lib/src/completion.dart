@@ -11,7 +11,6 @@ import 'package:analyzer_plugin/src/utilities/completion/optype.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
 import 'package:analyzer/error/error.dart';
-import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/element.dart'
@@ -19,7 +18,6 @@ import 'package:analyzer/dart/element/element.dart'
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analysis_plugin/src/completion_request.dart';
@@ -27,126 +25,6 @@ import 'package:angular_analyzer_plugin/ast.dart';
 
 bool offsetContained(int offset, int start, int length) =>
     start <= offset && start + length >= offset;
-
-class CompletionTargetExtractor implements AngularAstVisitor {
-  AstNode dartSnippet;
-  AngularAstNode target;
-  final int offset;
-
-  CompletionTargetExtractor(this.offset);
-
-  /// Check if the [node] contains a [child] node which contains the completion
-  /// [offset]. If so, visit the [child] which likely will call this again.
-  /// Otherwise, mark [node] as the [target].
-  ///
-  /// returns true if a [child] was selected, otherwise false.
-  bool recurseToTarget(AngularAstNode node) {
-    for (final child in node.children) {
-      if (offsetContained(offset, child.offset, child.length)) {
-        child.accept(this);
-        return true;
-      }
-    }
-
-    target = node;
-    return false;
-  }
-
-  @override
-  void visitDocumentInfo(DocumentInfo document) {
-    recurseToTarget(document);
-  }
-
-  @override
-  void visitElementInfo(ElementInfo element) {
-    // Don't choose tag two in `<tag-one<tag-two></tag-one>`
-    if (offsetContained(offset, element.openingNameSpan.offset,
-        element.openingNameSpan.length)) {
-      target = element;
-      return;
-    }
-
-    recurseToTarget(element);
-  }
-
-  @override
-  void visitTextAttr(TextAttribute attr) {
-    recurseToTarget(attr);
-  }
-
-  @override
-  void visitTextInfo(TextInfo textInfo) {
-    recurseToTarget(textInfo);
-  }
-
-  @override
-  void visitEmptyStarBinding(EmptyStarBinding binding) {
-    if (binding.isPrefix) {
-      target = binding.parent;
-    } else {
-      visitTextAttr(binding);
-    }
-  }
-
-  @override
-  void visitExpressionBoundAttr(ExpressionBoundAttribute attr) {
-    target = attr;
-    if (attr.expression != null &&
-        offsetContained(
-            offset, attr.expression.offset, attr.expression.length)) {
-      dartSnippet = attr.expression;
-    }
-  }
-
-  @override
-  void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
-    target = attr;
-    for (final statement in attr.statements) {
-      if (offsetContained(offset, statement.offset, statement.length)) {
-        dartSnippet = statement;
-      }
-    }
-  }
-
-  @override
-  void visitMustache(Mustache mustache) {
-    target = mustache;
-
-    if (offsetContained(
-        offset, mustache.exprBegin, mustache.exprEnd - mustache.exprBegin)) {
-      dartSnippet = mustache.expression;
-    }
-  }
-
-  @override
-  void visitTemplateAttr(TemplateAttribute attr) {
-    if (recurseToTarget(attr)) {
-      return;
-    }
-
-    // if we visit this, we're in a template but after one of its attributes.
-    AttributeInfo attributeToAppendTo;
-    for (final subAttribute in attr.virtualAttributes) {
-      if (subAttribute.valueOffset == null && subAttribute.offset < offset) {
-        attributeToAppendTo = subAttribute;
-      }
-    }
-
-    if (attributeToAppendTo != null &&
-        attributeToAppendTo is EmptyStarBinding) {
-      final analysisErrorListener = new IgnoringAnalysisErrorListener();
-      final dartParser =
-          new EmbeddedDartParser(null, analysisErrorListener, null);
-      dartSnippet =
-          dartParser.parseDartExpression(offset, '', detectTrailing: false);
-    }
-  }
-}
-
-class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
-  @override
-  void onError(AnalysisError error) {}
-}
 
 class LocalVariablesExtractor implements AngularAstVisitor {
   Map<String, LocalVariable> variables;
@@ -215,6 +93,9 @@ class ReplacementRangeCalculator implements AngularAstVisitor {
 
   @override
   void visitTextAttr(TextAttribute attr) {
+    if (attr.parent is TemplateAttribute && attr.name.startsWith('let-')) {
+      return;
+    }
     final inValueScope = attr.isReference &&
         attr.value != null &&
         offsetContained(offset, attr.valueOffset, attr.valueLength);
@@ -299,6 +180,27 @@ class _ResolveResultShell implements ResolveResult {
   _ResolveResultShell(this.path, {this.libraryElement, this.typeProvider});
 }
 
+class NgOffsetLengthContributor extends CompletionContributor {
+  @override
+  Future<Null> computeSuggestions(
+      AngularCompletionRequest request, CompletionCollector collector) async {
+    final replacementRangeCalculator = new ReplacementRangeCalculator(request);
+    final dartSnippet = request.dartSnippet;
+    request.angularTarget.accept(replacementRangeCalculator);
+    if (dartSnippet != null) {
+      final range =
+          request.completionTarget.computeReplacementRange(request.offset);
+      collector
+        ..offset = range.offset
+        ..length = range.length;
+    } else {
+      collector
+        ..offset = replacementRangeCalculator.offset
+        ..length = replacementRangeCalculator.length;
+    }
+  }
+}
+
 /// Extension of [TypeMemberContributor] to allow for Dart-based
 /// completion within Angular context. Triggered in [StatementsBoundAttribute],
 /// [ExpressionsBoundAttribute], [Mustache], and [TemplateAttribute]
@@ -309,31 +211,15 @@ class NgTypeMemberContributor extends CompletionContributor {
 
   @override
   Future<Null> computeSuggestions(
-      AngularCompletionRequest request, CompletionCollector collector,
-      {AstNode entryPoint}) async {
+      AngularCompletionRequest request, CompletionCollector collector) async {
     final templates = request.templates;
 
     for (final template in templates) {
-      // Check if this template is valid.
-      final isFromHtmlFile = template.view.templateUriSource != null;
-      final isFromValidDartTemplate =
-          template.view.templateOffset <= request.offset &&
-              request.offset < template.view.end;
-      if (!isFromHtmlFile && !isFromValidDartTemplate) {
-        continue;
-      }
-      final initialSuggestionLength = collector.suggestionsLength;
       final typeProvider = template.view.component.classElement.enclosingElement
           .enclosingElement.context.typeProvider;
-      final extractor = new CompletionTargetExtractor(request.offset);
-      template.ast.accept(extractor);
+      final dartSnippet = request.dartSnippet;
 
-      if (extractor.dartSnippet != null) {
-        final entryPoint = extractor.dartSnippet;
-        final completionTarget = new CompletionTarget.forOffset(
-            null, request.offset,
-            entryPoint: entryPoint);
-
+      if (dartSnippet != null) {
         final classElement = template.view.classElement;
         final libraryElement = classElement.library;
 
@@ -342,16 +228,7 @@ class NgTypeMemberContributor extends CompletionContributor {
         final dartRequest = new DartCompletionRequestImpl(
             request.resourceProvider, request.offset, dartResolveResult);
         await _typeMemberContributor.computeSuggestionsWithEntryPoint(
-            dartRequest, collector, entryPoint);
-
-        if (collector.suggestionsLength != initialSuggestionLength &&
-            !collector.offsetIsSet) {
-          final range =
-              completionTarget.computeReplacementRange(request.offset);
-          collector
-            ..offset = range.offset
-            ..length = range.length;
-        }
+            dartRequest, collector, dartSnippet);
       }
     }
   }
@@ -371,29 +248,16 @@ class NgInheritedReferenceContributor extends CompletionContributor {
     final templates = request.templates;
 
     for (final template in templates) {
-      // Check if this template is valid.
-      final isFromHtmlFile = template.view.templateUriSource != null;
-      final isFromValidDartTemplate =
-          template.view.templateOffset <= request.offset &&
-              request.offset < template.view.end;
-      if (!isFromHtmlFile && !isFromValidDartTemplate) {
-        continue;
-      }
-      final initialSuggestionLength = collector.suggestionsLength;
       final typeProvider = template.view.component.classElement.enclosingElement
           .enclosingElement.context.typeProvider;
-      final extractor = new CompletionTargetExtractor(request.offset);
-      template.ast.accept(extractor);
-      final target = extractor.target;
+      final dartSnippet = request.dartSnippet;
 
-      if (extractor.dartSnippet != null) {
-        final entryPoint = extractor.dartSnippet;
-        final completionTarget = new CompletionTarget.forOffset(
-            null, request.offset,
-            entryPoint: entryPoint);
+      if (dartSnippet != null) {
+        final angularTarget = request.angularTarget;
+        final completionTarget = request.completionTarget;
 
         final optype =
-            defineOpType(completionTarget, request.offset, entryPoint);
+            defineOpType(completionTarget, request.offset, dartSnippet);
         final classElement = template.view.classElement;
         final libraryElement = classElement.library;
 
@@ -403,14 +267,14 @@ class NgInheritedReferenceContributor extends CompletionContributor {
             request.resourceProvider, request.offset, dartResolveResult);
         await _inheritedReferenceContributor.computeSuggestionsForClass(
             dartRequest, collector, classElement,
-            entryPoint: entryPoint,
+            entryPoint: dartSnippet,
             target: completionTarget,
             optype: optype,
             skipChildClass: false);
 
         if (optype.includeIdentifiers) {
           final varExtractor = new LocalVariablesExtractor();
-          target.accept(varExtractor);
+          angularTarget.accept(varExtractor);
           if (varExtractor.variables != null) {
             addLocalVariables(
               collector,
@@ -433,15 +297,6 @@ class NgInheritedReferenceContributor extends CompletionContributor {
           } else {
             addExportSuggestions(collector, template.view, optype);
           }
-        }
-
-        if (collector.suggestionsLength != initialSuggestionLength &&
-            !collector.offsetIsSet) {
-          final range =
-              completionTarget.computeReplacementRange(request.offset);
-          collector
-            ..offset = range.offset
-            ..length = range.length;
         }
       }
     }
@@ -691,24 +546,13 @@ class AngularCompletionContributor extends CompletionContributor {
 
     final templateCompleter = new TemplateCompleter();
     for (final template in templates) {
-      // Indicates template comes from .html file.
-      final isFromHtmlFile = template.view.templateUriSource != null;
-
-      // A single .dart file can have multiple templates; find
-      // template for where autocompletion request occurred on.
-      final isFromValidDartTemplate =
-          template.view.templateOffset <= request.offset &&
-              request.offset < template.view.end;
-
-      if (isFromHtmlFile || isFromValidDartTemplate) {
-        await templateCompleter.computeSuggestions(
-          request,
-          collector,
-          template,
-          events,
-          attributes,
-        );
-      }
+      await templateCompleter.computeSuggestions(
+        request,
+        collector,
+        template,
+        events,
+        attributes,
+      );
     }
   }
 }
@@ -717,7 +561,7 @@ class TemplateCompleter {
   static const int RELEVANCE_TRANSCLUSION = DART_RELEVANCE_DEFAULT + 10;
 
   Future<Null> computeSuggestions(
-    CompletionRequest request,
+    AngularCompletionRequest request,
     CompletionCollector collector,
     Template template,
     List<OutputElement> standardHtmlEvents,
@@ -725,13 +569,10 @@ class TemplateCompleter {
   ) async {
     final typeProvider = template.view.component.classElement.enclosingElement
         .enclosingElement.context.typeProvider;
-    final initialSuggestionsCount = collector.suggestionsLength;
-    final replacementRangeCalculator = new ReplacementRangeCalculator(request);
-    final extractor = new CompletionTargetExtractor(request.offset);
-    template.ast.accept(extractor);
-    final target = extractor.target..accept(replacementRangeCalculator);
+    final dartSnippet = request.dartSnippet;
+    final target = request.angularTarget;
 
-    if (extractor.dartSnippet != null) {
+    if (dartSnippet != null) {
       return;
     }
 
@@ -874,13 +715,6 @@ class TemplateCompleter {
     } else if (target is TextInfo) {
       suggestHtmlTags(template, collector);
       suggestTransclusions(target.parent, collector);
-    }
-
-    if (collector.suggestionsLength != initialSuggestionsCount &&
-        !collector.offsetIsSet) {
-      collector
-        ..offset = replacementRangeCalculator.offset
-        ..length = replacementRangeCalculator.length;
     }
   }
 

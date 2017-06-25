@@ -113,7 +113,8 @@ class Starter {
           final contributors = <CompletionContributor>[
             new AngularCompletionContributor(),
             new NgTypeMemberContributor(),
-            new NgInheritedReferenceContributor()
+            new NgInheritedReferenceContributor(),
+            new NgOffsetLengthContributor(),
           ];
           final completionRequest = new CompletionRequestImpl(
             null, // AnalysisResult - unneeded for AngularCompletion

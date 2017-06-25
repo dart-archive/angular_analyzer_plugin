@@ -41,7 +41,8 @@ abstract class AbstractCompletionContributorTest
   List<CompletionContributor> createContributors() => <CompletionContributor>[
         new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor()
+        new NgTypeMemberContributor(),
+        new NgOffsetLengthContributor(),
       ];
 
   @override

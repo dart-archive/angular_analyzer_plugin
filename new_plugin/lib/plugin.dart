@@ -141,6 +141,7 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
       <CompletionContributor>[
         new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor()
+        new NgTypeMemberContributor(),
+        new NgOffsetLengthContributor(),
       ];
 }
