@@ -72,6 +72,8 @@ table SummarizedDirective {
   contentChildrenFields:[SummarizedContentChildField] (id: 16);
 
   exports:[SummarizedExportedIdentifier] (id: 17);
+
+  pipes:[SummarizedPipes] (id: 18);
 }
 
 table SummarizedAnalysisError {
@@ -135,6 +137,16 @@ table SummarizedContentChildField {
 }
 
 table SummarizedExportedIdentifier {
+  name:string (id: 0);
+
+  prefix:string (id: 1);
+
+  offset:uint (id: 2);
+
+  length:uint (id: 3);
+}
+
+table SummarizedPipes {
   name:string (id: 0);
 
   prefix:string (id: 1);
