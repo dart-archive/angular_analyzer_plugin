@@ -18,6 +18,7 @@ import 'package:analyzer/dart/element/element.dart'
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/analysis/session.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analysis_plugin/src/completion_request.dart';
@@ -170,6 +171,9 @@ class _ResolveResultShell implements ResolveResult {
 
   @override
   final String path;
+
+  @override
+  AnalysisSession get session => null;
 
   @override
   ResultState get state => null;
