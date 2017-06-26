@@ -34,6 +34,8 @@ table UnlinkedDartSummary {
   directiveSummaries:[SummarizedDirective] (id: 0);
 
   errors:[SummarizedAnalysisError] (id: 1);
+
+  pipeSummaries:[SummarizedPipe] (id: 2);
 }
 
 table SummarizedDirective {
@@ -73,7 +75,17 @@ table SummarizedDirective {
 
   exports:[SummarizedExportedIdentifier] (id: 17);
 
-  pipes:[SummarizedPipes] (id: 18);
+  pipesUse:[SummarizedPipesUse] (id: 18);
+}
+
+table SummarizedPipe {
+  pipeName:string (id: 0);
+
+  pipeNameOffset:uint (id: 1);
+
+  isPure:bool (id: 2);
+
+  decoratedClassName:string (id: 3);
 }
 
 table SummarizedAnalysisError {
@@ -146,7 +158,7 @@ table SummarizedExportedIdentifier {
   length:uint (id: 3);
 }
 
-table SummarizedPipes {
+table SummarizedPipesUse {
   name:string (id: 0);
 
   prefix:string (id: 1);

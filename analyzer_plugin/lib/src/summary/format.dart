@@ -590,6 +590,7 @@ class UnlinkedDartSummaryBuilder extends Object
     implements idl.UnlinkedDartSummary {
   List<SummarizedDirectiveBuilder> _directiveSummaries;
   List<SummarizedAnalysisErrorBuilder> _errors;
+  List<SummarizedPipeBuilder> _pipeSummaries;
 
   @override
   List<SummarizedDirectiveBuilder> get directiveSummaries =>
@@ -607,11 +608,21 @@ class UnlinkedDartSummaryBuilder extends Object
     this._errors = value;
   }
 
+  @override
+  List<SummarizedPipeBuilder> get pipeSummaries =>
+      _pipeSummaries ??= <SummarizedPipeBuilder>[];
+
+  void set pipeSummaries(List<SummarizedPipeBuilder> value) {
+    this._pipeSummaries = value;
+  }
+
   UnlinkedDartSummaryBuilder(
       {List<SummarizedDirectiveBuilder> directiveSummaries,
-      List<SummarizedAnalysisErrorBuilder> errors})
+      List<SummarizedAnalysisErrorBuilder> errors,
+      List<SummarizedPipeBuilder> pipeSummaries})
       : _directiveSummaries = directiveSummaries,
-        _errors = errors;
+        _errors = errors,
+        _pipeSummaries = pipeSummaries;
 
   /**
    * Flush [informative] data recursively.
@@ -619,6 +630,7 @@ class UnlinkedDartSummaryBuilder extends Object
   void flushInformative() {
     _directiveSummaries?.forEach((b) => b.flushInformative());
     _errors?.forEach((b) => b.flushInformative());
+    _pipeSummaries?.forEach((b) => b.flushInformative());
   }
 
   /**
@@ -641,6 +653,14 @@ class UnlinkedDartSummaryBuilder extends Object
         x?.collectApiSignature(signature);
       }
     }
+    if (this._pipeSummaries == null) {
+      signature.addInt(0);
+    } else {
+      signature.addInt(this._pipeSummaries.length);
+      for (var x in this._pipeSummaries) {
+        x?.collectApiSignature(signature);
+      }
+    }
   }
 
   List<int> toBuffer() {
@@ -651,6 +671,7 @@ class UnlinkedDartSummaryBuilder extends Object
   fb.Offset finish(fb.Builder fbBuilder) {
     fb.Offset offset_directiveSummaries;
     fb.Offset offset_errors;
+    fb.Offset offset_pipeSummaries;
     if (!(_directiveSummaries == null || _directiveSummaries.isEmpty)) {
       offset_directiveSummaries = fbBuilder.writeList(
           _directiveSummaries.map((b) => b.finish(fbBuilder)).toList());
@@ -659,12 +680,19 @@ class UnlinkedDartSummaryBuilder extends Object
       offset_errors =
           fbBuilder.writeList(_errors.map((b) => b.finish(fbBuilder)).toList());
     }
+    if (!(_pipeSummaries == null || _pipeSummaries.isEmpty)) {
+      offset_pipeSummaries = fbBuilder
+          .writeList(_pipeSummaries.map((b) => b.finish(fbBuilder)).toList());
+    }
     fbBuilder.startTable();
     if (offset_directiveSummaries != null) {
       fbBuilder.addOffset(0, offset_directiveSummaries);
     }
     if (offset_errors != null) {
       fbBuilder.addOffset(1, offset_errors);
+    }
+    if (offset_pipeSummaries != null) {
+      fbBuilder.addOffset(2, offset_pipeSummaries);
     }
     return fbBuilder.endTable();
   }
@@ -694,6 +722,7 @@ class _UnlinkedDartSummaryImpl extends Object
 
   List<idl.SummarizedDirective> _directiveSummaries;
   List<idl.SummarizedAnalysisError> _errors;
+  List<idl.SummarizedPipe> _pipeSummaries;
 
   @override
   List<idl.SummarizedDirective> get directiveSummaries {
@@ -710,6 +739,14 @@ class _UnlinkedDartSummaryImpl extends Object
         .vTableGet(_bc, _bcOffset, 1, const <idl.SummarizedAnalysisError>[]);
     return _errors;
   }
+
+  @override
+  List<idl.SummarizedPipe> get pipeSummaries {
+    _pipeSummaries ??=
+        const fb.ListReader<idl.SummarizedPipe>(const _SummarizedPipeReader())
+            .vTableGet(_bc, _bcOffset, 2, const <idl.SummarizedPipe>[]);
+    return _pipeSummaries;
+  }
 }
 
 abstract class _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
@@ -721,6 +758,9 @@ abstract class _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
           directiveSummaries.map((_value) => _value.toJson()).toList();
     if (errors.isNotEmpty)
       _result["errors"] = errors.map((_value) => _value.toJson()).toList();
+    if (pipeSummaries.isNotEmpty)
+      _result["pipeSummaries"] =
+          pipeSummaries.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
@@ -728,6 +768,7 @@ abstract class _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
   Map<String, Object> toMap() => {
         "directiveSummaries": directiveSummaries,
         "errors": errors,
+        "pipeSummaries": pipeSummaries,
       };
 
   @override
@@ -755,7 +796,7 @@ class SummarizedDirectiveBuilder extends Object
   List<SummarizedContentChildFieldBuilder> _contentChildFields;
   List<SummarizedContentChildFieldBuilder> _contentChildrenFields;
   List<SummarizedExportedIdentifierBuilder> _exports;
-  List<SummarizedPipesBuilder> _pipes;
+  List<SummarizedPipesUseBuilder> _pipesUse;
 
   @override
   bool get isComponent => _isComponent ??= false;
@@ -893,12 +934,12 @@ class SummarizedDirectiveBuilder extends Object
       _exports ??= <SummarizedExportedIdentifierBuilder>[];
 
   @override
-  List<SummarizedPipesBuilder> get pipes =>
-      _pipes ?? <SummarizedPipesBuilder>[];
+  List<SummarizedPipesUseBuilder> get pipesUse =>
+      _pipesUse ?? <SummarizedPipesUseBuilder>[];
 
   @override
-  void set pipes(List<SummarizedPipesBuilder> value) {
-    this._pipes = value;
+  void set pipesUse(List<SummarizedPipesUseBuilder> value) {
+    this._pipesUse = value;
   }
 
   void set exports(List<SummarizedExportedIdentifierBuilder> value) {
@@ -924,7 +965,7 @@ class SummarizedDirectiveBuilder extends Object
       List<SummarizedContentChildFieldBuilder> contentChildFields,
       List<SummarizedContentChildFieldBuilder> contentChildrenFields,
       List<SummarizedExportedIdentifierBuilder> exports,
-      List<SummarizedPipesBuilder> pipes})
+      List<SummarizedPipesUseBuilder> pipesUse})
       : _isComponent = isComponent,
         _selectorStr = selectorStr,
         _selectorOffset = selectorOffset,
@@ -943,7 +984,7 @@ class SummarizedDirectiveBuilder extends Object
         _contentChildFields = contentChildFields,
         _contentChildrenFields = contentChildrenFields,
         _exports = exports,
-        _pipes = pipes;
+        _pipesUse = pipesUse;
 
   /**
    * Flush [informative] data recursively.
@@ -956,7 +997,7 @@ class SummarizedDirectiveBuilder extends Object
     _contentChildFields?.forEach((b) => b.flushInformative());
     _contentChildrenFields?.forEach((b) => b.flushInformative());
     _exports?.forEach((b) => b.flushInformative());
-    _pipes?.forEach((b) => b.flushInformative());
+    _pipesUse?.forEach((b) => b.flushInformative());
   }
 
   /**
@@ -1030,11 +1071,11 @@ class SummarizedDirectiveBuilder extends Object
         x?.collectApiSignature(signature);
       }
     }
-    if (this._pipes == null) {
+    if (this._pipesUse == null) {
       signature.addInt(0);
     } else {
-      signature.addInt(this._pipes.length);
-      for (var x in this._pipes) {
+      signature.addInt(this._pipesUse.length);
+      for (var x in this._pipesUse) {
         x?.collectApiSignature(signature);
       }
     }
@@ -1053,7 +1094,7 @@ class SummarizedDirectiveBuilder extends Object
     fb.Offset offset_contentChildFields;
     fb.Offset offset_contentChildrenFields;
     fb.Offset offset_exports;
-    fb.Offset offset_pipes;
+    fb.Offset offset_pipesUse;
     if (_selectorStr != null) {
       offset_selectorStr = fbBuilder.writeString(_selectorStr);
     }
@@ -1097,9 +1138,9 @@ class SummarizedDirectiveBuilder extends Object
       offset_exports = fbBuilder
           .writeList(_exports.map((b) => b.finish(fbBuilder)).toList());
     }
-    if (!(_pipes == null || _pipes.isEmpty)) {
-      offset_pipes =
-          fbBuilder.writeList(_pipes.map((b) => b.finish(fbBuilder)).toList());
+    if (!(_pipesUse == null || _pipesUse.isEmpty)) {
+      offset_pipesUse = fbBuilder
+          .writeList(_pipesUse.map((b) => b.finish(fbBuilder)).toList());
     }
     fbBuilder.startTable();
     if (_isComponent == true) {
@@ -1156,8 +1197,8 @@ class SummarizedDirectiveBuilder extends Object
     if (offset_exports != null) {
       fbBuilder.addOffset(17, offset_exports);
     }
-    if (offset_pipes != null) {
-      fbBuilder.addOffset(18, offset_pipes);
+    if (offset_pipesUse != null) {
+      fbBuilder.addOffset(18, offset_pipesUse);
     }
     return fbBuilder.endTable();
   }
@@ -1198,7 +1239,7 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedContentChildField> _contentChildFields;
   List<idl.SummarizedContentChildField> _contentChildrenFields;
   List<idl.SummarizedExportedIdentifier> _exports;
-  List<idl.SummarizedPipes> _pipes;
+  List<idl.SummarizedPipesUse> _pipesUse;
 
   @override
   bool get isComponent {
@@ -1332,11 +1373,11 @@ class _SummarizedDirectiveImpl extends Object
   }
 
   @override
-  List<idl.SummarizedPipes> get pipes {
-    _pipes ??=
-        const fb.ListReader<idl.SummarizedPipes>(const _SummarizedPipesReader())
-            .vTableGet(_bc, _bcOffset, 18, const <idl.SummarizedPipes>[]);
-    return _pipes;
+  List<idl.SummarizedPipesUse> get pipesUse {
+    _pipesUse ??= const fb.ListReader<idl.SummarizedPipesUse>(
+            const _SummarizedPipesUseReader())
+        .vTableGet(_bc, _bcOffset, 18, const <idl.SummarizedPipesUse>[]);
+    return _pipesUse;
   }
 }
 
@@ -1376,8 +1417,8 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
           contentChildrenFields.map((_value) => _value.toJson()).toList();
     if (exports.isNotEmpty)
       _result["exports"] = exports.map((_value) => _value.toJson()).toList();
-    if (pipes.isNotEmpty)
-      _result["pipes"] = exports.map((_value) => _value.toJson()).toList();
+    if (pipesUse.isNotEmpty)
+      _result["pipesUse"] = exports.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
@@ -1401,7 +1442,7 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
         "contentChildFields": contentChildFields,
         "contentChildrenFields": contentChildrenFields,
         "exports": exports,
-        "pipes": pipes,
+        "pipesUse": pipesUse,
       };
 
   @override
@@ -1589,6 +1630,165 @@ abstract class _SummarizedAnalysisErrorMixin
         "correction": correction,
         "offset": offset,
         "length": length,
+      };
+
+  @override
+  String toString() => convert.JSON.encode(toJson());
+}
+
+class SummarizedPipeBuilder extends Object
+    with _SummarizedPipeMixin
+    implements idl.SummarizedPipe {
+  String _pipeName;
+  int _pipeNameOffset;
+  bool _isPure;
+  String _decoratedClassName;
+
+  @override
+  String get pipeName => _pipeName ??= '';
+
+  void set pipeName(String value) {
+    this._pipeName = value;
+  }
+
+  @override
+  int get pipeNameOffset => _pipeNameOffset ??= 0;
+
+  void setPipeNameOffset(int value) {
+    assert(value == null || value >= 0);
+    this._pipeNameOffset = value;
+  }
+
+  @override
+  bool get isPure => _isPure ??= true;
+
+  void set isPure(bool value) {
+    this._isPure = value;
+  }
+
+  @override
+  String get decoratedClassName => _decoratedClassName ??= '';
+
+  void set decoratedClassName(String value) {
+    this._decoratedClassName = value;
+  }
+
+  SummarizedPipeBuilder(
+      {String pipeName,
+      int pipeNameOffset,
+      bool isPure,
+      String decoratedClassName})
+      : _pipeName = pipeName,
+        _pipeNameOffset = pipeNameOffset,
+        _isPure = isPure,
+        _decoratedClassName = decoratedClassName;
+
+  /**
+   * Flush [informative] data recursively.
+   */
+  void flushInformative() {}
+
+  /**
+   * Accumulate non-[informative] data into [signature].
+   */
+  void collectApiSignature(api_sig.ApiSignature signature) {
+    signature.addString(this._pipeName ?? '');
+    signature.addInt(this._pipeNameOffset ?? 0);
+    signature.addBool(this._isPure == false);
+    signature.addString(this._decoratedClassName ?? '');
+  }
+
+  fb.Offset finish(fb.Builder fbBuilder) {
+    fb.Offset offset_pipeName;
+    fb.Offset offset_decoratedClassName;
+    if (_pipeName != null) {
+      offset_pipeName = fbBuilder.writeString(_pipeName);
+    }
+    if (_decoratedClassName != null) {
+      offset_decoratedClassName = fbBuilder.writeString(_decoratedClassName);
+    }
+    fbBuilder.startTable();
+    if (offset_pipeName != null) {
+      fbBuilder.addOffset(0, offset_pipeName);
+    }
+    if (_pipeNameOffset != null && _pipeNameOffset != 0) {
+      fbBuilder.addUint32(1, _pipeNameOffset);
+    }
+    if (_isPure == false) {
+      fbBuilder.addBool(2, false);
+    }
+    if (offset_decoratedClassName != null) {
+      fbBuilder.addOffset(3, offset_decoratedClassName);
+    }
+    return fbBuilder.endTable();
+  }
+}
+
+class _SummarizedPipeReader extends fb.TableReader<_SummarizedPipeImpl> {
+  const _SummarizedPipeReader();
+
+  @override
+  _SummarizedPipeImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedPipeImpl(bc, offset);
+}
+
+class _SummarizedPipeImpl extends Object
+    with _SummarizedPipeMixin
+    implements idl.SummarizedPipe {
+  final fb.BufferContext _bc;
+  final int _bcOffset;
+
+  _SummarizedPipeImpl(this._bc, this._bcOffset);
+
+  String _pipeName;
+  int _pipeNameOffset;
+  bool _isPure;
+  String _decoratedClassName;
+
+  @override
+  String get pipeName {
+    _pipeName ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 0, '');
+    return _pipeName;
+  }
+
+  @override
+  int get pipeNameOffset {
+    _pipeNameOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 1, 0);
+    return _pipeNameOffset;
+  }
+
+  @override
+  bool get isPure {
+    _isPure ??= const fb.BoolReader().vTableGet(_bc, _bcOffset, 2, true);
+    return _isPure;
+  }
+
+  @override
+  String get decoratedClassName {
+    _decoratedClassName ??=
+        const fb.StringReader().vTableGet(_bc, _bcOffset, 3, '');
+    return _decoratedClassName;
+  }
+}
+
+abstract class _SummarizedPipeMixin implements idl.SummarizedPipe {
+  @override
+  Map<String, Object> toJson() {
+    Map<String, Object> _result = <String, Object>{};
+    if (pipeName != '') _result["pipeName"] = pipeName;
+    if (pipeNameOffset != 0) _result["pipeNameOffset"] = pipeNameOffset;
+    if (isPure != true) _result["isPure"] = isPure;
+    if (decoratedClassName != '')
+      _result["decoratedClassName"] = decoratedClassName;
+    return _result;
+  }
+
+  @override
+  Map<String, Object> toMap() => {
+        "pipeName": pipeName,
+        "pipeNameOffset": pipeNameOffset,
+        "isPure": isPure,
+        "decoratedClassName": decoratedClassName,
       };
 
   @override
@@ -2518,9 +2718,9 @@ abstract class _SummarizedExportedIdentifierMixin
   String toString() => convert.JSON.encode(toJson());
 }
 
-class SummarizedPipesBuilder extends Object
-    with _SummarizedPipesMixin
-    implements idl.SummarizedPipes {
+class SummarizedPipesUseBuilder extends Object
+    with _SummarizedPipesUseMixin
+    implements idl.SummarizedPipesUse {
   String _name;
   String _prefix;
   int _offset;
@@ -2556,7 +2756,8 @@ class SummarizedPipesBuilder extends Object
     this._length = value;
   }
 
-  SummarizedPipesBuilder({String name, String prefix, int offset, int length})
+  SummarizedPipesUseBuilder(
+      {String name, String prefix, int offset, int length})
       : _name = name,
         _prefix = prefix,
         _offset = offset,
@@ -2603,21 +2804,22 @@ class SummarizedPipesBuilder extends Object
   }
 }
 
-class _SummarizedPipesReader extends fb.TableReader<_SummarizedPipesImpl> {
-  const _SummarizedPipesReader();
+class _SummarizedPipesUseReader
+    extends fb.TableReader<_SummarizedPipesUseImpl> {
+  const _SummarizedPipesUseReader();
 
   @override
-  _SummarizedPipesImpl createObject(fb.BufferContext bc, int offset) =>
-      new _SummarizedPipesImpl(bc, offset);
+  _SummarizedPipesUseImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedPipesUseImpl(bc, offset);
 }
 
-class _SummarizedPipesImpl extends Object
-    with _SummarizedPipesMixin
-    implements idl.SummarizedPipes {
+class _SummarizedPipesUseImpl extends Object
+    with _SummarizedPipesUseMixin
+    implements idl.SummarizedPipesUse {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  _SummarizedPipesImpl(this._bc, this._bcOffset);
+  _SummarizedPipesUseImpl(this._bc, this._bcOffset);
 
   String _name;
   String _prefix;
@@ -2649,7 +2851,7 @@ class _SummarizedPipesImpl extends Object
   }
 }
 
-abstract class _SummarizedPipesMixin implements idl.SummarizedPipes {
+abstract class _SummarizedPipesUseMixin implements idl.SummarizedPipesUse {
   @override
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
