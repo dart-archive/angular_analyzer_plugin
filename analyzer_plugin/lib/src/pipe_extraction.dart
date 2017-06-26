@@ -8,16 +8,14 @@ import 'package:angular_analyzer_plugin/tasks.dart';
 import 'tasks.dart';
 
 class PipeExtractor extends AnnotationProcessorMixin {
-  final TypeProvider _typeProvider;
   final ast.CompilationUnit _unit;
   final Source _source;
-  final AnalysisContext _context;
 
   /// The [ClassElement] being used to create the current component,
   /// stored here instead of passing around everywhere.
   ClassElement _currentClassElement;
 
-  PipeExtractor(this._unit, this._typeProvider, this._source, this._context) {
+  PipeExtractor(this._unit, this._source) {
     initAnnotationProcessor(_source);
   }
 
@@ -70,7 +68,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
         errorReporter.reportErrorForNode(
             AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED, node);
       }
-      return new Pipe(pipeName, _currentClassElement, isPure);
+      return new Pipe(pipeName, _currentClassElement, isPure: isPure);
     }
     return null;
   }

@@ -352,7 +352,7 @@ class Pipe {
   final dart.ClassElement classElement;
   final bool isPure;
 
-  Pipe(this.pipeName, this.classElement, this.isPure);
+  Pipe(this.pipeName, this.classElement, {this.isPure: true});
 }
 
 /// A pair of an [SourceRange] and the referenced [AngularElement].
