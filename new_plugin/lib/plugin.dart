@@ -4,7 +4,6 @@
 import 'dart:async';
 
 import 'package:analyzer/context/context_root.dart';
-import 'package:analyzer/dart/analysis/results.dart' show ResolveResult;
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
@@ -16,7 +15,7 @@ import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:analyzer_plugin/plugin/completion_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
-import 'package:angular_analysis_plugin/src/resolve_result.dart';
+import 'package:angular_analysis_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
@@ -125,12 +124,16 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
   }
 
   @override
-  Future<ResolveResult> getResolveResultForCompletion(
-      AngularDriver driver, String path) async {
+  Future<CompletionRequest> getCompletionRequest(
+      plugin.CompletionGetSuggestionsParams parameters,
+      AngularDriver driver) async {
+    final path = parameters.file;
+    final offset = parameters.offset;
     final templates = await driver.getTemplatesForFile(path);
     final standardHtml = await driver.getStandardHtml();
     assert(standardHtml != null);
-    return new CompletionResolveResult(path, templates, standardHtml);
+    return new AngularCompletionRequest(
+        offset, path, resourceProvider, templates, standardHtml);
   }
 
   @override
@@ -138,6 +141,7 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
       <CompletionContributor>[
         new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor()
+        new NgTypeMemberContributor(),
+        new NgOffsetLengthContributor(),
       ];
 }
