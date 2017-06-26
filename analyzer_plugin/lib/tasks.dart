@@ -54,6 +54,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
   AngularWarningCode.DUPLICATE_EXPORT,
   AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+  AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -382,6 +383,13 @@ class AngularWarningCode extends ErrorCode {
       'COMPONENTS_CANT_EXPORT_THEMSELVES',
       'Components export their class by default, and therefore should not be'
       ' specified in the exports list');
+
+  /// An error code indicating that the Pipe annotation does not define the
+  /// required pipe name argument - and is the only non-named argument.
+  static const PIPE_SINGLE_NAME_REQUIRED = const AngularWarningCode(
+      'PIPE_NAME_MISSING',
+      r'@Pipe declarations must contain exactly one'
+      r' non-named argument of String type for pipe name');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given
