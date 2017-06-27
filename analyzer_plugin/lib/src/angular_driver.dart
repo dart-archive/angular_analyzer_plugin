@@ -293,7 +293,8 @@ class AngularDriver
       standardAngular = new StandardAngular(
           queryList: namespace.get("QueryList"),
           elementRef: namespace.get("ElementRef"),
-          templateRef: namespace.get("TemplateRef"));
+          templateRef: namespace.get("TemplateRef"),
+          pipeTransform: namespace.get("PipeTransform"));
     }
 
     return standardAngular;
@@ -781,7 +782,8 @@ class AngularDriver
     }
 
     // collect Pipes
-    final pipeExtractor = new PipeExtractor(ast, source);
+    final pipeExtractor =
+        new PipeExtractor(ast, source, await getStandardAngular());
     final pipes = pipeExtractor.getPipes();
 
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)

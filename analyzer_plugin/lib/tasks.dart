@@ -55,6 +55,8 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.DUPLICATE_EXPORT,
   AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
   AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED,
+  AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+  AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -396,6 +398,12 @@ class AngularWarningCode extends ErrorCode {
       'PIPE_NAME_MISSING',
       r'@Pipe declarations must contain exactly one'
       r' non-named argument of String type for pipe name');
+
+  /// An error code indicating that a declared Pipe does not extend
+  /// [PipeTransform] class.
+  static const PIPE_REQUIRES_PIPETRANSFORM = const AngularWarningCode(
+      'PIPE_REQUIRES_PIPETRANSFORM',
+      "@Pipe declared classes need to extend 'PipeTransform'");
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

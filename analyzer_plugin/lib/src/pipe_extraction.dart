@@ -2,18 +2,20 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'tasks.dart';
 
 class PipeExtractor extends AnnotationProcessorMixin {
   final ast.CompilationUnit _unit;
   final Source _source;
+  final StandardAngular _standardAngular;
 
   /// The [ClassElement] being used to create the current component,
   /// stored here instead of passing around everywhere.
   ClassElement _currentClassElement;
 
-  PipeExtractor(this._unit, this._source) {
+  PipeExtractor(this._unit, this._source, this._standardAngular) {
     initAnnotationProcessor(_source);
   }
 
@@ -69,6 +71,15 @@ class PipeExtractor extends AnnotationProcessorMixin {
         errorReporter.reportErrorForNode(
             AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED, node);
       }
+
+      // Check if 'extends PipeTransform' exists.
+      final superType = _currentClassElement.supertype;
+      if (superType == null ||
+          superType != _standardAngular.pipeTransform.type) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM, node);
+      }
+
       return new Pipe(pipeName, pipeNameOffset, _currentClassElement,
           isPure: isPure);
     }
