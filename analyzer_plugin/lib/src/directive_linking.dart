@@ -23,6 +23,10 @@ abstract class FileDirectiveProvider {
   Future<List<NgContent>> getHtmlNgContent(String path);
 }
 
+abstract class FilePipeProvider {
+  Future<List<Pipe>> getUnlinkedPipes(String path);
+}
+
 abstract class DirectiveLinkerEnablement {
   Future<CompilationUnitElement> getUnit(String path);
   Source getSource(String path);
@@ -109,6 +113,7 @@ class DirectiveLinker {
       if (dirSum.isComponent) {
         final ngContents = deserializeNgContents(dirSum.ngContents, source);
         final exports = deserializeExports(dirSum.exports);
+        final pipeRefs = deserializePipes(dirSum.pipesUse);
         final component = new Component(classElem,
             exportAs: exportAs,
             selector: selector,
@@ -133,13 +138,14 @@ class DirectiveLinker {
           templateUrlRange = new SourceRange(
               dirSum.templateUrlOffset, dirSum.templateUrlLength);
         }
-        component.view = new View(classElem, component, [],
+        component.view = new View(classElem, component, [], [],
             templateText: dirSum.templateText,
             templateOffset: dirSum.templateOffset,
             templateUriSource: templateUriSource,
             templateUrlRange: templateUrlRange,
             directiveReferences: subDirectives,
-            exports: exports);
+            exports: exports,
+            pipeReferences: pipeRefs);
       } else {
         final directive = new Directive(classElem,
             exportAs: exportAs,
@@ -171,6 +177,13 @@ class DirectiveLinker {
             selector?.offset,
             ngContentSum.selectorStr.length);
       }).toList();
+
+  List<PipeReference> deserializePipes(List<SummarizedPipesUse> pipesUse) =>
+      pipesUse
+          .map((pipeUse) => new PipeReference(
+              pipeUse.name, new SourceRange(pipeUse.offset, pipeUse.length),
+              prefix: pipeUse.prefix))
+          .toList();
 
   List<ExportedIdentifier> deserializeExports(
           List<SummarizedExportedIdentifier> exports) =>
@@ -266,28 +279,40 @@ class ExportLinker {
 
 class ChildDirectiveLinker implements DirectiveMatcher {
   final FileDirectiveProvider _fileDirectiveProvider;
+  final FilePipeProvider _filePipeProvider;
   final ErrorReporter _errorReporter;
   final StandardAngular _standardAngular;
 
-  ChildDirectiveLinker(
-      this._fileDirectiveProvider, this._standardAngular, this._errorReporter);
+  ChildDirectiveLinker(this._fileDirectiveProvider, this._filePipeProvider,
+      this._standardAngular, this._errorReporter);
 
-  Future linkDirectives(
+  Future linkDirectivesAndPipes(
     List<AbstractDirective> directivesToLink,
+    List<Pipe> pipesToLink,
     LibraryElement library,
   ) async {
     final scope = new LibraryScope(library);
     final exportLinker = new ExportLinker(scope, _errorReporter);
     for (final directive in directivesToLink) {
       if (directive is Component && directive.view != null) {
+        // Link directive references to actual directive definition.
         for (final reference in directive.view.directiveReferences) {
-          final referent = lookupByName(reference, directivesToLink);
+          final referent = lookupDirectiveByName(reference, directivesToLink);
           if (referent != null) {
             directive.view.directives
                 .add(await withNgContentAndChildren(referent));
           } else {
-            await lookupFromLibrary(
+            await lookupDirectiveFromLibrary(
                 reference, scope, directive.view.directives);
+          }
+        }
+        // Link pipe references to actual pipe definition.
+        for (final reference in directive.view.pipeReferences) {
+          final referent = lookupPipeByName(reference, pipesToLink);
+          if (referent != null) {
+            directive.view.pipes.add(referent);
+          } else {
+            await lookupPipeFromLibrary(reference, scope, directive.view.pipes);
           }
         }
       }
@@ -300,7 +325,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     }
   }
 
-  AbstractDirective lookupByName(
+  AbstractDirective lookupDirectiveByName(
       DirectiveReference reference, List<AbstractDirective> directivesToLink) {
     if (reference.prefix != "") {
       return null;
@@ -313,8 +338,20 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     return null;
   }
 
-  Future lookupFromLibrary(DirectiveReference reference, LibraryScope scope,
-      List<AbstractDirective> directives) async {
+  Pipe lookupPipeByName(PipeReference reference, List<Pipe> pipesToLink) {
+    if (reference.prefix != '') {
+      return null;
+    }
+    final options =
+        pipesToLink.where((p) => p.classElement.name == reference.identifier);
+    if (options.length == 1) {
+      return options.first;
+    }
+    return null;
+  }
+
+  Future lookupDirectiveFromLibrary(DirectiveReference reference,
+      LibraryScope scope, List<AbstractDirective> directives) async {
     final type = scope.lookup(
         astFactory.simpleIdentifier(
             new StringToken(TokenType.IDENTIFIER, reference.name, 0)),
@@ -362,6 +399,53 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         reference.range.length);
   }
 
+  Future lookupPipeFromLibrary(
+      PipeReference reference, LibraryScope scope, List<Pipe> pipes) async {
+    final type = scope.lookup(
+        astFactory.simpleIdentifier(
+            new StringToken(TokenType.IDENTIFIER, reference.identifier, 0)),
+        null);
+    if (type != null && type.source != null) {
+      final filePipes =
+          await _filePipeProvider.getUnlinkedPipes(type.source.fullName);
+
+      if (type is ClassElement) {
+        final pipe = await matchPipe(type);
+
+        if (pipe != null) {
+          pipes.add(pipe);
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+              reference.span.offset,
+              reference.span.length,
+              [type.name]);
+        }
+        return;
+      } else if (type is PropertyAccessorElement) {
+        type.variable.computeConstantValue();
+        final values = type.variable.constantValue?.toListValue();
+        if (values != null) {
+          await _addPipesForDartObject(pipes, filePipes, values, reference);
+          return;
+        }
+
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+            reference.span.offset,
+            reference.span.length,
+            [type.variable.constantValue.toString()]);
+
+        return;
+      }
+    }
+
+    _errorReporter.reportErrorForOffset(
+        AngularWarningCode.TYPE_LITERAL_EXPECTED,
+        reference.span.offset,
+        reference.span.length);
+  }
+
   @override
   Future<AbstractDirective> matchDirective(ClassElement clazz) async {
     final fileDirectives = await _fileDirectiveProvider
@@ -373,6 +457,17 @@ class ChildDirectiveLinker implements DirectiveMatcher {
       return options.first;
     }
 
+    return null;
+  }
+
+  @override
+  Future<Pipe> matchPipe(ClassElement clazz) async {
+    final filePipes =
+        await _filePipeProvider.getUnlinkedPipes(clazz.source.fullName);
+    final options = filePipes.where((p) => p.classElement.name == clazz.name);
+    if (options.length == 1) {
+      return options.first;
+    }
     return null;
   }
 
@@ -407,6 +502,34 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     }
   }
 
+  /// Walk the given [value] and add pipes into [pipes].
+  /// Return `true` if success, or `false` the [value] has items
+  /// that don't correspond to a pipe.
+  Future _addPipesForDartObject(List<Pipe> pipes, List<Pipe> filePipes,
+      List<DartObject> values, PipeReference reference) async {
+    for (final listItem in values) {
+      final typeValue = listItem.toTypeValue();
+      if (typeValue is InterfaceType && typeValue.element is ClassElement) {
+        final pipe = await matchPipe(typeValue.element);
+        if (pipe != null) {
+          pipes.add(pipe);
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+              reference.span.offset,
+              reference.span.length,
+              [typeValue.name]);
+        }
+      } else {
+        _errorReporter.reportErrorForOffset(
+          AngularWarningCode.TYPE_LITERAL_EXPECTED,
+          reference.span.offset,
+          reference.span.length,
+        );
+      }
+    }
+  }
+
   Future<AbstractDirective> withNgContentAndChildren(
       AbstractDirective directive) async {
     if (directive is Component && directive?.view?.templateUriSource != null) {
@@ -433,6 +556,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
 abstract class DirectiveMatcher {
   Future<AbstractDirective> matchDirective(ClassElement clazz);
+  Future<Pipe> matchPipe(ClassElement clazz);
 }
 
 class ContentChildLinker {

@@ -240,6 +240,7 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
 @reflectiveTest
 class BuildUnitDirectivesTest extends AbstractAngularTest {
   List<AbstractDirective> directives;
+  List<Pipe> pipes;
   List<AnalysisError> errors;
 
   Future getDirectives(final source) async {
@@ -247,6 +248,7 @@ class BuildUnitDirectivesTest extends AbstractAngularTest {
     fillErrorListener(dartResult.errors);
     final result = await angularDriver.getDirectives(source.fullName);
     directives = result.directives;
+    pipes = result.pipes;
     errors = result.errors;
     fillErrorListener(errors);
   }
@@ -509,6 +511,44 @@ class DirectiveB {
         expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe() async {
+    final source = newSource(
+        '/test.dart',
+        r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform{
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(2));
+    {
+      final pipe = pipes[0];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipeA');
+      expect(pure, true);
+    }
+    {
+      final pipe = pipes[1];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipeB');
+      expect(pure, false);
+    }
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
@@ -1624,6 +1664,7 @@ class ComponentA {
 @reflectiveTest
 class BuildUnitViewsTest extends AbstractAngularTest {
   List<AbstractDirective> directives;
+  List<Pipe> pipes;
   List<View> views;
   List<AnalysisError> errors;
 
@@ -1632,12 +1673,15 @@ class BuildUnitViewsTest extends AbstractAngularTest {
     fillErrorListener(dartResult.errors);
     final result = await angularDriver.getDirectives(source.fullName);
     directives = result.directives;
+    pipes = result.pipes;
 
     final linker = new ChildDirectiveLinker(
         angularDriver,
+        angularDriver,
         await angularDriver.getStandardAngular(),
         new ErrorReporter(errorListener, source));
-    await linker.linkDirectives(directives, dartResult.unit.element.library);
+    await linker.linkDirectivesAndPipes(
+        directives, pipes, dartResult.unit.element.library);
     views = directives
         .map((d) => d is Component ? d.view : null)
         .where((d) => d != null)
@@ -1717,6 +1761,34 @@ class MyComponent {}
     }
     // no errors
     errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {}
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [PipeA, PipeB])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(2));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(pipeNames, unorderedEquals(['PipeA', 'PipeB']));
+      }
+    }
   }
 
   // ignore: non_constant_identifier_names

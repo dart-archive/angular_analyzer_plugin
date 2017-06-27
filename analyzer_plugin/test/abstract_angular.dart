@@ -166,7 +166,13 @@ export 'src/core/async.dart';
 export 'src/core/metadata.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
+export 'src/core/change_detection.dart';
 ''');
+    newSource(
+        '/angular/src/core/change_detection.dart',
+        r'''
+abstract class PipeTransform {} 
+        ''');
     newSource(
         '/angular/src/core/metadata.dart',
         r'''
@@ -223,6 +229,12 @@ class Component extends Directive {
       List<String> exports,
       List<String> styles,
       List<String> styleUrls});
+}
+
+class Pipe {
+  final String name;
+  final bool _pure;
+  const Pipe(this.name, {bool pure});
 }
 
 class View {

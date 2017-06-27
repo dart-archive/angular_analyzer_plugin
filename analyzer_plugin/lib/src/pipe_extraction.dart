@@ -1,8 +1,6 @@
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
 import 'tasks.dart';
@@ -40,6 +38,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
     _currentClassElement = classDeclaration.element;
     if (isAngularAnnotation(node, 'Pipe')) {
       String pipeName;
+      int pipeNameOffset;
       ast.Expression pipeNameExpression;
       var isPure = true;
       ast.Expression isPureExpression;
@@ -55,20 +54,23 @@ class PipeExtractor extends AnnotationProcessorMixin {
         final constantEvaluation =
             calculateStringWithOffsets(pipeNameExpression);
         if (constantEvaluation != null && constantEvaluation.value is String) {
-          pipeName = constantEvaluation.value;
+          pipeName = (constantEvaluation.value as String).trim();
+          pipeNameOffset = pipeNameExpression.offset;
         }
       }
       if (isPureExpression != null) {
-        final constantEvaluation = calculateStringWithOffsets(isPureExpression);
-        if (constantEvaluation != null && constantEvaluation.value is bool) {
-          isPure = constantEvaluation.value;
+        final isPureValue =
+            isPureExpression.accept(new OffsettingConstantEvaluator());
+        if (isPureValue != null && isPureValue is bool) {
+          isPure = isPureValue;
         }
       }
       if (pipeName == null) {
         errorReporter.reportErrorForNode(
             AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED, node);
       }
-      return new Pipe(pipeName, _currentClassElement, isPure: isPure);
+      return new Pipe(pipeName, pipeNameOffset, _currentClassElement,
+          isPure: isPure);
     }
     return null;
   }

@@ -5,6 +5,8 @@
 // This file has been automatically generated.  Please do not edit it manually.
 // To regenerate the file, use the script "pkg/analyzer/tool/generate_files".
 
+library analyzer.src.summary.format;
+
 import 'dart:convert' as convert;
 
 import 'package:front_end/src/base/api_signature.dart' as api_sig;
@@ -933,17 +935,16 @@ class SummarizedDirectiveBuilder extends Object
   List<SummarizedExportedIdentifierBuilder> get exports =>
       _exports ??= <SummarizedExportedIdentifierBuilder>[];
 
-  @override
-  List<SummarizedPipesUseBuilder> get pipesUse =>
-      _pipesUse ?? <SummarizedPipesUseBuilder>[];
-
-  @override
-  void set pipesUse(List<SummarizedPipesUseBuilder> value) {
-    this._pipesUse = value;
-  }
-
   void set exports(List<SummarizedExportedIdentifierBuilder> value) {
     this._exports = value;
+  }
+
+  @override
+  List<SummarizedPipesUseBuilder> get pipesUse =>
+      _pipesUse ??= <SummarizedPipesUseBuilder>[];
+
+  void set pipesUse(List<SummarizedPipesUseBuilder> value) {
+    this._pipesUse = value;
   }
 
   SummarizedDirectiveBuilder(
@@ -1418,7 +1419,7 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
     if (exports.isNotEmpty)
       _result["exports"] = exports.map((_value) => _value.toJson()).toList();
     if (pipesUse.isNotEmpty)
-      _result["pipesUse"] = exports.map((_value) => _value.toJson()).toList();
+      _result["pipesUse"] = pipesUse.map((_value) => _value.toJson()).toList();
     return _result;
   }
 
@@ -1443,6 +1444,165 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
         "contentChildrenFields": contentChildrenFields,
         "exports": exports,
         "pipesUse": pipesUse,
+      };
+
+  @override
+  String toString() => convert.JSON.encode(toJson());
+}
+
+class SummarizedPipeBuilder extends Object
+    with _SummarizedPipeMixin
+    implements idl.SummarizedPipe {
+  String _pipeName;
+  int _pipeNameOffset;
+  bool _isPure;
+  String _decoratedClassName;
+
+  @override
+  String get pipeName => _pipeName ??= '';
+
+  void set pipeName(String value) {
+    this._pipeName = value;
+  }
+
+  @override
+  int get pipeNameOffset => _pipeNameOffset ??= 0;
+
+  void set pipeNameOffset(int value) {
+    assert(value == null || value >= 0);
+    this._pipeNameOffset = value;
+  }
+
+  @override
+  bool get isPure => _isPure ??= false;
+
+  void set isPure(bool value) {
+    this._isPure = value;
+  }
+
+  @override
+  String get decoratedClassName => _decoratedClassName ??= '';
+
+  void set decoratedClassName(String value) {
+    this._decoratedClassName = value;
+  }
+
+  SummarizedPipeBuilder(
+      {String pipeName,
+      int pipeNameOffset,
+      bool isPure,
+      String decoratedClassName})
+      : _pipeName = pipeName,
+        _pipeNameOffset = pipeNameOffset,
+        _isPure = isPure,
+        _decoratedClassName = decoratedClassName;
+
+  /**
+   * Flush [informative] data recursively.
+   */
+  void flushInformative() {}
+
+  /**
+   * Accumulate non-[informative] data into [signature].
+   */
+  void collectApiSignature(api_sig.ApiSignature signature) {
+    signature.addString(this._pipeName ?? '');
+    signature.addInt(this._pipeNameOffset ?? 0);
+    signature.addBool(this._isPure == true);
+    signature.addString(this._decoratedClassName ?? '');
+  }
+
+  fb.Offset finish(fb.Builder fbBuilder) {
+    fb.Offset offset_pipeName;
+    fb.Offset offset_decoratedClassName;
+    if (_pipeName != null) {
+      offset_pipeName = fbBuilder.writeString(_pipeName);
+    }
+    if (_decoratedClassName != null) {
+      offset_decoratedClassName = fbBuilder.writeString(_decoratedClassName);
+    }
+    fbBuilder.startTable();
+    if (offset_pipeName != null) {
+      fbBuilder.addOffset(0, offset_pipeName);
+    }
+    if (_pipeNameOffset != null && _pipeNameOffset != 0) {
+      fbBuilder.addUint32(1, _pipeNameOffset);
+    }
+    if (_isPure == true) {
+      fbBuilder.addBool(2, true);
+    }
+    if (offset_decoratedClassName != null) {
+      fbBuilder.addOffset(3, offset_decoratedClassName);
+    }
+    return fbBuilder.endTable();
+  }
+}
+
+class _SummarizedPipeReader extends fb.TableReader<_SummarizedPipeImpl> {
+  const _SummarizedPipeReader();
+
+  @override
+  _SummarizedPipeImpl createObject(fb.BufferContext bc, int offset) =>
+      new _SummarizedPipeImpl(bc, offset);
+}
+
+class _SummarizedPipeImpl extends Object
+    with _SummarizedPipeMixin
+    implements idl.SummarizedPipe {
+  final fb.BufferContext _bc;
+  final int _bcOffset;
+
+  _SummarizedPipeImpl(this._bc, this._bcOffset);
+
+  String _pipeName;
+  int _pipeNameOffset;
+  bool _isPure;
+  String _decoratedClassName;
+
+  @override
+  String get pipeName {
+    _pipeName ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 0, '');
+    return _pipeName;
+  }
+
+  @override
+  int get pipeNameOffset {
+    _pipeNameOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 1, 0);
+    return _pipeNameOffset;
+  }
+
+  @override
+  bool get isPure {
+    _isPure ??= const fb.BoolReader().vTableGet(_bc, _bcOffset, 2, false);
+    return _isPure;
+  }
+
+  @override
+  String get decoratedClassName {
+    _decoratedClassName ??=
+        const fb.StringReader().vTableGet(_bc, _bcOffset, 3, '');
+    return _decoratedClassName;
+  }
+}
+
+abstract class _SummarizedPipeMixin implements idl.SummarizedPipe {
+  @override
+  Map<String, Object> toJson() {
+    Map<String, Object> _result = <String, Object>{};
+    if (pipeName != '') _result["pipeName"] = pipeName;
+    if (pipeNameOffset != 0) _result["pipeNameOffset"] = pipeNameOffset;
+    if (isPure != false) _result["isPure"] = isPure;
+    if (decoratedClassName != '')
+      _result["decoratedClassName"] = decoratedClassName;
+    return _result;
+  }
+
+  @override
+  Map<String, Object> toMap() => {
+        "pipeName": pipeName,
+        "pipeNameOffset": pipeNameOffset,
+        "isPure": isPure,
+        "decoratedClassName": decoratedClassName,
       };
 
   @override
@@ -1630,165 +1790,6 @@ abstract class _SummarizedAnalysisErrorMixin
         "correction": correction,
         "offset": offset,
         "length": length,
-      };
-
-  @override
-  String toString() => convert.JSON.encode(toJson());
-}
-
-class SummarizedPipeBuilder extends Object
-    with _SummarizedPipeMixin
-    implements idl.SummarizedPipe {
-  String _pipeName;
-  int _pipeNameOffset;
-  bool _isPure;
-  String _decoratedClassName;
-
-  @override
-  String get pipeName => _pipeName ??= '';
-
-  void set pipeName(String value) {
-    this._pipeName = value;
-  }
-
-  @override
-  int get pipeNameOffset => _pipeNameOffset ??= 0;
-
-  void setPipeNameOffset(int value) {
-    assert(value == null || value >= 0);
-    this._pipeNameOffset = value;
-  }
-
-  @override
-  bool get isPure => _isPure ??= true;
-
-  void set isPure(bool value) {
-    this._isPure = value;
-  }
-
-  @override
-  String get decoratedClassName => _decoratedClassName ??= '';
-
-  void set decoratedClassName(String value) {
-    this._decoratedClassName = value;
-  }
-
-  SummarizedPipeBuilder(
-      {String pipeName,
-      int pipeNameOffset,
-      bool isPure,
-      String decoratedClassName})
-      : _pipeName = pipeName,
-        _pipeNameOffset = pipeNameOffset,
-        _isPure = isPure,
-        _decoratedClassName = decoratedClassName;
-
-  /**
-   * Flush [informative] data recursively.
-   */
-  void flushInformative() {}
-
-  /**
-   * Accumulate non-[informative] data into [signature].
-   */
-  void collectApiSignature(api_sig.ApiSignature signature) {
-    signature.addString(this._pipeName ?? '');
-    signature.addInt(this._pipeNameOffset ?? 0);
-    signature.addBool(this._isPure == false);
-    signature.addString(this._decoratedClassName ?? '');
-  }
-
-  fb.Offset finish(fb.Builder fbBuilder) {
-    fb.Offset offset_pipeName;
-    fb.Offset offset_decoratedClassName;
-    if (_pipeName != null) {
-      offset_pipeName = fbBuilder.writeString(_pipeName);
-    }
-    if (_decoratedClassName != null) {
-      offset_decoratedClassName = fbBuilder.writeString(_decoratedClassName);
-    }
-    fbBuilder.startTable();
-    if (offset_pipeName != null) {
-      fbBuilder.addOffset(0, offset_pipeName);
-    }
-    if (_pipeNameOffset != null && _pipeNameOffset != 0) {
-      fbBuilder.addUint32(1, _pipeNameOffset);
-    }
-    if (_isPure == false) {
-      fbBuilder.addBool(2, false);
-    }
-    if (offset_decoratedClassName != null) {
-      fbBuilder.addOffset(3, offset_decoratedClassName);
-    }
-    return fbBuilder.endTable();
-  }
-}
-
-class _SummarizedPipeReader extends fb.TableReader<_SummarizedPipeImpl> {
-  const _SummarizedPipeReader();
-
-  @override
-  _SummarizedPipeImpl createObject(fb.BufferContext bc, int offset) =>
-      new _SummarizedPipeImpl(bc, offset);
-}
-
-class _SummarizedPipeImpl extends Object
-    with _SummarizedPipeMixin
-    implements idl.SummarizedPipe {
-  final fb.BufferContext _bc;
-  final int _bcOffset;
-
-  _SummarizedPipeImpl(this._bc, this._bcOffset);
-
-  String _pipeName;
-  int _pipeNameOffset;
-  bool _isPure;
-  String _decoratedClassName;
-
-  @override
-  String get pipeName {
-    _pipeName ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 0, '');
-    return _pipeName;
-  }
-
-  @override
-  int get pipeNameOffset {
-    _pipeNameOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 1, 0);
-    return _pipeNameOffset;
-  }
-
-  @override
-  bool get isPure {
-    _isPure ??= const fb.BoolReader().vTableGet(_bc, _bcOffset, 2, true);
-    return _isPure;
-  }
-
-  @override
-  String get decoratedClassName {
-    _decoratedClassName ??=
-        const fb.StringReader().vTableGet(_bc, _bcOffset, 3, '');
-    return _decoratedClassName;
-  }
-}
-
-abstract class _SummarizedPipeMixin implements idl.SummarizedPipe {
-  @override
-  Map<String, Object> toJson() {
-    Map<String, Object> _result = <String, Object>{};
-    if (pipeName != '') _result["pipeName"] = pipeName;
-    if (pipeNameOffset != 0) _result["pipeNameOffset"] = pipeNameOffset;
-    if (isPure != true) _result["isPure"] = isPure;
-    if (decoratedClassName != '')
-      _result["decoratedClassName"] = decoratedClassName;
-    return _result;
-  }
-
-  @override
-  Map<String, Object> toMap() => {
-        "pipeName": pipeName,
-        "pipeNameOffset": pipeNameOffset,
-        "isPure": isPure,
-        "decoratedClassName": decoratedClassName,
       };
 
   @override
