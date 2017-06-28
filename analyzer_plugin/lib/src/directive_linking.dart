@@ -406,9 +406,6 @@ class ChildDirectiveLinker implements DirectiveMatcher {
             new StringToken(TokenType.IDENTIFIER, reference.identifier, 0)),
         null);
     if (type != null && type.source != null) {
-      final filePipes =
-          await _filePipeProvider.getUnlinkedPipes(type.source.fullName);
-
       if (type is ClassElement) {
         final pipe = await matchPipe(type);
 
@@ -426,7 +423,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         type.variable.computeConstantValue();
         final values = type.variable.constantValue?.toListValue();
         if (values != null) {
-          await _addPipesForDartObject(pipes, filePipes, values, reference);
+          await _addPipesForDartObject(pipes, values, reference.span);
           return;
         }
 
@@ -505,8 +502,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
   /// Walk the given [value] and add pipes into [pipes].
   /// Return `true` if success, or `false` the [value] has items
   /// that don't correspond to a pipe.
-  Future _addPipesForDartObject(List<Pipe> pipes, List<Pipe> filePipes,
-      List<DartObject> values, PipeReference reference) async {
+  Future _addPipesForDartObject(
+      List<Pipe> pipes, List<DartObject> values, SourceRange errorRange) async {
     for (final listItem in values) {
       final typeValue = listItem.toTypeValue();
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
@@ -516,16 +513,21 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         } else {
           _errorReporter.reportErrorForOffset(
               AngularWarningCode.TYPE_IS_NOT_A_PIPE,
-              reference.span.offset,
-              reference.span.length,
+              errorRange.offset,
+              errorRange.length,
               [typeValue.name]);
         }
       } else {
-        _errorReporter.reportErrorForOffset(
-          AngularWarningCode.TYPE_LITERAL_EXPECTED,
-          reference.span.offset,
-          reference.span.length,
-        );
+        final listValue = listItem.toListValue();
+        if (listValue != null) {
+          await _addPipesForDartObject(pipes, listValue, errorRange);
+        } else {
+          _errorReporter.reportErrorForOffset(
+            AngularWarningCode.TYPE_LITERAL_EXPECTED,
+            errorRange.offset,
+            errorRange.length,
+          );
+        }
       }
     }
   }

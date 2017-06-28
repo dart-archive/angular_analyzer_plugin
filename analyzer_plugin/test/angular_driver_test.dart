@@ -2958,6 +2958,79 @@ class MyComponent {}
         expect(pipeNames, unorderedEquals(['PipeA', 'PipeB']));
       }
     }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_selective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {}
+
+@Pipe('pipeC')
+class PipeC extends PipeTransform {}
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [PipeC, PipeB])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(2));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(pipeNames, unorderedEquals(['PipeC', 'PipeB']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_list_recursive() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {}
+
+@Pipe('pipeC')
+class PipeC extends PipeTransform {}
+
+@Pipe('pipeD')
+class PipeD extends PipeTransform {}
+
+const PIPELIST_ONE = const [ const [PipeA, PipeB]];
+const PIPELIST_TWO = const [ const [ const [PipeC, PipeD]]];
+const BIGPIPELIST = const [PIPELIST_ONE, PIPELIST_TWO];
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [BIGPIPELIST])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(4));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(
+            pipeNames, unorderedEquals(['PipeA', 'PipeB', 'PipeC', 'PipeD']));
+      }
+    }
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
