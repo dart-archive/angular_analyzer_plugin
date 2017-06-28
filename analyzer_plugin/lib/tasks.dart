@@ -57,6 +57,9 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED,
   AngularWarningCode.TYPE_IS_NOT_A_PIPE,
   AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM,
+  AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD,
+  AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
+  AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -404,6 +407,25 @@ class AngularWarningCode extends ErrorCode {
   static const PIPE_REQUIRES_PIPETRANSFORM = const AngularWarningCode(
       'PIPE_REQUIRES_PIPETRANSFORM',
       "@Pipe declared classes need to extend 'PipeTransform'");
+
+  /// An error code indicating that a declared Pipe does not have
+  /// a 'transform' method.
+  static const PIPE_REQUIRES_TRANSFORM_METHOD = const AngularWarningCode(
+    'PIPE_REQUIRES_TRANSFORM_METHOD',
+    "@Pipe declared classes must contain a 'transform' method",
+  );
+
+  /// An error indicating that the 'transform' method within a Pipe
+  /// cannot have named arguments.
+  static const PIPE_TRANSFORM_NO_NAMED_ARGS = const AngularWarningCode(
+      'PIPE_TRANSFORM_NO_NAMED_ARGS',
+      "'transform' method for pipe should not have named arguments");
+
+  /// An error indicating that the 'transform' method within a Pipe
+  /// requires at least one argument.
+  static const PIPE_TRANSFORM_REQ_ONE_ARG = const AngularWarningCode(
+      'PIPE_TRANSFORM_REQ_ONE_ARG',
+      "'transform' method requires at least one argument");
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

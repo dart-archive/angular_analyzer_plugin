@@ -26,6 +26,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
         for (final annotationNode in unitMember.metadata) {
           final pipe = _createPipe(unitMember, annotationNode);
           if (pipe != null) {
+            pipe.loadTransformValue(errorReporter);
             pipes.add(pipe);
           }
         }

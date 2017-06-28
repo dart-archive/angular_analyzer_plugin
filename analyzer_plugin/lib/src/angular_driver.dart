@@ -785,7 +785,6 @@ class AngularDriver
     final pipeExtractor =
         new PipeExtractor(ast, source, await getStandardAngular());
     final pipes = pipeExtractor.getPipes();
-
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
       ..addAll(viewExtractor.errorListener.errors)
       ..addAll(pipeExtractor.errorListener.errors);
