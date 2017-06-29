@@ -522,10 +522,12 @@ import 'package:angular2/angular2.dart';
 
 @Pipe('pipeA')
 class PipeA extends PipeTransform{
+  int transform(int blah) => blah;
 }
 
 @Pipe('pipeB', pure: false)
 class PipeB extends PipeTransform{
+  String transform(int a1, String a2, bool a3) => 'someString';
 }
 ''');
     await getDirectives(source);
@@ -538,6 +540,10 @@ class PipeB extends PipeTransform{
       expect(pipeName, const isInstanceOf<String>());
       expect(pipeName, 'pipeA');
       expect(pure, true);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'int');
+      expect(pipe.optionalArgumentTypes, hasLength(0));
     }
     {
       final pipe = pipes[1];
@@ -547,6 +553,14 @@ class PipeB extends PipeTransform{
       expect(pipeName, const isInstanceOf<String>());
       expect(pipeName, 'pipeB');
       expect(pure, false);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'String');
+
+      final opArgs = pipe.optionalArgumentTypes;
+      expect(opArgs, hasLength(2));
+      expect(opArgs[0].toString(), 'String');
+      expect(opArgs[1].toString(), 'bool');
     }
     errorListener.assertNoErrors();
   }
@@ -560,6 +574,7 @@ import 'package:angular2/angular2.dart';
 
 @Pipe('pipeA')
 class PipeA {
+  int transform(int blah) => blah;
 }
 ''');
     await getDirectives(source);
@@ -571,6 +586,10 @@ class PipeA {
     expect(pipeName, const isInstanceOf<String>());
     expect(pipeName, 'pipeA');
     expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
 
     errorListener.assertErrorsWithCodes(
         [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
@@ -587,6 +606,7 @@ class Trouble {}
 
 @Pipe('pipeA')
 class PipeA extends Trouble{
+  int transform(int blah) => blah;
 }
 ''');
     await getDirectives(source);
@@ -599,8 +619,42 @@ class PipeA extends Trouble{
     expect(pipeName, 'pipeA');
     expect(pure, true);
 
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
     errorListener.assertErrorsWithCodes(
         [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
+  }
+
+  //ignore: non_constant_identifier_names
+  Future test_Pipe_error_no_transform() async {
+    final source = newSource(
+        '/test.dart',
+        r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.requiredArgumentType, null);
+    expect(pipe.transformReturnType, null);
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD]);
   }
 
   // ignore: non_constant_identifier_names

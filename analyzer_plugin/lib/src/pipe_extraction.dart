@@ -26,8 +26,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
         for (final annotationNode in unitMember.metadata) {
           final pipe = _createPipe(unitMember, annotationNode);
           if (pipe != null) {
-            pipe.loadTransformValue(errorReporter);
-            pipes.add(pipe);
+            pipes.add(_loadTransformInformation(pipe));
           }
         }
       }
@@ -85,5 +84,41 @@ class PipeExtractor extends AnnotationProcessorMixin {
           isPure: isPure);
     }
     return null;
+  }
+
+  /// Looks for a 'transform' function, and if found, finds all the
+  /// important type information needed for resolution of pipe.
+  Pipe _loadTransformInformation(Pipe pipe) {
+    final classElement = pipe.classElement;
+    if (classElement == null) {
+      return pipe;
+    }
+    final transformMethod = classElement.getMethod('transform');
+    if (transformMethod == null) {
+      errorReporter.reportErrorForElement(
+          AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD, classElement);
+      return pipe;
+    }
+
+    pipe.transformReturnType = transformMethod.returnType;
+    final parameters = transformMethod.parameters;
+    if (parameters == null || parameters.isEmpty) {
+      errorReporter.reportErrorForElement(
+          AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG, transformMethod);
+    }
+    for (final parameter in parameters) {
+      // If named or positional
+      if (parameter.parameterKind.ordinal > 0) {
+        errorReporter.reportErrorForElement(
+            AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS, parameter);
+        continue;
+      }
+      if (parameters.first == parameter) {
+        pipe.requiredArgumentType = parameter.type;
+      } else {
+        pipe.optionalArgumentTypes.add(parameter.type);
+      }
+    }
+    return pipe;
   }
 }

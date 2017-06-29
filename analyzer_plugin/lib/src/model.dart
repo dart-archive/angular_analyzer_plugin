@@ -360,40 +360,6 @@ class Pipe {
 
   Pipe(this.pipeName, this.pipeNameOffset, this.classElement,
       {this.isPure: true});
-
-  // Handles evaluation of 'transform' method within the Pipe class.
-  // TODO(MAX): Move to pipe_extraction.dart
-  void loadTransformValue(ErrorReporter errorReporter) {
-    if (classElement == null) {
-      return;
-    }
-    final transformMethod = classElement.getMethod('transform');
-    if (transformMethod == null) {
-      errorReporter.reportErrorForElement(
-          AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD, classElement);
-      return;
-    }
-
-    transformReturnType = transformMethod.returnType;
-    final parameters = transformMethod.parameters;
-    if (parameters == null || parameters.isEmpty) {
-      errorReporter.reportErrorForElement(
-          AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG, transformMethod);
-    }
-    for (final parameter in parameters) {
-      // If named or positional
-      if (parameter.parameterKind.ordinal > 0) {
-        errorReporter.reportErrorForElement(
-            AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS, parameter);
-        continue;
-      }
-      if (parameters.first == parameter) {
-        requiredArgumentType = parameter.type;
-      } else {
-        optionalArgumentTypes.add(parameter.type);
-      }
-    }
-  }
 }
 
 /// A pair of an [SourceRange] and the referenced [AngularElement].
