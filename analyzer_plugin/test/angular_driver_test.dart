@@ -2992,10 +2992,14 @@ class ContentChildComp {}
 import 'package:angular2/angular2.dart';
 
 @Pipe('pipeA')
-class PipeA extends PipeTransform {}
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {}
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Component(selector: 'my-component', template: 'MyTemplate',
     pipes: const [PipeA, PipeB])
@@ -3021,13 +3025,19 @@ class MyComponent {}
 import 'package:angular2/angular2.dart';
 
 @Pipe('pipeA')
-class PipeA extends PipeTransform {}
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {}
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Pipe('pipeC')
-class PipeC extends PipeTransform {}
+class PipeC extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Component(selector: 'my-component', template: 'MyTemplate',
     pipes: const [PipeC, PipeB])
@@ -3053,16 +3063,24 @@ class MyComponent {}
 import 'package:angular2/angular2.dart';
 
 @Pipe('pipeA')
-class PipeA extends PipeTransform {}
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {}
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Pipe('pipeC')
-class PipeC extends PipeTransform {}
+class PipeC extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 @Pipe('pipeD')
-class PipeD extends PipeTransform {}
+class PipeD extends PipeTransform {
+  int transform(int blah) => blah;
+}
 
 const PIPELIST_ONE = const [ const [PipeA, PipeB]];
 const PIPELIST_TWO = const [ const [ const [PipeC, PipeD]]];
