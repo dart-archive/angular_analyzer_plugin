@@ -595,6 +595,50 @@ class MyComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeDotMemberInNgIf() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgIf])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngIf="text.^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('length', 'int');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberInNgIf() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgIf])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngIf="^"></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('text', 'String');
+    assertSuggestMethod('toString', 'Object', 'String');
+    assertSuggestGetter('hashCode', 'int');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeDotMemberInNgFor() async {
     final dartSource = newSource(
         '/completionTest.dart',
@@ -3293,5 +3337,196 @@ class CustomTemplateDirective {
     assertNotSuggested("*ngForOf");
     assertNotSuggested("[id]");
     assertNotSuggested("id");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeExports() async {
+    newSource(
+        '/prefixed.dart',
+        '''
+const int otherAccessor = 1;
+int otherFunction(){}
+class OtherClass {}
+enum OtherEnum {}
+''');
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+import 'prefixed.dart' as prefixed;
+const int myAccessor = 1;
+int myFunction(){}
+class MyClass {}
+enum MyEnum {}
+@Component(templateUrl: 'completionTest.html', selector: 'a', exports: const [
+  myAccessor,
+  myFunction,
+  MyClass,
+  MyEnum,
+  prefixed.otherAccessor,
+  prefixed.otherFunction,
+  prefixed.OtherClass,
+  prefixed.OtherEnum,
+])
+class MyComp {
+}
+    ''');
+
+    addTestSource('{{^}}');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('myAccessor', 'int');
+    assertSuggestFunction('myFunction', 'int');
+    assertSuggestClass('MyClass');
+    assertSuggestEnum('MyEnum');
+    assertSuggestGetter('prefixed.otherAccessor', 'int',
+        elementName: 'otherAccessor');
+    assertSuggestFunction('prefixed.otherFunction', 'int',
+        elementName: 'otherFunction');
+    assertSuggestClass('prefixed.OtherClass', elemName: 'OtherClass');
+    assertSuggestEnum('prefixed.OtherEnum');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeCurrentClass() async {
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {
+}
+    ''');
+
+    addTestSource('{{^}}');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClass('MyComp');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeExportedPrefixes() async {
+    newSource(
+        '/prefix_one.dart',
+        '''
+const int foo = 1;
+''');
+    newSource(
+        '/prefix_two.dart',
+        '''
+const int foo = 1;
+const int bar = 1;
+''');
+    newSource(
+        '/prefix_three.dart',
+        '''
+const int foo = 1;
+const int bar = 1;
+const int baz = 1;
+''');
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+import 'prefix_one.dart' as prefix_one;
+import 'prefix_two.dart' as prefix_two;
+import 'prefix_three.dart' as prefix_three;
+@Component(templateUrl: 'completionTest.html', selector: 'a', exports: const [
+  prefix_one.foo,
+  prefix_two.foo,
+  prefix_two.bar,
+])
+class MyComp {
+}
+    ''');
+
+    addTestSource('{{^}}');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestLibrary('prefix_one');
+    assertSuggestLibrary('prefix_two');
+    assertNotSuggested('prefix_three');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeAfterExportedPrefixes() async {
+    newSource(
+        '/prefixed.dart',
+        '''
+const int foo = 1;
+const int bar = 1;
+''');
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+import 'prefixed.dart' as prefixed;
+const int baz = 2;
+@Component(templateUrl: 'completionTest.html', selector: 'a', exports: const [
+  prefixed.foo,
+])
+class MyComp {
+}
+    ''');
+
+    addTestSource('{{prefixed.^}}');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestGetter('foo', 'int');
+    assertNotSuggested('bar');
+    assertNotSuggested('baz');
+    assertNotSuggested('MyComp');
+    assertNotSuggested('hashCode');
+    assertNotSuggested('toString()');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeExportsAfterNew() async {
+    newSource(
+        '/prefixed.dart',
+        '''
+const int foo = 1;
+class OtherClass {};
+''');
+    final dartSource = newSource(
+        '/completionTest.dart',
+        '''
+import 'package:angular2/angular2.dart';
+import 'prefixed.dart' as prefixed;
+class MyClass{}
+@Component(templateUrl: 'completionTest.html', selector: 'a', exports: const [
+  MyClass,
+  prefixed.foo,
+  prefixed.OtherClass,
+])
+class MyComp {
+}
+    ''');
+
+    // NOTE: This actually isn't valid angular yet (we flag it) but one day will
+    // be: once we move to angular_ast in both repos.
+    addTestSource('{{new ^}}');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestClass('MyComp');
+    assertSuggestClass('MyClass');
+    assertSuggestClass('prefixed.OtherClass', elemName: 'OtherClass');
+    assertSuggestLibrary('prefixed');
+    assertNotSuggested('foo');
   }
 }

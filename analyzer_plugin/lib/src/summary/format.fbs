@@ -70,6 +70,8 @@ table SummarizedDirective {
   contentChildFields:[SummarizedContentChildField] (id: 15);
 
   contentChildrenFields:[SummarizedContentChildField] (id: 16);
+
+  exports:[SummarizedExportedIdentifier] (id: 17);
 }
 
 table SummarizedAnalysisError {
@@ -130,6 +132,16 @@ table SummarizedContentChildField {
   typeOffset:uint (id: 3);
 
   typeLength:uint (id: 4);
+}
+
+table SummarizedExportedIdentifier {
+  name:string (id: 0);
+
+  prefix:string (id: 1);
+
+  offset:uint (id: 2);
+
+  length:uint (id: 3);
 }
 
 root_type PackageBundle;

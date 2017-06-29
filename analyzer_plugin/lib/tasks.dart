@@ -50,7 +50,10 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
   AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,
   AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
-  AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE
+  AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+  AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
+  AngularWarningCode.DUPLICATE_EXPORT,
+  AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -365,6 +368,20 @@ class AngularWarningCode extends ErrorCode {
           'A containing {0} expects a single child matching {1}, but this is'
           ' not the first match. Use (Content or View)Children to allow'
           ' multiple matches.');
+
+  /// An error code indicating that the exports array got a non-identifier
+  static const EXPORTS_MUST_BE_PLAIN_IDENTIFIERS = const AngularWarningCode(
+      'EXPORTS_MUST_BE_PLAIN_IDENTIFIERS', 'Exports must be plain identifiers');
+
+  /// An error code indicating that an identifier was exported multiple times
+  static const DUPLICATE_EXPORT = const AngularWarningCode(
+      'DUPLICATE_EXPORT', 'Duplicate export of identifier {0}');
+
+  /// An error code indicating component Foo exports Foo, which is unnecessary
+  static const COMPONENTS_CANT_EXPORT_THEMSELVES = const AngularWarningCode(
+      'COMPONENTS_CANT_EXPORT_THEMSELVES',
+      'Components export their class by default, and therefore should not be'
+      ' specified in the exports list');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

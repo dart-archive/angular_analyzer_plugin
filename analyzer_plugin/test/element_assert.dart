@@ -46,8 +46,18 @@ class DartElementAssert extends _AbstractElementAssert {
     return this;
   }
 
+  DartElementAssert get prefix {
+    expect(element.kind, ElementKind.PREFIX);
+    return this;
+  }
+
   DartElementAssert get inCoreHtml {
     _inCoreHtml(element.source);
+    return this;
+  }
+
+  DartElementAssert inFile(String path) {
+    _inFile(element.source, path);
     return this;
   }
 
@@ -144,7 +154,11 @@ class _AbstractElementAssert {
   }
 
   void _inCoreHtml(Source actualSource) {
-    expect(actualSource.fullName, '/sdk/lib/html/dartium/html_dartium.dart');
+    _inFile(actualSource, '/sdk/lib/html/dartium/html_dartium.dart');
+  }
+
+  void _inFile(Source actualSource, String expectedPath) {
+    expect(actualSource.fullName, expectedPath);
     _source = actualSource;
     _code = null;
   }

@@ -198,8 +198,11 @@ class AnnotationProcessorMixin {
   bool isAngularAnnotation(ast.Annotation node, String name) {
     if (node.element is ConstructorElement) {
       final clazz = node.element.enclosingElement;
-      return clazz.library.source.uri.path
-              .endsWith('angular2/src/core/metadata.dart') &&
+      // TODO only support angular/
+      return (clazz.library.source.uri.path
+                  .endsWith('angular/src/core/metadata.dart') ||
+              clazz.library.source.uri.path
+                  .endsWith('angular2/src/core/metadata.dart')) &&
           clazz.name == name;
     }
     return false;

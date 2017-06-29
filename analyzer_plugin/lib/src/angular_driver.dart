@@ -51,6 +51,7 @@ class AngularDriver
   FileTracker _fileTracker;
   final lastSignatures = <String, String>{};
   bool _hasAngularImported = false;
+  bool _hasAngular2Imported = false; // TODO only support package:angular
   final completionContributors = <CompletionContributor>[];
 
   AngularDriver(this.notificationManager, this.dartDriver, this._scheduler,
@@ -58,7 +59,10 @@ class AngularDriver
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);
+    // TODO only support package:angular once we all move to that
     _hasAngularImported =
+        _sourceFactory.resolveUri(null, "package:angular/angular.dart") != null;
+    _hasAngular2Imported =
         _sourceFactory.resolveUri(null, "package:angular2/angular2.dart") !=
             null;
   }
@@ -184,7 +188,8 @@ class AngularDriver
       return;
     }
 
-    if (_hasAngularImported && standardAngular == null) {
+    if ((_hasAngularImported || _hasAngular2Imported) &&
+        standardAngular == null) {
       getStandardAngular(); // ignore: unawaited_futures
       return;
     }
@@ -282,8 +287,11 @@ class AngularDriver
 
   Future<StandardAngular> getStandardAngular() async {
     if (standardAngular == null) {
-      final source =
-          _sourceFactory.resolveUri(null, "package:angular2/angular2.dart");
+      final source = _sourceFactory.resolveUri(
+          null,
+          _hasAngular2Imported
+              ? "package:angular2/angular2.dart"
+              : "package:angular/angular.dart");
 
       if (source == null) {
         return standardAngular;
@@ -804,6 +812,7 @@ class AngularDriver
       final exportAsOffset = directive?.exportAs?.nameOffset;
       final inputs = <SummarizedBindableBuilder>[];
       final outputs = <SummarizedBindableBuilder>[];
+      final exports = <SummarizedExportedIdentifierBuilder>[];
       final contentChildFields = <SummarizedContentChildFieldBuilder>[];
       final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
       for (final input in directive.inputs) {
@@ -827,6 +836,15 @@ class AngularDriver
           ..nameOffset = nameOffset
           ..propName = propName
           ..propNameOffset = propNameOffset);
+      }
+      if (directive is Component) {
+        for (final export in directive?.view?.exports ?? []) {
+          exports.add(new SummarizedExportedIdentifierBuilder()
+            ..name = export.identifier
+            ..prefix = export.prefix
+            ..offset = export.span.offset
+            ..length = export.span.length);
+        }
       }
       for (final childField in directive.contentChildFields) {
         contentChildFields.add(new SummarizedContentChildFieldBuilder()
@@ -884,6 +902,7 @@ class AngularDriver
         ..ngContents = ngContents
         ..inputs = inputs
         ..outputs = outputs
+        ..exports = exports
         ..subdirectives = dirUseSums
         ..contentChildFields = contentChildFields
         ..contentChildrenFields = contentChildrenFields);

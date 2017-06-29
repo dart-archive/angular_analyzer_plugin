@@ -15,7 +15,7 @@ import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analysis_plugin/src/resolve_result.dart';
+import 'package:angular_analysis_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 
@@ -41,26 +41,25 @@ abstract class AbstractCompletionContributorTest
   List<CompletionContributor> createContributors() => <CompletionContributor>[
         new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor()
+        new NgTypeMemberContributor(),
+        new NgOffsetLengthContributor(),
       ];
 
   @override
   Future computeSuggestions([int times = 200]) async {
     final templates = await angularDriver.getTemplatesForFile(testFile);
     final standardHtml = await angularDriver.getStandardHtml();
-    final resolveResult =
-        new CompletionResolveResult(testFile, templates, standardHtml);
-    final request = new CompletionRequestImpl(
-        resourceProvider, resolveResult, completionOffset);
+    final angularCompletionRequest = new AngularCompletionRequest(
+        completionOffset, testFile, resourceProvider, templates, standardHtml);
     final collector = new CompletionCollectorImpl();
 
     // Request completions
     for (final contributor in contributors) {
-      await contributor.computeSuggestions(request, collector);
+      await contributor.computeSuggestions(angularCompletionRequest, collector);
     }
     if (!collector.offsetIsSet) {
       collector
-        ..offset = request.offset
+        ..offset = angularCompletionRequest.offset
         ..length = 0;
     }
     suggestions = collector.suggestions;
@@ -198,6 +197,19 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestLibrary(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT}) {
+    final cs = assertSuggest(name,
+        csKind: CompletionSuggestionKind.IDENTIFIER, relevance: relevance);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LIBRARY));
+    expect(element.parameters, isNull);
+    expect(element.returnType, isNull);
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   CompletionSuggestion assertSuggestClass(String name,
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
@@ -297,7 +309,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       {CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
       bool isDeprecated: false,
       int relevance: DART_RELEVANCE_DEFAULT,
-      String importUri}) {
+      String importUri,
+      String elementName}) {
     final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
@@ -311,7 +324,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.FUNCTION));
-    expect(element.name, equals(name));
+    expect(element.name, equals(elementName ?? name));
     expect(element.isDeprecated, equals(isDeprecated));
     final param = element.parameters;
     expect(param, isNotNull);
@@ -365,7 +378,8 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       {int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
-      bool isDeprecated: false}) {
+      bool isDeprecated: false,
+      String elementName}) {
     final cs = assertSuggest(name,
         csKind: kind,
         relevance: relevance,
@@ -376,7 +390,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.GETTER));
-    expect(element.name, equals(name));
+    expect(element.name, equals(elementName ?? name));
     expect(element.parameters, isNull);
     expect(element.returnType,
         equals(returnType != null ? returnType : 'dynamic'));

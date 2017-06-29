@@ -14,6 +14,7 @@ import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/src/facade/exports_library_element.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
@@ -1301,6 +1302,29 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
   }
 
+  @override
+  void visitEmptyStarBinding(EmptyStarBinding binding) {
+    // When the first virtual attribute matches a binding (like `ngIf`), flag it
+    // if its empty. Only for the first. All others (like `trackBy`) are checked
+    // in [EmbeddedDartParser.parseTemplateVirtualAttributes]
+    if (!binding.isPrefix) {
+      return;
+    }
+
+    // catch *ngIf without a value
+    if (binding.parent.boundDirectives
+        .map((binding) => binding.boundDirective)
+        .any((directive) =>
+            directive.inputs.any((input) => input.name == binding.name))) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          binding.nameOffset,
+          binding.name.length,
+          AngularWarningCode.EMPTY_BINDING,
+          [binding.name]));
+    }
+  }
+
   /// Resolve input-bound values of [attributes] as strings, if they match. Note,
   /// this does not report an error un unmatched attributes, but it will report
   /// the range, and ensure that input bindings are string-assingable.
@@ -1309,11 +1333,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
     for (final directiveBinding in attribute.parent.boundDirectives) {
       for (final input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
-          final inputType = input.setterType;
-
           // Typecheck all but HTML inputs. For those, `width="10"` becomes
           // `setAttribute("width", "10")`, which is ok. But for directives and
           // components, this becomes `.someIntProp = "10"` which doesn't work.
+          final inputType = input.setterType;
           if (!directiveBinding.boundDirective.isHtml &&
               !typeProvider.stringType.isAssignableTo(inputType)) {
             errorListener.onError(new AnalysisError(
@@ -1460,7 +1483,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
   /// Resolve the given [AstNode] ([expression] or [statement]) and report errors.
   void _resolveDartAstNode(AstNode astNode, bool acceptAssignment) {
     final classElement = view.classElement;
-    final library = classElement.library;
+    final library =
+        new ExportsLibraryFacade(classElement.library, view.component);
     {
       final visitor = new TypeResolverVisitor(
           library, view.source, typeProvider, errorListener);
