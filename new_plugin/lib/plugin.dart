@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 import 'dart:async';
 
-import 'package:analysis_server/src/domains/analysis/navigation.dart';
 import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
@@ -15,16 +14,21 @@ import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:analyzer_plugin/plugin/completion_mixin.dart';
+import 'package:analyzer_plugin/plugin/navigation_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
+import 'package:analyzer_plugin/src/utilities/navigation/navigation.dart';
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analysis_plugin/src/completion_request.dart';
+import 'package:angular_analyzer_plugin/src/navigation_request.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:angular_analyzer_server_plugin/src/analysis.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 import 'package:meta/meta.dart';
 
-class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
+class AngularAnalysisPlugin extends ServerPlugin
+    with CompletionMixin, NavigationMixin {
   AngularAnalysisPlugin(ResourceProvider provider) : super(provider);
 
   @override
@@ -92,48 +96,70 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
       return;
     }
 
-    final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
-
     new AngularNavigation()
       ..computeNavigation(
-          collector, driver.getSource(filename), null, null, lineInfo, result,
-          templatesOnly: templatesOnly);
+          new AngularNavigationRequest(filename, null, null, result),
+          collector); //, driver.getSource(filename), null, null, lineInfo, result,
+    //templatesOnly: templatesOnly);
     collector.createRegions();
     channel.sendNotification(new plugin.AnalysisNavigationParams(
             filename, collector.regions, collector.targets, collector.files)
         .toNotification());
   }
 
+  /// Return the navigation request that should be passes to the contributors
+  /// returned from [getNavigationContributors].
   @override
-  Future<plugin.AnalysisGetNavigationResult> handleAnalysisGetNavigation(
-      plugin.AnalysisGetNavigationParams params) async {
-    final filename = params.file;
-    final contextRoot = contextRootContaining(filename);
-
-    if (contextRoot == null) {
-      // empty resp
-      return super.handleAnalysisGetNavigation(params);
-    }
-
-    final driver = (driverMap[contextRoot] as AngularDriver);
-
-    final templatesOnly = filename.endsWith('.html');
+  Future<NavigationRequest> getNavigationRequest(
+      plugin.AnalysisGetNavigationParams parameters,
+      AngularDriver driver) async {
+    final templatesOnly = parameters.file.endsWith('.html');
     final result = templatesOnly
-        ? await driver.resolveHtml(filename, ignoreCache: true)
-        : await driver.resolveDart(filename,
+        ? await driver.resolveHtml(parameters.file, ignoreCache: true)
+        : await driver.resolveDart(parameters.file,
             withDirectives: true, onlyIfChangedSignature: false);
-
-    final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
-
-    final collector = new NavigationCollectorImpl();
-    new AngularNavigation()
-      ..computeNavigation(collector, driver.getSource(filename), params.offset,
-          params.length, lineInfo, result,
-          templatesOnly: templatesOnly);
-    collector.createRegions();
-    return new plugin.AnalysisGetNavigationResult(
-        collector.files, collector.targets, collector.regions);
+    return new AngularNavigationRequest(
+        parameters.file, parameters.offset, parameters.length, result);
   }
+
+  /// Return a list containing the navigation contributors that should be used to
+  /// create navigation information when used in the context of the given
+  /// analysis [driver].
+  @override
+  List<NavigationContributor> getNavigationContributors(
+          covariant AnalysisDriverGeneric driver) =>
+      [new AngularNavigation()];
+
+  //@override
+  //Future<plugin.AnalysisGetNavigationResult> handleAnalysisGetNavigation(
+  //    plugin.AnalysisGetNavigationParams params) async {
+  //  final filename = params.file;
+  //  final contextRoot = contextRootContaining(filename);
+
+  //  if (contextRoot == null) {
+  //    // empty resp
+  //    return super.handleAnalysisGetNavigation(params);
+  //  }
+
+  //  final driver = (driverMap[contextRoot] as AngularDriver);
+
+  //  final templatesOnly = filename.endsWith('.html');
+  //  final result = templatesOnly
+  //      ? await driver.resolveHtml(filename, ignoreCache: true)
+  //      : await driver.resolveDart(filename,
+  //          withDirectives: true, onlyIfChangedSignature: false);
+
+  //  final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
+
+  //  final collector = new NavigationCollectorImpl();
+  //  new AngularNavigation()
+  //    ..computeNavigation(collector, driver.getSource(filename), params.offset,
+  //        params.length, lineInfo, result,
+  //        templatesOnly: templatesOnly);
+  //  collector.createRegions();
+  //  return new plugin.AnalysisGetNavigationResult(
+  //      collector.files, collector.targets, collector.regions);
+  //}
 
   void sendNotificationForSubscription(
       String fileName, plugin.AnalysisService service, AnalysisResult result) {
