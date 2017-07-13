@@ -4555,9 +4555,7 @@ class HasContentChildTemplateRef {
 
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_exportsNoErrors() async {
-    newSource(
-        '/prefixed.dart',
-        r'''
+    newSource('/prefixed.dart', r'''
 const double otherAccessor = 2.0;
 enum OtherEnum { otherVal }
 void otherFunction() {}
@@ -4640,9 +4638,7 @@ exports ok:
 
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_notExportedError() async {
-    newSource(
-        '/prefixed.dart',
-        r'''
+    newSource('/prefixed.dart', r'''
 const double otherAccessor = 2.0;
 enum OtherEnum { otherVal }
 void otherFunction() {}
