@@ -7,7 +7,6 @@ import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:analyzer/src/generated/source.dart';
 import 'package:front_end/src/base/performace_logger.dart';
 import 'package:analyzer_plugin/plugin/plugin.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
@@ -111,8 +110,8 @@ class AngularAnalysisPlugin extends ServerPlugin
   /// returned from [getNavigationContributors].
   @override
   Future<NavigationRequest> getNavigationRequest(
-      plugin.AnalysisGetNavigationParams parameters,
-      AngularDriver driver) async {
+      plugin.AnalysisGetNavigationParams parameters) async {
+    final AngularDriver driver = driverForPath(parameters.file);
     final templatesOnly = parameters.file.endsWith('.html');
     final result = templatesOnly
         ? await driver.resolveHtml(parameters.file, ignoreCache: true)
@@ -126,8 +125,7 @@ class AngularAnalysisPlugin extends ServerPlugin
   /// create navigation information when used in the context of the given
   /// analysis [driver].
   @override
-  List<NavigationContributor> getNavigationContributors(
-          covariant AnalysisDriverGeneric driver) =>
+  List<NavigationContributor> getNavigationContributors(String path) =>
       [new AngularNavigation()];
 
   //@override
