@@ -8,6 +8,7 @@ dependencies:
   plugin: '^0.2.0'
   html: '^0.12.2'
   tuple: '^1.0.1'
+  yaml: '^2.1.12'
   analyzer_plugin: 0.0.8
   angular_analyzer_plugin: 0.0.8
   angular_analyzer_server_plugin: 0.0.7

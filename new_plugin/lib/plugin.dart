@@ -14,14 +14,20 @@ import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:analyzer_plugin/plugin/completion_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analysis_plugin/src/notification_manager.dart';
 import 'package:angular_analysis_plugin/src/completion_request.dart';
+import 'package:angular_analysis_plugin/src/noop_driver.dart';
+import 'package:angular_analysis_plugin/src/file_service.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_server_plugin/src/completion.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
+import 'package:yaml/yaml.dart';
 
 class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
-  AngularAnalysisPlugin(ResourceProvider provider) : super(provider);
+  final FileService _fileService;
+  AngularAnalysisPlugin(ResourceProvider provider, this._fileService)
+      : super(provider);
 
   @override
   List<String> get fileGlobsToAnalyze => <String>['*.dart', '*.html'];
@@ -36,9 +42,31 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
   String get contactInfo =>
       'Please file issues at https://github.com/dart-lang/angular_analyzer_plugin';
 
+  bool isEnabled(String optionsFilePath) {
+    if (optionsFilePath == null || optionsFilePath.isEmpty) {
+      return null;
+    }
+
+    final file = _fileService.newFile(optionsFilePath);
+
+    if (!file.existsSync()) {
+      return null;
+    }
+
+    final contents = file.readAsStringSync();
+    final options = loadYaml(contents);
+
+    return options['angular'] != null && options['angular']['enabled'] == true;
+  }
+
   @override
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
-    final root = new ContextRoot(contextRoot.root, contextRoot.exclude);
+    final root = new ContextRoot(contextRoot.root, contextRoot.exclude)
+      ..optionsFilePath = contextRoot.optionsFile;
+    if (!isEnabled(root.optionsFilePath)) {
+      return new NoopDriver();
+    }
+
     // TODO new API to get this path safely?
     final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
@@ -85,15 +113,22 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
     }
   }
 
+  AngularDriver angularDriverForPath(String path) {
+    var driver = super.driverForPath(path);
+    if (driver is AngularDriver) {
+      return driver;
+    }
+    return null;
+  }
+
   @override
   void contentChanged(String path) {
-    final contextRoot = contextRootContaining(path);
-
-    if (contextRoot == null) {
+    final driver = angularDriverForPath(path);
+    if (driver == null) {
       return;
     }
 
-    final driver = (driverMap[contextRoot] as AngularDriver)
+    driver
       ..addFile(path) // TODO new API to only do this on file add
       ..fileChanged(path);
 
@@ -127,8 +162,13 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
   Future<CompletionRequest> getCompletionRequest(
       plugin.CompletionGetSuggestionsParams parameters) async {
     final path = parameters.file;
-    final AngularDriver driver = driverForPath(path);
+    final driver = angularDriverForPath(path);
     final offset = parameters.offset;
+
+    if (driver == null) {
+      return new DartCompletionRequestImpl(resourceProvider, offset, null);
+    }
+
     final templates = await driver.getTemplatesForFile(path);
     final standardHtml = await driver.getStandardHtml();
     assert(standardHtml != null);
@@ -137,11 +177,16 @@ class AngularAnalysisPlugin extends ServerPlugin with CompletionMixin {
   }
 
   @override
-  List<CompletionContributor> getCompletionContributors(String path) =>
-      <CompletionContributor>[
-        new AngularCompletionContributor(),
-        new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor(),
-        new NgOffsetLengthContributor(),
-      ];
+  List<CompletionContributor> getCompletionContributors(String path) {
+    if (angularDriverForPath(path) == null) {
+      return [];
+    }
+
+    return <CompletionContributor>[
+      new AngularCompletionContributor(),
+      new NgInheritedReferenceContributor(),
+      new NgTypeMemberContributor(),
+      new NgOffsetLengthContributor(),
+    ];
+  }
 }
