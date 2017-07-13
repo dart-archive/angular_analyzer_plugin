@@ -13,6 +13,5 @@ script:
   - ./tools/check_format.sh
   - ./tools/travis.sh
 env:
-  - PACKAGE=analyzer_plugin
-  - PACKAGE=server_plugin
-  - PACKAGE=new_plugin
+  - PACKAGE=angular_analyzer_plugin
+  - PACKAGE=old_plugin_loader
