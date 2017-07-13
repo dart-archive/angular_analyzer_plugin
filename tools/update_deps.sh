@@ -42,7 +42,7 @@ echo done
 echo
 
 echo Updating new plugin architecture .packages file
-cd analyze_angular/tools/analysis_plugin
+cd analyze_angular/tools/analyzer_plugin
 pub get
 cd ../../..
 echo done
