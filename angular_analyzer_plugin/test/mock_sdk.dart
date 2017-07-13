@@ -24,10 +24,8 @@ const libraries = const <String, LibraryInfo>{
 
 const sdkRoot = '/sdk';
 
-const _LIB_ASYNC = const _MockSdkLibrary(
-    'dart:async',
-    '$sdkRoot/lib/async/async.dart',
-    '''
+const _LIB_ASYNC =
+    const _MockSdkLibrary('dart:async', '$sdkRoot/lib/async/async.dart', '''
 library dart.async;
 
 import 'dart:math';
@@ -56,9 +54,8 @@ abstract class Completer<T> {
   void completeError(Object error, [StackTrace stackTrace]);
   bool get isCompleted;
 }
-''',
-    const <String, String>{
-      '$sdkRoot/lib/async/stream.dart': r'''
+''', const <String, String>{
+  '$sdkRoot/lib/async/stream.dart': r'''
 part of dart.async;
 abstract class Stream<T> {
   Future<T> get first;
@@ -81,21 +78,17 @@ abstract class StreamSubscription<T> {
 
 abstract class StreamTransformer<S, T> {}
 '''
-    });
+});
 
 const _LIB_COLLECTION = const _MockSdkLibrary(
-    'dart:collection',
-    '$sdkRoot/lib/collection/collection.dart',
-    '''
+    'dart:collection', '$sdkRoot/lib/collection/collection.dart', '''
 library dart.collection;
 
 abstract class HashMap<K, V> implements Map<K, V> {}
 ''');
 
 const _LIB_CONVERT = const _MockSdkLibrary(
-    'dart:convert',
-    '$sdkRoot/lib/convert/convert.dart',
-    '''
+    'dart:convert', '$sdkRoot/lib/convert/convert.dart', '''
 library dart.convert;
 
 import 'dart:async';
@@ -104,10 +97,8 @@ abstract class Converter<S, T> implements StreamTransformer {}
 class JsonDecoder extends Converter<String, Object> {}
 ''');
 
-const _LIB_CORE = const _MockSdkLibrary(
-    'dart:core',
-    '$sdkRoot/lib/core/core.dart',
-    '''
+const _LIB_CORE =
+    const _MockSdkLibrary('dart:core', '$sdkRoot/lib/core/core.dart', '''
 library dart.core;
 
 import 'dart:async';
@@ -304,10 +295,8 @@ class _Override { const _Override(); }
 const Object override = const _Override();
 ''');
 
-const _LIB_FOREIGN_HELPER = const _MockSdkLibrary(
-    'dart:_foreign_helper',
-    '$sdkRoot/lib/_foreign_helper/_foreign_helper.dart',
-    '''
+const _LIB_FOREIGN_HELPER = const _MockSdkLibrary('dart:_foreign_helper',
+    '$sdkRoot/lib/_foreign_helper/_foreign_helper.dart', '''
 library dart._foreign_helper;
 
 JS(String typeDescription, String codeTemplate,
@@ -316,17 +305,13 @@ JS(String typeDescription, String codeTemplate,
 ''');
 
 const _LIB_HTML_DART2JS = const _MockSdkLibrary(
-    'dart:html',
-    '$sdkRoot/lib/html/dartium/html_dartium.dart',
-    '''
+    'dart:html', '$sdkRoot/lib/html/dartium/html_dartium.dart', '''
 library dart.html;
 class HtmlElement {}
 ''');
 
 const _LIB_HTML_DARTIUM = const _MockSdkLibrary(
-    'dart:html',
-    '$sdkRoot/lib/html/dartium/html_dartium.dart',
-    '''
+    'dart:html', '$sdkRoot/lib/html/dartium/html_dartium.dart', '''
 library dart.html;
 import 'dart:async';
 
@@ -453,17 +438,13 @@ class TemplateElement extends HtmlElement {
 }
 ''');
 
-const _LIB_INTERCEPTORS = const _MockSdkLibrary(
-    'dart:_interceptors',
-    '$sdkRoot/lib/_internal/js_runtime/lib/interceptors.dart',
-    '''
+const _LIB_INTERCEPTORS = const _MockSdkLibrary('dart:_interceptors',
+    '$sdkRoot/lib/_internal/js_runtime/lib/interceptors.dart', '''
 library dart._interceptors;
 ''');
 
-const _LIB_MATH = const _MockSdkLibrary(
-    'dart:math',
-    '$sdkRoot/lib/math/math.dart',
-    '''
+const _LIB_MATH =
+    const _MockSdkLibrary('dart:math', '$sdkRoot/lib/math/math.dart', '''
 library dart.math;
 
 const double E = 2.718281828459045;
