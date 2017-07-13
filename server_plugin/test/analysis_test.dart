@@ -584,9 +584,7 @@ class AbstractAngularTaskTest {
   }
 
   void addAngularSources() {
-    newSource(
-        '/angular/angular.dart',
-        r'''
+    newSource('/angular/angular.dart', r'''
 library angular;
 
 export 'src/core/async.dart';
@@ -595,9 +593,7 @@ export 'src/core/linker/template_ref.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
-    newSource(
-        '/angular/src/core/metadata.dart',
-        r'''
+    newSource('/angular/src/core/metadata.dart', r'''
 library angular.src.core.metadata;
 
 import 'dart:async';
@@ -675,9 +671,7 @@ class Output {
   const OutputMetadata([this.bindingPropertyName]);
 }
 ''');
-    newSource(
-        '/angular/src/core/async.dart',
-        r'''
+    newSource('/angular/src/core/async.dart', r'''
 library angular.core.facade.async;
 import 'dart:async';
 
@@ -711,9 +705,7 @@ class EventEmitter<T> extends Stream<T> {
   }
 }
 ''');
-    newSource(
-        '/angular/src/core/ng_if.dart',
-        r'''
+    newSource('/angular/src/core/ng_if.dart', r'''
 library angular.ng_if;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
@@ -724,9 +716,7 @@ class NgIf {
   set ngIf(newCondition) {}
 }
 ''');
-    newSource(
-        '/angular/src/core/ng_for.dart',
-        r'''
+    newSource('/angular/src/core/ng_for.dart', r'''
 library angular.ng_for;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
@@ -742,9 +732,7 @@ class NgFor {
 
 typedef dynamic TrackByFn(num index, dynamic item);
 ''');
-    newSource(
-        '/angular/src/core/linker/template_ref.dart',
-        r'''
+    newSource('/angular/src/core/linker/template_ref.dart', r'''
 library angular.template_ref;
 
 class TemplateRef {}
@@ -833,16 +821,12 @@ class AbstractAngularTest {
   }
 
   void addAngularSources() {
-    newSource(
-        '/angular2/angular2.dart',
-        r'''
+    newSource('/angular2/angular2.dart', r'''
 library angular2;
 
 export 'package:angular/angular.dart';
 ''');
-    newSource(
-        '/angular/angular.dart',
-        r'''
+    newSource('/angular/angular.dart', r'''
 library angular;
 
 export 'src/core/async.dart';
@@ -851,9 +835,7 @@ export 'src/core/linker/template_ref.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 ''');
-    newSource(
-        '/angular/src/core/metadata.dart',
-        r'''
+    newSource('/angular/src/core/metadata.dart', r'''
 library angular.src.core.metadata;
 
 import 'dart:async';
@@ -931,9 +913,7 @@ class Output {
   const OutputMetadata([this.bindingPropertyName]);
 }
 ''');
-    newSource(
-        '/angular/src/core/async.dart',
-        r'''
+    newSource('/angular/src/core/async.dart', r'''
 library angular.core.facade.async;
 import 'dart:async';
 
@@ -967,9 +947,7 @@ class EventEmitter<T> extends Stream<T> {
   }
 }
 ''');
-    newSource(
-        '/angular/src/core/ng_if.dart',
-        r'''
+    newSource('/angular/src/core/ng_if.dart', r'''
 library angular.ng_if;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
@@ -980,9 +958,7 @@ class NgIf {
   set ngIf(newCondition) {}
 }
 ''');
-    newSource(
-        '/angular/src/core/ng_for.dart',
-        r'''
+    newSource('/angular/src/core/ng_for.dart', r'''
 library angular.ng_for;
 import 'metadata.dart';
 import 'linker/template_ref.dart';
@@ -998,9 +974,7 @@ class NgFor {
 
 typedef dynamic TrackByFn(num index, dynamic item);
 ''');
-    newSource(
-        '/angular/src/core/linker/template_ref.dart',
-        r'''
+    newSource('/angular/src/core/linker/template_ref.dart', r'''
 library angular.template_ref;
 
 class TemplateRef {}
