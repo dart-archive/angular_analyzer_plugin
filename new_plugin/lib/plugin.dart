@@ -225,9 +225,9 @@ class AngularAnalysisPlugin extends ServerPlugin
 
   @override
   Future<CompletionRequest> getCompletionRequest(
-      plugin.CompletionGetSuggestionsParams parameters,
-      AngularDriver driver) async {
+      plugin.CompletionGetSuggestionsParams parameters) async {
     final path = parameters.file;
+    final AngularDriver driver = driverForPath(path);
     final offset = parameters.offset;
     final templates = await driver.getTemplatesForFile(path);
     final standardHtml = await driver.getStandardHtml();
@@ -237,7 +237,7 @@ class AngularAnalysisPlugin extends ServerPlugin
   }
 
   @override
-  List<CompletionContributor> getCompletionContributors(AngularDriver driver) =>
+  List<CompletionContributor> getCompletionContributors(String path) =>
       <CompletionContributor>[
         new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
