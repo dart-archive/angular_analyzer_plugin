@@ -1,0 +1,25 @@
+name: old_plugin_loader
+version: 0.0.9
+description: Old style loader for angular plugin. DO NOT PUBLISH
+environment:
+  sdk: '>=1.21.0-dev.1.0'
+dependencies:
+  analyzer: '^0.30.0'
+  angular_analysis_plugin:
+    path: ../angular_analysis_plugin
+  analysis_server: any
+  analyzer_plugin: any
+  plugin: '^0.2.0'
+dev_dependencies:
+  test_reflective_loader: '^0.1.0'
+  typed_mock: '^0.0.4'
+  unittest: '^0.11.0'
+dependency_overrides:
+  analyzer:
+     path: ../../sdk/pkg/analyzer
+  analysis_server:
+     path: ../../sdk/pkg/analysis_server
+  analyzer_plugin:
+     path: ../../sdk/pkg/analyzer_plugin
+  front_end:
+     path: ../../sdk/pkg/front_end
