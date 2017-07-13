@@ -166,9 +166,6 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
     ..add(_component.classElement);
 
   @override
-  Element getElementAt(int offset) => _wrappedUnit.getElementAt(offset);
-
-  @override
   ClassElement getEnum(String name) =>
       enums.firstWhere((_enum) => _enum.name == name, orElse: () => null);
 

@@ -641,11 +641,6 @@ class DartVariableManager {
     localVariable.name.length;
     localVariable.type = type;
 
-    // add the local variable to the enclosing element
-    final localVariables = <LocalVariableElement>[]
-      ..addAll(htmlMethodElement.localVariables)
-      ..add(localVariable);
-    htmlMethodElement.localVariables = localVariables;
     return localVariable;
   }
 }

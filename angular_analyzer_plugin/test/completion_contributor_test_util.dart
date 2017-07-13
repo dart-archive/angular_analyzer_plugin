@@ -13,7 +13,7 @@ import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/resolve_result.dart';
+import 'package:angular_analyzer_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
 import 'package:unittest/unittest.dart';
 
@@ -39,26 +39,25 @@ abstract class AbstractCompletionContributorTest
   List<CompletionContributor> createContributors() => <CompletionContributor>[
         new AngularCompletionContributor(),
         new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor()
+        new NgTypeMemberContributor(),
+        new NgOffsetLengthContributor(),
       ];
 
   @override
   Future computeSuggestions([int times = 200]) async {
     final templates = await angularDriver.getTemplatesForFile(testFile);
     final standardHtml = await angularDriver.getStandardHtml();
-    final resolveResult =
-        new CompletionResolveResult(testFile, templates, standardHtml);
-    final request = new CompletionRequestImpl(
-        resourceProvider, resolveResult, completionOffset);
+    final angularCompletionRequest = new AngularCompletionRequest(
+        completionOffset, testFile, resourceProvider, templates, standardHtml);
     final collector = new CompletionCollectorImpl();
 
     // Request completions
     for (final contributor in contributors) {
-      await contributor.computeSuggestions(request, collector);
+      await contributor.computeSuggestions(angularCompletionRequest, collector);
     }
     if (!collector.offsetIsSet) {
       collector
-        ..offset = request.offset
+        ..offset = angularCompletionRequest.offset
         ..length = 0;
     }
     suggestions = collector.suggestions;

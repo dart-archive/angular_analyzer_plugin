@@ -321,9 +321,6 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         null);
 
     if (type != null && type.source != null) {
-      final fileDirectives = await _fileDirectiveProvider
-          .getUnlinkedDirectives(type.source.fullName);
-
       if (type is ClassElement) {
         final directive = await matchDirective(type);
 
@@ -342,7 +339,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         final values = type.variable.constantValue?.toListValue();
         if (values != null) {
           await _addDirectivesAndElementTagsForDartObject(
-              directives, fileDirectives, values, reference);
+              directives, values, reference.range);
           return;
         }
 
@@ -381,9 +378,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
   /// correspond to a directive.
   Future _addDirectivesAndElementTagsForDartObject(
       List<AbstractDirective> directives,
-      List<AbstractDirective> fileDirectives,
       List<DartObject> values,
-      DirectiveReference reference) async {
+      SourceRange errorRange) async {
     for (final listItem in values) {
       final typeValue = listItem.toTypeValue();
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
@@ -393,16 +389,22 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         } else {
           _errorReporter.reportErrorForOffset(
               AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
-              reference.range.offset,
-              reference.range.length,
+              errorRange.offset,
+              errorRange.length,
               [typeValue.name]);
         }
       } else {
-        _errorReporter.reportErrorForOffset(
-          AngularWarningCode.TYPE_LITERAL_EXPECTED,
-          reference.range.offset,
-          reference.range.length,
-        );
+        final listValue = listItem.toListValue();
+        if (listValue != null) {
+          await _addDirectivesAndElementTagsForDartObject(
+              directives, listValue, errorRange);
+        } else {
+          _errorReporter.reportErrorForOffset(
+            AngularWarningCode.TYPE_LITERAL_EXPECTED,
+            errorRange.offset,
+            errorRange.length,
+          );
+        }
       }
     }
   }

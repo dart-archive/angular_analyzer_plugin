@@ -16,10 +16,10 @@ import 'package:analysis_server/src/services/completion/completion_performance.d
 import 'package:angular_analyzer_plugin/src/completion.dart';
 import 'package:analyzer/src/source/source_resource.dart';
 import 'package:analysis_server/src/domain_completion.dart';
-import 'package:angular_analyzer_plugin/src/resolve_result.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart'
     as new_core;
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:angular_analyzer_plugin/src/completion_request.dart';
 
 class Starter {
   final angularDrivers = <String, AngularDriver>{};
@@ -113,7 +113,8 @@ class Starter {
           final contributors = <CompletionContributor>[
             new AngularCompletionContributor(),
             new NgTypeMemberContributor(),
-            new NgInheritedReferenceContributor()
+            new NgInheritedReferenceContributor(),
+            new NgOffsetLengthContributor(),
           ];
           final completionRequest = new CompletionRequestImpl(
             null, // AnalysisResult - unneeded for AngularCompletion
@@ -128,14 +129,12 @@ class Starter {
 
           final templates = await driver.getTemplatesForFile(filePath);
           final standardHtml = await driver.getStandardHtml();
-          final result =
-              new CompletionResolveResult(filePath, templates, standardHtml);
-          final newRequest = new new_core.CompletionRequestImpl(
-              server.resourceProvider, result, params.offset);
+          final angularRequest = new AngularCompletionRequest(params.offset,
+              filePath, server.resourceProvider, templates, standardHtml);
           final collector = new new_core.CompletionCollectorImpl();
 
           for (final contributor in contributors) {
-            await contributor.computeSuggestions(newRequest, collector);
+            await contributor.computeSuggestions(angularRequest, collector);
           }
           final suggestions = collector.suggestions;
 

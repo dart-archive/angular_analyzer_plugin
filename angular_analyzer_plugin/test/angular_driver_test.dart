@@ -1763,6 +1763,40 @@ class MyComponent {}
   }
 
   // ignore: non_constant_identifier_names
+  Future test_recursiveDirectivesList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+const DIR_AB_DEEP = const [ const [ const [DirectiveA, DirectiveB]]];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB_DEEP])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(2));
+        final directiveClassNames = view.directives
+            .map((directive) => directive.classElement.name)
+            .toList();
+        expect(
+            directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
+      }
+    }
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_directives_hasError_notListVariable() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
