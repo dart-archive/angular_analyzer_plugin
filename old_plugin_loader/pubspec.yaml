@@ -1,5 +1,5 @@
 name: old_plugin_loader
-version: 0.0.7
+version: 0.0.9
 description: Old style loader for angular plugin. DO NOT PUBLISH
 environment:
   sdk: '>=1.21.0-dev.1.0'
