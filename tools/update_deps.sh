@@ -27,22 +27,18 @@ echo done
 echo
 
 echo Adding analyzer plugin to .packages
-echo 'angular_analyzer_plugin:analyzer_plugin/lib' >> .packages
+echo 'angular_analyzer_plugin:angular_analyzer_plugin/lib' >> .packages
 echo done
 echo
 
-echo Adding server plugin to .packages
-echo 'angular_analyzer_server_plugin:server_plugin/lib' >> .packages
-echo done
-echo
-
-echo Adding new plugin to .packages
-echo 'angular_analysis_plugin:new_plugin/lib' >> .packages
+echo Adding old plugin loader to .packages
+echo 'old_plugin_loader:old_plugin_loader/lib' >> .packages
 echo done
 echo
 
 echo Updating new plugin architecture .packages file
-cd analyze_angular/tools/analyzer_plugin
+echo Adding self hosting plugin architecture .packages file
+cd angular_analyzer_plugin/tools/analyzer_plugin
 pub get
 cd ../../..
 echo done

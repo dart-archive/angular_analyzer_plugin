@@ -2,7 +2,7 @@ import 'package:angular2/angular2.dart';
 import 'counter_component.dart';
 import 'bubbled_directive.dart';
 
-import 'package:analyze_angular/analyze_angular.dart';
+import 'package:angular_analyzer_plugin/enable.dart';
 
 @Component(
     selector: 'blah',

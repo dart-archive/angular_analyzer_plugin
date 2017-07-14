@@ -17,7 +17,7 @@ Download chrome depot tools, and clone this repository.
 Then run 
 ```
 ./tools/get_deps.sh
-cd server_plugin/bin
+cd old_plugin_loader/bin
 ./make_snapshot
 ```
 
@@ -32,7 +32,7 @@ Download chrome depot tools, and clone this repository.
 Then run 
 ```
 ./tools/get_deps.sh
-cd analyze_angular/tools/plugin
+cd angular_analyzer_plugin/tools/analyzer_plugin
 cp pubspec.yaml.defaults pubspec.yaml
 ```
 
@@ -40,7 +40,7 @@ Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be
 
 Then run `pub get`.
 
-You can now use this in projects on your local system which a correctly configured pubspec. For instance, `playground/`. Note that you must `import 'package:analyze_angular/'` in your project to get the analysis.
+You can now use this in projects on your local system which a correctly configured pubspec. For instance, `playground/`. Note that you must `import 'package:angular_analyzer_plugin/enable.dart'` in your project to get the analysis.
 
 ## Chart of Current Features
 
