@@ -13,19 +13,13 @@ import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 
-/// An abstract model of an Angular directive.
-abstract class AbstractDirective {
+/// Might be a directive, or a component, or neither. It might simply have
+/// annotated @Inputs, @Outputs() intended to be inherited.
+class AngularAnnotatedClass {
   /// The [ClassElement] this annotation is associated with.
   final dart.ClassElement classElement;
-
-  final AngularElement exportAs;
   final List<InputElement> inputs;
   final List<OutputElement> outputs;
-  final Selector selector;
-  final List<ElementNameSelector> elementTags;
-  final attributes = <AngularElement>[];
-
-  bool get isHtml;
 
   /// Which fields have been marked `@ContentChild`, and the range of the type
   /// argument. The element model contains the rest. This should be stored in the
@@ -33,6 +27,22 @@ abstract class AbstractDirective {
   /// against the range we saw it the AST.
   List<ContentChildField> contentChildrenFields;
   List<ContentChildField> contentChildFields;
+
+  AngularAnnotatedClass(this.classElement, this.inputs, this.outputs,
+      this.contentChildFields, this.contentChildrenFields);
+}
+
+/// An abstract model of an Angular directive.
+abstract class AbstractDirective extends AngularAnnotatedClass {
+  final AngularElement exportAs;
+  final Selector selector;
+  final List<ElementNameSelector> elementTags;
+  final attributes = <AngularElement>[];
+
+  bool get isHtml;
+
+  // See [AngularAnnotatedClassMembers.contentChildrenFields]. These are the
+  // linked versions.
   final contentChilds = <ContentChild>[];
   final contentChildren = <ContentChild>[];
 
@@ -42,14 +52,16 @@ abstract class AbstractDirective {
   /// whatever validation we can, and autocomplete suggestions.
   bool looksLikeTemplate = false;
 
-  AbstractDirective(this.classElement,
+  AbstractDirective(dart.ClassElement classElement,
       {this.exportAs,
-      this.inputs,
-      this.outputs,
+      List<InputElement> inputs,
+      List<OutputElement> outputs,
       this.selector,
       this.elementTags,
-      this.contentChildFields,
-      this.contentChildrenFields});
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
+      : super(classElement, inputs, outputs, contentChildFields,
+            contentChildrenFields);
 
   /// The source that contains this directive.
   Source get source => classElement.source;
