@@ -37,8 +37,9 @@ class PluginIntegrationTest {
 
   void enableInOptionsFile() {
     setOptionsFileContent('''
-angular:
-  enabled: true
+plugins:
+  angular:
+    enabled: true
 ''');
   }
 
@@ -99,8 +100,9 @@ angular:
 analyzer:
   strong-mode: true
 
-other-stuff:
-  that: "is not used"
+plugins:
+  other-plugin:
+    that: "is irrelevant"
 ''');
     final AngularDriver driver = plugin.createAnalysisDriver(root);
 
@@ -110,8 +112,9 @@ other-stuff:
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver_analysisOptionsDisabled() {
     setOptionsFileContent('''
-angular:
-  enabled: false
+plugins:
+  angular:
+    enabled: false
 ''');
     final AngularDriver driver = plugin.createAnalysisDriver(root);
 

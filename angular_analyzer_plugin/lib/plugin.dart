@@ -53,7 +53,9 @@ class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
     final contents = file.readAsStringSync();
     final options = loadYaml(contents);
 
-    return options['angular'] != null && options['angular']['enabled'] == true;
+    return options['plugins'] != null &&
+        options['plugins']['angular'] != null &&
+        options['plugins']['angular']['enabled'] == true;
   }
 
   @override
