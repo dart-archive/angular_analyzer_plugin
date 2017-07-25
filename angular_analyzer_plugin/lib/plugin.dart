@@ -72,17 +72,14 @@ class AngularAnalyzerPlugin extends ServerPlugin
     return driver;
   }
 
-  bool fileHasSubscription(String filePath, plugin.AnalysisService service) =>
-      (subscriptionManager.servicesForFile(filePath) ?? const [])
-          .contains(service);
-
   void onResult(DirectivesResult result, AngularDriver driver,
       {@required bool templatesOnly}) {
     final collector = new NavigationCollectorImpl();
     final filename = result.filename;
 
     if (filename == null ||
-        !fileHasSubscription(filename, plugin.AnalysisService.NAVIGATION)) {
+        !subscriptionManager.hasSubscriptionForFile(
+            filename, plugin.AnalysisService.NAVIGATION)) {
       return;
     }
 
@@ -98,15 +95,14 @@ class AngularAnalyzerPlugin extends ServerPlugin
     new AngularNavigation()
       ..computeNavigation(
           new AngularNavigationRequest(filename, null, null, result),
-          collector); //, driver.getSource(filename), null, null, lineInfo, result,
-    //templatesOnly: templatesOnly);
+          collector);
     collector.createRegions();
     channel.sendNotification(new plugin.AnalysisNavigationParams(
             filename, collector.regions, collector.targets, collector.files)
         .toNotification());
   }
 
-  /// Return the navigation request that should be passes to the contributors
+  /// Return the navigation request that should be passed to the contributors
   /// returned from [getNavigationContributors].
   @override
   Future<NavigationRequest> getNavigationRequest(
@@ -127,37 +123,6 @@ class AngularAnalyzerPlugin extends ServerPlugin
   @override
   List<NavigationContributor> getNavigationContributors(String path) =>
       [new AngularNavigation()];
-
-  //@override
-  //Future<plugin.AnalysisGetNavigationResult> handleAnalysisGetNavigation(
-  //    plugin.AnalysisGetNavigationParams params) async {
-  //  final filename = params.file;
-  //  final contextRoot = contextRootContaining(filename);
-
-  //  if (contextRoot == null) {
-  //    // empty resp
-  //    return super.handleAnalysisGetNavigation(params);
-  //  }
-
-  //  final driver = (driverMap[contextRoot] as AngularDriver);
-
-  //  final templatesOnly = filename.endsWith('.html');
-  //  final result = templatesOnly
-  //      ? await driver.resolveHtml(filename, ignoreCache: true)
-  //      : await driver.resolveDart(filename,
-  //          withDirectives: true, onlyIfChangedSignature: false);
-
-  //  final lineInfo = new LineInfo.fromContent(driver.getFileContent(filename));
-
-  //  final collector = new NavigationCollectorImpl();
-  //  new AngularNavigation()
-  //    ..computeNavigation(collector, driver.getSource(filename), params.offset,
-  //        params.length, lineInfo, result,
-  //        templatesOnly: templatesOnly);
-  //  collector.createRegions();
-  //  return new plugin.AnalysisGetNavigationResult(
-  //      collector.files, collector.targets, collector.regions);
-  //}
 
   void sendNotificationForSubscription(
       String fileName, plugin.AnalysisService service, AnalysisResult result) {
