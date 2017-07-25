@@ -16,7 +16,6 @@ import 'package:analyzer_plugin/plugin/completion_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_plugin/src/noop_driver.dart';
-import 'package:angular_analyzer_plugin/src/file_service.dart';
 import 'package:angular_analyzer_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
@@ -25,9 +24,7 @@ import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 import 'package:yaml/yaml.dart';
 
 class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
-  final FileService _fileService;
-  AngularAnalyzerPlugin(ResourceProvider provider, this._fileService)
-      : super(provider);
+  AngularAnalyzerPlugin(ResourceProvider provider) : super(provider);
 
   @override
   List<String> get fileGlobsToAnalyze => <String>['*.dart', '*.html'];
@@ -47,9 +44,9 @@ class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
       return null;
     }
 
-    final file = _fileService.newFile(optionsFilePath);
+    final file = resourceProvider.getFile(optionsFilePath);
 
-    if (!file.existsSync()) {
+    if (!file.exists) {
       return null;
     }
 
