@@ -68,10 +68,6 @@ class AngularDriver
   }
 
   @override
-  ApiSignature getUnitElementHash(String path) =>
-      dartDriver.getUnitKeyByPath(path);
-
-  @override
   bool get hasFilesToAnalyze =>
       _filesToAnalyze.isNotEmpty ||
       _htmlFilesToAnalyze.isNotEmpty ||
@@ -110,9 +106,9 @@ class AngularDriver
 
   void fileChanged(String path) {
     if (_ownsFile(path)) {
-      if (path.endsWith('.html')) {
-        _fileTracker.rehashHtmlContents(path);
+      _fileTracker.rehashContents(path);
 
+      if (path.endsWith('.html')) {
         _htmlFilesToAnalyze.add(path);
         for (final path in _fileTracker.getHtmlPathsReferencingHtml(path)) {
           _htmlFilesToAnalyze.add(path);
@@ -329,6 +325,10 @@ class AngularDriver
         errorCode, error.message, error.correction);
   }
 
+  @override
+  ApiSignature getUnitElementHash(String path) =>
+      dartDriver.getUnitKeyByPath(path);
+
   String getHtmlKey(String htmlPath) {
     final key = _fileTracker.getHtmlSignature(htmlPath);
     return '${key.toHex()}.ngresolved';
@@ -352,8 +352,8 @@ class AngularDriver
     bool ignoreCache: false,
   }) async {
     final key = getHtmlKey(htmlPath);
-    final htmlSource = _sourceFactory.forUri('file:$htmlPath');
     final bytes = byteStore.get(key);
+    final htmlSource = _sourceFactory.forUri('file:$htmlPath');
     if (!ignoreCache && bytes != null) {
       final summary = new LinkedHtmlSummary.fromBuffer(bytes);
       final errors = new List<AnalysisError>.from(
@@ -501,7 +501,7 @@ class AngularDriver
 
   @override
   Future<List<NgContent>> getHtmlNgContent(String path) async {
-    final key = '${getContentHash(path).toHex()}.ngunlinked';
+    final key = '${_fileTracker.getContentSignature(path).toHex()}.ngunlinked';
     final bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
@@ -553,16 +553,15 @@ class AngularDriver
 
   Future<DirectivesResult> resolveDart(String path,
       {bool withDirectives: false, bool onlyIfChangedSignature: true}) async {
-    final baseKey = await dartDriver.getUnitElementSignature(path);
-
     // This happens when the path is..."hidden by a generated file"..whch I
     // don't understand, but, can protect against. Should not be analyzed.
     // TODO detect this on file add rather than on file analyze.
-    if (baseKey == null) {
+    if (await dartDriver.getUnitElementSignature(path) == null) {
       _dartFiles.remove(path);
       return null;
     }
 
+    final baseKey = _fileTracker.getUnitElementSignature(path).toHex();
     final key = '$baseKey.ngresolved';
 
     if (lastSignatures[path] == key && onlyIfChangedSignature) {
@@ -704,7 +703,7 @@ class AngularDriver
       (await getDirectives(path)).directives;
 
   Future<DirectivesResult> getDirectives(String path) async {
-    final key = '${getContentHash(path).toHex()}.ngunlinked';
+    final key = '${_fileTracker.getContentSignature(path).toHex()}.ngunlinked';
     final bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
