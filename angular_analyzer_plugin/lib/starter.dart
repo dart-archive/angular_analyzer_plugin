@@ -7,10 +7,9 @@ import 'dart:isolate';
 import 'package:analyzer/file_system/physical_file_system.dart';
 import 'package:analyzer_plugin/starter.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
-import 'package:angular_analyzer_plugin/src/file_service.dart';
 
 void start(List<String> args, SendPort sendPort) {
-  new ServerPluginStarter(new AngularAnalyzerPlugin(
-          PhysicalResourceProvider.INSTANCE, new FileService()))
+  new ServerPluginStarter(
+          new AngularAnalyzerPlugin(PhysicalResourceProvider.INSTANCE))
       .start(sendPort);
 }
