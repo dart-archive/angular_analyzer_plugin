@@ -2,6 +2,7 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'angular_driver_test.dart' as angular_driver_test;
 import 'completion_contributor_test.dart' as completion_contributor_test;
+import 'file_tracker_test.dart' as file_tracker_test;
 import 'navigation_test.dart' as navigation_test;
 import 'offsetting_constant_value_visitor_test.dart'
     as offsetting_constant_value_visitor_test;
@@ -20,5 +21,6 @@ void main() {
     offsetting_constant_value_visitor_test.main();
     navigation_test.main();
     completion_contributor_test.main();
+    file_tracker_test.main();
   }, name: 'Angular Plugin tests');
 }
