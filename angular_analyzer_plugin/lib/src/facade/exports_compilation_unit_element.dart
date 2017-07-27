@@ -16,15 +16,6 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
       {this.libraryFacade});
 
   @override
-  String get uri => _wrappedUnit.uri;
-
-  @override
-  int get uriEnd => _wrappedUnit.uriEnd;
-
-  @override
-  int get uriOffset => _wrappedUnit.uriOffset;
-
-  @override
   Source get librarySource => _wrappedUnit.librarySource;
 
   @override

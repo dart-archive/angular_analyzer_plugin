@@ -17,15 +17,6 @@ class ExportsImportElementFacade implements ImportElement {
       {this.libraryFacade});
 
   @override
-  String get uri => _wrappedImport.uri;
-
-  @override
-  int get uriEnd => _wrappedImport.uriEnd;
-
-  @override
-  int get uriOffset => _wrappedImport.uriOffset;
-
-  @override
   Source get librarySource => _wrappedImport.librarySource;
 
   @override
