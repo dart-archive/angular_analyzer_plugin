@@ -298,6 +298,51 @@ class TitleComponent {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_asBoool_noError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Input() bool boolInput;
+}
+''');
+
+    final code = r"""
+<title-comp boolInput></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_asBool_typeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Input() bool boolInput;
+}
+''');
+
+    final code = r"""
+<title-comp boolInput="foo bar baz"></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+        code,
+        "boolInput");
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_nativeHtml_asString_notTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',

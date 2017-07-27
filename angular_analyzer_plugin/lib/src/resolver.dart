@@ -1332,7 +1332,15 @@ class SingleScopeResolver extends AngularScopeVisitor {
           // `setAttribute("width", "10")`, which is ok. But for directives and
           // components, this becomes `.someIntProp = "10"` which doesn't work.
           final inputType = input.setterType;
+
+          // Some attr `foo` by itself, no brackets, as such, and no value, will
+          // be bound "true" when its a boolean, which requires no typecheck.
+          final booleanException =
+              input.setterType.isSubtypeOf(typeProvider.boolType) &&
+                  attribute.value == null;
+
           if (!directiveBinding.boundDirective.isHtml &&
+              !booleanException &&
               !typeProvider.stringType.isAssignableTo(inputType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
