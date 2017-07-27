@@ -33,17 +33,31 @@ table LinkedDartSummary {
 table UnlinkedDartSummary {
   directiveSummaries:[SummarizedDirective] (id: 0);
 
-  errors:[SummarizedAnalysisError] (id: 1);
+  annotatedClasses:[SummarizedClassAnnotations] (id: 1);
+
+  errors:[SummarizedAnalysisError] (id: 2);
+}
+
+table SummarizedClassAnnotations {
+  className:string (id: 0);
+
+  inputs:[SummarizedBindable] (id: 1);
+
+  outputs:[SummarizedBindable] (id: 2);
+
+  contentChildFields:[SummarizedContentChildField] (id: 3);
+
+  contentChildrenFields:[SummarizedContentChildField] (id: 4);
 }
 
 table SummarizedDirective {
-  isComponent:bool (id: 0);
+  classAnnotations:SummarizedClassAnnotations (id: 0);
 
-  selectorStr:string (id: 1);
+  isComponent:bool (id: 1);
 
-  selectorOffset:uint (id: 2);
+  selectorStr:string (id: 2);
 
-  decoratedClassName:string (id: 3);
+  selectorOffset:uint (id: 3);
 
   exportAs:string (id: 4);
 
@@ -61,17 +75,9 @@ table SummarizedDirective {
 
   ngContents:[SummarizedNgContent] (id: 11);
 
-  inputs:[SummarizedBindable] (id: 12);
+  subdirectives:[SummarizedDirectiveUse] (id: 12);
 
-  outputs:[SummarizedBindable] (id: 13);
-
-  subdirectives:[SummarizedDirectiveUse] (id: 14);
-
-  contentChildFields:[SummarizedContentChildField] (id: 15);
-
-  contentChildrenFields:[SummarizedContentChildField] (id: 16);
-
-  exports:[SummarizedExportedIdentifier] (id: 17);
+  exports:[SummarizedExportedIdentifier] (id: 13);
 }
 
 table SummarizedAnalysisError {

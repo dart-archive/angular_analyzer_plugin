@@ -367,7 +367,7 @@ class AngularDriver
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
       final pairResult = await resolveHtmlFrom(htmlPath, dartContext);
-      result.directives.addAll(pairResult.directives);
+      result.angularAnnotatedClasses.addAll(pairResult.angularAnnotatedClasses);
       result.errors.addAll(pairResult.errors);
     }
 
@@ -421,7 +421,7 @@ class AngularDriver
 
   Future<DirectivesResult> resolveHtmlFrom(
       String htmlPath, String dartPath) async {
-    final result = await getDirectives(dartPath);
+    final result = await getAngularAnnotatedClasses(dartPath);
     final directives = result.directives;
     final unit = (await dartDriver.getUnitElement(dartPath)).element;
     final htmlSource = _sourceFactory.forUri('file:$htmlPath');
@@ -590,7 +590,7 @@ class AngularDriver
       }
     }
 
-    final result = await getDirectives(path);
+    final result = await getAngularAnnotatedClasses(path);
     final directives = result.directives;
     final unit = (await dartDriver.getUnitElement(path)).element;
     if (unit == null) {
@@ -695,15 +695,15 @@ class AngularDriver
   Future<CompilationUnitElement> getUnit(String path) async =>
       (await dartDriver.getUnitElement(path)).element;
 
-  Future<List<AbstractDirective>> resynthesizeDirectives(
+  Future<List<AngularAnnotatedClass>> resynthesizeDirectives(
           UnlinkedDartSummary unlinked, String path) async =>
       new DirectiveLinker(this).resynthesizeDirectives(unlinked, path);
 
   @override
-  Future<List<AbstractDirective>> getUnlinkedDirectives(path) async =>
-      (await getDirectives(path)).directives;
+  Future<List<AngularAnnotatedClass>> getUnlinkedClasses(path) async =>
+      (await getAngularAnnotatedClasses(path)).angularAnnotatedClasses;
 
-  Future<DirectivesResult> getDirectives(String path) async {
+  Future<DirectivesResult> getAngularAnnotatedClasses(String path) async {
     final key = '${getContentHash(path).toHex()}.ngunlinked';
     final bytes = byteStore.get(key);
     if (bytes != null) {
@@ -722,8 +722,9 @@ class AngularDriver
     final source = dartResult.unit.element.source;
     final extractor =
         new DirectiveExtractor(ast, context.typeProvider, source, context);
-    final directives =
-        new List<AbstractDirective>.from(extractor.getDirectives());
+    final classes = extractor.getAngularAnnotatedClasses();
+    final directives = new List<AbstractDirective>.from(
+        classes.where((c) => c is AbstractDirective));
 
     final viewExtractor = new ViewExtractor(ast, directives, context, source)
       ..getViews();
@@ -754,7 +755,7 @@ class AngularDriver
 
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
       ..addAll(viewExtractor.errorListener.errors);
-    final result = new DirectivesResult(directives, errors);
+    final result = new DirectivesResult(classes, errors);
     final summary = serializeDartResult(result);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
@@ -763,8 +764,12 @@ class AngularDriver
 
   UnlinkedDartSummaryBuilder serializeDartResult(DirectivesResult result) {
     final dirSums = serializeDirectives(result.directives);
+    final classSums = result.angularAnnotatedClasses
+        .where((c) => c is! AbstractDirective)
+        .map(serializeAnnotatedClass);
     final summary = new UnlinkedDartSummaryBuilder()
       ..directiveSummaries = dirSums
+      ..annotatedClasses = classSums
       ..errors = summarizeErrors(result.errors);
     return summary;
   }
@@ -773,38 +778,11 @@ class AngularDriver
       List<AbstractDirective> directives) {
     final dirSums = <SummarizedDirectiveBuilder>[];
     for (final directive in directives) {
-      final className = directive.classElement.name;
       final selector = directive.selector.originalString;
       final selectorOffset = directive.selector.offset;
       final exportAs = directive?.exportAs?.name;
       final exportAsOffset = directive?.exportAs?.nameOffset;
-      final inputs = <SummarizedBindableBuilder>[];
-      final outputs = <SummarizedBindableBuilder>[];
       final exports = <SummarizedExportedIdentifierBuilder>[];
-      final contentChildFields = <SummarizedContentChildFieldBuilder>[];
-      final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
-      for (final input in directive.inputs) {
-        final name = input.name;
-        final nameOffset = input.nameOffset;
-        final propName = input.setter.name.replaceAll('=', '');
-        final propNameOffset = input.setterRange.offset;
-        inputs.add(new SummarizedBindableBuilder()
-          ..name = name
-          ..nameOffset = nameOffset
-          ..propName = propName
-          ..propNameOffset = propNameOffset);
-      }
-      for (final output in directive.outputs) {
-        final name = output.name;
-        final nameOffset = output.nameOffset;
-        final propName = output.getter.name.replaceAll('=', '');
-        final propNameOffset = output.getterRange.offset;
-        outputs.add(new SummarizedBindableBuilder()
-          ..name = name
-          ..nameOffset = nameOffset
-          ..propName = propName
-          ..propNameOffset = propNameOffset);
-      }
       if (directive is Component) {
         for (final export in directive?.view?.exports ?? []) {
           exports.add(new SummarizedExportedIdentifierBuilder()
@@ -813,22 +791,6 @@ class AngularDriver
             ..offset = export.span.offset
             ..length = export.span.length);
         }
-      }
-      for (final childField in directive.contentChildFields) {
-        contentChildFields.add(new SummarizedContentChildFieldBuilder()
-          ..fieldName = childField.fieldName
-          ..nameOffset = childField.nameRange.offset
-          ..nameLength = childField.nameRange.length
-          ..typeOffset = childField.typeRange.offset
-          ..typeLength = childField.typeRange.length);
-      }
-      for (final childrenField in directive.contentChildrenFields) {
-        contentChildrenFields.add(new SummarizedContentChildFieldBuilder()
-          ..fieldName = childrenField.fieldName
-          ..nameOffset = childrenField.nameRange.offset
-          ..nameLength = childrenField.nameRange.length
-          ..typeOffset = childrenField.typeRange.offset
-          ..typeLength = childrenField.typeRange.length);
       }
       final dirUseSums = <SummarizedDirectiveUseBuilder>[];
       final ngContents = <SummarizedNgContentBuilder>[];
@@ -856,10 +818,10 @@ class AngularDriver
       }
 
       dirSums.add(new SummarizedDirectiveBuilder()
+        ..classAnnotations = serializeAnnotatedClass(directive)
         ..isComponent = directive is Component
         ..selectorStr = selector
         ..selectorOffset = selectorOffset
-        ..decoratedClassName = className
         ..exportAs = exportAs
         ..exportAsOffset = exportAsOffset
         ..templateText = templateText
@@ -868,15 +830,64 @@ class AngularDriver
         ..templateUrlOffset = templateUrlOffset
         ..templateUrlLength = templateUrlLength
         ..ngContents = ngContents
-        ..inputs = inputs
-        ..outputs = outputs
         ..exports = exports
-        ..subdirectives = dirUseSums
-        ..contentChildFields = contentChildFields
-        ..contentChildrenFields = contentChildrenFields);
+        ..subdirectives = dirUseSums);
     }
 
     return dirSums;
+  }
+
+  SummarizedClassAnnotationsBuilder serializeAnnotatedClass(
+      AngularAnnotatedClass clazz) {
+    final className = clazz.classElement.name;
+    final inputs = <SummarizedBindableBuilder>[];
+    final outputs = <SummarizedBindableBuilder>[];
+    final contentChildFields = <SummarizedContentChildFieldBuilder>[];
+    final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
+    for (final input in clazz.inputs) {
+      final name = input.name;
+      final nameOffset = input.nameOffset;
+      final propName = input.setter.name.replaceAll('=', '');
+      final propNameOffset = input.setterRange.offset;
+      inputs.add(new SummarizedBindableBuilder()
+        ..name = name
+        ..nameOffset = nameOffset
+        ..propName = propName
+        ..propNameOffset = propNameOffset);
+    }
+    for (final output in clazz.outputs) {
+      final name = output.name;
+      final nameOffset = output.nameOffset;
+      final propName = output.getter.name.replaceAll('=', '');
+      final propNameOffset = output.getterRange.offset;
+      outputs.add(new SummarizedBindableBuilder()
+        ..name = name
+        ..nameOffset = nameOffset
+        ..propName = propName
+        ..propNameOffset = propNameOffset);
+    }
+    for (final childField in clazz.contentChildFields) {
+      contentChildFields.add(new SummarizedContentChildFieldBuilder()
+        ..fieldName = childField.fieldName
+        ..nameOffset = childField.nameRange.offset
+        ..nameLength = childField.nameRange.length
+        ..typeOffset = childField.typeRange.offset
+        ..typeLength = childField.typeRange.length);
+    }
+    for (final childrenField in clazz.contentChildrenFields) {
+      contentChildrenFields.add(new SummarizedContentChildFieldBuilder()
+        ..fieldName = childrenField.fieldName
+        ..nameOffset = childrenField.nameRange.offset
+        ..nameLength = childrenField.nameRange.length
+        ..typeOffset = childrenField.typeRange.offset
+        ..typeLength = childrenField.typeRange.length);
+    }
+    return new SummarizedClassAnnotationsBuilder()
+      ..className = className
+      ..inputs = inputs
+      ..outputs = outputs
+      ..contentChildFields = contentChildFields
+      ..contentChildrenFields = contentChildrenFields;
   }
 
   List<SummarizedNgContentBuilder> serializeNgContents(
@@ -891,7 +902,9 @@ class AngularDriver
 }
 
 class DirectivesResult {
-  List<AbstractDirective> directives;
+  List<AbstractDirective> get directives =>
+      angularAnnotatedClasses.where((c) => c is AbstractDirective).toList();
+  List<AngularAnnotatedClass> angularAnnotatedClasses;
   List<AnalysisError> errors;
-  DirectivesResult(this.directives, this.errors);
+  DirectivesResult(this.angularAnnotatedClasses, this.errors);
 }
