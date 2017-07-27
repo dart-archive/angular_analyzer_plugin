@@ -19,18 +19,23 @@ class FileTracker {
 
   final _dartFilesWithDartTemplates = new HashSet<String>();
 
-  final contentHashes = <String, List<int>>{};
+  final contentHashes = <String, _FileHash>{};
 
   void rehashContents(String path) {
     final signature = _fileHasher.getContentHash(path);
-    contentHashes[path] = signature.toByteList();
+    final bytes = signature.toByteList();
+    contentHashes[path] = new _FileHash(
+        bytes,
+        new ApiSignature()
+          ..addInt(salt)
+          ..addBytes(bytes));
   }
 
   List<int> _getContentHash(String path) {
     if (contentHashes[path] == null) {
       rehashContents(path);
     }
-    return contentHashes[path];
+    return contentHashes[path].unsaltedBytes;
   }
 
   void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) =>
@@ -110,14 +115,19 @@ class FileTracker {
     if (contentHashes[path] == null) {
       rehashContents(path);
     }
-    return new ApiSignature()
-      ..addInt(salt)
-      ..addBytes(_getContentHash(path));
+    return contentHashes[path].saltedSignature;
   }
 
   ApiSignature getUnitElementSignature(String path) => new ApiSignature()
     ..addInt(salt)
     ..addBytes(_fileHasher.getUnitElementHash(path).toByteList());
+}
+
+class _FileHash {
+  final List<int> unsaltedBytes;
+  final ApiSignature saltedSignature;
+
+  _FileHash(this.unsaltedBytes, this.saltedSignature);
 }
 
 class _RelationshipTracker {

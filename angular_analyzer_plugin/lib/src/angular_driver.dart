@@ -501,7 +501,8 @@ class AngularDriver
 
   @override
   Future<List<NgContent>> getHtmlNgContent(String path) async {
-    final key = '${_fileTracker.getContentSignature(path).toHex()}.ngunlinked';
+    final baseKey = _fileTracker.getContentSignature(path).toHex();
+    final key = '$baseKey.ngunlinked';
     final bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
@@ -703,7 +704,8 @@ class AngularDriver
       (await getDirectives(path)).directives;
 
   Future<DirectivesResult> getDirectives(String path) async {
-    final key = '${_fileTracker.getContentSignature(path).toHex()}.ngunlinked';
+    final baseKey = _fileTracker.getContentSignature(path).toHex();
+    final key = '$baseKey.ngunlinked';
     final bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
