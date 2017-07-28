@@ -493,5 +493,4 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 }
 
-class MockNotificationManager extends Mock implements NotificationManager {
-}
+class MockNotificationManager extends Mock implements NotificationManager {}

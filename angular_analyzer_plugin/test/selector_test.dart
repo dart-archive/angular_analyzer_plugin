@@ -1340,9 +1340,9 @@ class _SelectorTest {
 
   void setUp() {
     when(template.addRange(typed(any), typed(any))).thenAnswer((invocation) {
-        final range = invocation.positionalArguments[0];
-        final element = invocation.positionalArguments[1];
-        resolvedRanges.add(new ResolvedRange(range, element));
+      final range = invocation.positionalArguments[0];
+      final element = invocation.positionalArguments[1];
+      resolvedRanges.add(new ResolvedRange(range, element));
     });
   }
 

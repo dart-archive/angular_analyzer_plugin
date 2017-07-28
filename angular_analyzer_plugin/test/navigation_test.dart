@@ -41,12 +41,15 @@ class AngularNavigationContributorTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    when(collector.addRegion(argThat(new isInstanceOf<int>()), typed(new isInstanceOf<int>()), typed(any), typed(any)))
-        .thenAnswer((invocation) {
-          final offset = invocation.positionalArguments[0] as int;
-          final length = invocation.positionalArguments[1] as int;
-          final targetKind = invocation.positionalArguments[2];
-          final targetLocation = invocation.positionalArguments[3];
+    when(collector.addRegion(
+        argThat(new isInstanceOf<int>()),
+        typed(new isInstanceOf<int>()),
+        typed(any),
+        typed(any))).thenAnswer((invocation) {
+      final offset = invocation.positionalArguments[0] as int;
+      final length = invocation.positionalArguments[1] as int;
+      final targetKind = invocation.positionalArguments[2];
+      final targetLocation = invocation.positionalArguments[3];
       regions.add(new _RecordedNavigationRegion(
           offset, length, targetKind, targetLocation));
     });
@@ -334,11 +337,9 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 }
 
-class NavigationCollectorMock extends Mock implements NavigationCollector {
-}
+class NavigationCollectorMock extends Mock implements NavigationCollector {}
 
-class OccurrencesCollectorMock extends Mock
-    implements OccurrencesCollector {}
+class OccurrencesCollectorMock extends Mock implements OccurrencesCollector {}
 
 class SourceMock extends Mock implements Source {
   final String fullPath;
