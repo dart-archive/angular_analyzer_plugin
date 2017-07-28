@@ -59,8 +59,8 @@ class AndSelectorTest extends _SelectorTest {
         .thenReturn(SelectorMatch.NoMatch);
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     verify(selector1.match(typed(any), typed(any))).called(1);
-    verify(selector2.match(typed(any), typed(any))).called(0);
-    verify(selector3.match(typed(any), typed(any))).called(0);
+    verifyNever(selector2.match(typed(any), typed(any)));
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -70,7 +70,7 @@ class AndSelectorTest extends _SelectorTest {
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     verify(selector1.match(typed(any), typed(any))).called(1);
     verify(selector2.match(typed(any), typed(any))).called(1);
-    verify(selector3.match(typed(any), typed(any))).called(0);
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -82,7 +82,7 @@ class AndSelectorTest extends _SelectorTest {
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     verify(selector1.match(typed(any), typed(any))).called(1);
     verify(selector2.match(typed(any), typed(any))).called(1);
-    verify(selector3.match(typed(any), typed(any))).called(0);
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -119,7 +119,7 @@ class AndSelectorTest extends _SelectorTest {
     expect(selector.availableTo(element), equals(false));
     verify(selector1.availableTo(typed(any))).called(1);
     verify(selector2.availableTo(typed(any))).called(1);
-    verify(selector3.availableTo(typed(any))).called(0);
+    verifyNever(selector3.availableTo(typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -470,13 +470,13 @@ class OrSelectorTest extends _SelectorTest {
     when(selector1.availableTo(typed(any))).thenReturn(true);
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
     verify(selector1.match(typed(any), typed(any))).called(1);
-    verify(selector2.match(typed(any), typed(any))).called(0);
-    verify(selector3.match(typed(any), typed(any))).called(0);
+    verifyNever(selector2.match(typed(any), typed(any)));
+    verifyNever(selector3.match(typed(any), typed(any)));
 
     expect(selector.availableTo(element), true);
     verify(selector1.availableTo(typed(any))).called(1);
-    verify(selector2.availableTo(typed(any))).called(0);
-    verify(selector3.availableTo(typed(any))).called(0);
+    verifyNever(selector2.availableTo(typed(any)));
+    verifyNever(selector3.availableTo(typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -498,12 +498,12 @@ class OrSelectorTest extends _SelectorTest {
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
     verify(selector1.match(typed(any), typed(any))).called(1);
     verify(selector2.match(typed(any), typed(any))).called(1);
-    verify(selector3.match(typed(any), typed(any))).called(0);
+    verifyNever(selector3.match(typed(any), typed(any)));
 
     expect(selector.availableTo(element), true);
     verify(selector1.availableTo(typed(any))).called(1);
     verify(selector2.availableTo(typed(any))).called(1);
-    verify(selector3.availableTo(typed(any))).called(0);
+    verifyNever(selector3.availableTo(typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -526,7 +526,7 @@ class OrSelectorTest extends _SelectorTest {
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
     verify(selector1.match(typed(any), typed(any))).called(1);
     verify(selector2.match(typed(any), typed(any))).called(1);
-    verify(selector3.match(typed(any), typed(any))).called(0);
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
