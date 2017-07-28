@@ -15,7 +15,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 

@@ -7,8 +7,8 @@ import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:angular_analyzer_plugin/plugin.dart';
 import 'package:angular_analyzer_plugin/src/noop_driver.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:unittest/unittest.dart';
-import 'package:typed_mock/typed_mock.dart';
+import 'package:test/test.dart';
+import 'package:mockito/mockito.dart';
 
 import 'mock_sdk.dart';
 
@@ -170,4 +170,4 @@ plugins:
   }
 }
 
-class MockResourceProvider extends TypedMock implements ResourceProvider {}
+class MockResourceProvider extends Mock implements ResourceProvider {}

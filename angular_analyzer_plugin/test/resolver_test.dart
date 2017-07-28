@@ -10,7 +10,7 @@ import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:tuple/tuple.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 import 'element_assert.dart';

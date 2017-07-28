@@ -1,8 +1,8 @@
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:front_end/src/base/api_signature.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:unittest/unittest.dart';
-import 'package:typed_mock/typed_mock.dart';
+import 'package:test/test.dart';
+import 'package:mockito/mockito.dart';
 
 void main() {
   defineReflectiveSuite(() {
@@ -332,15 +332,15 @@ class FileTrackerTest {
 
     for (var i = 0; i < 3; ++i) {
       _fileTracker.getContentSignature("foo.html");
-      verify(_fileHasher.getContentHash("foo.html")).once();
     }
+    verify(_fileHasher.getContentHash("foo.html")).called(1);
 
     _fileTracker.rehashContents("foo.html");
 
     for (var i = 0; i < 3; ++i) {
       _fileTracker.getContentSignature("foo.html");
-      verify(_fileHasher.getContentHash("foo.html")).times(2);
     }
+    verify(_fileHasher.getContentHash("foo.html")).called(1);
   }
 
   // ignore: non_constant_identifier_names
@@ -367,4 +367,4 @@ class FileTrackerTest {
   }
 }
 
-class _FileHasherMock extends TypedMock implements FileHasher {}
+class _FileHasherMock extends Mock implements FileHasher {}
