@@ -10,9 +10,9 @@ import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
-import 'package:typed_mock/typed_mock.dart';
+import 'package:mockito/mockito.dart';
 import 'package:tuple/tuple.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 import 'package:front_end/src/incremental/byte_store.dart';
 import 'package:front_end/src/base/performace_logger.dart';
@@ -493,5 +493,5 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 }
 
-class MockNotificationManager extends TypedMock implements NotificationManager {
+class MockNotificationManager extends Mock implements NotificationManager {
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'completion_contributor_test_util.dart';

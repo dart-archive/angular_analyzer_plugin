@@ -14,7 +14,7 @@ import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
 import 'package:angular_analyzer_plugin/src/directive_linking.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 

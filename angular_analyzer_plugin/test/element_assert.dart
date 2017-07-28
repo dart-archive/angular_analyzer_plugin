@@ -3,7 +3,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 class AngularElementAssert extends _AbstractElementAssert {
   final AngularElement element;
