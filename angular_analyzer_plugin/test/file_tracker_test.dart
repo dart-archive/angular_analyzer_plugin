@@ -332,7 +332,7 @@ class FileTrackerTest {
 
     for (var i = 0; i < 3; ++i) {
       _fileTracker.getContentSignature("foo.html");
-      verify(_fileHasher.getContentHash("foo.html")).called(0);
+      verify(_fileHasher.getContentHash("foo.html")).called(1);
     }
 
     _fileTracker.rehashContents("foo.html");

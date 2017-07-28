@@ -41,7 +41,7 @@ class AngularNavigationContributorTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    when(collector.addRegion(typed(any), typed(any), typed(any), typed(any)))
+    when(collector.addRegion(argThat(new isInstanceOf<int>()), typed(new isInstanceOf<int>()), typed(any), typed(any)))
         .thenAnswer((invocation) {
           final offset = invocation.positionalArguments[0] as int;
           final length = invocation.positionalArguments[1] as int;
