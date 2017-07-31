@@ -52,6 +52,13 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
   AngularWarningCode.DUPLICATE_EXPORT,
   AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+  AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED,
+  AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+  AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT,
+  AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM,
+  AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD,
+  AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
+  AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -131,6 +138,11 @@ class AngularWarningCode extends ErrorCode {
       'TYPE_IS_NOT_A_DIRECTIVE',
       'The type "{0}" is included in the directives list, but is not a'
       ' directive');
+
+  /// An error code indicating that the value of type is not a Pipe.
+  static const TYPE_IS_NOT_A_PIPE = const AngularWarningCode(
+      'TYPE_IS_NOT_A_PIPE',
+      'The type "{0}" is included in the pipes list, but is not a pipe');
 
   /// An error code indicating that the tag was not resolved.
   static const UNRESOLVED_TAG =
@@ -380,6 +392,42 @@ class AngularWarningCode extends ErrorCode {
       'COMPONENTS_CANT_EXPORT_THEMSELVES',
       'Components export their class by default, and therefore should not be'
       ' specified in the exports list');
+
+  /// An error code indicating that the Pipe class cannot be abstract.
+  static const PIPE_CANNOT_BE_ABSTRACT = const AngularWarningCode(
+      'PIPE_CANNOT_BE_ABSTRACT', r'Pipe classes cannot be abstract');
+
+  /// An error code indicating that the Pipe annotation does not define the
+  /// required pipe name argument - and is the only non-named argument.
+  static const PIPE_SINGLE_NAME_REQUIRED = const AngularWarningCode(
+      'PIPE_NAME_MISSING',
+      r'@Pipe declarations must contain exactly one'
+      r' non-named argument of String type for pipe name');
+
+  /// An error code indicating that a declared Pipe does not extend
+  /// [PipeTransform] class.
+  static const PIPE_REQUIRES_PIPETRANSFORM = const AngularWarningCode(
+      'PIPE_REQUIRES_PIPETRANSFORM',
+      "@Pipe declared classes need to extend 'PipeTransform'");
+
+  /// An error code indicating that a declared Pipe does not have
+  /// a 'transform' method.
+  static const PIPE_REQUIRES_TRANSFORM_METHOD = const AngularWarningCode(
+    'PIPE_REQUIRES_TRANSFORM_METHOD',
+    "@Pipe declared classes must contain a 'transform' method",
+  );
+
+  /// An error indicating that the 'transform' method within a Pipe
+  /// cannot have named arguments.
+  static const PIPE_TRANSFORM_NO_NAMED_ARGS = const AngularWarningCode(
+      'PIPE_TRANSFORM_NO_NAMED_ARGS',
+      "'transform' method for pipe should not have named arguments");
+
+  /// An error indicating that the 'transform' method within a Pipe
+  /// requires at least one argument.
+  static const PIPE_TRANSFORM_REQ_ONE_ARG = const AngularWarningCode(
+      'PIPE_TRANSFORM_REQ_ONE_ARG',
+      "'transform' method requires at least one argument");
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

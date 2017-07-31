@@ -61,6 +61,8 @@ abstract class UnlinkedDartSummary extends base.SummaryClass {
   List<SummarizedClassAnnotations> get annotatedClasses;
   @Id(2)
   List<SummarizedAnalysisError> get errors;
+  @Id(3)
+  List<SummarizedPipe> get pipeSummaries;
 }
 
 abstract class SummarizedClassAnnotations extends base.SummaryClass {
@@ -105,6 +107,19 @@ abstract class SummarizedDirective extends base.SummaryClass {
   List<SummarizedDirectiveUse> get subdirectives;
   @Id(13)
   List<SummarizedExportedIdentifier> get exports;
+  @Id(14)
+  List<SummarizedPipesUse> get pipesUse;
+}
+
+abstract class SummarizedPipe extends base.SummaryClass {
+  @Id(0)
+  String get pipeName;
+  @Id(1)
+  int get pipeNameOffset;
+  @Id(2)
+  bool get isPure;
+  @Id(3)
+  String get decoratedClassName;
 }
 
 abstract class SummarizedAnalysisError extends base.SummaryClass {
@@ -174,6 +189,17 @@ abstract class SummarizedContentChildField extends base.SummaryClass {
 }
 
 abstract class SummarizedExportedIdentifier extends base.SummaryClass {
+  @Id(0)
+  String get name;
+  @Id(1)
+  String get prefix;
+  @Id(2)
+  int get offset;
+  @Id(3)
+  int get length;
+}
+
+abstract class SummarizedPipesUse extends base.SummaryClass {
   @Id(0)
   String get name;
   @Id(1)

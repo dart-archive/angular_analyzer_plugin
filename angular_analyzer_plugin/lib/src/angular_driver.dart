@@ -15,6 +15,7 @@ import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
+import 'package:angular_analyzer_plugin/src/pipe_extraction.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
@@ -31,6 +32,7 @@ class AngularDriver
     implements
         AnalysisDriverGeneric,
         FileDirectiveProvider,
+        FilePipeProvider,
         DirectiveLinkerEnablement,
         FileHasher {
   final NotificationManager notificationManager;
@@ -287,7 +289,8 @@ class AngularDriver
       standardAngular = new StandardAngular(
           queryList: namespace.get("QueryList"),
           elementRef: namespace.get("ElementRef"),
-          templateRef: namespace.get("TemplateRef"));
+          templateRef: namespace.get("TemplateRef"),
+          pipeTransform: namespace.get("PipeTransform"));
     }
 
     return standardAngular;
@@ -359,10 +362,10 @@ class AngularDriver
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
         ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
-      return new DirectivesResult([], errors);
+      return new DirectivesResult([], [], errors);
     }
 
-    final result = new DirectivesResult([], []);
+    final result = new DirectivesResult([], [], []);
 
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
@@ -397,7 +400,7 @@ class AngularDriver
     final directiveResults = isDartFile
         ? await resolveDart(
             filePath,
-            withDirectives: true,
+            withDirectivesAndPipes: true,
             onlyIfChangedSignature: false,
           )
         : await resolveHtml(filePath, ignoreCache: true);
@@ -423,6 +426,7 @@ class AngularDriver
       String htmlPath, String dartPath) async {
     final result = await getAngularAnnotatedClasses(dartPath);
     final directives = result.directives;
+    final pipes = result.pipes;
     final unit = (await dartDriver.getUnitElement(dartPath)).element;
     final htmlSource = _sourceFactory.forUri('file:$htmlPath');
 
@@ -440,8 +444,8 @@ class AngularDriver
     final linkErrorReporter = new ErrorReporter(linkErrorListener, dartSource);
 
     final linker = new ChildDirectiveLinker(
-        this, await getStandardAngular(), linkErrorReporter);
-    await linker.linkDirectives(directives, unit.library);
+        this, this, await getStandardAngular(), linkErrorReporter);
+    await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
 
@@ -496,7 +500,7 @@ class AngularDriver
       }
     }
 
-    return new DirectivesResult(directives, errors);
+    return new DirectivesResult(directives, pipes, errors);
   }
 
   @override
@@ -553,7 +557,8 @@ class AngularDriver
   }
 
   Future<DirectivesResult> resolveDart(String path,
-      {bool withDirectives: false, bool onlyIfChangedSignature: true}) async {
+      {bool withDirectivesAndPipes: false,
+      bool onlyIfChangedSignature: true}) async {
     // This happens when the path is..."hidden by a generated file"..whch I
     // don't understand, but, can protect against. Should not be analyzed.
     // TODO detect this on file add rather than on file analyze.
@@ -571,7 +576,7 @@ class AngularDriver
 
     lastSignatures[path] = key;
 
-    if (!withDirectives) {
+    if (!withDirectivesAndPipes) {
       final bytes = byteStore.get(key);
       if (bytes != null) {
         final summary = new LinkedDartSummary.fromBuffer(bytes);
@@ -586,12 +591,13 @@ class AngularDriver
           ..setDartImports(path, summary.referencedDartFiles);
 
         return new DirectivesResult(
-            [], deserializeErrors(getSource(path), summary.errors));
+            [], [], deserializeErrors(getSource(path), summary.errors));
       }
     }
 
     final result = await getAngularAnnotatedClasses(path);
     final directives = result.directives;
+    final pipes = result.pipes;
     final unit = (await dartDriver.getUnitElement(path)).element;
     if (unit == null) {
       return null;
@@ -606,8 +612,8 @@ class AngularDriver
     final linkErrorReporter = new ErrorReporter(linkErrorListener, source);
 
     final linker = new ChildDirectiveLinker(
-        this, await getStandardAngular(), linkErrorReporter);
-    await linker.linkDirectives(directives, unit.library);
+        this, this, await getStandardAngular(), linkErrorReporter);
+    await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
     errors.addAll(linkErrorListener.errors);
@@ -673,7 +679,7 @@ class AngularDriver
       ..hasDartTemplates = hasDartTemplate;
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
-    return new DirectivesResult(directives, errors);
+    return new DirectivesResult(directives, pipes, errors);
   }
 
   List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) =>
@@ -699,9 +705,29 @@ class AngularDriver
           UnlinkedDartSummary unlinked, String path) async =>
       new DirectiveLinker(this).resynthesizeDirectives(unlinked, path);
 
+  Future<List<Pipe>> resynthesizePipes(
+      UnlinkedDartSummary unlinked, String path) async {
+    if (unlinked == null) {
+      return [];
+    }
+    final unit = await getUnit(path);
+    final pipes = <Pipe>[];
+
+    for (final dirSum in unlinked.pipeSummaries) {
+      final classElem = unit.getType(dirSum.decoratedClassName);
+      pipes.add(new Pipe(dirSum.pipeName, dirSum.pipeNameOffset, classElem,
+          isPure: dirSum.isPure));
+    }
+    return pipes;
+  }
+
   @override
   Future<List<AngularAnnotatedClass>> getUnlinkedClasses(path) async =>
       (await getAngularAnnotatedClasses(path)).angularAnnotatedClasses;
+
+  @override
+  Future<List<Pipe>> getUnlinkedPipes(path) async =>
+      (await getAngularAnnotatedClasses(path)).pipes;
 
   Future<DirectivesResult> getAngularAnnotatedClasses(String path) async {
     final baseKey = _fileTracker.getContentSignature(path).toHex();
@@ -709,8 +735,11 @@ class AngularDriver
     final bytes = byteStore.get(key);
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
-      return new DirectivesResult(await resynthesizeDirectives(summary, path),
-          deserializeErrors(getSource(path), summary.errors));
+      return new DirectivesResult(
+        await resynthesizeDirectives(summary, path),
+        await resynthesizePipes(summary, path),
+        deserializeErrors(getSource(path), summary.errors),
+      );
     }
 
     final dartResult = await dartDriver.getResult(path);
@@ -754,9 +783,14 @@ class AngularDriver
       }
     }
 
+    // collect Pipes
+    final pipeExtractor =
+        new PipeExtractor(ast, source, await getStandardAngular());
+    final pipes = pipeExtractor.getPipes();
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
-      ..addAll(viewExtractor.errorListener.errors);
-    final result = new DirectivesResult(classes, errors);
+      ..addAll(viewExtractor.errorListener.errors)
+      ..addAll(pipeExtractor.errorListener.errors);
+    final result = new DirectivesResult(classes, pipes, errors);
     final summary = serializeDartResult(result);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
@@ -765,11 +799,13 @@ class AngularDriver
 
   UnlinkedDartSummaryBuilder serializeDartResult(DirectivesResult result) {
     final dirSums = serializeDirectives(result.directives);
+    final pipeSums = serializePipes(result.pipes);
     final classSums = result.angularAnnotatedClasses
         .where((c) => c is! AbstractDirective)
         .map(serializeAnnotatedClass);
     final summary = new UnlinkedDartSummaryBuilder()
       ..directiveSummaries = dirSums
+      ..pipeSummaries = pipeSums
       ..annotatedClasses = classSums
       ..errors = summarizeErrors(result.errors);
     return summary;
@@ -836,6 +872,18 @@ class AngularDriver
     }
 
     return dirSums;
+  }
+
+  List<SummarizedPipeBuilder> serializePipes(List<Pipe> pipes) {
+    final pipeSums = <SummarizedPipeBuilder>[];
+    for (final pipe in pipes) {
+      pipeSums.add(new SummarizedPipeBuilder(
+          pipeName: pipe.pipeName,
+          pipeNameOffset: pipe.pipeNameOffset,
+          decoratedClassName: pipe.classElement.name,
+          isPure: pipe.isPure));
+    }
+    return pipeSums;
   }
 
   SummarizedClassAnnotationsBuilder serializeAnnotatedClass(
@@ -907,5 +955,6 @@ class DirectivesResult {
       angularAnnotatedClasses.where((c) => c is AbstractDirective).toList();
   List<AngularAnnotatedClass> angularAnnotatedClasses;
   List<AnalysisError> errors;
-  DirectivesResult(this.angularAnnotatedClasses, this.errors);
+  List<Pipe> pipes;
+  DirectivesResult(this.angularAnnotatedClasses, this.pipes, this.errors);
 }

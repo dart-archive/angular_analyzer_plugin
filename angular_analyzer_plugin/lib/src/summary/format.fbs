@@ -36,6 +36,8 @@ table UnlinkedDartSummary {
   annotatedClasses:[SummarizedClassAnnotations] (id: 1);
 
   errors:[SummarizedAnalysisError] (id: 2);
+
+  pipeSummaries:[SummarizedPipe] (id: 3);
 }
 
 table SummarizedClassAnnotations {
@@ -78,6 +80,18 @@ table SummarizedDirective {
   subdirectives:[SummarizedDirectiveUse] (id: 12);
 
   exports:[SummarizedExportedIdentifier] (id: 13);
+
+  pipesUse:[SummarizedPipesUse] (id: 14);
+}
+
+table SummarizedPipe {
+  pipeName:string (id: 0);
+
+  pipeNameOffset:uint (id: 1);
+
+  isPure:bool (id: 2);
+
+  decoratedClassName:string (id: 3);
 }
 
 table SummarizedAnalysisError {
@@ -141,6 +155,16 @@ table SummarizedContentChildField {
 }
 
 table SummarizedExportedIdentifier {
+  name:string (id: 0);
+
+  prefix:string (id: 1);
+
+  offset:uint (id: 2);
+
+  length:uint (id: 3);
+}
+
+table SummarizedPipesUse {
   name:string (id: 0);
 
   prefix:string (id: 1);

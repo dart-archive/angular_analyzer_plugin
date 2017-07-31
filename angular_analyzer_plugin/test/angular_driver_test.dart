@@ -241,6 +241,7 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
 @reflectiveTest
 class GatherAnnotationsTest extends AbstractAngularTest {
   List<AbstractDirective> directives;
+  List<Pipe> pipes;
   List<AnalysisError> errors;
 
   Future getDirectives(final source) async {
@@ -249,6 +250,7 @@ class GatherAnnotationsTest extends AbstractAngularTest {
     final result =
         await angularDriver.getAngularAnnotatedClasses(source.fullName);
     directives = result.directives;
+    pipes = result.pipes;
     errors = result.errors;
     fillErrorListener(errors);
   }
@@ -501,6 +503,172 @@ class DirectiveB {
         expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  String transform(int a1, String a2, bool a3) => 'someString';
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(2));
+    {
+      final pipe = pipes[0];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipeA');
+      expect(pure, true);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'int');
+      expect(pipe.optionalArgumentTypes, hasLength(0));
+    }
+    {
+      final pipe = pipes[1];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipeB');
+      expect(pure, false);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'String');
+
+      final opArgs = pipe.optionalArgumentTypes;
+      expect(opArgs, hasLength(2));
+      expect(opArgs[0].toString(), 'String');
+      expect(opArgs[1].toString(), 'bool');
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_no_pipeTransform() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA {
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_bad_extends() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+class PipeA extends Trouble{
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_is_abstract() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+abstract class PipeA extends PipeTransform{
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_no_transform() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.requiredArgumentType, null);
+    expect(pipe.transformReturnType, null);
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD]);
   }
 
   // ignore: non_constant_identifier_names
@@ -1616,6 +1784,7 @@ class ComponentA {
 @reflectiveTest
 class BuildUnitViewsTest extends AbstractAngularTest {
   List<AbstractDirective> directives;
+  List<Pipe> pipes;
   List<View> views;
   List<AnalysisError> errors;
 
@@ -1625,12 +1794,15 @@ class BuildUnitViewsTest extends AbstractAngularTest {
     final result =
         await angularDriver.getAngularAnnotatedClasses(source.fullName);
     directives = result.directives;
+    pipes = result.pipes;
 
     final linker = new ChildDirectiveLinker(
         angularDriver,
+        angularDriver,
         await angularDriver.getStandardAngular(),
         new ErrorReporter(errorListener, source));
-    await linker.linkDirectives(directives, dartResult.unit.element.library);
+    await linker.linkDirectivesAndPipes(
+        directives, pipes, dartResult.unit.element.library);
     views = directives
         .map((d) => d is Component ? d.view : null)
         .where((d) => d != null)
@@ -2847,6 +3019,156 @@ class ContentChildComp {}
     expect(childs.first.read, equals('ViewContainerRef'));
     // validate
     errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [PipeA, PipeB])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(2));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(pipeNames, unorderedEquals(['PipeA', 'PipeB']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_selective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeC')
+class PipeC extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [PipeC, PipeB])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(2));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(pipeNames, unorderedEquals(['PipeC', 'PipeB']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_list_recursive() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeC')
+class PipeC extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeD')
+class PipeD extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+const PIPELIST_ONE = const [ const [PipeA, PipeB]];
+const PIPELIST_TWO = const [ const [ const [PipeC, PipeD]]];
+const BIGPIPELIST = const [PIPELIST_ONE, PIPELIST_TWO];
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [BIGPIPELIST])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(4));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(
+            pipeNames, unorderedEquals(['PipeA', 'PipeB', 'PipeC', 'PipeD']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_hasError_notListVariable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const NOT_PIPES_LIST = 42;
+
+@Component(selector: 'my-component', template: 'My template',
+    pipes: const [NOT_PIPES_LIST])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_PIPE]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipe_hasError_TypeLiteralExpected() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', pipes: const [42])
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
   }
 }
 

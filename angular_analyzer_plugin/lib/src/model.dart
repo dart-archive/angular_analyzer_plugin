@@ -255,6 +255,7 @@ class Component extends AbstractDirective {
       List<ElementNameSelector> elementTags,
       this.isHtml,
       List<NgContent> ngContents,
+      List<Pipe> pipes,
       List<ContentChildField> contentChildFields,
       List<ContentChildField> contentChildrenFields})
       : super(classElement,
@@ -359,6 +360,20 @@ class OutputElement extends AngularElementImpl {
       'OutputElement($name, $nameOffset, $nameLength, $getter)';
 }
 
+class Pipe {
+  final String pipeName;
+  final int pipeNameOffset;
+  final dart.ClassElement classElement;
+  final bool isPure;
+
+  dart.DartType requiredArgumentType;
+  dart.DartType transformReturnType;
+  List<dart.InterfaceType> optionalArgumentTypes = <dart.InterfaceType>[];
+
+  Pipe(this.pipeName, this.pipeNameOffset, this.classElement,
+      {this.isPure: true});
+}
+
 /// A pair of an [SourceRange] and the referenced [AngularElement].
 class ResolvedRange {
   /// The [SourceRange] where [element] is referenced.
@@ -444,6 +459,14 @@ class ExportedIdentifier {
       {this.element, this.prefix: ''});
 }
 
+class PipeReference {
+  final String prefix;
+  final String identifier;
+  final SourceRange span;
+
+  PipeReference(this.identifier, this.span, {this.prefix: ''});
+}
+
 /// The model of an Angular view.
 class View implements AnalysisTarget {
   /// The [ClassElement] this view is associated with.
@@ -451,7 +474,9 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
+  final List<Pipe> pipes;
   final List<DirectiveReference> directiveReferences;
+  final List<PipeReference> pipeReferences;
   final String templateText;
   final int templateOffset;
   final Source templateUriSource;
@@ -483,14 +508,15 @@ class View implements AnalysisTarget {
   /// The [Template] of this view, `null` until built.
   Template template;
 
-  View(this.classElement, this.component, this.directives,
+  View(this.classElement, this.component, this.directives, this.pipes,
       {this.templateText,
       this.templateOffset: 0,
       this.templateUriSource,
       this.templateUrlRange,
       this.annotation,
       this.directiveReferences,
-      this.exports}) {
+      this.exports,
+      this.pipeReferences}) {
     // stability/error-recovery: @Component can be missing
     component?.view = this;
   }

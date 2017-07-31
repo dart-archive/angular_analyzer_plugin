@@ -24,8 +24,10 @@ class StandardAngular {
   final ClassElement templateRef;
   final ClassElement elementRef;
   final ClassElement queryList;
+  final ClassElement pipeTransform;
 
-  StandardAngular({this.templateRef, this.elementRef, this.queryList});
+  StandardAngular(
+      {this.templateRef, this.elementRef, this.queryList, this.pipeTransform});
 }
 
 class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
