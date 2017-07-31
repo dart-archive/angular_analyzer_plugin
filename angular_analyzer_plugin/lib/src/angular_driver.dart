@@ -790,7 +790,7 @@ class AngularDriver
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
       ..addAll(viewExtractor.errorListener.errors)
       ..addAll(pipeExtractor.errorListener.errors);
-    final result = new DirectivesResult(directives, pipes, errors);
+    final result = new DirectivesResult(classes, pipes, errors);
     final summary = serializeDartResult(result);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
