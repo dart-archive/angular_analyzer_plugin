@@ -14,4 +14,4 @@ deps/.gclient
 
 server_plugin/bin/server.snapshot
 
-analyze_angular/tools/analysis_plugin/pubspec.yaml
+angular_analyzer_plugin/tools/analyzer_plugin/pubspec.yaml

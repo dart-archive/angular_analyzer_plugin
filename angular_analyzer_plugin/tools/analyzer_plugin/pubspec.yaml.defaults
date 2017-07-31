@@ -1,0 +1,19 @@
+name: analyzed_angular_plugin_loader
+version: 0.0.0
+description: Temp means of loading angular analysis into an angular project.
+environment:
+  sdk: '>=1.24.0-dev.1.0'
+dependencies:
+  angular_analyzer_plugin: '0.0.8'
+dev_dependencies:
+dependency_overrides:
+  angular_analyzer_plugin:
+    path: ABSOLUTE_PATH_TO_REPO/angular_analyzer_plugin
+  analyzer:
+    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analyzer
+  front_end:
+    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/front_end
+  analyzer_plugin:
+    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analyzer_plugin
+  kernel:
+    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/kernel
