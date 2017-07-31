@@ -50,6 +50,7 @@ Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 --------------|------------|---------------|------------|-------------
 IntelliJ | :white_check_mark: | :white_check_mark: | :warning: some support in EAP | :no_pedestrians:
 Vim (special setup required) | :white_check_mark: | :white_check_mark: | :white_check_mark: | :no_pedestrians:
+VS Code (Dart Code [w/ flag](https://github.com/Dart-Code/Dart-Code/issues/396)) | :white_check_mark: | :question: | :question: | :no_pedestrians:
 others | :question: let us know! | :question: let us know! | :question: let us know! | :question: let us know!
 
 If you are using an editor with Dart support that's not in this list, then please let us know what does or doesn't work. We can sometimes contribute fixes, too!
