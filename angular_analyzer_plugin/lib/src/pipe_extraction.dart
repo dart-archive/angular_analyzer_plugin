@@ -5,7 +5,7 @@ import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
-import 'package:angular_analyzer_plugin/tasks.dart';
+import 'package:angular_analyzer_plugin/errors.dart';
 
 class PipeExtractor extends AnnotationProcessorMixin {
   final ast.CompilationUnit _unit;
@@ -55,7 +55,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
       }
       if (pipeNameExpression != null) {
         final constantEvaluation =
-        calculateStringWithOffsets(pipeNameExpression);
+            calculateStringWithOffsets(pipeNameExpression);
         if (constantEvaluation != null && constantEvaluation.value is String) {
           pipeName = (constantEvaluation.value as String).trim();
           pipeNameOffset = pipeNameExpression.offset;
@@ -63,7 +63,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
       }
       if (isPureExpression != null) {
         final isPureValue =
-        isPureExpression.accept(new utils.ConstantEvaluator());
+            isPureExpression.accept(new utils.ConstantEvaluator());
         if (isPureValue != null && isPureValue is bool) {
           isPure = isPureValue;
         }
@@ -74,9 +74,11 @@ class PipeExtractor extends AnnotationProcessorMixin {
       }
 
       // Check if 'extends PipeTransform' exists.
-      final superType = _currentClassElement.supertype;
-      if (superType == null ||
-          _standardAngular.pipeTransform.type.isSupertypeOf(superType)) {
+      var allSupertypes = _currentClassElement.allSupertypes ?? [];
+      allSupertypes = allSupertypes
+          .where((t) => _standardAngular.pipeTransform.type.isSupertypeOf(t))
+          .toList();
+      if (allSupertypes.isEmpty) {
         errorReporter.reportErrorForNode(
             AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM, node);
       }

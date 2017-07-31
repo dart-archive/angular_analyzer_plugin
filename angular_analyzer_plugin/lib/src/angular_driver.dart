@@ -727,7 +727,7 @@ class AngularDriver
 
   @override
   Future<List<Pipe>> getUnlinkedPipes(path) async =>
-      (await getDirectives(path)).pipes;
+      (await getAngularAnnotatedClasses(path)).pipes;
 
   Future<DirectivesResult> getAngularAnnotatedClasses(String path) async {
     final baseKey = _fileTracker.getContentSignature(path).toHex();
@@ -805,6 +805,7 @@ class AngularDriver
         .map(serializeAnnotatedClass);
     final summary = new UnlinkedDartSummaryBuilder()
       ..directiveSummaries = dirSums
+      ..pipeSummaries = pipeSums
       ..annotatedClasses = classSums
       ..errors = summarizeErrors(result.errors);
     return summary;

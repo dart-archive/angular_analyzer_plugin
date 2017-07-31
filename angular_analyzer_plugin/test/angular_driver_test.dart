@@ -257,7 +257,9 @@ class GatherAnnotationsTest extends AbstractAngularTest {
 
   // ignore: non_constant_identifier_names
   Future test_Component() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'comp-a', template:'')
@@ -304,7 +306,9 @@ class ComponentB {
 
   // ignore: non_constant_identifier_names
   Future test_Directive() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Directive(selector: 'dir-a')
@@ -351,7 +355,9 @@ class DirectiveB {
 
   // ignore: non_constant_identifier_names
   Future test_Directive_elementTags_OrSelector() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Directive(selector: 'dir-a1, dir-a2, dir-a3')
@@ -407,7 +413,9 @@ class DirectiveB {
 
   // ignore: non_constant_identifier_names
   Future test_Directive_elementTags_AndSelector() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Directive(selector: 'dir-a.myClass[myAttr]')
@@ -454,7 +462,9 @@ class DirectiveB {
 
   // ignore: non_constant_identifier_names
   Future test_Directive_elementTags_CompoundSelector() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Directive(selector: 'dir-a1.myClass[myAttr], dir-a2.otherClass')
@@ -513,12 +523,12 @@ class DirectiveB {
 import 'package:angular2/angular2.dart';
 
 @Pipe('pipeA')
-class PipeA extends PipeTransform{
+class PipeA extends PipeTransform {
   int transform(int blah) => blah;
 }
 
 @Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform{
+class PipeB extends PipeTransform {
   String transform(int a1, String a2, bool a3) => 'someString';
 }
 ''');
@@ -721,7 +731,9 @@ class DirectiveB {
 
   // ignore: non_constant_identifier_names
   Future test_exportAs_hasError_notStringValue() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', exportAs: 42, template:'')
@@ -739,7 +751,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_exportAs_constantStringExpressionOk() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', exportAs: 'a' + 'b', template:'')
@@ -754,7 +768,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_ArgumentSelectorMissing() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(template:'')
@@ -784,7 +800,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_selector_notStringValue() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 55, template: '')
@@ -801,7 +819,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_selector_constantExpressionOk() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'a' + '[b]', template: '')
@@ -815,7 +835,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_UndefinedSetter_fullSyntax() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-component', inputs: const ['noSetter: no-setter'], template: '')
@@ -834,7 +856,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_UndefinedSetter_shortSyntax() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-component', inputs: const ['noSetter'], template: '')
@@ -849,7 +873,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_UndefinedSetter_shortSyntax_noInputMade() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-component', inputs: const ['noSetter'], template: '')
@@ -1456,7 +1482,9 @@ class MyComponent {
 
   // ignore: non_constant_identifier_names
   Future test_noDirectives() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 class A {}
 class B {}
 ''');
@@ -1958,7 +1986,9 @@ class MyComponent {}
 
   // ignore: non_constant_identifier_names
   Future test_hasError_ComponentAnnotationMissing() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @View(template: 'AAA')
@@ -1972,7 +2002,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_StringValueExpected() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', template: 55)
@@ -1988,7 +2020,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_constantExpressionTemplateOk() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', template: 'abc' + 'bcd')
@@ -2001,7 +2035,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_constantExpressionTemplateComplexIsOnlyError() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 const String tooComplex = 'bcd';
@@ -2017,7 +2053,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_TypeLiteralExpected() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', template: 'AAA', directives: const [42])
@@ -2031,7 +2069,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_TemplateAndTemplateUrlDefined() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', template: 'AAA', templateUrl: 'a.html')
@@ -2046,7 +2086,9 @@ class ComponentA {
 
   // ignore: non_constant_identifier_names
   Future test_hasError_NeitherTemplateNorTemplateUrlDefined() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa')
@@ -3410,7 +3452,9 @@ class FinalComponent
 
   // ignore: non_constant_identifier_names
   Future test_hasError_DirectiveTypeLiteralExpected() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'aaa', template: 'AAA', directives: const [int])
@@ -4052,7 +4096,9 @@ class MyComponent {
 
   // ignore: non_constant_identifier_names
   Future test_constantExpressionTemplateVarDoesntCrash() async {
-    final source = newSource('/test.dart', r'''
+    final source = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 const String tplText = "we don't analyze this";
@@ -4311,14 +4357,18 @@ class ResolveHtmlTemplateTest extends AbstractAngularTest {
 
   // ignore: non_constant_identifier_names
   Future test_suppressError_UnresolvedTagHtmlTemplate() async {
-    final dartSource = newSource('/test.dart', r'''
+    final dartSource = newSource(
+        '/test.dart',
+        r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-aaa', templateUrl: 'test.html')
 class ComponentA {
 }
 ''');
-    final htmlSource = newSource('/test.html', '''
+    final htmlSource = newSource(
+        '/test.html',
+        '''
 <!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
 <unresolved-tag attr='value'></unresolved-tag>""")
 ''');
