@@ -83,6 +83,12 @@ class PipeExtractor extends AnnotationProcessorMixin {
             AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM, node);
       }
 
+      // Check if abstract
+      if (_currentClassElement.isAbstract) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT, node);
+      }
+
       return new Pipe(pipeName, pipeNameOffset, _currentClassElement,
           isPure: isPure);
     }
@@ -96,6 +102,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
     if (classElement == null) {
       return pipe;
     }
+
     final transformMethod = classElement.getMethod('transform');
     if (transformMethod == null) {
       errorReporter.reportErrorForElement(

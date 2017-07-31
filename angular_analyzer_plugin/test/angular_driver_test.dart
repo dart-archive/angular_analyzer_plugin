@@ -555,7 +555,7 @@ class PipeB extends PipeTransform {
     errorListener.assertNoErrors();
   }
 
-  //ignore: non_constant_identifier_names
+  // ignore: non_constant_identifier_names
   Future test_Pipe_error_no_pipeTransform() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
@@ -583,7 +583,7 @@ class PipeA {
         [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
   }
 
-  //ignore: non_constant_identifier_names
+  // ignore: non_constant_identifier_names
   Future test_Pipe_error_bad_extends() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
@@ -613,7 +613,37 @@ class PipeA extends Trouble{
         [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
   }
 
-  //ignore: non_constant_identifier_names
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_is_abstract() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+abstract class PipeA extends PipeTransform{
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT]);
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_Pipe_error_no_transform() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';

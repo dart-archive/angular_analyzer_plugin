@@ -54,6 +54,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
   AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED,
   AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+  AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT,
   AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM,
   AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD,
   AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
@@ -391,6 +392,10 @@ class AngularWarningCode extends ErrorCode {
       'COMPONENTS_CANT_EXPORT_THEMSELVES',
       'Components export their class by default, and therefore should not be'
       ' specified in the exports list');
+
+  /// An error code indicating that the Pipe class cannot be abstract.
+  static const PIPE_CANNOT_BE_ABSTRACT = const AngularWarningCode(
+      'PIPE_CANNOT_BE_ABSTRACT', r'Pipe classes cannot be abstract');
 
   /// An error code indicating that the Pipe annotation does not define the
   /// required pipe name argument - and is the only non-named argument.
