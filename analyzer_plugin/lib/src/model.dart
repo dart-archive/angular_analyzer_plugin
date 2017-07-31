@@ -354,8 +354,8 @@ class Pipe {
   final dart.ClassElement classElement;
   final bool isPure;
 
-  dart.InterfaceType requiredArgumentType;
-  dart.InterfaceType transformReturnType;
+  dart.DartType requiredArgumentType;
+  dart.DartType transformReturnType;
   List<dart.InterfaceType> optionalArgumentTypes = <dart.InterfaceType>[];
 
   Pipe(this.pipeName, this.pipeNameOffset, this.classElement,

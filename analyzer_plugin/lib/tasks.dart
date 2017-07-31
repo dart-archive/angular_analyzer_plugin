@@ -141,7 +141,6 @@ class AngularWarningCode extends ErrorCode {
       ' directive');
 
   /// An error code indicating that the value of type is not a Pipe.
-  /// An error code indicating that the value of an expression is not a string.
   static const TYPE_IS_NOT_A_PIPE = const AngularWarningCode(
       'TYPE_IS_NOT_A_PIPE',
       'The type "{0}" is included in the pipes list, but is not a pipe');

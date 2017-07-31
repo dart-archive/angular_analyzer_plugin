@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/tasks.dart';
@@ -62,7 +63,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
       }
       if (isPureExpression != null) {
         final isPureValue =
-            isPureExpression.accept(new OffsettingConstantEvaluator());
+            isPureExpression.accept(new utils.ConstantEvaluator());
         if (isPureValue != null && isPureValue is bool) {
           isPure = isPureValue;
         }
@@ -75,7 +76,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
       // Check if 'extends PipeTransform' exists.
       final superType = _currentClassElement.supertype;
       if (superType == null ||
-          superType != _standardAngular.pipeTransform.type) {
+          _standardAngular.pipeTransform.type.isSupertypeOf(superType)) {
         errorReporter.reportErrorForNode(
             AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM, node);
       }
