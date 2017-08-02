@@ -4789,6 +4789,24 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_resolvingBogusImportDoesntCrash() async {
+    _addDartSource(r'''
+import ; // synthetic import
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    final code = '{{pants}}';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(0));
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';
