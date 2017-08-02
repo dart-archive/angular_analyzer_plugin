@@ -8,7 +8,7 @@ abstract class FileHasher {
 }
 
 class FileTracker {
-  static const int salt = 1;
+  static const int salt = 2;
 
   final FileHasher _fileHasher;
 
