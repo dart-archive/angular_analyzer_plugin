@@ -190,14 +190,14 @@ class NgOffsetLengthContributor extends CompletionContributor {
       AngularCompletionRequest request, CompletionCollector collector) async {
     final replacementRangeCalculator = new ReplacementRangeCalculator(request);
     final dartSnippet = request.dartSnippet;
-    request.angularTarget.accept(replacementRangeCalculator);
+    request.angularTarget?.accept(replacementRangeCalculator);
     if (dartSnippet != null) {
       final range =
           request.completionTarget.computeReplacementRange(request.offset);
       collector
         ..offset = range.offset
         ..length = range.length;
-    } else {
+    } else if (request.angularTarget != null) {
       collector
         ..offset = replacementRangeCalculator.offset
         ..length = replacementRangeCalculator.length;
