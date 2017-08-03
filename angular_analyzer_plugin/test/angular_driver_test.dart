@@ -4434,4 +4434,24 @@ class ChildComponent {}
     expect(childView.component, isNotNull);
     expect(childView.component.ngContents, hasLength(1));
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_contentChildAnnotatedConstructor() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'a', templateUrl: 'test.html')
+class A {
+  @ContentChild(X)
+  A(){}
+}
+''';
+    final dartSource = newSource('/test.dart', code);
+    final htmlSource = newSource('/test.html', '');
+    await getDirectives(htmlSource, dartSource);
+
+    final component = views.first.component;
+
+    expect(component.contentChilds, hasLength(0));
+  }
 }
