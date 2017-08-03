@@ -451,14 +451,7 @@ class CounterComponent {
         }
       }
 
-      try {
-        super.setUp();
-        await checkNoCrash(dart, html);
-      } catch (e, stacktrace) {
-        // catch exceptions so that the test keeps running
-        print(e);
-        print(stacktrace);
-      }
+      await checkNoCrash(dart, html);
     }
   }
 
@@ -601,27 +594,36 @@ class CounterComponent {
     return input.replaceRange(charpos, charpos, chunk);
   }
 
-  Future checkNoCrash(String dart, String html) async {
-    newSource('/test.dart', dart);
-    newSource('/test.html', html);
+  Future checkNoCrash(String dart, String html) {
+    final zoneCompleter = new Completer<Null>();
+    var complete = false;
     final reason =
         '<<==DART CODE==>>\n$dart\n<<==HTML CODE==>>\n$html\n<<==DONE==>>';
-    try {
-      final result = await angularDriver.resolveDart('/test.dart');
-      if (result.directives.isNotEmpty) {
-        final directive = result.directives.first;
-        if (directive is Component &&
-            directive.view?.templateUriSource?.fullName == '/test.html') {
-          try {
-            await angularDriver.resolveHtml('/test.html');
-          } catch (e, stacktrace) {
-            print("ResolveHtml failed\n$reason\n$e\n$stacktrace");
+
+    runZoned(() {
+      super.setUp();
+      newSource('/test.dart', dart);
+      newSource('/test.html', html);
+      final resultFuture =
+          angularDriver.resolveDart('/test.dart').then((result) {
+        if (result.directives.isNotEmpty) {
+          final directive = result.directives.first;
+          if (directive is Component &&
+              directive.view?.templateUriSource?.fullName == '/test.html') {
+            return angularDriver.resolveHtml('/test.html');
           }
         }
+      });
+      Future.wait([resultFuture]).then((_) => zoneCompleter.complete());
+    }, onError: (e, stacktrace) {
+      print("Fuzz Failure \n$reason\n$e\n$stacktrace");
+      if (!complete) {
+        zoneCompleter.complete();
+        complete = true;
       }
-    } catch (e, stacktrace) {
-      print("ResolveDart failed\n$reason\n$e\n$stacktrace");
-    }
+    });
+
+    return zoneCompleter.future;
   }
 
   /// More or less expect(), but without failing the test. Returns a [Future] so
