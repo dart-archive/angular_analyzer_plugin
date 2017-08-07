@@ -11,8 +11,6 @@ dependency_overrides:
     path: ABSOLUTE_PATH_TO_REPO/angular_analyzer_plugin
   analyzer:
     path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analyzer
-  front_end:
-    path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/front_end
   analyzer_plugin:
     path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analyzer_plugin
   kernel:

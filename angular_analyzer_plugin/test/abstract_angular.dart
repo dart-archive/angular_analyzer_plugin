@@ -14,8 +14,8 @@ import 'package:mockito/mockito.dart';
 import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
 
-import 'package:front_end/src/incremental/byte_store.dart';
-import 'package:front_end/src/base/performace_logger.dart';
+import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:analyzer/src/dart/analysis/performance_logger.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart'
     show AnalysisDriver, AnalysisDriverScheduler;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
@@ -150,12 +150,16 @@ class AbstractAngularTest {
   }
 
   void _addAngularSources() {
-    newSource('/angular2/angular2.dart', r'''
+    newSource(
+        '/angular2/angular2.dart',
+        r'''
 library angular2;
 
 export 'package:angular/angular.dart';
 ''');
-    newSource('/angular/angular.dart', r'''
+    newSource(
+        '/angular/angular.dart',
+        r'''
 library angular;
 
 export 'src/core/async.dart';
@@ -164,7 +168,9 @@ export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 export 'src/core/change_detection.dart';
 ''');
-    newSource('/angular/src/core/metadata.dart', r'''
+    newSource(
+        '/angular/src/core/metadata.dart',
+        r'''
 import 'dart:async';
 
 abstract class Directive {
@@ -279,7 +285,9 @@ class QueryList<T> implements Iterable<T> {}
 class ViewContainerRef {}
 class PipeTransform {}
 ''');
-    newSource('/angular/src/core/async.dart', r'''
+    newSource(
+        '/angular/src/core/async.dart',
+        r'''
 import 'dart:async';
 
 class EventEmitter<T> extends Stream<T> {
@@ -312,7 +320,9 @@ class EventEmitter<T> extends Stream<T> {
   }
 }
 ''');
-    newSource('/angular/src/core/ng_if.dart', r'''
+    newSource(
+        '/angular/src/core/ng_if.dart',
+        r'''
 import 'metadata.dart';
 
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
@@ -321,7 +331,9 @@ class NgIf {
   set ngIf(newCondition) {}
 }
 ''');
-    newSource('/angular/src/core/ng_for.dart', r'''
+    newSource(
+        '/angular/src/core/ng_for.dart',
+        r'''
 import 'metadata.dart';
 
 @Directive(
