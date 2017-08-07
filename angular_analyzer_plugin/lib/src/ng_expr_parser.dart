@@ -3,8 +3,8 @@ import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/src/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
-import 'package:front_end/src/scanner/token.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(Source source, AnalysisErrorListener errorListener)

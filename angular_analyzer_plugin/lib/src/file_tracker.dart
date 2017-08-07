@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import 'package:front_end/src/base/api_signature.dart';
+import 'package:analyzer/src/summary/api_signature.dart';
 
 abstract class FileHasher {
   ApiSignature getContentHash(String path);
@@ -8,6 +8,8 @@ abstract class FileHasher {
 }
 
 class FileTracker {
+  static const int salt = 2;
+
   final FileHasher _fileHasher;
 
   FileTracker(this._fileHasher);
@@ -17,17 +19,23 @@ class FileTracker {
 
   final _dartFilesWithDartTemplates = new HashSet<String>();
 
-  final htmlContentHashes = <String, List<int>>{};
+  final contentHashes = <String, _FileHash>{};
 
-  void rehashHtmlContents(String path) {
-    htmlContentHashes[path] = _fileHasher.getContentHash(path).toByteList();
+  void rehashContents(String path) {
+    final signature = _fileHasher.getContentHash(path);
+    final bytes = signature.toByteList();
+    contentHashes[path] = new _FileHash(
+        bytes,
+        new ApiSignature()
+          ..addInt(salt)
+          ..addBytes(bytes));
   }
 
-  List<int> getHtmlContentHash(String path) {
-    if (htmlContentHashes[path] == null) {
-      rehashHtmlContents(path);
+  List<int> _getContentHash(String path) {
+    if (contentHashes[path] == null) {
+      rehashContents(path);
     }
-    return htmlContentHashes[path];
+    return contentHashes[path].unsaltedBytes;
   }
 
   void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) =>
@@ -82,24 +90,44 @@ class FileTracker {
 
   ApiSignature getDartSignature(String dartPath) {
     final signature = new ApiSignature()
+      ..addInt(salt)
       ..addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
     for (final htmlPath in getHtmlPathsAffectingDart(dartPath)) {
-      signature.addBytes(getHtmlContentHash(htmlPath));
+      signature.addBytes(_getContentHash(htmlPath));
     }
     return signature;
   }
 
   ApiSignature getHtmlSignature(String htmlPath) {
     final signature = new ApiSignature()
-      ..addBytes(getHtmlContentHash(htmlPath));
+      ..addInt(salt)
+      ..addBytes(_getContentHash(htmlPath));
     for (final dartPath in getDartPathsReferencingHtml(htmlPath)) {
       signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
       for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
-        signature.addBytes(getHtmlContentHash(subHtmlPath));
+        signature.addBytes(_getContentHash(subHtmlPath));
       }
     }
     return signature;
   }
+
+  ApiSignature getContentSignature(String path) {
+    if (contentHashes[path] == null) {
+      rehashContents(path);
+    }
+    return contentHashes[path].saltedSignature;
+  }
+
+  ApiSignature getUnitElementSignature(String path) => new ApiSignature()
+    ..addInt(salt)
+    ..addBytes(_fileHasher.getUnitElementHash(path).toByteList());
+}
+
+class _FileHash {
+  final List<int> unsaltedBytes;
+  final ApiSignature saltedSignature;
+
+  _FileHash(this.unsaltedBytes, this.saltedSignature);
 }
 
 class _RelationshipTracker {

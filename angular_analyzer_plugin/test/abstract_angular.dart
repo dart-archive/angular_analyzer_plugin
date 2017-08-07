@@ -10,12 +10,12 @@ import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
-import 'package:typed_mock/typed_mock.dart';
+import 'package:mockito/mockito.dart';
 import 'package:tuple/tuple.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
-import 'package:front_end/src/incremental/byte_store.dart';
-import 'package:front_end/src/base/performace_logger.dart';
+import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:analyzer/src/dart/analysis/performance_logger.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart'
     show AnalysisDriver, AnalysisDriverScheduler;
 import 'package:analyzer/src/dart/analysis/file_state.dart';
@@ -162,6 +162,7 @@ export 'src/core/async.dart';
 export 'src/core/metadata.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
+export 'src/core/change_detection.dart';
 ''');
     newSource('/angular/src/core/metadata.dart', r'''
 import 'dart:async';
@@ -219,6 +220,12 @@ class Component extends Directive {
       List<String> styleUrls});
 }
 
+class Pipe {
+  final String name;
+  final bool _pure;
+  const Pipe(this.name, {bool pure});
+}
+
 class View {
   const View(
       {String templateUrl,
@@ -270,6 +277,7 @@ class TemplateRef {}
 class ElementRef {}
 class QueryList<T> implements Iterable<T> {}
 class ViewContainerRef {}
+class PipeTransform {}
 ''');
     newSource('/angular/src/core/async.dart', r'''
 import 'dart:async';
@@ -493,5 +501,4 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 }
 
-class MockNotificationManager extends TypedMock implements NotificationManager {
-}
+class MockNotificationManager extends Mock implements NotificationManager {}

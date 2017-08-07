@@ -32,15 +32,13 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     initAnnotationProcessor(_source);
   }
 
-  List<AbstractDirective> getDirectives() {
-    final directives = <AbstractDirective>[];
+  List<AngularAnnotatedClass> getAngularAnnotatedClasses() {
+    final directives = <AngularAnnotatedClass>[];
     for (final unitMember in _unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
-        for (final annotationNode in unitMember.metadata) {
-          final directive = _createDirective(unitMember, annotationNode);
-          if (directive != null) {
-            directives.add(directive);
-          }
+        final directive = _getAngularAnnotatedClass(unitMember);
+        if (directive != null) {
+          directives.add(directive);
         }
       }
     }
@@ -50,33 +48,38 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
 
   /// Returns an Angular [AbstractDirective] for to the given [node].
   /// Returns `null` if not an Angular annotation.
-  AbstractDirective _createDirective(
-      ast.ClassDeclaration classDeclaration, ast.Annotation node) {
+  AngularAnnotatedClass _getAngularAnnotatedClass(
+      ast.ClassDeclaration classDeclaration) {
     _currentClassElement = classDeclaration.element;
     _bindingTypeSynthesizer = new BindingTypeSynthesizer(
         _currentClassElement, _typeProvider, _context, errorReporter);
     // TODO(scheglov) add support for all the arguments
-    final isComponent = isAngularAnnotation(node, 'Component');
-    final isDirective = isAngularAnnotation(node, 'Directive');
-    if (isComponent || isDirective) {
+    final componentNode = classDeclaration.metadata.firstWhere(
+        (ann) => isAngularAnnotation(ann, 'Component'),
+        orElse: () => null);
+    final directiveNode = classDeclaration.metadata.firstWhere(
+        (ann) => isAngularAnnotation(ann, 'Directive'),
+        orElse: () => null);
+    final annotationNode = componentNode ?? directiveNode;
+
+    final inputElements = <InputElement>[];
+    final outputElements = <OutputElement>[];
+    final contentChilds = <ContentChildField>[];
+    final contentChildrens = <ContentChildField>[];
+    _parseContentChilds(classDeclaration, contentChilds, contentChildrens);
+
+    if (annotationNode != null) {
       // Don't fail to create a Component just because of a broken or missing
       // selector, that results in cascading errors.
-      final selector = _parseSelector(node) ?? new AndSelector([]);
-      final exportAs = _parseExportAs(node);
-      final inputElements = <InputElement>[];
-      final outputElements = <OutputElement>[];
-      {
-        inputElements.addAll(_parseHeaderInputs(node));
-        outputElements.addAll(_parseHeaderOutputs(node));
-        _parseMemberInputsAndOutputs(
-            classDeclaration, inputElements, outputElements);
-      }
-      final contentChilds = <ContentChildField>[];
-      final contentChildrens = <ContentChildField>[];
-      _parseContentChilds(classDeclaration, contentChilds, contentChildrens);
+      final selector = _parseSelector(annotationNode) ?? new AndSelector([]);
+      final exportAs = _parseExportAs(annotationNode);
       final elementTags = <ElementNameSelector>[];
+      inputElements.addAll(_parseHeaderInputs(annotationNode));
+      outputElements.addAll(_parseHeaderOutputs(annotationNode));
+      _parseMemberInputsAndOutputs(
+          classDeclaration, inputElements, outputElements);
       selector.recordElementNameSelectors(elementTags);
-      if (isComponent) {
+      if (componentNode != null) {
         return new Component(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
@@ -87,7 +90,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             contentChildFields: contentChilds,
             contentChildrenFields: contentChildrens);
       }
-      if (isDirective) {
+      if (directiveNode != null) {
         return new Directive(_currentClassElement,
             exportAs: exportAs,
             inputs: inputElements,
@@ -98,6 +101,17 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             contentChildrenFields: contentChildrens);
       }
     }
+
+    _parseMemberInputsAndOutputs(
+        classDeclaration, inputElements, outputElements);
+    if (inputElements.isNotEmpty ||
+        outputElements.isNotEmpty ||
+        contentChilds.isNotEmpty ||
+        contentChildrens.isNotEmpty) {
+      return new AngularAnnotatedClass(_currentClassElement, inputElements,
+          outputElements, contentChilds, contentChildrens);
+    }
+
     return null;
   }
 

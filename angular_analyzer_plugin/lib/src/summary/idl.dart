@@ -57,20 +57,36 @@ abstract class UnlinkedDartSummary extends base.SummaryClass {
 
   @Id(0)
   List<SummarizedDirective> get directiveSummaries;
-
   @Id(1)
+  List<SummarizedClassAnnotations> get annotatedClasses;
+  @Id(2)
   List<SummarizedAnalysisError> get errors;
+  @Id(3)
+  List<SummarizedPipe> get pipeSummaries;
+}
+
+abstract class SummarizedClassAnnotations extends base.SummaryClass {
+  @Id(0)
+  String get className;
+  @Id(1)
+  List<SummarizedBindable> get inputs;
+  @Id(2)
+  List<SummarizedBindable> get outputs;
+  @Id(3)
+  List<SummarizedContentChildField> get contentChildFields;
+  @Id(4)
+  List<SummarizedContentChildField> get contentChildrenFields;
 }
 
 abstract class SummarizedDirective extends base.SummaryClass {
   @Id(0)
-  bool get isComponent;
+  SummarizedClassAnnotations get classAnnotations;
   @Id(1)
-  String get selectorStr;
+  bool get isComponent;
   @Id(2)
-  int get selectorOffset;
+  String get selectorStr;
   @Id(3)
-  String get decoratedClassName;
+  int get selectorOffset;
   @Id(4)
   String get exportAs;
   @Id(5)
@@ -88,17 +104,22 @@ abstract class SummarizedDirective extends base.SummaryClass {
   @Id(11)
   List<SummarizedNgContent> get ngContents;
   @Id(12)
-  List<SummarizedBindable> get inputs;
-  @Id(13)
-  List<SummarizedBindable> get outputs;
-  @Id(14)
   List<SummarizedDirectiveUse> get subdirectives;
-  @Id(15)
-  List<SummarizedContentChildField> get contentChildFields;
-  @Id(16)
-  List<SummarizedContentChildField> get contentChildrenFields;
-  @Id(17)
+  @Id(13)
   List<SummarizedExportedIdentifier> get exports;
+  @Id(14)
+  List<SummarizedPipesUse> get pipesUse;
+}
+
+abstract class SummarizedPipe extends base.SummaryClass {
+  @Id(0)
+  String get pipeName;
+  @Id(1)
+  int get pipeNameOffset;
+  @Id(2)
+  bool get isPure;
+  @Id(3)
+  String get decoratedClassName;
 }
 
 abstract class SummarizedAnalysisError extends base.SummaryClass {
@@ -168,6 +189,17 @@ abstract class SummarizedContentChildField extends base.SummaryClass {
 }
 
 abstract class SummarizedExportedIdentifier extends base.SummaryClass {
+  @Id(0)
+  String get name;
+  @Id(1)
+  String get prefix;
+  @Id(2)
+  int get offset;
+  @Id(3)
+  int get length;
+}
+
+abstract class SummarizedPipesUse extends base.SummaryClass {
   @Id(0)
   String get name;
   @Id(1)

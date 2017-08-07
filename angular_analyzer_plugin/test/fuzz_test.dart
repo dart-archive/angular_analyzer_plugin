@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:front_end/src/scanner/token.dart';
+import 'package:analyzer/dart/ast/token.dart';
 //import 'package:unittest/unittest.dart';
 import 'package:test/test.dart';
 //import 'package:test_reflective_loader/test_reflective_loader.dart';

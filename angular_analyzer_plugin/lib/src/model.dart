@@ -13,19 +13,13 @@ import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 
-/// An abstract model of an Angular directive.
-abstract class AbstractDirective {
+/// Might be a directive, or a component, or neither. It might simply have
+/// annotated @Inputs, @Outputs() intended to be inherited.
+class AngularAnnotatedClass {
   /// The [ClassElement] this annotation is associated with.
   final dart.ClassElement classElement;
-
-  final AngularElement exportAs;
   final List<InputElement> inputs;
   final List<OutputElement> outputs;
-  final Selector selector;
-  final List<ElementNameSelector> elementTags;
-  final attributes = <AngularElement>[];
-
-  bool get isHtml;
 
   /// Which fields have been marked `@ContentChild`, and the range of the type
   /// argument. The element model contains the rest. This should be stored in the
@@ -33,6 +27,22 @@ abstract class AbstractDirective {
   /// against the range we saw it the AST.
   List<ContentChildField> contentChildrenFields;
   List<ContentChildField> contentChildFields;
+
+  AngularAnnotatedClass(this.classElement, this.inputs, this.outputs,
+      this.contentChildFields, this.contentChildrenFields);
+}
+
+/// An abstract model of an Angular directive.
+abstract class AbstractDirective extends AngularAnnotatedClass {
+  final AngularElement exportAs;
+  final Selector selector;
+  final List<ElementNameSelector> elementTags;
+  final attributes = <AngularElement>[];
+
+  bool get isHtml;
+
+  // See [AngularAnnotatedClassMembers.contentChildrenFields]. These are the
+  // linked versions.
   final contentChilds = <ContentChild>[];
   final contentChildren = <ContentChild>[];
 
@@ -42,14 +52,16 @@ abstract class AbstractDirective {
   /// whatever validation we can, and autocomplete suggestions.
   bool looksLikeTemplate = false;
 
-  AbstractDirective(this.classElement,
+  AbstractDirective(dart.ClassElement classElement,
       {this.exportAs,
-      this.inputs,
-      this.outputs,
+      List<InputElement> inputs,
+      List<OutputElement> outputs,
       this.selector,
       this.elementTags,
-      this.contentChildFields,
-      this.contentChildrenFields});
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
+      : super(classElement, inputs, outputs, contentChildFields,
+            contentChildrenFields);
 
   /// The source that contains this directive.
   Source get source => classElement.source;
@@ -248,6 +260,7 @@ class Component extends AbstractDirective {
       List<ElementNameSelector> elementTags,
       this.isHtml,
       List<NgContent> ngContents,
+      List<Pipe> pipes,
       List<ContentChildField> contentChildFields,
       List<ContentChildField> contentChildrenFields})
       : super(classElement,
@@ -356,6 +369,20 @@ class OutputElement extends AngularElementImpl {
       'OutputElement($name, $nameOffset, $nameLength, $getter)';
 }
 
+class Pipe {
+  final String pipeName;
+  final int pipeNameOffset;
+  final dart.ClassElement classElement;
+  final bool isPure;
+
+  dart.DartType requiredArgumentType;
+  dart.DartType transformReturnType;
+  List<dart.InterfaceType> optionalArgumentTypes = <dart.InterfaceType>[];
+
+  Pipe(this.pipeName, this.pipeNameOffset, this.classElement,
+      {this.isPure: true});
+}
+
 /// A pair of an [SourceRange] and the referenced [AngularElement].
 class ResolvedRange {
   /// The [SourceRange] where [element] is referenced.
@@ -441,6 +468,14 @@ class ExportedIdentifier {
       {this.element, this.prefix: ''});
 }
 
+class PipeReference {
+  final String prefix;
+  final String identifier;
+  final SourceRange span;
+
+  PipeReference(this.identifier, this.span, {this.prefix: ''});
+}
+
 /// The model of an Angular view.
 class View implements AnalysisTarget {
   /// The [ClassElement] this view is associated with.
@@ -448,7 +483,9 @@ class View implements AnalysisTarget {
 
   final Component component;
   final List<AbstractDirective> directives;
+  final List<Pipe> pipes;
   final List<DirectiveReference> directiveReferences;
+  final List<PipeReference> pipeReferences;
   final String templateText;
   final int templateOffset;
   final Source templateUriSource;
@@ -480,14 +517,15 @@ class View implements AnalysisTarget {
   /// The [Template] of this view, `null` until built.
   Template template;
 
-  View(this.classElement, this.component, this.directives,
+  View(this.classElement, this.component, this.directives, this.pipes,
       {this.templateText,
       this.templateOffset: 0,
       this.templateUriSource,
       this.templateUrlRange,
       this.annotation,
       this.directiveReferences,
-      this.exports}) {
+      this.exports,
+      this.pipeReferences}) {
     // stability/error-recovery: @Component can be missing
     component?.view = this;
   }

@@ -129,8 +129,9 @@ class ExportsImportElementFacade implements ImportElement {
   List<NamespaceCombinator> get combinators => _wrappedImport.combinators;
 
   @override
-  LibraryElement get importedLibrary =>
-      new ExportsLibraryFacade(_wrappedImport.importedLibrary, _component,
+  LibraryElement get importedLibrary => _wrappedImport.importedLibrary == null
+      ? null
+      : new ExportsLibraryFacade(_wrappedImport.importedLibrary, _component,
           prefix: prefix?.name);
 
   @override

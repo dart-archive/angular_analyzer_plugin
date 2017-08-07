@@ -10,8 +10,8 @@ import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/navigation.dart';
 import 'package:angular_analyzer_plugin/src/navigation_request.dart';
-import 'package:typed_mock/typed_mock.dart';
-import 'package:unittest/unittest.dart';
+import 'package:mockito/mockito.dart';
+import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 
@@ -53,8 +53,15 @@ class AngularNavigationTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    when(collector.addRegion(anyInt, anyInt, anyObject, anyObject))
-        .thenInvoke((offset, length, targetKind, targetLocation) {
+    when(collector.addRegion(
+        argThat(const isInstanceOf<int>()),
+        argThat(const isInstanceOf<int>()),
+        typed(any),
+        typed(any))).thenAnswer((invocation) {
+      final offset = invocation.positionalArguments[0] as int;
+      final length = invocation.positionalArguments[1] as int;
+      final targetKind = invocation.positionalArguments[2];
+      final targetLocation = invocation.positionalArguments[3];
       regions.add(new _RecordedNavigationRegion(
           offset, length, targetKind, targetLocation));
     });
@@ -391,13 +398,9 @@ class GatheringErrorListener implements AnalysisErrorListener {
   }
 }
 
-class NavigationCollectorMock extends TypedMock implements NavigationCollector {
-}
+class NavigationCollectorMock extends Mock implements NavigationCollector {}
 
-//class OccurrencesCollectorMock extends TypedMock
-//    implements OccurrencesCollector {}
-
-class SourceMock extends TypedMock implements Source {
+class SourceMock extends Mock implements Source {
   final String fullPath;
 
   SourceMock([String name = 'mocked.dart']) : fullPath = name;

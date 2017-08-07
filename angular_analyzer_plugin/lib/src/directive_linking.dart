@@ -15,12 +15,17 @@ import 'package:analyzer/src/dart/resolver/scope.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
 import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/dart/constant/value.dart';
-import 'package:front_end/src/scanner/token.dart';
+import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/src/dart/ast/token.dart';
 import 'summary/idl.dart';
 
 abstract class FileDirectiveProvider {
-  Future<List<AbstractDirective>> getUnlinkedDirectives(String path);
+  Future<List<AngularAnnotatedClass>> getUnlinkedClasses(String path);
   Future<List<NgContent>> getHtmlNgContent(String path);
+}
+
+abstract class FilePipeProvider {
+  Future<List<Pipe>> getUnlinkedPipes(String path);
 }
 
 abstract class DirectiveLinkerEnablement {
@@ -38,7 +43,7 @@ class DirectiveLinker {
 
   DirectiveLinker(this._directiveLinkerEnablement);
 
-  Future<List<AbstractDirective>> resynthesizeDirectives(
+  Future<List<AngularAnnotatedClass>> resynthesizeDirectives(
       UnlinkedDartSummary unlinked, String path) async {
     if (unlinked == null) {
       return [];
@@ -48,10 +53,10 @@ class DirectiveLinker {
 
     final source = unit.source;
 
-    final directives = <AbstractDirective>[];
+    final annotatedClasses = <AngularAnnotatedClass>[];
 
     for (final dirSum in unlinked.directiveSummaries) {
-      final classElem = unit.getType(dirSum.decoratedClassName);
+      final classElem = unit.getType(dirSum.classAnnotations.className);
       final bindingSynthesizer = new BindingTypeSynthesizer(
           classElem,
           unit.context.typeProvider,
@@ -66,49 +71,18 @@ class DirectiveLinker {
               .parse();
       final elementTags = <ElementNameSelector>[];
       selector.recordElementNameSelectors(elementTags);
-      final inputs = <InputElement>[];
-      for (final inputSum in dirSum.inputs) {
-        // is this correct lookup?
-        final setter =
-            classElem.lookUpSetter(inputSum.propName, classElem.library);
-        if (setter == null) {
-          continue;
-        }
-        inputs.add(new InputElement(
-            inputSum.name,
-            inputSum.nameOffset,
-            inputSum.name.length,
-            source,
-            setter,
-            new SourceRange(inputSum.propNameOffset, inputSum.propName.length),
-            bindingSynthesizer
-                .getSetterType(setter))); // Don't think type is correct
-      }
-      final outputs = <OutputElement>[];
-      for (final outputSum in dirSum.outputs) {
-        // is this correct lookup?
-        final getter =
-            classElem.lookUpGetter(outputSum.propName, classElem.library);
-        if (getter == null) {
-          continue;
-        }
-        outputs.add(new OutputElement(
-            outputSum.name,
-            outputSum.nameOffset,
-            outputSum.name.length,
-            source,
-            getter,
-            new SourceRange(
-                outputSum.propNameOffset, outputSum.propName.length),
-            bindingSynthesizer.getEventType(getter, getter.name)));
-      }
-      final contentChildFields =
-          deserializeContentChildFields(dirSum.contentChildFields);
-      final contentChildrenFields =
-          deserializeContentChildFields(dirSum.contentChildrenFields);
+      final inputs = deserializeInputs(
+          dirSum.classAnnotations, classElem, source, bindingSynthesizer);
+      final outputs = deserializeOutputs(
+          dirSum.classAnnotations, classElem, source, bindingSynthesizer);
+      final contentChildFields = deserializeContentChildFields(
+          dirSum.classAnnotations.contentChildFields);
+      final contentChildrenFields = deserializeContentChildFields(
+          dirSum.classAnnotations.contentChildrenFields);
       if (dirSum.isComponent) {
         final ngContents = deserializeNgContents(dirSum.ngContents, source);
         final exports = deserializeExports(dirSum.exports);
+        final pipeRefs = deserializePipes(dirSum.pipesUse);
         final component = new Component(classElem,
             exportAs: exportAs,
             selector: selector,
@@ -119,7 +93,7 @@ class DirectiveLinker {
             elementTags: elementTags,
             contentChildFields: contentChildFields,
             contentChildrenFields: contentChildrenFields);
-        directives.add(component);
+        annotatedClasses.add(component);
         final subDirectives = <DirectiveReference>[];
         for (final useSum in dirSum.subdirectives) {
           subDirectives.add(new DirectiveReference(useSum.name, useSum.prefix,
@@ -133,27 +107,99 @@ class DirectiveLinker {
           templateUrlRange = new SourceRange(
               dirSum.templateUrlOffset, dirSum.templateUrlLength);
         }
-        component.view = new View(classElem, component, [],
+        component.view = new View(classElem, component, [], [],
             templateText: dirSum.templateText,
             templateOffset: dirSum.templateOffset,
             templateUriSource: templateUriSource,
             templateUrlRange: templateUrlRange,
             directiveReferences: subDirectives,
-            exports: exports);
+            exports: exports,
+            pipeReferences: pipeRefs);
       } else {
-        final directive = new Directive(classElem,
+        annotatedClasses.add(new Directive(classElem,
             exportAs: exportAs,
             selector: selector,
             inputs: inputs,
             outputs: outputs,
             elementTags: elementTags,
             contentChildFields: contentChildFields,
-            contentChildrenFields: contentChildrenFields);
-        directives.add(directive);
+            contentChildrenFields: contentChildrenFields));
       }
     }
 
-    return directives;
+    for (final annotations in unlinked.annotatedClasses) {
+      final classElem = unit.getType(annotations.className);
+      final bindingSynthesizer = new BindingTypeSynthesizer(
+          classElem,
+          unit.context.typeProvider,
+          unit.context,
+          new ErrorReporter(new IgnoringErrorListener(), unit.source));
+      final inputs =
+          deserializeInputs(annotations, classElem, source, bindingSynthesizer);
+      final outputs = deserializeOutputs(
+          annotations, classElem, source, bindingSynthesizer);
+      final contentChildFields =
+          deserializeContentChildFields(annotations.contentChildFields);
+      final contentChildrenFields =
+          deserializeContentChildFields(annotations.contentChildrenFields);
+      annotatedClasses.add(new AngularAnnotatedClass(classElem, inputs, outputs,
+          contentChildFields, contentChildrenFields));
+    }
+
+    return annotatedClasses;
+  }
+
+  List<InputElement> deserializeInputs(
+      SummarizedClassAnnotations annotations,
+      ClassElement classElem,
+      Source source,
+      BindingTypeSynthesizer bindingSynthesizer) {
+    final inputs = <InputElement>[];
+    for (final inputSum in annotations.inputs) {
+      // is this correct lookup?
+      final setter =
+          classElem.lookUpSetter(inputSum.propName, classElem.library);
+      if (setter == null) {
+        continue;
+      }
+      inputs.add(new InputElement(
+          inputSum.name,
+          inputSum.nameOffset,
+          inputSum.name.length,
+          source,
+          setter,
+          new SourceRange(inputSum.propNameOffset, inputSum.propName.length),
+          bindingSynthesizer
+              .getSetterType(setter))); // Don't think type is correct
+    }
+
+    return inputs;
+  }
+
+  List<OutputElement> deserializeOutputs(
+      SummarizedClassAnnotations annotations,
+      ClassElement classElem,
+      Source source,
+      BindingTypeSynthesizer bindingSynthesizer) {
+    final outputs = <OutputElement>[];
+    for (final outputSum in annotations.outputs) {
+      // is this correct lookup?
+      final getter =
+          classElem.lookUpGetter(outputSum.propName, classElem.library);
+      if (getter == null) {
+        continue;
+      }
+      outputs.add(new OutputElement(
+          outputSum.name,
+          outputSum.nameOffset,
+          outputSum.name.length,
+          source,
+          getter,
+          new SourceRange(outputSum.propNameOffset, outputSum.propName.length),
+          bindingSynthesizer.getEventType(getter, getter.name)));
+    }
+
+    return outputs;
   }
 
   List<NgContent> deserializeNgContents(
@@ -171,6 +217,13 @@ class DirectiveLinker {
             selector?.offset,
             ngContentSum.selectorStr.length);
       }).toList();
+
+  List<PipeReference> deserializePipes(List<SummarizedPipesUse> pipesUse) =>
+      pipesUse
+          .map((pipeUse) => new PipeReference(
+              pipeUse.name, new SourceRange(pipeUse.offset, pipeUse.length),
+              prefix: pipeUse.prefix))
+          .toList();
 
   List<ExportedIdentifier> deserializeExports(
           List<SummarizedExportedIdentifier> exports) =>
@@ -264,35 +317,74 @@ class ExportLinker {
           export.identifier, export.span.offset + offset));
 }
 
+class InheritedMetadataLinker {
+  AbstractDirective directive;
+  FileDirectiveProvider _fileDirectiveProvider;
+
+  InheritedMetadataLinker(this.directive, this._fileDirectiveProvider);
+
+  Future link() async {
+    for (final supertype in directive.classElement.allSupertypes) {
+      final result = await _fileDirectiveProvider
+          .getUnlinkedClasses(supertype.element.source.fullName);
+      final match = result.firstWhere(
+          (c) => c.classElement == supertype.element,
+          orElse: () => null);
+
+      if (match == null) {
+        continue;
+      }
+
+      directive.inputs.addAll(match.inputs);
+      directive.outputs.addAll(match.outputs);
+      directive.contentChildFields.addAll(match.contentChildFields);
+      directive.contentChildrenFields.addAll(match.contentChildrenFields);
+    }
+  }
+}
+
 class ChildDirectiveLinker implements DirectiveMatcher {
   final FileDirectiveProvider _fileDirectiveProvider;
+  final FilePipeProvider _filePipeProvider;
   final ErrorReporter _errorReporter;
   final StandardAngular _standardAngular;
 
-  ChildDirectiveLinker(
-      this._fileDirectiveProvider, this._standardAngular, this._errorReporter);
+  ChildDirectiveLinker(this._fileDirectiveProvider, this._filePipeProvider,
+      this._standardAngular, this._errorReporter);
 
-  Future linkDirectives(
+  Future linkDirectivesAndPipes(
     List<AbstractDirective> directivesToLink,
+    List<Pipe> pipesToLink,
     LibraryElement library,
   ) async {
     final scope = new LibraryScope(library);
     final exportLinker = new ExportLinker(scope, _errorReporter);
     for (final directive in directivesToLink) {
       if (directive is Component && directive.view != null) {
+        // Link directive references to actual directive definition.
         for (final reference in directive.view.directiveReferences) {
-          final referent = lookupByName(reference, directivesToLink);
+          final referent = lookupDirectiveByName(reference, directivesToLink);
           if (referent != null) {
-            directive.view.directives
-                .add(await withNgContentAndChildren(referent));
+            directive.view.directives.add(await linkedAsChild(referent));
           } else {
-            await lookupFromLibrary(
+            await lookupDirectiveFromLibrary(
                 reference, scope, directive.view.directives);
+          }
+        }
+        // Link pipe references to actual pipe definition.
+        for (final reference in directive.view.pipeReferences) {
+          final referent = lookupPipeByName(reference, pipesToLink);
+          if (referent != null) {
+            directive.view.pipes.add(referent);
+          } else {
+            await lookupPipeFromLibrary(reference, scope, directive.view.pipes);
           }
         }
       }
 
       exportLinker.linkExportsFor(directive);
+      await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
+          .link();
 
       await new ContentChildLinker(
               directive, this, _standardAngular, _errorReporter)
@@ -300,7 +392,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     }
   }
 
-  AbstractDirective lookupByName(
+  AbstractDirective lookupDirectiveByName(
       DirectiveReference reference, List<AbstractDirective> directivesToLink) {
     if (reference.prefix != "") {
       return null;
@@ -313,8 +405,20 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     return null;
   }
 
-  Future lookupFromLibrary(DirectiveReference reference, LibraryScope scope,
-      List<AbstractDirective> directives) async {
+  Pipe lookupPipeByName(PipeReference reference, List<Pipe> pipesToLink) {
+    if (reference.prefix != '') {
+      return null;
+    }
+    final options =
+        pipesToLink.where((p) => p.classElement.name == reference.identifier);
+    if (options.length == 1) {
+      return options.first;
+    }
+    return null;
+  }
+
+  Future lookupDirectiveFromLibrary(DirectiveReference reference,
+      LibraryScope scope, List<AbstractDirective> directives) async {
     final type = scope.lookup(
         astFactory.simpleIdentifier(
             new StringToken(TokenType.IDENTIFIER, reference.name, 0)),
@@ -325,7 +429,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         final directive = await matchDirective(type);
 
         if (directive != null) {
-          directives.add(await withNgContentAndChildren(directive));
+          directives.add(await linkedAsChild(directive));
         } else {
           _errorReporter.reportErrorForOffset(
               AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
@@ -359,17 +463,73 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         reference.range.length);
   }
 
+  Future lookupPipeFromLibrary(
+      PipeReference reference, LibraryScope scope, List<Pipe> pipes) async {
+    final type = scope.lookup(
+        astFactory.simpleIdentifier(
+            new StringToken(TokenType.IDENTIFIER, reference.identifier, 0)),
+        null);
+    if (type != null && type.source != null) {
+      if (type is ClassElement) {
+        final pipe = await matchPipe(type);
+
+        if (pipe != null) {
+          pipes.add(pipe);
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+              reference.span.offset,
+              reference.span.length,
+              [type.name]);
+        }
+        return;
+      } else if (type is PropertyAccessorElement) {
+        type.variable.computeConstantValue();
+        final values = type.variable.constantValue?.toListValue();
+        if (values != null) {
+          await _addPipesForDartObject(pipes, values, reference.span);
+          return;
+        }
+
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+            reference.span.offset,
+            reference.span.length,
+            [type.variable.constantValue.toString()]);
+
+        return;
+      }
+    }
+
+    _errorReporter.reportErrorForOffset(
+        AngularWarningCode.TYPE_LITERAL_EXPECTED,
+        reference.span.offset,
+        reference.span.length);
+  }
+
   @override
   Future<AbstractDirective> matchDirective(ClassElement clazz) async {
-    final fileDirectives = await _fileDirectiveProvider
-        .getUnlinkedDirectives(clazz.source.fullName);
-    final options =
-        fileDirectives.where((d) => d.classElement.name == clazz.name);
+    final fileDirectives =
+        await _fileDirectiveProvider.getUnlinkedClasses(clazz.source.fullName);
+    final options = fileDirectives
+        .where((d) => d.classElement.name == clazz.name)
+        .where((d) => d is AbstractDirective);
 
     if (options.length == 1) {
       return options.first;
     }
 
+    return null;
+  }
+
+  @override
+  Future<Pipe> matchPipe(ClassElement clazz) async {
+    final filePipes =
+        await _filePipeProvider.getUnlinkedPipes(clazz.source.fullName);
+    final options = filePipes.where((p) => p.classElement.name == clazz.name);
+    if (options.length == 1) {
+      return options.first;
+    }
     return null;
   }
 
@@ -385,7 +545,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
         final directive = await matchDirective(typeValue.element);
         if (directive != null) {
-          directives.add(await withNgContentAndChildren(directive));
+          directives.add(await linkedAsChild(directive));
         } else {
           _errorReporter.reportErrorForOffset(
               AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
@@ -409,13 +569,49 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     }
   }
 
-  Future<AbstractDirective> withNgContentAndChildren(
-      AbstractDirective directive) async {
+  /// Walk the given [value] and add pipes into [pipes].
+  /// Return `true` if success, or `false` the [value] has items
+  /// that don't correspond to a pipe.
+  Future _addPipesForDartObject(
+      List<Pipe> pipes, List<DartObject> values, SourceRange errorRange) async {
+    for (final listItem in values) {
+      final typeValue = listItem.toTypeValue();
+      if (typeValue is InterfaceType && typeValue.element is ClassElement) {
+        final pipe = await matchPipe(typeValue.element);
+        if (pipe != null) {
+          pipes.add(pipe);
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.TYPE_IS_NOT_A_PIPE,
+              errorRange.offset,
+              errorRange.length,
+              [typeValue.name]);
+        }
+      } else {
+        final listValue = listItem.toListValue();
+        if (listValue != null) {
+          await _addPipesForDartObject(pipes, listValue, errorRange);
+        } else {
+          _errorReporter.reportErrorForOffset(
+            AngularWarningCode.TYPE_LITERAL_EXPECTED,
+            errorRange.offset,
+            errorRange.length,
+          );
+        }
+      }
+    }
+  }
+
+  Future<AbstractDirective> linkedAsChild(AbstractDirective directive) async {
     if (directive is Component && directive?.view?.templateUriSource != null) {
       final source = directive.view.templateUriSource;
       directive.ngContents.addAll(
           await _fileDirectiveProvider.getHtmlNgContent(source.fullName));
     }
+
+    // Important: Link inherited metadata before content child fields, as
+    // the directive may import unlinked content childs
+    await new InheritedMetadataLinker(directive, _fileDirectiveProvider).link();
 
     // NOTE: Require the Exact type TemplateRef because that's what the
     // injector does.
@@ -435,6 +631,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
 abstract class DirectiveMatcher {
   Future<AbstractDirective> matchDirective(ClassElement clazz);
+  Future<Pipe> matchPipe(ClassElement clazz);
 }
 
 class ContentChildLinker {

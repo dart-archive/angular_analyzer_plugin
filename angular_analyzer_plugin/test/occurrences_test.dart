@@ -29,7 +29,7 @@ class EmptyTest {
 //  @override
 //  void setUp() {
 //    super.setUp();
-//    when(collector.addOccurrences(anyObject)).thenInvoke(occurrencesList.add);
+//    when(collector.addOccurrences(anyObject)).thenAnswer(occurrencesList.add);
 //  }
 //
 //  // ignore: non_constant_identifier_names
@@ -105,3 +105,5 @@ class EmptyTest {
 //    fail('Unable to find occurrences at $offset in $listStr');
 //  }
 //}
+//
+//class OccurrencesCollectorMock extends Mock implements OccurrencesCollector {}

@@ -7,7 +7,7 @@ import 'package:analyzer/context/context_root.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:front_end/src/base/performace_logger.dart';
+import 'package:analyzer/src/dart/analysis/performance_logger.dart';
 import 'package:analyzer_plugin/plugin/plugin.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
@@ -17,6 +17,8 @@ import 'package:analyzer_plugin/plugin/navigation_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
 import 'package:analyzer_plugin/src/utilities/navigation/navigation.dart';
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
+import 'package:angular_analyzer_plugin/src/noop_driver.dart';
 import 'package:angular_analyzer_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/navigation_request.dart';
@@ -25,6 +27,7 @@ import 'package:angular_analyzer_plugin/src/completion.dart';
 import 'package:angular_analyzer_plugin/src/navigation.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 import 'package:meta/meta.dart';
+import 'package:yaml/yaml.dart';
 
 class AngularAnalyzerPlugin extends ServerPlugin
     with CompletionMixin, NavigationMixin {
@@ -43,9 +46,33 @@ class AngularAnalyzerPlugin extends ServerPlugin
   String get contactInfo =>
       'Please file issues at https://github.com/dart-lang/angular_analyzer_plugin';
 
+  bool isEnabled(String optionsFilePath) {
+    if (optionsFilePath == null || optionsFilePath.isEmpty) {
+      return null;
+    }
+
+    final file = resourceProvider.getFile(optionsFilePath);
+
+    if (!file.exists) {
+      return null;
+    }
+
+    final contents = file.readAsStringSync();
+    final options = loadYaml(contents);
+
+    return options['plugins'] != null &&
+        options['plugins']['angular'] != null &&
+        options['plugins']['angular']['enabled'] == true;
+  }
+
   @override
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
-    final root = new ContextRoot(contextRoot.root, contextRoot.exclude);
+    final root = new ContextRoot(contextRoot.root, contextRoot.exclude)
+      ..optionsFilePath = contextRoot.optionsFile;
+    if (!isEnabled(root.optionsFilePath)) {
+      return new NoopDriver();
+    }
+
     // TODO new API to get this path safely?
     final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
@@ -148,15 +175,22 @@ class AngularAnalyzerPlugin extends ServerPlugin
     }
   }
 
+  AngularDriver angularDriverForPath(String path) {
+    var driver = super.driverForPath(path);
+    if (driver is AngularDriver) {
+      return driver;
+    }
+    return null;
+  }
+
   @override
   void contentChanged(String path) {
-    final contextRoot = contextRootContaining(path);
-
-    if (contextRoot == null) {
+    final driver = angularDriverForPath(path);
+    if (driver == null) {
       return;
     }
 
-    final driver = (driverMap[contextRoot] as AngularDriver)
+    driver
       ..addFile(path) // TODO new API to only do this on file add
       ..fileChanged(path);
 
@@ -190,8 +224,13 @@ class AngularAnalyzerPlugin extends ServerPlugin
   Future<CompletionRequest> getCompletionRequest(
       plugin.CompletionGetSuggestionsParams parameters) async {
     final path = parameters.file;
-    final AngularDriver driver = driverForPath(path);
+    final driver = angularDriverForPath(path);
     final offset = parameters.offset;
+
+    if (driver == null) {
+      return new DartCompletionRequestImpl(resourceProvider, offset, null);
+    }
+
     final templates = await driver.getTemplatesForFile(path);
     final standardHtml = await driver.getStandardHtml();
     assert(standardHtml != null);
@@ -200,11 +239,16 @@ class AngularAnalyzerPlugin extends ServerPlugin
   }
 
   @override
-  List<CompletionContributor> getCompletionContributors(String path) =>
-      <CompletionContributor>[
-        new AngularCompletionContributor(),
-        new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor(),
-        new NgOffsetLengthContributor(),
-      ];
+  List<CompletionContributor> getCompletionContributors(String path) {
+    if (angularDriverForPath(path) == null) {
+      return [];
+    }
+
+    return <CompletionContributor>[
+      new AngularCompletionContributor(),
+      new NgInheritedReferenceContributor(),
+      new NgTypeMemberContributor(),
+      new NgOffsetLengthContributor(),
+    ];
+  }
 }

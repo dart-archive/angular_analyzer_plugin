@@ -2,8 +2,8 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:typed_mock/typed_mock.dart';
-import 'package:unittest/unittest.dart';
+import 'package:mockito/mockito.dart';
+import 'package:test/test.dart';
 
 void main() {
   defineReflectiveSuite(() {
@@ -32,94 +32,94 @@ class AndSelectorTest extends _SelectorTest {
   void setUp() {
     super.setUp();
     selector = new AndSelector(<Selector>[selector1, selector2, selector3]);
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
-    when(selector3.match(anyObject, anyObject))
+    when(selector3.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
 
-    when(selector1.availableTo(anyObject)).thenReturn(true);
-    when(selector2.availableTo(anyObject)).thenReturn(true);
-    when(selector3.availableTo(anyObject)).thenReturn(true);
+    when(selector1.availableTo(typed(any))).thenReturn(true);
+    when(selector2.availableTo(typed(any))).thenReturn(true);
+    when(selector3.availableTo(typed(any))).thenReturn(true);
   }
 
   // ignore: non_constant_identifier_names
   void test_match() {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(2);
-    verify(selector2.match(anyObject, anyObject)).times(2);
-    verify(selector3.match(anyObject, anyObject)).times(2);
+    verify(selector1.match(typed(any), typed(any))).called(2);
+    verify(selector2.match(typed(any), typed(any))).called(2);
+    verify(selector3.match(typed(any), typed(any))).called(2);
   }
 
   // ignore: non_constant_identifier_names
   void test_match_false1() {
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(0);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verifyNever(selector2.match(typed(any), typed(any)));
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
   void test_match_false2() {
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
   void test_match_falseTagMatch() {
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
   void test_match_TagMatch1() {
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(2);
-    verify(selector2.match(anyObject, anyObject)).times(2);
-    verify(selector3.match(anyObject, anyObject)).times(2);
+    verify(selector1.match(typed(any), typed(any))).called(2);
+    verify(selector2.match(typed(any), typed(any))).called(2);
+    verify(selector3.match(typed(any), typed(any))).called(2);
   }
 
   // ignore: non_constant_identifier_names
   void test_match_TagMatch2() {
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(2);
-    verify(selector2.match(anyObject, anyObject)).times(2);
-    verify(selector3.match(anyObject, anyObject)).times(2);
+    verify(selector1.match(typed(any), typed(any))).called(2);
+    verify(selector2.match(typed(any), typed(any))).called(2);
+    verify(selector3.match(typed(any), typed(any))).called(2);
   }
 
   // ignore: non_constant_identifier_names
   void test_match_availableTo_allMatch() {
-    expect(selector.availableTo(element), equals(true));
-    verify(selector1.availableTo(anyObject)).times(1);
-    verify(selector2.availableTo(anyObject)).times(1);
-    verify(selector3.availableTo(anyObject)).times(1);
+    expect(selector.availableTo(element), true);
+    verify(selector1.availableTo(typed(any))).called(1);
+    verify(selector2.availableTo(typed(any))).called(1);
+    verify(selector3.availableTo(typed(any))).called(1);
   }
 
   // ignore: non_constant_identifier_names
   void test_match_availableTo_singleUnmatch() {
-    when(selector2.availableTo(anyObject)).thenReturn(false);
+    when(selector2.availableTo(typed(any))).thenReturn(false);
     expect(selector.availableTo(element), equals(false));
-    verify(selector1.availableTo(anyObject)).times(1);
-    verify(selector2.availableTo(anyObject)).times(1);
-    verify(selector3.availableTo(anyObject)).times(0);
+    verify(selector1.availableTo(typed(any))).called(1);
+    verify(selector2.availableTo(typed(any))).called(1);
+    verifyNever(selector3.availableTo(typed(any)));
   }
 
   // ignore: non_constant_identifier_names
@@ -139,7 +139,7 @@ class AttributeSelectorTest extends _SelectorTest {
         new AttributeSelector(nameElement, null, isWildcard: false);
     when(element.attributes).thenReturn({'not-kind': 'no-matter'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -163,7 +163,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -177,7 +177,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -190,7 +190,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -204,7 +204,7 @@ class AttributeSelectorTest extends _SelectorTest {
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -215,7 +215,7 @@ class AttributeSelectorTest extends _SelectorTest {
         .thenReturn({'indatrue': _newStringSpan(100, "indatrue")});
     // verify
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -248,14 +248,14 @@ class ClassSelectorTest extends _SelectorTest {
   void test_match_false_noClass() {
     when(element.attributes).thenReturn({'not-class': 'no-matter'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
   void test_match_false_noSuchClass() {
     when(element.attributes).thenReturn({'class': 'not-nice'});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -266,7 +266,7 @@ class ClassSelectorTest extends _SelectorTest {
         .thenReturn({'class': _newStringSpan(100, classValue)});
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
     expect(resolvedRanges, hasLength(1));
     _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
   }
@@ -279,7 +279,7 @@ class ClassSelectorTest extends _SelectorTest {
         .thenReturn({'class': _newStringSpan(100, classValue)});
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
     expect(resolvedRanges, hasLength(1));
     _assertRange(resolvedRanges[0], 111, 4, selector.nameElement);
   }
@@ -292,7 +292,7 @@ class ClassSelectorTest extends _SelectorTest {
         .thenReturn({'class': _newStringSpan(100, classValue)});
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
     expect(resolvedRanges, hasLength(1));
     _assertRange(resolvedRanges[0], 105, 4, selector.nameElement);
   }
@@ -320,7 +320,7 @@ class ElementNameSelectorTest extends _SelectorTest {
     when(element.openingNameSpan).thenReturn(_newStringSpan(100, 'panel'));
     when(element.closingNameSpan).thenReturn(_newStringSpan(200, 'panel'));
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
     _assertRange(resolvedRanges[0], 100, 5, selector.nameElement);
     _assertRange(resolvedRanges[1], 200, 5, selector.nameElement);
   }
@@ -362,7 +362,7 @@ class AttributeValueRegexSelectorTest extends _SelectorTest {
     when(element.attributes).thenReturn({'kind': '0abcd'});
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -371,7 +371,7 @@ class AttributeValueRegexSelectorTest extends _SelectorTest {
         .thenReturn({'kind': 'bcd', 'plop': 'zabcz', 'klark': 'efg'});
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 }
 
@@ -389,28 +389,28 @@ class NotSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_notFalse() {
-    when(condition.match(anyObject, anyObject))
+    when(condition.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
-    when(condition.availableTo(anyObject)).thenReturn(false);
+    when(condition.availableTo(typed(any))).thenReturn(false);
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
   void test_notTagMatch() {
-    when(condition.match(anyObject, anyObject))
+    when(condition.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
-    when(condition.availableTo(anyObject)).thenReturn(true);
+    when(condition.availableTo(typed(any))).thenReturn(true);
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     expect(selector.availableTo(element), equals(false));
   }
 
   // ignore: non_constant_identifier_names
   void test_notNonTagMatch() {
-    when(condition.match(anyObject, anyObject))
+    when(condition.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
-    when(condition.availableTo(anyObject)).thenReturn(true);
+    when(condition.availableTo(typed(any))).thenReturn(true);
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     expect(selector.availableTo(element), equals(false));
   }
@@ -424,7 +424,7 @@ class NotSelectorTest extends _SelectorTest {
     when(element.attributeNameSpans)
         .thenReturn({'not-kind': _newStringSpan(100, 'not-kind')});
     selector = new NotSelector(attributeSelector);
-    expect(selector.availableTo(element), equals(true));
+    expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
@@ -452,94 +452,94 @@ class OrSelectorTest extends _SelectorTest {
   void setUp() {
     super.setUp();
     selector = new OrSelector(<Selector>[selector1, selector2, selector3]);
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
-    when(selector1.availableTo(anyObject)).thenReturn(false);
-    when(selector2.match(anyObject, anyObject))
+    when(selector1.availableTo(typed(any))).thenReturn(false);
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
-    when(selector2.availableTo(anyObject)).thenReturn(false);
-    when(selector3.match(anyObject, anyObject))
+    when(selector2.availableTo(typed(any))).thenReturn(false);
+    when(selector3.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NoMatch);
-    when(selector3.availableTo(anyObject)).thenReturn(false);
+    when(selector3.availableTo(typed(any))).thenReturn(false);
   }
 
   // ignore: non_constant_identifier_names
   void test_matchFirstIsTagMatch() {
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
-    when(selector1.availableTo(anyObject)).thenReturn(true);
+    when(selector1.availableTo(typed(any))).thenReturn(true);
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(0);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verifyNever(selector2.match(typed(any), typed(any)));
+    verifyNever(selector3.match(typed(any), typed(any)));
 
-    expect(selector.availableTo(element), equals(true));
-    verify(selector1.availableTo(anyObject)).times(1);
-    verify(selector2.availableTo(anyObject)).times(0);
-    verify(selector3.availableTo(anyObject)).times(0);
+    expect(selector.availableTo(element), true);
+    verify(selector1.availableTo(typed(any))).called(1);
+    verifyNever(selector2.availableTo(typed(any)));
+    verifyNever(selector3.availableTo(typed(any)));
   }
 
   // ignore: non_constant_identifier_names
   void test_matchFirstIsNonTagMatch() {
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(1);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verify(selector3.match(typed(any), typed(any))).called(1);
   }
 
   // ignore: non_constant_identifier_names
   void test_match2TagMatch() {
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
-    when(selector2.availableTo(anyObject)).thenReturn(true);
+    when(selector2.availableTo(typed(any))).thenReturn(true);
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verifyNever(selector3.match(typed(any), typed(any)));
 
-    expect(selector.availableTo(element), equals(true));
-    verify(selector1.availableTo(anyObject)).times(1);
-    verify(selector2.availableTo(anyObject)).times(1);
-    verify(selector3.availableTo(anyObject)).times(0);
+    expect(selector.availableTo(element), true);
+    verify(selector1.availableTo(typed(any))).called(1);
+    verify(selector2.availableTo(typed(any))).called(1);
+    verifyNever(selector3.availableTo(typed(any)));
   }
 
   // ignore: non_constant_identifier_names
   void test_match2NonTagMatch() {
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(1);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verify(selector3.match(typed(any), typed(any))).called(1);
   }
 
   // ignore: non_constant_identifier_names
   void test_match2TagAndNonTagMatch() {
-    when(selector1.match(anyObject, anyObject))
+    when(selector1.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.NonTagMatch);
-    when(selector2.match(anyObject, anyObject))
+    when(selector2.match(typed(any), typed(any)))
         .thenReturn(SelectorMatch.TagMatch);
     expect(selector.match(element, template), equals(SelectorMatch.TagMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(0);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verifyNever(selector3.match(typed(any), typed(any)));
   }
 
   // ignore: non_constant_identifier_names
   void test_match_false() {
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
-    verify(selector1.match(anyObject, anyObject)).times(1);
-    verify(selector2.match(anyObject, anyObject)).times(1);
-    verify(selector3.match(anyObject, anyObject)).times(1);
+    verify(selector1.match(typed(any), typed(any))).called(1);
+    verify(selector2.match(typed(any), typed(any))).called(1);
+    verify(selector3.match(typed(any), typed(any))).called(1);
 
     expect(selector.availableTo(element), equals(false));
-    verify(selector1.availableTo(anyObject)).times(1);
-    verify(selector2.availableTo(anyObject)).times(1);
-    verify(selector3.availableTo(anyObject)).times(1);
+    verify(selector1.availableTo(typed(any))).called(1);
+    verify(selector2.availableTo(typed(any))).called(1);
+    verify(selector3.availableTo(typed(any))).called(1);
   }
 
   // ignore: non_constant_identifier_names
@@ -1321,9 +1321,9 @@ class HtmlTagForSelectorTest {
   }
 }
 
-class _ElementViewMock extends TypedMock implements ElementView {}
+class _ElementViewMock extends Mock implements ElementView {}
 
-class _SelectorMock extends TypedMock implements Selector {
+class _SelectorMock extends Mock implements Selector {
   final String text;
 
   _SelectorMock(this.text);
@@ -1339,8 +1339,11 @@ class _SelectorTest {
   List<ResolvedRange> resolvedRanges = <ResolvedRange>[];
 
   void setUp() {
-    when(template.addRange(anyObject, anyObject)).thenInvoke((range, element) =>
-        resolvedRanges.add(new ResolvedRange(range, element)));
+    when(template.addRange(typed(any), typed(any))).thenAnswer((invocation) {
+      final range = invocation.positionalArguments[0];
+      final element = invocation.positionalArguments[1];
+      resolvedRanges.add(new ResolvedRange(range, element));
+    });
   }
 
   void _assertRange(ResolvedRange resolvedRange, int offset, int length,
@@ -1355,6 +1358,6 @@ class _SelectorTest {
       new SourceRange(offset, value.length);
 }
 
-class _SourceMock extends TypedMock implements Source {}
+class _SourceMock extends Mock implements Source {}
 
-class _TemplateMock extends TypedMock implements Template {}
+class _TemplateMock extends Mock implements Template {}

@@ -1,8 +1,8 @@
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
-import 'package:front_end/src/base/api_signature.dart';
+import 'package:analyzer/src/summary/api_signature.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:unittest/unittest.dart';
-import 'package:typed_mock/typed_mock.dart';
+import 'package:test/test.dart';
+import 'package:mockito/mockito.dart';
 
 void main() {
   defineReflectiveSuite(() {
@@ -286,6 +286,7 @@ class FileTrackerTest {
         .thenReturn(fooDartElementSignature);
 
     final expectedSignature = new ApiSignature()
+      ..addInt(FileTracker.salt)
       ..addBytes(fooDartElementSignature.toByteList())
       ..addBytes(barHtmlSignature.toByteList());
 
@@ -314,6 +315,7 @@ class FileTrackerTest {
         .thenReturn(fooTestDartElementSignature);
 
     final expectedSignature = new ApiSignature()
+      ..addInt(FileTracker.salt)
       ..addBytes(fooHtmlSignature.toByteList())
       ..addBytes(fooDartElementSignature.toByteList())
       ..addBytes(barHtmlSignature.toByteList())
@@ -329,15 +331,40 @@ class FileTrackerTest {
     when(_fileHasher.getContentHash("foo.html")).thenReturn(fooHtmlSignature);
 
     for (var i = 0; i < 3; ++i) {
-      _fileTracker.getHtmlContentHash("foo.html");
-      verify(_fileHasher.getContentHash("foo.html")).once();
+      _fileTracker.getContentSignature("foo.html");
     }
+    verify(_fileHasher.getContentHash("foo.html")).called(1);
+
+    _fileTracker.rehashContents("foo.html");
 
     for (var i = 0; i < 3; ++i) {
-      _fileTracker.rehashHtmlContents("foo.html");
-      verify(_fileHasher.getContentHash("foo.html")).times(2);
+      _fileTracker.getContentSignature("foo.html");
     }
+    verify(_fileHasher.getContentHash("foo.html")).called(1);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_getContentHashIsSalted() {
+    final fooHtmlSignature = new ApiSignature()..addInt(1);
+    final expectedSignature = new ApiSignature()
+      ..addInt(FileTracker.salt)
+      ..addBytes(fooHtmlSignature.toByteList());
+    when(_fileHasher.getContentHash("foo.html")).thenReturn(fooHtmlSignature);
+    expect(_fileTracker.getContentSignature("foo.html").toHex(),
+        equals(expectedSignature.toHex()));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_getUnitElementSignatureIsSalted() {
+    final fooDartElementSignature = new ApiSignature()..addInt(1);
+    final expectedSignature = new ApiSignature()
+      ..addInt(FileTracker.salt)
+      ..addBytes(fooDartElementSignature.toByteList());
+    when(_fileHasher.getUnitElementHash("foo.dart"))
+        .thenReturn(fooDartElementSignature);
+    expect(_fileTracker.getUnitElementSignature("foo.dart").toHex(),
+        equals(expectedSignature.toHex()));
   }
 }
 
-class _FileHasherMock extends TypedMock implements FileHasher {}
+class _FileHasherMock extends Mock implements FileHasher {}

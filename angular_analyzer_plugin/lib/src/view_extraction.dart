@@ -132,16 +132,19 @@ class ViewExtractor extends AnnotationProcessorMixin {
       return null;
     }
     final directiveReferences = <DirectiveReference>[];
+    final pipeReferences = <PipeReference>[];
     findDirectives(annotation, directiveReferences);
+    findPipes(annotation, pipeReferences);
     final exports = <ExportedIdentifier>[];
     findExports(annotation, exports);
     // Create View.
-    return new View(classElement, component, <AbstractDirective>[],
+    return new View(classElement, component, <AbstractDirective>[], <Pipe>[],
         templateText: templateText,
         templateOffset: templateOffset,
         templateUriSource: templateUriSource,
         templateUrlRange: templateUrlRange,
         directiveReferences: directiveReferences,
+        pipeReferences: pipeReferences,
         annotation: annotation,
         exports: exports);
   }
@@ -179,6 +182,38 @@ class ViewExtractor extends AnnotationProcessorMixin {
                   element.variable.constantValue != null) {
             directiveReferences.add(new DirectiveReference(
                 name, prefix, new SourceRange(item.offset, item.length)));
+            continue;
+          }
+        }
+        // unknown
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
+      }
+    }
+  }
+
+  void findPipes(
+      ast.Annotation annotation, List<PipeReference> pipeReferences) {
+    // Prepare directives and elementTags
+    // ignore: omit_local_variable_types
+    final ast.Expression listExpression = getNamedArgument(annotation, 'pipes');
+    if (listExpression is ast.ListLiteral) {
+      // ignore: omit_local_variable_types
+      for (final ast.Expression item in listExpression.elements) {
+        if (item is ast.Identifier) {
+          final name = item.name;
+          var prefix = "";
+          if (item is ast.PrefixedIdentifier) {
+            prefix = item.prefix.name;
+          }
+          final element = item.staticElement;
+          // LIST_OF_PIPES or TypeLiteral
+          if (element is ClassElement ||
+              element is PropertyAccessorElement &&
+                  element.variable.constantValue != null) {
+            pipeReferences.add(new PipeReference(
+                name, new SourceRange(item.offset, item.length),
+                prefix: prefix));
             continue;
           }
         }

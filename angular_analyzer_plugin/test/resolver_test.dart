@@ -10,7 +10,7 @@ import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_ast/angular_ast.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:tuple/tuple.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 import 'element_assert.dart';
@@ -295,6 +295,51 @@ class TitleComponent {
         AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
         code,
         "titleInput");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_asBoool_noError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Input() bool boolInput;
+}
+''');
+
+    final code = r"""
+<title-comp boolInput></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_asBool_typeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Component(selector: 'title-comp', template: '')
+class TitleComponent {
+  @Input() bool boolInput;
+}
+''');
+
+    final code = r"""
+<title-comp boolInput="foo bar baz"></title-comp>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
+        code,
+        "boolInput");
   }
 
   // ignore: non_constant_identifier_names
@@ -4736,6 +4781,24 @@ class TestPanel {
 }
 ''');
     final code = '{{garbage}}';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    expect(ranges, hasLength(0));
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_resolvingBogusImportDoesntCrash() async {
+    _addDartSource(r'''
+import ; // synthetic import
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    final code = '{{pants}}';
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(0));
