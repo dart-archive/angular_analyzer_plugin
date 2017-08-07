@@ -1,5 +1,5 @@
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
-import 'package:front_end/src/base/api_signature.dart';
+import 'package:analyzer/src/summary/api_signature.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';

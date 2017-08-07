@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import 'package:front_end/src/base/api_signature.dart';
+import 'package:analyzer/src/summary/api_signature.dart';
 
 abstract class FileHasher {
   ApiSignature getContentHash(String path);

@@ -14,8 +14,8 @@ import 'package:mockito/mockito.dart';
 import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
 
-import 'package:front_end/src/incremental/byte_store.dart';
-import 'package:front_end/src/base/performace_logger.dart';
+import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:analyzer/src/dart/analysis/performance_logger.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart'
     show AnalysisDriver, AnalysisDriverScheduler;
 import 'package:analyzer/src/dart/analysis/file_state.dart';

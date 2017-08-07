@@ -15,7 +15,8 @@ import 'package:analyzer/src/dart/resolver/scope.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
 import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/dart/constant/value.dart';
-import 'package:front_end/src/scanner/token.dart';
+import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/src/dart/ast/token.dart';
 import 'summary/idl.dart';
 
 abstract class FileDirectiveProvider {
