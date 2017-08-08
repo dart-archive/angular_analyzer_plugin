@@ -3137,9 +3137,11 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_template_attribute_withoutValue() async {
     _addDartSource(r'''
-@Directive(selector: '[deferred-content]')
+@Directive(selector: '[deferred]')
 class DeferredContentDirective {
   DeferredContentDirective(TemplateRef tpl);
+  @Input()
+  String deferred;
 }
 
 @Component(selector: 'test-panel')
@@ -3149,10 +3151,10 @@ class DeferredContentDirective {
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
-<div *deferred-content>Deferred content</div>
+<div *deferred>Deferred content</div>
 """);
     await _resolveSingleTemplate(dartSource);
-    _assertElement('deferred-content>').selector.at("deferred-content]')");
+    _assertElement('deferred>').selector.at("deferred]')");
     errorListener.assertNoErrors();
   }
 
