@@ -353,12 +353,19 @@ class HtmlElement extends Element {
   
   @DomName('HTMLElement.className')
   void set className(String s){}
-  @DomName('HTMLElement.innerHtml')
-  void set innerHtml(String s){}
   @DomName('HTMLElement.readOnly')
   void set readOnly(bool b){}
   @DomName('HTMLElement.tabIndex')
   void set tabIndex(int i){}
+
+  @DomName('HTMLElement.innerHTML')
+  String _innerHtml;
+  String get innerHtml {
+    throw 'not the real implementation';
+  }
+  set innerHtml(String value) {
+    // stuff
+  }
   
 }
 

@@ -147,9 +147,13 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         isHtml: true);
   }
 
+  /// dart:html is missing an annotation to fix this casing. Compensate.
+  /// TODO(mfairhurst) remove this fix once dart:html is fixed
+  String fixName(String name) => name == 'innerHtml' ? 'innerHTML' : name;
+
   List<InputElement> _buildInputs(bool skipHtmlElement) =>
       _captureAspects((inputMap, accessor) {
-        final name = accessor.displayName;
+        final name = fixName(accessor.displayName);
         final prettyName = alternativeInputs[name];
         final originalName = prettyName == null ? null : name;
         if (!inputMap.containsKey(name)) {

@@ -450,7 +450,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<span [class]='text'></span>
+<span [class]='text' [innerHtml]='text'></span>
 """;
     await angularDriver.getStandardHtml();
     _addHtmlSource(code);
@@ -467,7 +467,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<span [className]='text'></span>
+<span [className]='text' [innerHTML]='text'></span>
 """;
     await angularDriver.getStandardHtml();
     _addHtmlSource(code);
