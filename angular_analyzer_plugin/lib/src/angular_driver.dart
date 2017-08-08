@@ -802,7 +802,8 @@ class AngularDriver
     final pipeSums = serializePipes(result.pipes);
     final classSums = result.angularAnnotatedClasses
         .where((c) => c is! AbstractDirective)
-        .map(serializeAnnotatedClass);
+        .map(serializeAnnotatedClass)
+        .toList();
     final summary = new UnlinkedDartSummaryBuilder()
       ..directiveSummaries = dirSums
       ..pipeSummaries = pipeSums
@@ -951,8 +952,8 @@ class AngularDriver
 }
 
 class DirectivesResult {
-  List<AbstractDirective> get directives =>
-      angularAnnotatedClasses.where((c) => c is AbstractDirective).toList();
+  List<AbstractDirective> get directives => new List<AbstractDirective>.from(
+      angularAnnotatedClasses.where((c) => c is AbstractDirective));
   List<AngularAnnotatedClass> angularAnnotatedClasses;
   List<AnalysisError> errors;
   List<Pipe> pipes;

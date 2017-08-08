@@ -41,13 +41,13 @@ class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
 
   bool isEnabled(String optionsFilePath) {
     if (optionsFilePath == null || optionsFilePath.isEmpty) {
-      return null;
+      return false;
     }
 
     final file = resourceProvider.getFile(optionsFilePath);
 
     if (!file.exists) {
-      return null;
+      return false;
     }
 
     final contents = file.readAsStringSync();

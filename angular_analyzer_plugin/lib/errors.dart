@@ -69,7 +69,7 @@ HashMap<String, ErrorCode> _uniqueNameToCodeMap;
 /// found.
 ErrorCode angularWarningCodeByUniqueName(String uniqueName) {
   if (_uniqueNameToCodeMap == null) {
-    _uniqueNameToCodeMap = new HashMap<String, AngularWarningCode>();
+    _uniqueNameToCodeMap = new HashMap<String, ErrorCode>();
     for (final angularCode in _angularWarningCodeValues) {
       _uniqueNameToCodeMap[angularCode.uniqueName] = angularCode;
     }

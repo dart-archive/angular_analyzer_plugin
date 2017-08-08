@@ -856,7 +856,7 @@ class EmbeddedDartParser {
         // does), which is checked by [SingleScopeResolver].
         if (!binding.isPrefix) {
           errorReporter.reportErrorForOffset(AngularWarningCode.EMPTY_BINDING,
-              originalNameOffset, originalName.length);
+              originalNameOffset, originalName.length, [originalName]);
         }
       }
     }

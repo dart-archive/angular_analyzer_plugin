@@ -1062,15 +1062,19 @@ class NgContentRecorder extends AngularScopeVisitor {
     try {
       final selectorAttr = selectorAttrs.first;
       if (selectorAttr.value == null) {
+        // TODO(mfairhust) report different error for a missing selector
         errorReporter.reportErrorForOffset(
             AngularWarningCode.CANNOT_PARSE_SELECTOR,
             selectorAttr.nameOffset,
-            selectorAttr.name.length);
+            selectorAttr.name.length,
+            ['missing']);
       } else if (selectorAttr.value == "") {
+        // TODO(mfairhust) report different error for a missing selector
         errorReporter.reportErrorForOffset(
             AngularWarningCode.CANNOT_PARSE_SELECTOR,
             selectorAttr.valueOffset - 1,
-            2);
+            2,
+            ['missing']);
       } else {
         final selector = new SelectorParser(
                 source, selectorAttr.valueOffset, selectorAttr.value)
