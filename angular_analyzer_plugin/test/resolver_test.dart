@@ -8,6 +8,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_ast/angular_ast.dart';
+import 'package:front_end/src/scanner/errors.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
@@ -4804,6 +4805,25 @@ class TestPanel {
     expect(ranges, hasLength(0));
     errorListener.assertErrorsWithCodes([
       StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_nanTokenizationRangeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    templateUrl: 'test_panel.html', directives: const [NgIf])
+class TestPanel {
+  int i;
+}
+''');
+    final code = r'''
+<div *ngIf="i > 0e"></div>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      ScannerErrorCode.MISSING_DIGIT,
     ]);
   }
 
