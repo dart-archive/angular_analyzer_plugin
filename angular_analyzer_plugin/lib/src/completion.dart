@@ -545,7 +545,7 @@ class AngularCompletionContributor extends CompletionContributor {
       AngularCompletionRequest request, CompletionCollector collector) async {
     final templates = request.templates;
     final standardHtml = request.standardHtml;
-    final events = standardHtml.events.values;
+    final events = standardHtml.events.values.toList();
     final attributes = standardHtml.uniqueAttributeElements;
 
     final templateCompleter = new TemplateCompleter();
