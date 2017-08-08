@@ -3083,6 +3083,68 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_templateTag_selectTemplateMatches() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+class MyStarDirective {
+  MyStarDirective(TemplateRef ref) {}
+  @Input()
+  String myStarDirective;
+}
+''');
+    final code = r'''
+<template myStarDirective="'foo'"></template>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_templateAttr() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+class MyStarDirective {
+  MyStarDirective(TemplateRef ref) {}
+}
+''');
+    final code = r'''
+<div template="myStarDirective"></div>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_star_selectTemplateMatches() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+class MyStarDirective {
+  MyStarDirective(TemplateRef ref) {}
+}
+''');
+    final code = r'''
+<span *myStarDirective></span>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_standardHtmlComponent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

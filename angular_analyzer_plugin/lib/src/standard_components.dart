@@ -110,8 +110,11 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       if (argument is ast.SimpleStringLiteral) {
         final tag = argument.value;
         final tagOffset = argument.contentsOffset;
-        final component = _buildComponent(tag, tagOffset);
-        components[tag] = component;
+        // don't track <template>, angular treats those specially.
+        if (tag != "template") {
+          final component = _buildComponent(tag, tagOffset);
+          components[tag] = component;
+        }
       }
     } else if (node.methodName.name == 'JS' &&
         argumentList != null &&
@@ -123,8 +126,11 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
           tagArgument is ast.SimpleStringLiteral) {
         final tag = tagArgument.value;
         final tagOffset = tagArgument.contentsOffset;
-        final component = _buildComponent(tag, tagOffset);
-        components[tag] = component;
+        // don't track <template>, angular treats those specially.
+        if (tag != "template") {
+          final component = _buildComponent(tag, tagOffset);
+          components[tag] = component;
+        }
       }
     }
   }

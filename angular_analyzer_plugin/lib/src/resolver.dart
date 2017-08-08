@@ -47,7 +47,8 @@ class ElementViewImpl implements ElementView {
   @override
   SourceRange openingNameSpan;
 
-  ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
+  ElementViewImpl(List<AttributeInfo> attributeInfoList,
+      {ElementInfo element, String elementName}) {
     for (final attribute in attributeInfoList) {
       if (attribute is TemplateAttribute) {
         continue;
@@ -67,6 +68,8 @@ class ElementViewImpl implements ElementView {
       closingSpan = element.closingSpan;
       openingNameSpan = element.openingNameSpan;
       closingNameSpan = element.closingNameSpan;
+    } else if (elementName != null) {
+      localName = elementName;
     }
   }
 }
@@ -774,7 +777,8 @@ class DirectiveResolver extends AngularAstVisitor {
       visitTemplateAttr(element.templateAttribute);
     }
 
-    final elementView = new ElementViewImpl(element.attributes, element);
+    final elementView =
+        new ElementViewImpl(element.attributes, element: element);
     final unmatchedDirectives = <AbstractDirective>[];
 
     final containingDirectivesCount = outerBindings.length;
@@ -834,7 +838,8 @@ class DirectiveResolver extends AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
-    final elementView = new ElementViewImpl(attr.virtualAttributes, null);
+    final elementView =
+        new ElementViewImpl(attr.virtualAttributes, elementName: 'template');
     for (final directive in allDirectives) {
       if (directive.selector.match(elementView, template) !=
           SelectorMatch.NoMatch) {
@@ -979,7 +984,7 @@ class ComponentContentResolver extends AngularAstVisitor {
         _reportErrorForRange(new SourceRange(child.offset, child.length),
             AngularWarningCode.CONTENT_NOT_TRANSCLUDED);
       } else if (child is ElementInfo) {
-        final view = new ElementViewImpl(child.attributes, child);
+        final view = new ElementViewImpl(child.attributes, element: child);
 
         var matched = acceptAll;
         var matchedTag = false;
