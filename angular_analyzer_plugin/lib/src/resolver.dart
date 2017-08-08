@@ -1309,6 +1309,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // catch *ngIf without a value
     if (binding.parent.boundDirectives
         .map((binding) => binding.boundDirective)
+        // TODO enable this again for all directives, not just NgIf
+        .where((directive) => directive.classElement.name == "NgIf")
         .any((directive) =>
             directive.inputs.any((input) => input.name == binding.name))) {
       errorListener.onError(new AnalysisError(
