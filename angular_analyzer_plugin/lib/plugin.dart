@@ -115,7 +115,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
       // TODO(mfairhurst) make this assurance in a less hacky way
       templatesOnly
           ? driver.resolveHtml(filename, ignoreCache: true)
-          : driver.resolveDart(filename, withDirectives: true);
+          : driver.resolveDart(filename);
       return;
     }
 
@@ -139,7 +139,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
     final result = templatesOnly
         ? await driver.resolveHtml(parameters.file, ignoreCache: true)
         : await driver.resolveDart(parameters.file,
-            withDirectives: true, onlyIfChangedSignature: false);
+            onlyIfChangedSignature: false);
     return new AngularNavigationRequest(
         parameters.file, parameters.offset, parameters.length, result);
   }
