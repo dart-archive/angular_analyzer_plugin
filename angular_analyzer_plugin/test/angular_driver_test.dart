@@ -174,6 +174,8 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
     expect(map['h3'], isNotNull);
     // has no mention of 'option' in the source, is hardcoded
     expect(map['option'], isNotNull);
+    // <template> is special, not actually a TemplateElement
+    expect(map['template'], isNull);
   }
 
   // ignore: non_constant_identifier_names
