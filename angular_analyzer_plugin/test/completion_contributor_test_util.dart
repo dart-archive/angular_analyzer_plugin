@@ -122,7 +122,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     expect(suggestion.hasNamedParameters, isNotNull);
   }
 
-  void assertNoSuggestions({CompletionSuggestionKind kind: null}) {
+  void assertNoSuggestions({CompletionSuggestionKind kind}) {
     if (kind == null) {
       if (suggestions.isNotEmpty) {
         failedCompletion('Expected no suggestions', suggestions);
@@ -149,7 +149,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       {CompletionSuggestionKind csKind: CompletionSuggestionKind.INVOCATION,
       int relevance: DART_RELEVANCE_DEFAULT,
       String importUri,
-      protocol.ElementKind elemKind: null,
+      protocol.ElementKind elemKind,
       bool isDeprecated: false,
       bool isPotential: false,
       String elemFile,
@@ -585,9 +585,9 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   }
 
   CompletionSuggestion getSuggest(
-      {String completion: null,
-      CompletionSuggestionKind csKind: null,
-      protocol.ElementKind elemKind: null}) {
+      {String completion,
+      CompletionSuggestionKind csKind,
+      protocol.ElementKind elemKind}) {
     var cs;
     if (suggestions != null) {
       suggestions.forEach((s) {
@@ -612,10 +612,5 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       });
     }
     return cs;
-  }
-
-  @override
-  void setUp() {
-    super.setUp();
   }
 }

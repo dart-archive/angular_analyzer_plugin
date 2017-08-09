@@ -96,6 +96,7 @@ class AngularDriver
     // TODO anything we need to do here?
   }
 
+  @override
   void addFile(String path) {
     if (_ownsFile(path)) {
       _addedFiles.add(path);

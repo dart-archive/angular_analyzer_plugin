@@ -113,7 +113,7 @@ class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
   }
 
   AngularDriver angularDriverForPath(String path) {
-    var driver = super.driverForPath(path);
+    final driver = super.driverForPath(path);
     if (driver is AngularDriver) {
       return driver;
     }
