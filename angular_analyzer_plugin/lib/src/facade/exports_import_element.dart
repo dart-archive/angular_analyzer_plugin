@@ -102,8 +102,7 @@ class ExportsImportElementFacade implements ImportElement {
   CompilationUnit computeNode() => _wrappedImport.computeNode();
 
   @override
-  Element/*=E*/ getAncestor/*<E extends Element >*/(
-          Predicate<Element> predicate) =>
+  E getAncestor<E extends Element>(Predicate<Element> predicate) =>
       _wrappedImport.getAncestor(predicate);
 
   @override
@@ -122,8 +121,7 @@ class ExportsImportElementFacade implements ImportElement {
   ElementKind get kind => _wrappedImport.kind;
 
   @override
-  /*=T*/ accept/*<T>*/(ElementVisitor<dynamic/*=T*/ > visitor) =>
-      _wrappedImport.accept(visitor);
+  T accept<T>(ElementVisitor<T> visitor) => _wrappedImport.accept(visitor);
 
   @override
   List<NamespaceCombinator> get combinators => _wrappedImport.combinators;

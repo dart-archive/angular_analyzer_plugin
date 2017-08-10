@@ -101,8 +101,7 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   CompilationUnit computeNode() => _wrappedUnit.computeNode();
 
   @override
-  Element/*=E*/ getAncestor/*<E extends Element >*/(
-          Predicate<Element> predicate) =>
+  E getAncestor<E extends Element>(Predicate<Element> predicate) =>
       _wrappedUnit.getAncestor(predicate);
 
   @override
@@ -121,8 +120,7 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   ElementKind get kind => _wrappedUnit.kind;
 
   @override
-  /*=T*/ accept/*<T>*/(ElementVisitor<dynamic/*=T*/ > visitor) =>
-      _wrappedUnit.accept(visitor);
+  T accept<T>(ElementVisitor<T> visitor) => _wrappedUnit.accept(visitor);
 
   @override
   bool get hasLoadLibraryFunction => _wrappedUnit.hasLoadLibraryFunction;
