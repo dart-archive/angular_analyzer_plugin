@@ -3410,24 +3410,15 @@ class FinalComponent
     await getDirectives(source);
     final component =
         directives.firstWhere((d) => d.classElement.name == 'FinalComponent');
-    final compInputs = component.inputs;
-    expect(compInputs, hasLength(4));
-    {
-      final input = compInputs[0];
-      expect(input.name, 'mixin1Input');
-    }
-    {
-      final input = compInputs[1];
-      expect(input.name, 'mixin2Input');
-    }
-    {
-      final input = compInputs[2];
-      expect(input.name, 'interface1Input');
-    }
-    {
-      final input = compInputs[3];
-      expect(input.name, 'interface2Input');
-    }
+    final inputNames = component.inputs.map((input) => input.name);
+    expect(
+        inputNames,
+        unorderedEquals([
+          'mixin1Input',
+          'mixin2Input',
+          'interface1Input',
+          'interface2Input'
+        ]));
   }
 
   // ignore: non_constant_identifier_names
