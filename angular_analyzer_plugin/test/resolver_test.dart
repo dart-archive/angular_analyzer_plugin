@@ -8,7 +8,6 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_ast/angular_ast.dart';
-import 'package:front_end/src/scanner/errors.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
