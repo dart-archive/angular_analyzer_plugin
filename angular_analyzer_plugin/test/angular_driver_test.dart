@@ -3410,22 +3410,23 @@ class FinalComponent
     await getDirectives(source);
     final component =
         directives.firstWhere((d) => d.classElement.name == 'FinalComponent');
-    final compInputs = component.inputs;
+    final compInputs = component.inputs.fold(<String, InputElement>{},
+        (acc, input) => {input.name: input}..addAll(acc));
     expect(compInputs, hasLength(4));
     {
-      final input = compInputs[0];
+      final input = compInputs['mixin1Input'];
       expect(input.name, 'mixin1Input');
     }
     {
-      final input = compInputs[1];
+      final input = compInputs['mixin2Input'];
       expect(input.name, 'mixin2Input');
     }
     {
-      final input = compInputs[2];
+      final input = compInputs['interface1Input'];
       expect(input.name, 'interface1Input');
     }
     {
-      final input = compInputs[3];
+      final input = compInputs['interface2Input'];
       expect(input.name, 'interface2Input');
     }
   }
