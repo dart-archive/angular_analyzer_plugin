@@ -69,6 +69,18 @@ class AngularDriver
             null;
   }
 
+  // ignore: close_sinks
+  final _dartResultsController = new StreamController<DirectivesResult>();
+
+  Stream<DirectivesResult> get dartResultsStream =>
+      _dartResultsController.stream;
+
+  // ignore: close_sinks
+  final _htmlResultsController = new StreamController<DirectivesResult>();
+
+  Stream<DirectivesResult> get htmlResultsStream =>
+      _htmlResultsController.stream;
+
   @override
   bool get hasFilesToAnalyze =>
       _filesToAnalyze.isNotEmpty ||
@@ -93,7 +105,8 @@ class AngularDriver
   /// Notify the driver that the client is going to stop using it.
   @override
   void dispose() {
-    // TODO anything we need to do here?
+    _dartResultsController.close();
+    _htmlResultsController.close();
   }
 
   @override
@@ -363,16 +376,19 @@ class AngularDriver
       final errors = new List<AnalysisError>.from(
           deserializeErrors(htmlSource, summary.errors))
         ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
-      return new DirectivesResult([], [], errors);
+      final result = new DirectivesResult.fromCache(htmlPath, errors);
+      _htmlResultsController.add(result);
+      return result;
     }
 
-    final result = new DirectivesResult([], [], []);
+    final result = new DirectivesResult(htmlPath, [], [], []);
 
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
       final pairResult = await resolveHtmlFrom(htmlPath, dartContext);
       result.angularAnnotatedClasses.addAll(pairResult.angularAnnotatedClasses);
       result.errors.addAll(pairResult.errors);
+      result.fullyResolvedDirectives.addAll(pairResult.fullyResolvedDirectives);
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
@@ -389,6 +405,7 @@ class AngularDriver
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
+    _htmlResultsController.add(result);
     return result;
   }
 
@@ -398,6 +415,7 @@ class AngularDriver
     if (!isDartFile && !filePath.endsWith('.html')) {
       return templates;
     }
+
     final directiveResults = isDartFile
         ? await resolveDart(
             filePath,
@@ -450,6 +468,8 @@ class AngularDriver
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives.forEach(attrValidator.validate);
 
+    final fullyResolvedDirectives = <AbstractDirective>[];
+
     for (final directive in directives) {
       if (directive is Component) {
         final view = directive.view;
@@ -497,11 +517,14 @@ class AngularDriver
           } else {
             errors.addAll(tplErrorListener.errors.where(rightErrorType));
           }
+
+          fullyResolvedDirectives.add(directive);
         }
       }
     }
 
-    return new DirectivesResult(directives, pipes, errors);
+    return new DirectivesResult(htmlPath, directives, pipes, errors,
+        fullyResolvedDirectives: fullyResolvedDirectives);
   }
 
   @override
@@ -591,8 +614,10 @@ class AngularDriver
           ..setDartHtmlTemplates(path, summary.referencedHtmlFiles)
           ..setDartImports(path, summary.referencedDartFiles);
 
-        return new DirectivesResult(
-            [], [], deserializeErrors(getSource(path), summary.errors));
+        final result = new DirectivesResult.fromCache(
+            path, deserializeErrors(getSource(path), summary.errors));
+        _dartResultsController.add(result);
+        return result;
       }
     }
 
@@ -621,6 +646,7 @@ class AngularDriver
 
     final htmlViews = <String>[];
     final usesDart = <String>[];
+    final fullyResolvedDirectives = <AbstractDirective>[];
 
     var hasDartTemplate = false;
     for (final directive in directives) {
@@ -657,6 +683,7 @@ class AngularDriver
                 (e) => !view.template.ignoredErrors.contains(e.errorCode.name)))
             ..addAll(tplErrorListener.errors.where((e) =>
                 !view.template.ignoredErrors.contains(e.errorCode.name)));
+          fullyResolvedDirectives.add(directive);
         } else if (view?.templateUriSource != null) {
           _htmlFilesToAnalyze.add(view.templateUriSource.fullName);
           htmlViews.add(view.templateUriSource.fullName);
@@ -680,7 +707,11 @@ class AngularDriver
       ..hasDartTemplates = hasDartTemplate;
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
-    return new DirectivesResult(directives, pipes, errors);
+    final directivesResult = new DirectivesResult(
+        path, directives, pipes, errors,
+        fullyResolvedDirectives: fullyResolvedDirectives);
+    _dartResultsController.add(directivesResult);
+    return directivesResult;
   }
 
   List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) =>
@@ -737,6 +768,7 @@ class AngularDriver
     if (bytes != null) {
       final summary = new UnlinkedDartSummary.fromBuffer(bytes);
       return new DirectivesResult(
+        path,
         await resynthesizeDirectives(summary, path),
         await resynthesizePipes(summary, path),
         deserializeErrors(getSource(path), summary.errors),
@@ -791,7 +823,7 @@ class AngularDriver
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
       ..addAll(viewExtractor.errorListener.errors)
       ..addAll(pipeExtractor.errorListener.errors);
-    final result = new DirectivesResult(classes, pipes, errors);
+    final result = new DirectivesResult(path, classes, pipes, errors);
     final summary = serializeDartResult(result);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
@@ -953,10 +985,26 @@ class AngularDriver
 }
 
 class DirectivesResult {
+  final String filename;
   List<AbstractDirective> get directives => new List<AbstractDirective>.from(
       angularAnnotatedClasses.where((c) => c is AbstractDirective));
   List<AngularAnnotatedClass> angularAnnotatedClasses;
+  final List<AbstractDirective> fullyResolvedDirectives = [];
   List<AnalysisError> errors;
   List<Pipe> pipes;
-  DirectivesResult(this.angularAnnotatedClasses, this.pipes, this.errors);
+
+  bool cacheResult;
+  DirectivesResult(
+      this.filename, this.angularAnnotatedClasses, this.pipes, this.errors,
+      {List<AbstractDirective> fullyResolvedDirectives: const []})
+      : cacheResult = false {
+    // Use `addAll` instead of initializing it to `const []` when not specified,
+    // so that the result is not const and we can add to it, while still being
+    // final.
+    this.fullyResolvedDirectives.addAll(fullyResolvedDirectives);
+  }
+
+  DirectivesResult.fromCache(this.filename, this.errors)
+      : angularAnnotatedClasses = const [],
+        cacheResult = true;
 }

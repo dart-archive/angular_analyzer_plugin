@@ -13,17 +13,24 @@ import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
 import 'package:analyzer_plugin/plugin/completion_mixin.dart';
+import 'package:analyzer_plugin/plugin/navigation_mixin.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
+import 'package:analyzer_plugin/src/utilities/navigation/navigation.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_plugin/src/noop_driver.dart';
 import 'package:angular_analyzer_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/completion_request.dart';
+import 'package:angular_analyzer_plugin/src/navigation_request.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
+import 'package:angular_analyzer_plugin/src/navigation.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
+import 'package:meta/meta.dart';
 import 'package:yaml/yaml.dart';
 
-class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
+class AngularAnalyzerPlugin extends ServerPlugin
+    with CompletionMixin, NavigationMixin {
   AngularAnalyzerPlugin(ResourceProvider provider) : super(provider);
 
   @override
@@ -85,8 +92,64 @@ class AngularAnalyzerPlugin extends ServerPlugin with CompletionMixin {
         sourceFactory,
         fileContentOverlay);
 
+    driver.dartResultsStream
+        .listen((result) => onResult(result, driver, templatesOnly: true));
+    driver.htmlResultsStream
+        .listen((result) => onResult(result, driver, templatesOnly: false));
     return driver;
   }
+
+  void onResult(DirectivesResult result, AngularDriver driver,
+      {@required bool templatesOnly}) {
+    final collector = new NavigationCollectorImpl();
+    final filename = result.filename;
+
+    if (filename == null ||
+        !subscriptionManager.hasSubscriptionForFile(
+            filename, plugin.AnalysisService.NAVIGATION)) {
+      return;
+    }
+
+    if (result.cacheResult) {
+      // get a non-cached result, so we have an AST.
+      // TODO(mfairhurst) make this assurance in a less hacky way
+      templatesOnly
+          ? driver.resolveHtml(filename, ignoreCache: true)
+          : driver.resolveDart(filename);
+      return;
+    }
+
+    new AngularNavigation()
+      ..computeNavigation(
+          new AngularNavigationRequest(filename, null, null, result),
+          collector);
+    collector.createRegions();
+    channel.sendNotification(new plugin.AnalysisNavigationParams(
+            filename, collector.regions, collector.targets, collector.files)
+        .toNotification());
+  }
+
+  /// Return the navigation request that should be passed to the contributors
+  /// returned from [getNavigationContributors].
+  @override
+  Future<NavigationRequest> getNavigationRequest(
+      plugin.AnalysisGetNavigationParams parameters) async {
+    final AngularDriver driver = driverForPath(parameters.file);
+    final templatesOnly = parameters.file.endsWith('.html');
+    final result = templatesOnly
+        ? await driver.resolveHtml(parameters.file, ignoreCache: true)
+        : await driver.resolveDart(parameters.file,
+            onlyIfChangedSignature: false);
+    return new AngularNavigationRequest(
+        parameters.file, parameters.offset, parameters.length, result);
+  }
+
+  /// Return a list containing the navigation contributors that should be used to
+  /// create navigation information when used in the context of the given
+  /// analysis [driver].
+  @override
+  List<NavigationContributor> getNavigationContributors(String path) =>
+      [new AngularNavigation()];
 
   void sendNotificationForSubscription(
       String fileName, plugin.AnalysisService service, AnalysisResult result) {

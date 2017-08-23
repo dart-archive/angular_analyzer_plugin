@@ -4,14 +4,13 @@ import 'bubbled_directive.dart';
 
 import 'package:angular_analyzer_plugin/enable.dart';
 
-@Component(selector: 'blah',
-    directives: const[CounterComponent, NgFor, NgIf, BubbledDirective],
-    templateUrl: 'overview_component.html'
-)
+@Component(
+    selector: 'blah',
+    directives: const [CounterComponent, NgFor, NgIf, BubbledDirective],
+    templateUrl: 'overview_component.html')
 class OverviewComponent {
   String header;
   List<String> items;
 
-  OtherComponent() {
-  }
+  OtherComponent() {}
 }

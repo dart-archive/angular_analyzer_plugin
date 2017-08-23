@@ -1,3 +1,5 @@
 #!/bin/bash
 
 dart --snapshot=server.snapshot server.dart
+
+cp server.snapshot ~/.dart-sdk/bin/snapshots/analysis_server.dart.snapshot

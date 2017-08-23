@@ -36,6 +36,7 @@ echo 'old_plugin_loader:old_plugin_loader/lib' >> .packages
 echo done
 echo
 
+echo Updating new plugin architecture .packages file
 echo Adding self hosting plugin architecture .packages file
 cd angular_analyzer_plugin/tools/analyzer_plugin
 pub get

@@ -61,35 +61,35 @@ Bootstrapping | Validation | Auto-Complete | Navigation | Refactoring
 
 Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 ----------------|------------|---------------|------------|-------------
-`<div stringInput="string">` | :white_check_mark: typecheck is string input on component | :white_check_mark: | :x: | :x:
-`<input [value]="firstName">` | :white_check_mark: soundness of expression, type of expression, existence of `value` on element or directive | :white_check_mark: | :x: | :x:
-`<input bind-value="firstName">` | :white_check_mark: | :skull: | :x: | :x:
-`<div [attr.role]="myAriaRole">` | :last_quarter_moon: soundness of expression, but no other validation | :last_quarter_moon: complete inside binding but binding not suggested | :x: | :x:
-`<div [class.extra-sparkle]="isDelightful">` | :white_check_mark: validity of clasname, soundness of expression, type of expression must be bool | :last_quarter_moon: complete inside binding but binding not suggested | :x: | :x:
-`<div [style.width.px]="mySize">` | :waning_gibbous_moon: soundness of expression, css properties are generally checked but not against a dictionary, same for units, expression must type to `int` if units are present | :last_quarter_moon: complete inside binding but binding not suggested | :x: | :x:
-`<button (click)="readRainbow($event)">` | :white_check_mark: soundness of expression, type of `$event`, existence of output on component/element and DOM events which propagate can be tracked anywhere | :white_check_mark: | :x: | :x:
-`<button on-click="readRainbow($event)">` | :white_check_mark: | :skull: | :x: | :x:
-`<div title="Hello {{ponyName}}">` | :white_check_mark: soundness of expression, matching mustache delimiters | :white_check_mark: | :x: | :x:
-`<p>Hello {{ponyName}}</p>` | :white_check_mark: soundness of expression, matching mustache delimiters | :white_check_mark: | :x: | :x:
-`<my-cmp></my-cmp>` | :white_check_mark: existence of directive |:white_check_mark: | :x: | :x:
-`<my-cmp [(title)]="name">` | :white_check_mark: soundness of expression, existence of `title` input and `titleChange` output on directive or component with proper type | :white_check_mark: | :x: | :x:
-`<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: type of new variable tracked and checked in other expressions | :white_check_mark: | :x: | :x:
-`<video directiveWithExportAs #moviePlayer="exportAsValue">` | :white_check_mark: existence of exportAs value checked within bound directives | :white_check_mark: | :x: | :x:
-`<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: |:white_check_mark: | :x: | :x:
-`<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :white_check_mark: | :x: | :x:
+`<div stringInput="string">` | :white_check_mark: typecheck is string input on component | :white_check_mark: | :white_check_mark: | :x:
+`<input [value]="firstName">` | :white_check_mark: soundness of expression, type of expression, existence of `value` on element or directive | :white_check_mark: | :white_check_mark: | :x:
+`<input bind-value="firstName">` | :white_check_mark: | :skull: | :white_check_mark: | :x:
+`<div [attr.role]="myAriaRole">` | :last_quarter_moon: soundness of expression, but no other validation | :last_quarter_moon: complete inside binding but binding not suggested | :last_quarter_moon: no html specific navigation | :x:
+`<div [class.extra-sparkle]="isDelightful">` | :white_check_mark: validity of clasname, soundness of expression, type of expression must be bool | :last_quarter_moon: complete inside binding but binding not suggested | :last_quarter_moon: no css specific navigation | :x:
+`<div [style.width.px]="mySize">` | :waning_gibbous_moon: soundness of expression, css properties are generally checked but not against a dictionary, same for units, expression must type to `int` if units are present | :last_quarter_moon: complete inside binding but binding not suggested | :last_quarter_moon: no css specific navigation | :x:
+`<button (click)="readRainbow($event)">` | :white_check_mark: soundness of expression, type of `$event`, existence of output on component/element and DOM events which propagate can be tracked anywhere | :white_check_mark: | :last_quarter_moon: no navigation for `$event` | :x:
+`<button on-click="readRainbow($event)">` | :white_check_mark: | :skull: | :last_quarter_moon: no navigation for `$event` | :x:
+`<div title="Hello {{ponyName}}">` | :white_check_mark: soundness of expression, matching mustache delimiters | :white_check_mark: | :white_check_mark: | :x:
+`<p>Hello {{ponyName}}</p>` | :white_check_mark: soundness of expression, matching mustache delimiters | :white_check_mark: | :white_check_mark: | :x:
+`<my-cmp></my-cmp>` | :white_check_mark: existence of directive |:white_check_mark: | :white_check_mark: | :x:
+`<my-cmp [(title)]="name">` | :white_check_mark: soundness of expression, existence of `title` input and `titleChange` output on directive or component with proper type | :white_check_mark: | :white_check_mark: navigates to the input | :x:
+`<video #movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: type of new variable tracked and checked in other expressions | :white_check_mark: | :white_check_mark: | :x:
+`<video directiveWithExportAs #moviePlayer="exportAsValue">` | :white_check_mark: existence of exportAs value checked within bound directives | :white_check_mark: | :white_check_mark: | :x:
+`<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: |:white_check_mark: | :white_check_mark: | :x:
+`<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :white_check_mark: | :white_check_mark: some bugs ,mostly works | :x:
 `<p>Card No.: {{cardNumber \| myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:
 `<my-component @deferred>` | :x: | :x: | :x: | :x:
 
 Built-in directives | Validation | Auto-Complete | Navigation | Refactoring
 --------------------|------------|---------------|------------|-------------
-`<section *ngIf="showSection">` | :white_check_mark: type checking, check for the star | :white_check_mark: | :x: | :x:
-`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star, catch accidental usage of `#item` | :white_check_mark: | :x: | :x:
-`<div [ngClass]="{active: isActive, disabled: isDisabled}">` | :warning: Requires quotes around key value strings to work | :white_check_mark: | :x: | :x:
+`<section *ngIf="showSection">` | :white_check_mark: type checking, check for the star | :white_check_mark: | :white_check_mark: | :x:
+`<li *ngFor="let item of list">` | :white_check_mark: type checking and new var, check for the star, catch accidental usage of `#item` | :white_check_mark: | :last_quarter_moon: some bugs, mostly works | :x:
+`<div [ngClass]="{active: isActive, disabled: isDisabled}">` | :warning: Requires quotes around key value strings to work | :white_check_mark: | :white_check_mark: | :x:
 
 Forms | Validation | Auto-Complete | Navigation | Refactoring
 ------|------------|---------------|------------|-------------
-`<input [(ngModel)]="userName">` | :white_check_mark: | :white_check_mark: | :x: | :x:
-`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :white_check_mark: | :x: | :x:
+`<input [(ngModel)]="userName">` | :white_check_mark: | :white_check_mark: | :white_check_mark: goes to `ngModel` input | :x:
+`<form #myform="ngForm">` | :white_check_mark: if `ngForm` is not an exported directive | :white_check_mark: | :white_check_mark: | :x:
 
 Class decorators | Validation | Auto-Complete | Navigation | Refactoring
 -----------------|------------|---------------|------------|-------------
@@ -102,23 +102,23 @@ Class decorators | Validation | Auto-Complete | Navigation | Refactoring
 Directive configuration | Validation | Auto-Complete | Navigation | Refactoring
 ------------------------|------------|---------------|------------|-------------
 `@Directive(property1: value1, ...)` | :warning: deprecated, but supported | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
-`selector: '.cool-button:not(a)'` | :white_check_mark: | :no_pedestrians: | :x: | :x:
+`selector: '.cool-button:not(a)'` | :white_check_mark: | :no_pedestrians: | :white_check_mark: selectors can be reached from matching html | :x:
 `providers: [MyService, provide(...)]` | :x: | :x: | :x: | :x:
-`inputs: ['myprop', 'myprop2: byname']` | :white_check_mark: | :x: | :x: | :x:
-`outputs: ['myprop', 'myprop2: byname']` | :white_check_mark: | :x: | :x: | :x:
+`inputs: ['myprop', 'myprop2: byname']` | :white_check_mark: | :x: | :white_check_mark: | :x:
+`outputs: ['myprop', 'myprop2: byname']` | :white_check_mark: | :x: | :white_check_mark: | :x:
 
 @Component extends @Directive, so the @Directive configuration applies to components as well
 
 Component Configuration | Validation | Auto-Complete | Navigation | Refactoring
 ------------------------|------------|---------------|------------|-------------
 `viewProviders: [MyService, provide(...)]` | :x: | :x: | :x: | :x:
-`template: 'Hello {{name}}'` | :white_check_mark: | :white_check_mark: | :x: | :x:
-`templateUrl: 'my-component.html'` | :white_check_mark: | :x: | :x: | :x:
+`template: 'Hello {{name}}'` | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:
+`templateUrl: 'my-component.html'` | :white_check_mark: | :x: | :white_check_mark: | :x:
 `styles: ['.primary {color: red}']` | :x: | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `styleUrls: ['my-component.css']` | :x: | :x: | :x: | :x:
-`directives: [MyDirective, MyComponent]` | :white_check_mark: must be directives or lists of directives, configuration affects view errors | :x: | :x: | :x:
-`pipes: [MyPipe, OtherPipe]` | :x: | :x: | :x: | :x:
-`exports: [Class, Enum, staticFn]` | :white_check_mark: | :white_check_mark: | :x: | :x:
+`directives: [MyDirective, MyComponent]` | :white_check_mark: must be directives or lists of directives, configuration affects view errors | :x: | :white_check_mark: regular navigation | :x:
+`pipes: [MyPipe, OtherPipe]` | :x: | :x: | :white_check_mark: regular navigation | :x:
+`exports: [Class, Enum, staticFn]` | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x:
 
 Class field decorators for directives and components | Validation | Auto-Complete | Navigation | Refactoring
 -----------------------------------------------------|------------|---------------|------------|-------------
@@ -138,10 +138,10 @@ Transclusions| Validation | Auto-Complete | Navigation | Refactoring
 -----------------------------------------------------|------------|---------------|------------|-------------
 `<ng-content></ng-content>` | :white_check_mark: | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `<my-comp>text content</my-comp>` | :white_check_mark: | :x: | :x: | :x:
-`<ng-content select="foo"></ng-content>` | :white_check_mark: | :white_check_mark: | :x: | :x:
-`<my-comp><foo></foo></my-comp>` | :white_check_mark: | :white_check_mark: | :x: | :x:
-`<ng-content select=".foo[bar]"></ng-content>` | :white_check_mark: | :white_check_mark: | :x: | :x:
-`<my-comp><div class="foo" bar></div></my-comp>` | :white_check_mark: | :white_check_mark: | :x: | :x:
+`<ng-content select="foo"></ng-content>` | :white_check_mark: | :white_check_mark: | :white_check_mark: navigation from where matched | :x:
+`<my-comp><foo></foo></my-comp>` | :white_check_mark: | :white_check_mark: | :white_check_mark: navigation to the corresponding selector | :x:
+`<ng-content select=".foo[bar]"></ng-content>` | :white_check_mark: | :white_check_mark: | :white_check_mark: navigation from where matched | :x:
+`<my-comp><div class="foo" bar></div></my-comp>` | :white_check_mark: | :white_check_mark: | :white_check_mark: navigation to the corresponding selector | :x:
 
 Directive and component change detection and lifecycle hooks (implemented as class methods) | Validation | Auto-Complete | Navigation | Refactoring
 --------------------------------------------------------------------------------------------|------------|---------------|------------|-------------
