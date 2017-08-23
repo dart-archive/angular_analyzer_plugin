@@ -48,13 +48,13 @@ class AngularAnalyzerPlugin extends ServerPlugin
 
   bool isEnabled(String optionsFilePath) {
     if (optionsFilePath == null || optionsFilePath.isEmpty) {
-      return null;
+      return false;
     }
 
     final file = resourceProvider.getFile(optionsFilePath);
 
     if (!file.exists) {
-      return null;
+      return false;
     }
 
     final contents = file.readAsStringSync();
@@ -176,7 +176,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
   }
 
   AngularDriver angularDriverForPath(String path) {
-    var driver = super.driverForPath(path);
+    final driver = super.driverForPath(path);
     if (driver is AngularDriver) {
       return driver;
     }

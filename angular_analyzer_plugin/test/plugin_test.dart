@@ -73,7 +73,7 @@ plugins:
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver_noAnalysisOptionsMeansDisabled() {
     root.optionsFile = null;
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final NoopDriver driver = plugin.createAnalysisDriver(root);
 
     expect(driver, const isInstanceOf<NoopDriver>());
   }
@@ -81,14 +81,14 @@ plugins:
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver_emptyAnalysisOptionsMeansDisabled() {
     root.optionsFile = '';
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final NoopDriver driver = plugin.createAnalysisDriver(root);
 
     expect(driver, const isInstanceOf<NoopDriver>());
   }
 
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver_analysisOptionsNotExistsMeansDisabled() {
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final NoopDriver driver = plugin.createAnalysisDriver(root);
     // and then don't set up analysis_options.yaml
 
     expect(driver, const isInstanceOf<NoopDriver>());
@@ -104,7 +104,7 @@ plugins:
   other-plugin:
     that: "is irrelevant"
 ''');
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final NoopDriver driver = plugin.createAnalysisDriver(root);
 
     expect(driver, const isInstanceOf<NoopDriver>());
   }
@@ -116,7 +116,7 @@ plugins:
   angular:
     enabled: false
 ''');
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final NoopDriver driver = plugin.createAnalysisDriver(root);
 
     expect(driver, const isInstanceOf<NoopDriver>());
   }

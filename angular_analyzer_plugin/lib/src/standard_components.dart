@@ -110,8 +110,11 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       if (argument is ast.SimpleStringLiteral) {
         final tag = argument.value;
         final tagOffset = argument.contentsOffset;
-        final component = _buildComponent(tag, tagOffset);
-        components[tag] = component;
+        // don't track <template>, angular treats those specially.
+        if (tag != "template") {
+          final component = _buildComponent(tag, tagOffset);
+          components[tag] = component;
+        }
       }
     } else if (node.methodName.name == 'JS' &&
         argumentList != null &&
@@ -123,8 +126,11 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
           tagArgument is ast.SimpleStringLiteral) {
         final tag = tagArgument.value;
         final tagOffset = tagArgument.contentsOffset;
-        final component = _buildComponent(tag, tagOffset);
-        components[tag] = component;
+        // don't track <template>, angular treats those specially.
+        if (tag != "template") {
+          final component = _buildComponent(tag, tagOffset);
+          components[tag] = component;
+        }
       }
     }
   }
@@ -141,9 +147,13 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         isHtml: true);
   }
 
+  /// dart:html is missing an annotation to fix this casing. Compensate.
+  /// TODO(mfairhurst) remove this fix once dart:html is fixed
+  String fixName(String name) => name == 'innerHtml' ? 'innerHTML' : name;
+
   List<InputElement> _buildInputs(bool skipHtmlElement) =>
       _captureAspects((inputMap, accessor) {
-        final name = accessor.displayName;
+        final name = fixName(accessor.displayName);
         final prettyName = alternativeInputs[name];
         final originalName = prettyName == null ? null : name;
         if (!inputMap.containsKey(name)) {

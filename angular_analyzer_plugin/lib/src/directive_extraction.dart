@@ -442,9 +442,12 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
             }
           }
         }
-        targetList.add(new ContentChildField(name,
-            nameRange: new SourceRange(offset, length),
-            typeRange: new SourceRange(setterTypeOffset, setterTypeLength)));
+
+        if (name != null) {
+          targetList.add(new ContentChildField(name,
+              nameRange: new SourceRange(offset, length),
+              typeRange: new SourceRange(setterTypeOffset, setterTypeLength)));
+        }
       }
     }
   }

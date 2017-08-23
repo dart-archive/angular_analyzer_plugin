@@ -21,6 +21,18 @@ class DartCompletionContributorTest extends AbstractCompletionContributorTest {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeOutsideTemplateOK() async {
+    addTestSource('''
+import 'package:angular2/angular2.dart';
+class MyComp {
+  String text = ^;
+}
+    ''');
+
+    await computeSuggestions();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeMemberInMustache() async {
     addTestSource('''
 import 'package:angular2/angular2.dart';

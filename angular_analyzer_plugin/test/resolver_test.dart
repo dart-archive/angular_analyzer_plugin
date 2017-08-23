@@ -8,6 +8,7 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_ast/angular_ast.dart';
+import 'package:front_end/src/scanner/errors.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
@@ -449,7 +450,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<span [class]='text'></span>
+<span [class]='text' [innerHtml]='text'></span>
 """;
     await angularDriver.getStandardHtml();
     _addHtmlSource(code);
@@ -466,7 +467,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<span [className]='text'></span>
+<span [className]='text' [innerHTML]='text'></span>
 """;
     await angularDriver.getStandardHtml();
     _addHtmlSource(code);
@@ -3082,6 +3083,68 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_templateTag_selectTemplateMatches() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+class MyStarDirective {
+  MyStarDirective(TemplateRef ref) {}
+  @Input()
+  String myStarDirective;
+}
+''');
+    final code = r'''
+<template myStarDirective="'foo'"></template>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_templateAttr() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+class MyStarDirective {
+  MyStarDirective(TemplateRef ref) {}
+}
+''');
+    final code = r'''
+<div template="myStarDirective"></div>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_star_selectTemplateMatches() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+class MyStarDirective {
+  MyStarDirective(TemplateRef ref) {}
+}
+''');
+    final code = r'''
+<span *myStarDirective></span>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_standardHtmlComponent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')
@@ -3136,9 +3199,11 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_template_attribute_withoutValue() async {
     _addDartSource(r'''
-@Directive(selector: '[deferred-content]')
+@Directive(selector: '[deferred]')
 class DeferredContentDirective {
   DeferredContentDirective(TemplateRef tpl);
+  @Input()
+  String deferred;
 }
 
 @Component(selector: 'test-panel')
@@ -3148,10 +3213,10 @@ class DeferredContentDirective {
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
-<div *deferred-content>Deferred content</div>
+<div *deferred>Deferred content</div>
 """);
     await _resolveSingleTemplate(dartSource);
-    _assertElement('deferred-content>').selector.at("deferred-content]')");
+    _assertElement('deferred>').selector.at("deferred]')");
     errorListener.assertNoErrors();
   }
 
@@ -4804,6 +4869,25 @@ class TestPanel {
     expect(ranges, hasLength(0));
     errorListener.assertErrorsWithCodes([
       StaticWarningCode.UNDEFINED_IDENTIFIER,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_nanTokenizationRangeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel',
+    templateUrl: 'test_panel.html', directives: const [NgIf])
+class TestPanel {
+  int i;
+}
+''');
+    final code = r'''
+<div *ngIf="i > 0e"></div>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      ScannerErrorCode.MISSING_DIGIT,
     ]);
   }
 

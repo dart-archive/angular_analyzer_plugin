@@ -107,8 +107,7 @@ class ExportsLibraryFacade extends ElementImpl implements LibraryElement {
   AstNode computeNode() => _wrappedLib.computeNode();
 
   @override
-  Element/*=E*/ getAncestor/*<E extends Element >*/(
-          Predicate<Element> predicate) =>
+  E getAncestor<E extends Element>(Predicate<Element> predicate) =>
       _wrappedLib.getAncestor(predicate);
 
   @override
@@ -127,8 +126,7 @@ class ExportsLibraryFacade extends ElementImpl implements LibraryElement {
   ElementKind get kind => _wrappedLib.kind;
 
   @override
-  /*=T*/ accept/*<T>*/(ElementVisitor<dynamic/*=T*/ > visitor) =>
-      _wrappedLib.accept(visitor);
+  T accept<T>(ElementVisitor<T> visitor) => _wrappedLib.accept(visitor);
 
   @override
   CompilationUnitElement get definingCompilationUnit => _definingUnit;

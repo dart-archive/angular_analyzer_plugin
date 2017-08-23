@@ -29,9 +29,11 @@ class AngularCompletionRequest extends CompletionRequest {
 
   AngularCompletionRequest(this.offset, this.path, this.resourceProvider,
       List<Template> templates, this.standardHtml)
-      : templates = templates.where((t) =>
-            t.view.templateUriSource != null ||
-            (t.view.templateOffset <= offset && offset < t.view.end)) {
+      : templates = templates
+            .where((t) =>
+                t.view.templateUriSource != null ||
+                (t.view.templateOffset <= offset && offset < t.view.end))
+            .toList() {
     for (final template in templates) {
       _calculateDartSnippet(template);
     }

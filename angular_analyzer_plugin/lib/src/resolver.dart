@@ -47,7 +47,8 @@ class ElementViewImpl implements ElementView {
   @override
   SourceRange openingNameSpan;
 
-  ElementViewImpl(List<AttributeInfo> attributeInfoList, ElementInfo element) {
+  ElementViewImpl(List<AttributeInfo> attributeInfoList,
+      {ElementInfo element, String elementName}) {
     for (final attribute in attributeInfoList) {
       if (attribute is TemplateAttribute) {
         continue;
@@ -67,6 +68,8 @@ class ElementViewImpl implements ElementView {
       closingSpan = element.closingSpan;
       openingNameSpan = element.openingNameSpan;
       closingNameSpan = element.closingNameSpan;
+    } else if (elementName != null) {
+      localName = elementName;
     }
   }
 }
@@ -774,7 +777,8 @@ class DirectiveResolver extends AngularAstVisitor {
       visitTemplateAttr(element.templateAttribute);
     }
 
-    final elementView = new ElementViewImpl(element.attributes, element);
+    final elementView =
+        new ElementViewImpl(element.attributes, element: element);
     final unmatchedDirectives = <AbstractDirective>[];
 
     final containingDirectivesCount = outerBindings.length;
@@ -834,7 +838,8 @@ class DirectiveResolver extends AngularAstVisitor {
 
   @override
   void visitTemplateAttr(TemplateAttribute attr) {
-    final elementView = new ElementViewImpl(attr.virtualAttributes, null);
+    final elementView =
+        new ElementViewImpl(attr.virtualAttributes, elementName: 'template');
     for (final directive in allDirectives) {
       if (directive.selector.match(elementView, template) !=
           SelectorMatch.NoMatch) {
@@ -979,7 +984,7 @@ class ComponentContentResolver extends AngularAstVisitor {
         _reportErrorForRange(new SourceRange(child.offset, child.length),
             AngularWarningCode.CONTENT_NOT_TRANSCLUDED);
       } else if (child is ElementInfo) {
-        final view = new ElementViewImpl(child.attributes, child);
+        final view = new ElementViewImpl(child.attributes, element: child);
 
         var matched = acceptAll;
         var matchedTag = false;
@@ -1062,15 +1067,19 @@ class NgContentRecorder extends AngularScopeVisitor {
     try {
       final selectorAttr = selectorAttrs.first;
       if (selectorAttr.value == null) {
+        // TODO(mfairhust) report different error for a missing selector
         errorReporter.reportErrorForOffset(
             AngularWarningCode.CANNOT_PARSE_SELECTOR,
             selectorAttr.nameOffset,
-            selectorAttr.name.length);
+            selectorAttr.name.length,
+            ['missing']);
       } else if (selectorAttr.value == "") {
+        // TODO(mfairhust) report different error for a missing selector
         errorReporter.reportErrorForOffset(
             AngularWarningCode.CANNOT_PARSE_SELECTOR,
             selectorAttr.valueOffset - 1,
-            2);
+            2,
+            ['missing']);
       } else {
         final selector = new SelectorParser(
                 source, selectorAttr.valueOffset, selectorAttr.value)
@@ -1309,6 +1318,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // catch *ngIf without a value
     if (binding.parent.boundDirectives
         .map((binding) => binding.boundDirective)
+        // TODO enable this again for all directives, not just NgIf
+        .where((directive) => directive.classElement.name == "NgIf")
         .any((directive) =>
             directive.inputs.any((input) => input.name == binding.name))) {
       errorListener.onError(new AnalysisError(

@@ -96,6 +96,7 @@ class AbstractAngularTest {
   DartSdk sdk;
   AngularDriver angularDriver;
   AnalysisDriver dartDriver;
+  AnalysisDriverScheduler scheduler;
 
   GatheringErrorListener errorListener;
 
@@ -111,7 +112,7 @@ class AbstractAngularTest {
     final logger = new PerformanceLog(new StringBuffer());
     final byteStore = new MemoryByteStore();
 
-    final scheduler = new AnalysisDriverScheduler(logger)..start();
+    scheduler = new AnalysisDriverScheduler(logger)..start();
     resourceProvider = new MemoryResourceProvider();
 
     sdk = new MockSdk(resourceProvider: resourceProvider);

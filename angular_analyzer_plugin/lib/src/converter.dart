@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
@@ -831,7 +832,8 @@ class EmbeddedDartParser {
         final start = token.offset - offset;
 
         token = expression.endToken.next;
-        final end = token.offset - offset;
+        // The tokenizer isn't perfect always. Ensure [end] <= [code.length].
+        final end = min(token.offset - offset, code.length);
         final exprCode = code.substring(start, end);
         attributes.add(new ExpressionBoundAttribute(
             key,
@@ -856,7 +858,7 @@ class EmbeddedDartParser {
         // does), which is checked by [SingleScopeResolver].
         if (!binding.isPrefix) {
           errorReporter.reportErrorForOffset(AngularWarningCode.EMPTY_BINDING,
-              originalNameOffset, originalName.length);
+              originalNameOffset, originalName.length, [originalName]);
         }
       }
     }
