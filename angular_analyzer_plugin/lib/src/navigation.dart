@@ -5,14 +5,15 @@ import 'package:analysis_server/plugin/protocol/protocol_dart.dart' as protocol;
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
 import 'package:analyzer/dart/element/element.dart' as engine;
 import 'package:analyzer/src/dart/element/member.dart';
-import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 
-class AngularNavigationContributor implements NavigationContributor {
-  @override
-  void computeNavigation(NavigationCollector collector, AnalysisContext context,
+class AngularNavigationContributor {
+  void computeNavigation(NavigationCollector collector,
       Source source, int offset, int length) {
+    // In the code below, `context` used to be a parameter defined to be an
+    // `AnalysisContext`.
+    //
     //LineInfo lineInfo = context.computeResult(source, LINE_INFO);
     //// in Dart
     //{
@@ -106,10 +107,12 @@ class AngularNavigationContributor implements NavigationContributor {
   }
 }
 
-class AngularOccurrencesContributor implements OccurrencesContributor {
-  @override
+class AngularOccurrencesContributor {
   void computeOccurrences(
-      OccurrencesCollector collector, AnalysisContext context, Source source) {
+      OccurrencesCollector collector, Source source) {
+    // In the code below, `context` used to be a parameter defined to be an
+    // `AnalysisContext`.
+    //
     //List<Source> librarySources = context.getLibrariesContaining(source);
     //for (Source librarySource in librarySources) {
     //  // directives

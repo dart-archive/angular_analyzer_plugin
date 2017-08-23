@@ -86,7 +86,7 @@ class User {
     //computeResult(target, DART_TEMPLATES);
     // compute navigation regions
     new AngularNavigationContributor()
-        .computeNavigation(collector, null, source, null, null);
+        .computeNavigation(collector, source, null, null);
     // input references setter
     {
       _findRegionString('text', ': my-text');
@@ -159,7 +159,7 @@ class TextPanel {}
     //computeResult(htmlSource, HTML_TEMPLATES);
     // compute navigation regions
     new AngularNavigationContributor()
-        .computeNavigation(collector, null, dartSource, null, null);
+        .computeNavigation(collector, dartSource, null, null);
     // input references setter
     {
       _findRegionString("'text_panel.html'", ')');
@@ -197,7 +197,7 @@ class TextPanel {
     //computeResult(htmlSource, HTML_TEMPLATES);
     // compute navigation regions
     new AngularNavigationContributor()
-        .computeNavigation(collector, null, htmlSource, null, null);
+        .computeNavigation(collector, htmlSource, null, null);
     // template references field
     {
       _findRegionString('text', "}}", codeOverride: htmlCode);
@@ -275,7 +275,7 @@ class ObjectContainer<T> {
     //computeResult(target, DART_TEMPLATES);
     // compute navigation regions
     new AngularOccurrencesContributor()
-        .computeOccurrences(collector, null, source);
+        .computeOccurrences(collector, source);
     // "text" field
     {
       _findOccurrences(code.indexOf('text: my-text'));
