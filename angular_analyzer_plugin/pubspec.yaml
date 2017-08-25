@@ -1,6 +1,11 @@
 name: angular_analyzer_plugin
 version: 0.0.10
 description: Dart analyzer plugin for Angular 2+
+authors:
+  - Konstantin Scheglov <scheglov@google.com>
+  - Mike Fairhurst <mfairhurst@google.com>
+  - Max Kim <maxkim@google.com>
+homepage: https://github.com/dart-lang/angular_analyzer_plugin
 environment:
   sdk: '>=1.24.0-dev.1.0'
 dependencies:
@@ -10,17 +15,9 @@ dependencies:
   tuple: '^1.0.1'
   analyzer_plugin: '0.0.1-alpha.0'
   angular_ast: '^0.0.4'
-dependency_overrides:
-  analyzer:
-    path: ../deps/sdk/pkg/analyzer
-  analyzer_plugin:
-    path: ../deps/sdk/pkg/analyzer_plugin
-  front_end:
-    path: ../deps/sdk/pkg/front_end
-  angular_ast:
-    git:
-      url: https://github.com/dart-lang/angular_ast
-      ref: master
+  meta: ^1.0.2
+  yaml: ^2.1.2
+  crypto: '>=1.1.1 <3.0.0'
 dev_dependencies:
   test_reflective_loader: '^0.1.0'
   test: '^0.12.20'
