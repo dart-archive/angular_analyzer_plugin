@@ -59,6 +59,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD,
   AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
   AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
+  AngularWarningCode.UNSAFE_BINDING,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -428,6 +429,13 @@ class AngularWarningCode extends ErrorCode {
   static const PIPE_TRANSFORM_REQ_ONE_ARG = const AngularWarningCode(
       'PIPE_TRANSFORM_REQ_ONE_ARG',
       "'transform' method requires at least one argument");
+
+  /// An error indicating that a security exception will be thrown by this input
+  /// binding
+  static const UNSAFE_BINDING = const AngularWarningCode(
+      'UNSAFE_BINDING',
+      'A security exception will be thrown by this binding. You must use the '
+      ' security service to get an instance of {0} and bind that result.');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

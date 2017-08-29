@@ -156,6 +156,11 @@ library angular2;
 
 export 'package:angular/angular.dart';
 ''');
+    newSource('/angular2/security.dart', r'''
+library angular2.security;
+
+export 'package:angular/security.dart';
+''');
     newSource('/angular/angular.dart', r'''
 library angular;
 
@@ -164,6 +169,10 @@ export 'src/core/metadata.dart';
 export 'src/core/ng_if.dart';
 export 'src/core/ng_for.dart';
 export 'src/core/change_detection.dart';
+''');
+    newSource('/angular/security.dart', r'''
+library angular.security;
+export 'src/security/dom_sanitization_service.dart';
 ''');
     newSource('/angular/src/core/metadata.dart', r'''
 import 'dart:async';
@@ -335,6 +344,19 @@ class NgFor {
 }
 
 typedef dynamic TrackByFn(num index, dynamic item);
+''');
+    newSource('/angular/src/security/dom_sanitization_service.dart', r'''
+class SafeValue {}
+
+abstract class SafeHtml extends SafeValue {}
+
+abstract class SafeStyle extends SafeValue {}
+
+abstract class SafeScript extends SafeValue {}
+
+abstract class SafeUrl extends SafeValue {}
+
+abstract class SafeResourceUrl extends SafeValue {}
 ''');
   }
 

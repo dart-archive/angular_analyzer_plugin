@@ -410,6 +410,17 @@ class InputElement extends HtmlElement {
   String validationMessage;
 }
 
+class IFrameElement extends HtmlElement {
+  factory IFrameElement._() { throw new UnsupportedError("Not supported"); }
+  factory IFrameElement() => JS(
+      'returns:IFrameElement;creates:IFrameElement;new:true',
+      '#.createElement(#)',
+      document,
+      "iframe");
+  @DomName('HTMLIFrameElement.src')
+  String src;
+}
+
 class OptionElement extends HtmlElement {                                        
   factory OptionElement({String data: '', String value : '', bool selected: false}) {
   }                                                                              

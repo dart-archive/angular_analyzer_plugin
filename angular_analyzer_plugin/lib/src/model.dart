@@ -340,9 +340,16 @@ class InputElement extends AngularElementImpl {
   /// This should be null if there is no alternative name.
   final originalName;
 
+  /// Native inputs vulnerable to XSS (such as a.href and *.innerHTML) may have
+  /// a security context. The secure type of that context should be assignable
+  /// to this input, and if the security context does not allow sanitization
+  /// then it will always throw otherwise and thus should be treated as an
+  /// assignment error.
+  final SecurityContext securityContext;
+
   InputElement(String name, int nameOffset, int nameLength, Source source,
       this.setter, this.setterRange, this.setterType,
-      {this.originalName})
+      {this.originalName, this.securityContext})
       : super(name, nameOffset, nameLength, source);
 
   @override

@@ -1339,6 +1339,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
     for (final directiveBinding in attribute.parent.boundDirectives) {
       for (final input in directiveBinding.boundDirective.inputs) {
         if (input.name == attribute.name) {
+          if (!_checkTextAttrSecurity(attribute, input.securityContext)) {
+            continue;
+          }
+
           // Typecheck all but HTML inputs. For those, `width="10"` becomes
           // `setAttribute("width", "10")`, which is ok. But for directives and
           // components, this becomes `.someIntProp = "10"` which doesn't work.
@@ -1380,6 +1384,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
     final standardHtmlAttribute = standardHtmlAttributes[attribute.name];
     if (standardHtmlAttribute != null) {
+      _checkTextAttrSecurity(attribute, standardHtmlAttribute.securityContext);
       // Don't typecheck html inputs. Those become attributes, not properties,
       // which means strings values are OK.
       final range =
@@ -1399,6 +1404,21 @@ class SingleScopeResolver extends AngularScopeVisitor {
     if (attr.expression != null) {
       final attrType = attr.expression.bestType;
       final inputType = input.setterType;
+      final securityContext = input.securityContext;
+
+      if (securityContext != null) {
+        if (attrType.isAssignableTo(securityContext.safeType)) {
+          return;
+        } else if (!securityContext.sanitizationAvailable) {
+          errorListener.onError(new AnalysisError(
+              templateSource,
+              attr.valueOffset,
+              attr.value.length,
+              AngularWarningCode.UNSAFE_BINDING,
+              [securityContext.safeType.toString()]));
+          return;
+        }
+      }
 
       if (!attrType.isAssignableTo(inputType)) {
         errorListener.onError(new AnalysisError(
@@ -1409,6 +1429,27 @@ class SingleScopeResolver extends AngularScopeVisitor {
             [attrType, inputType]));
       }
     }
+  }
+
+  bool _checkTextAttrSecurity(
+      TextAttribute attribute, SecurityContext securityContext) {
+    if (securityContext == null) {
+      return true;
+    }
+    if (securityContext.sanitizationAvailable) {
+      return true;
+    }
+    if (attribute.mustaches.isEmpty) {
+      return true;
+    }
+
+    errorListener.onError(new AnalysisError(
+        templateSource,
+        attribute.valueOffset,
+        attribute.value.length,
+        AngularWarningCode.UNSAFE_BINDING,
+        [securityContext.safeType.toString()]));
+    return false;
   }
 
   /// Quick regex to match the spec, but doesn't handle unicode. They can start

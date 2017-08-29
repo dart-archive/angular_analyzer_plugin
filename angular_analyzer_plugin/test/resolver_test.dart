@@ -475,6 +475,137 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_safeBindings() async {
+    _addDartSource(r'''
+import 'package:angular/security.dart';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  SafeHtml html;
+  SafeUrl url;
+  SafeStyle style;
+  SafeResourceUrl resourceUrl;
+}
+''');
+    final code = r"""
+<a [innerHtml]='html' [innerHTML]='html' [href]='url'></a>
+<iframe [src]='resourceUrl'></iframe><!-- TODO test [style]='style' -->
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_wrongSafeBindingErrors() async {
+    _addDartSource(r'''
+import 'package:angular/security.dart';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  SafeHtml html;
+  SafeUrl url;
+  SafeStyle style;
+  SafeResourceUrl resourceUrl;
+}
+''');
+    final code = r"""
+<a [innerHtml]='style' [innerHTML]='url' [href]='resourceUrl'></a>
+<iframe [src]='html'></iframe> <!--TODO test [style]='html' -->
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+      AngularWarningCode.UNSAFE_BINDING, // resourceUrl gets reported this way
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_unsafelyBound() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String unsafe;
+}
+''');
+    final code = r"""
+<iframe [src]='unsafe'></iframe>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNSAFE_BINDING, code, 'unsafe');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_hardcodedDoesntNeedSanitization() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String unsafe;
+}
+''');
+    final code = r"""
+<iframe src='this does no sanitization and succeeds'></iframe>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_unsafelyBoundViaMustache() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String unsafe;
+}
+''');
+    final code = r"""
+<iframe src='this is ok until we bind {{unsafe}}'></iframe>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.UNSAFE_BINDING, code,
+        'this is ok until we bind {{unsafe}}');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_inputBinding_doesntNeedSafeBinding() async {
+    _addDartSource(r'''
+import 'package:angular/security.dart';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  SafeHtml html;
+  SafeUrl url;
+  SafeStyle style;
+  SafeResourceUrl resourceUrl;
+}
+''');
+    final code = r"""
+<a [class]='html'></a>
+<a [class]='url'></a>
+<a [class]='style'></a>
+<a [class]='resourceUrl'></a>
+""";
+    await angularDriver.getStandardHtml();
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+      AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_valid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
