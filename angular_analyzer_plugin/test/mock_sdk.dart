@@ -317,6 +317,7 @@ import 'dart:async';
 
 class Event {}
 class MouseEvent extends Event {}
+class KeyEvent extends Event {}
 
 class DomName {
   final String name;
@@ -344,7 +345,9 @@ class HtmlElement extends Element {
   @DomName('Element.onclick')
   ElementStream<MouseEvent> get onClick => null;
   @DomName('Element.onkeyup')
-  ElementStream<Event> get onKeyUp => null;
+  ElementStream<KeyEvent> get onKeyUp => null;
+  @DomName('Element.onkeydown')
+  ElementStream<KeyEvent> get onKeyDown => null;
   
   @DomName('HTMLElement.hidden')
   bool get hidden => null;
