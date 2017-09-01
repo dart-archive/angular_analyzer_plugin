@@ -350,8 +350,8 @@ class InheritedMetadataLinker {
   }
 
   InputElement reresolveInput(InputElement input) {
-    final setter = directive.classElement.lookUpSetter(
-        input.setter.name.replaceAll('=', ''), directive.classElement.library);
+    final setter = directive.classElement
+        .lookUpSetter(input.setter.displayName, directive.classElement.library);
     if (setter == null) {
       // Happens when an interface with an input isn't implemented correctly.
       // This will be accompanied by a dart error, so we can just return the
