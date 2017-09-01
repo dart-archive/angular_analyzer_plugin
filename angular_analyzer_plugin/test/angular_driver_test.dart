@@ -1345,86 +1345,6 @@ class MyComponent<T, A extends String, B extends A> {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_parameterizedInheritedInputsOutputs() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-class Generic<T> {
-  T input;
-  EventEmitter<T> output;
-}
-
-@Component(
-    selector: 'my-component',
-    template: '<p></p>',
-    inputs: const ['input'],
-    outputs: const ['output'])
-class MyComponent extends Generic {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.single;
-    final compInputs = component.inputs;
-    expect(compInputs, hasLength(1));
-    {
-      final input = compInputs[0];
-      expect(input.name, 'input');
-      expect(input.setterType, isNotNull);
-      expect(input.setterType.toString(), equals("dynamic"));
-    }
-
-    final compOutputs = component.outputs;
-    expect(compOutputs, hasLength(1));
-    {
-      final output = compOutputs[0];
-      expect(output.name, 'output');
-      expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("dynamic"));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_parameterizedInheritedInputsOutputsSpecified() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-class Generic<T> {
-  T input;
-  EventEmitter<T> output;
-}
-
-@Component(
-    selector: 'my-component',
-    template: '<p></p>',
-    inputs: const ['input'],
-    outputs: const ['output'])
-class MyComponent extends Generic<String> {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.single;
-    final compInputs = component.inputs;
-    expect(compInputs, hasLength(1));
-    {
-      final input = compInputs[0];
-      expect(input.name, 'input');
-      expect(input.setterType, isNotNull);
-      expect(input.setterType.toString(), equals("String"));
-    }
-
-    final compOutputs = component.outputs;
-    expect(compOutputs, hasLength(1));
-    {
-      final output = compOutputs[0];
-      expect(output.name, 'output');
-      expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("String"));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_finalPropertyInputError() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -3422,6 +3342,92 @@ class FinalComponent
   }
 
   // ignore: non_constant_identifier_names
+  Future test_inheritMetadata_overriddenWithVariance() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'dart:async';
+
+abstract class BaseComponent {
+  @Input()
+  set someInput(int x);
+
+  @Output()
+  Stream<Object> get someOutput;
+}
+
+@Component(selector: 'my-component', template: '<p></p>')
+class VarianceComponent extends BaseComponent {
+  set someInput(Object x) => null; // contravariance -- allowed on params
+
+  Stream<int> someOutput; // covariance -- allowed on returns
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives
+        .firstWhere((d) => d.classElement.name == 'VarianceComponent');
+    final compInputs = component.inputs;
+    final compOutputs = component.outputs;
+    expect(compInputs, hasLength(1));
+    {
+      final input = compInputs[0];
+      expect(input.name, 'someInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("Object"));
+    }
+    expect(compOutputs, hasLength(1));
+    {
+      final input = compOutputs[0];
+      expect(input.name, 'someOutput');
+      expect(input.eventType, isNotNull);
+      expect(input.eventType.toString(), equals("int"));
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_inheritMetadata_notReimplemented_stillSurfacesAPI() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'dart:async';
+
+abstract class BaseComponent {
+  @Input()
+  set someInput(int x);
+
+  @Output()
+  Stream<int> get someOutput;
+}
+
+@Component(selector: 'my-component', template: '<p></p>')
+class ImproperlyDefinedComponent extends BaseComponent {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives
+        .firstWhere((d) => d.classElement.name == 'ImproperlyDefinedComponent');
+    final compInputs = component.inputs;
+    final compOutputs = component.outputs;
+    expect(compInputs, hasLength(1));
+    {
+      final input = compInputs[0];
+      expect(input.name, 'someInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("int"));
+    }
+    expect(compOutputs, hasLength(1));
+    {
+      final input = compOutputs[0];
+      expect(input.name, 'someOutput');
+      expect(input.eventType, isNotNull);
+      expect(input.eventType.toString(), equals("int"));
+    }
+    errorListener.assertErrorsWithCodes(
+        [StaticWarningCode.NON_ABSTRACT_CLASS_INHERITS_ABSTRACT_MEMBER_TWO]);
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_hasError_DirectiveTypeLiteralExpected() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
@@ -3433,6 +3439,126 @@ class ComponentA {
     await getDirectives(source);
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_parameterizedInheritedInputsOutputs() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+class Generic<T> {
+  T inputViaChildDecl;
+  EventEmitter<T> outputViaChildDecl;
+  @Input()
+  T inputViaParentDecl;
+  @Output()
+  EventEmitter<T> outputViaParentDecl;
+}
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>',
+    inputs: const ['inputViaChildDecl'],
+    outputs: const ['outputViaChildDecl'])
+class MyComponent extends Generic {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.single;
+    final compInputs = component.inputs;
+    expect(compInputs, hasLength(2));
+    {
+      final input =
+          compInputs.singleWhere((i) => i.name == 'inputViaChildDecl');
+      expect(input, isNotNull);
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("dynamic"));
+    }
+    {
+      final input =
+          compInputs.singleWhere((i) => i.name == 'inputViaParentDecl');
+      expect(input, isNotNull);
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("dynamic"));
+    }
+
+    final compOutputs = component.outputs;
+    expect(compOutputs, hasLength(2));
+    {
+      final output =
+          compOutputs.singleWhere((o) => o.name == 'outputViaChildDecl');
+      expect(output, isNotNull);
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
+    {
+      final output =
+          compOutputs.singleWhere((o) => o.name == 'outputViaParentDecl');
+      expect(output, isNotNull);
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_parameterizedInheritedInputsOutputsSpecified() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+class Generic<T> {
+  T inputViaChildDecl;
+  EventEmitter<T> outputViaChildDecl;
+  @Input()
+  T inputViaParentDecl;
+  @Output()
+  EventEmitter<T> outputViaParentDecl;
+}
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>',
+    inputs: const ['inputViaChildDecl'],
+    outputs: const ['outputViaChildDecl'])
+class MyComponent extends Generic<String> {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.single;
+    final compInputs = component.inputs;
+    expect(compInputs, hasLength(2));
+    {
+      final input =
+          compInputs.singleWhere((i) => i.name == 'inputViaChildDecl');
+      expect(input, isNotNull);
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("String"));
+    }
+    {
+      final input =
+          compInputs.singleWhere((i) => i.name == 'inputViaParentDecl');
+      expect(input, isNotNull);
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("String"));
+    }
+
+    final compOutputs = component.outputs;
+    expect(compOutputs, hasLength(2));
+    {
+      final output =
+          compOutputs.singleWhere((o) => o.name == 'outputViaChildDecl');
+      expect(output, isNotNull);
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
+    }
+    {
+      final output =
+          compOutputs.singleWhere((o) => o.name == 'outputViaParentDecl');
+      expect(output, isNotNull);
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("String"));
+    }
   }
 }
 

@@ -320,8 +320,15 @@ class ExportLinker {
 class InheritedMetadataLinker {
   AbstractDirective directive;
   FileDirectiveProvider _fileDirectiveProvider;
+  BindingTypeSynthesizer bindingSynthesizer;
 
-  InheritedMetadataLinker(this.directive, this._fileDirectiveProvider);
+  InheritedMetadataLinker(this.directive, this._fileDirectiveProvider)
+      : bindingSynthesizer = new BindingTypeSynthesizer(
+            directive.classElement,
+            directive.classElement.library.definingCompilationUnit.context
+                .typeProvider,
+            directive.classElement.library.definingCompilationUnit.context,
+            new ErrorReporter(new IgnoringErrorListener(), directive.source));
 
   Future link() async {
     for (final supertype in directive.classElement.allSupertypes) {
@@ -335,11 +342,49 @@ class InheritedMetadataLinker {
         continue;
       }
 
-      directive.inputs.addAll(match.inputs);
-      directive.outputs.addAll(match.outputs);
+      directive.inputs.addAll(match.inputs.map(reresolveInput));
+      directive.outputs.addAll(match.outputs.map(reresolveOutput));
       directive.contentChildFields.addAll(match.contentChildFields);
       directive.contentChildrenFields.addAll(match.contentChildrenFields);
     }
+  }
+
+  InputElement reresolveInput(InputElement input) {
+    final setter = directive.classElement
+        .lookUpSetter(input.setter.displayName, directive.classElement.library);
+    if (setter == null) {
+      // Happens when an interface with an input isn't implemented correctly.
+      // This will be accompanied by a dart error, so we can just return the
+      // original without transformation to prevent cascading errors.
+      return input;
+    }
+    return new InputElement(
+        input.name,
+        input.nameOffset,
+        input.nameLength,
+        input.source,
+        setter,
+        new SourceRange(setter.nameOffset, setter.nameLength),
+        bindingSynthesizer.getSetterType(setter));
+  }
+
+  OutputElement reresolveOutput(OutputElement output) {
+    final getter = directive.classElement
+        .lookUpGetter(output.getter.name, directive.classElement.library);
+    if (getter == null) {
+      // Happens when an interface with an output isn't implemented correctly.
+      // This will be accompanied by a dart error, so we can just return the
+      // original without transformation to prevent cascading errors.
+      return output;
+    }
+    return new OutputElement(
+        output.name,
+        output.nameOffset,
+        output.nameLength,
+        output.source,
+        getter,
+        new SourceRange(getter.nameOffset, getter.nameLength),
+        bindingSynthesizer.getEventType(getter, output.name));
   }
 }
 
