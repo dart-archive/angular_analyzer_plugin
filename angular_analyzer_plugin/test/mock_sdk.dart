@@ -443,6 +443,22 @@ class TemplateElement extends HtmlElement {
   factory TemplateElement._() { throw new UnsupportedError("Not supported"); }
   factory TemplateElement() => document.createElement("template");
 }
+
+class AudioElement extends MediaElement {
+  factory AudioElement._([String src]) {
+    if (src != null) {
+      return AudioElement._create_1(src);
+    }
+    return AudioElement._create_2();
+  }
+  static AudioElement _create_1(src) => JS('AudioElement', 'new Audio(#)', src);
+  static AudioElement _create_2() => JS('AudioElement', 'new Audio()');
+  AudioElement.created() : super.created();
+
+  factory AudioElement([String src]) => new AudioElement._(src);
+}
+
+class MediaElement extends Element {}
 ''');
 
 const _LIB_INTERCEPTORS = const _MockSdkLibrary('dart:_interceptors',

@@ -38,6 +38,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   static const Map<String, String> specialElementClasses =
       const <String, String>{
+    "AudioElement": 'audio',
     "OptionElement": 'option',
     "DialogElement": "dialog",
     "MediaElement": "media",
