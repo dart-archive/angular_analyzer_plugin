@@ -19,13 +19,13 @@ Using this strategy allows the dart ecosystem to discover which version of our p
 Simply add to your [analysis_options.yaml file](https://www.dartlang.org/guides/language/analysis-options#the-analysis-options-file):
 
 ```
-# forwards compatible
+# forwards compatible (you need this)
 analyzer:
   plugins:
     angular:
       enabled: true
 
-# backwards compatible
+# backwards compatible (you also need this, for the moment)
 plugins:
   angular:
     enabled: true
