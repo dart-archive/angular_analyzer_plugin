@@ -157,6 +157,10 @@ class ExpressionBoundAttribute extends BoundAttributeInfo {
 
 class StatementsBoundAttribute extends BoundAttributeInfo {
   List<Statement> statements;
+
+  /// Reductions as in `(keyup.ctrl.shift.space)`. Not currently analyzed.
+  List<String> reductions;
+
   StatementsBoundAttribute(
       String name,
       int nameOffset,
@@ -164,6 +168,7 @@ class StatementsBoundAttribute extends BoundAttributeInfo {
       int valueOffset,
       String originalName,
       int originalNameOffset,
+      this.reductions,
       this.statements)
       : super(name, nameOffset, value, valueOffset, originalName,
             originalNameOffset);

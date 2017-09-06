@@ -108,6 +108,26 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_keyupdownWithKeysOk() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handle(dynamic e) {
+  }
+}
+''');
+    _addHtmlSource(r"""
+<div (keyup.a)='handle($event)'></div>
+<div (keydown.enter)='handle($event)'></div>
+<div (keydown.shift.x)='handle($event)'></div>
+""");
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_nativeEventBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
