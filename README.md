@@ -10,22 +10,32 @@
 
 **Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
 
-## Building & Installing -- Version One (recommended but soon to be deprecated)
+## Installing By Angular Version -- For Angular Developers (recommended)
 
-Download chrome depot tools, and clone this repository.
+Requires angular-4.0.0 and dart SDK 1.25.0-dev.12.0 or higher to work.
 
-Then run 
+Using this strategy allows the dart ecosystem to discover which version of our plugin will work best with your version of angular, and therefore is recommended.
+
+Simply add to your [analysis_options.yaml file](https://www.dartlang.org/guides/language/analysis-options#the-analysis-options-file):
+
 ```
-./tools/get_deps.sh
-cd old_plugin_loader/bin
-./make_snapshot
+# forwards compatible
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+
+# backwards compatible
+plugins:
+  angular:
+    enabled: true
 ```
 
-Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
+Eventually, only the forwards compatible section will be required.
 
-## Building -- Version Two (not usable yet, but this will soon be the future)
+Then simply reboot your analysis server (inside IntelliJ this is done by clicking on the skull icon if it exists, or the refresh icon otherwise) and wait for the plugin to fully load, which can take a minute on the first run.
 
-Under the next system, you will not need to build to install (woo hoo!). However, these steps currently don't produce anything usable. Installation steps will come once its ready.
+## Building -- For hacking on this plugin, or using the latest
 
 Download chrome depot tools, and clone this repository.
 
@@ -40,7 +50,20 @@ Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be
 
 Then run `pub get`.
 
-You can now use this in projects on your local system which a correctly configured pubspec. For instance, `playground/`. Note that you must `import 'package:angular_analyzer_plugin/enable.dart'` in your project to get the analysis.
+You can now use this in projects on your local system which a correctly configured pubspec and analysis options. For instance, `playground/`. Note that it imports the plugin by path, and imports it as a plugin inside `analysis_options.yaml`.
+
+## Building & Installing -- Old Plugin Loader (deprecated)
+
+Download chrome depot tools, and clone this repository.
+
+Then run 
+```
+./tools/get_deps.sh
+cd old_plugin_loader/bin
+./make_snapshot
+```
+
+Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
 
 ## Chart of Current Features
 
