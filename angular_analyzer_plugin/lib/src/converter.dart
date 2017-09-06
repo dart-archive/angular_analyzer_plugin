@@ -415,7 +415,7 @@ class HtmlTreeConverter {
     }
     final valueOffset = ast.valueOffset;
 
-    final propName = nameToken.lexeme;
+    final propName = ast.name;
     final propNameOffset = nameToken.offset;
 
     return new StatementsBoundAttribute(
@@ -425,6 +425,7 @@ class HtmlTreeConverter {
         valueOffset,
         origName,
         origNameOffset,
+        ast.reductions,
         dartParser.parseDartStatements(valueOffset, value));
   }
 

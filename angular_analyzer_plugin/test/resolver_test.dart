@@ -121,7 +121,7 @@ class TestPanel {
     _addHtmlSource(r"""
 <div (keyup.a)='handle($event)'></div>
 <div (keydown.enter)='handle($event)'></div>
-<div (keydown.shift.+)='handle($event)'></div>
+<div (keydown.shift.x)='handle($event)'></div>
 """);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
