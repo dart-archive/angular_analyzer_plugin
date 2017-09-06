@@ -176,6 +176,8 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
     expect(map['option'], isNotNull);
     // <template> is special, not actually a TemplateElement
     expect(map['template'], isNull);
+    // <audio> is a "specialElementClass", its ctor isn't analyzable.
+    expect(map['audio'], isNotNull);
   }
 
   // ignore: non_constant_identifier_names
