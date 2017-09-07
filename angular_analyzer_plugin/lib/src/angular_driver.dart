@@ -159,6 +159,9 @@ class AngularDriver
 
   @override
   AnalysisDriverPriority get workPriority {
+    if (!_hasAngularImported && !_hasAngular2Imported) {
+      return AnalysisDriverPriority.nothing;
+    }
     if (standardHtml == null) {
       return AnalysisDriverPriority.interactive;
     }
@@ -182,14 +185,13 @@ class AngularDriver
 
   @override
   Future<Null> performWork() async {
-    if (standardHtml == null) {
-      getStandardHtml(); // ignore: unawaited_futures
+    if (standardAngular == null) {
+      getStandardAngular(); // ignore: unawaited_futures
       return;
     }
 
-    if ((_hasAngularImported || _hasAngular2Imported) &&
-        standardAngular == null) {
-      getStandardAngular(); // ignore: unawaited_futures
+    if (standardHtml == null) {
+      getStandardHtml(); // ignore: unawaited_futures
       return;
     }
 
@@ -271,12 +273,13 @@ class AngularDriver
       final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
 
       final result = await dartDriver.getResult(source.fullName);
+      final securitySchema = (await getStandardAngular()).securitySchema;
 
       final components = <String, Component>{};
       final events = <String, OutputElement>{};
       final attributes = <String, InputElement>{};
       result.unit.accept(new BuildStandardHtmlComponentsVisitor(
-          components, events, attributes, source));
+          components, events, attributes, source, securitySchema));
 
       standardHtml = new StandardHtml(components, events, attributes);
     }
@@ -296,15 +299,15 @@ class AngularDriver
         return standardAngular;
       }
 
-      final result = await dartDriver.getResult(source.fullName);
+      final securitySource = _sourceFactory.resolveUri(
+          null,
+          _hasAngular2Imported
+              ? "package:angular2/security.dart"
+              : "package:angular/security.dart");
 
-      final namespace = result.unit.element.library.exportNamespace;
-
-      standardAngular = new StandardAngular(
-          queryList: namespace.get("QueryList"),
-          elementRef: namespace.get("ElementRef"),
-          templateRef: namespace.get("TemplateRef"),
-          pipeTransform: namespace.get("PipeTransform"));
+      standardAngular = new StandardAngular.fromAnalysis(
+          await dartDriver.getResult(source.fullName),
+          await dartDriver.getResult(securitySource.fullName));
     }
 
     return standardAngular;

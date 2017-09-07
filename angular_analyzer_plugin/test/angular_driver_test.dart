@@ -22,6 +22,7 @@ void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AngularParseHtmlTest);
     defineReflectiveTests(BuildStandardHtmlComponentsTest);
+    defineReflectiveTests(BuildStandardAngularTest);
     defineReflectiveTests(GatherAnnotationsTest);
     defineReflectiveTests(BuildUnitViewsTest);
     defineReflectiveTests(ResolveDartTemplatesTest);
@@ -124,6 +125,9 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("String"));
+        expect(input.securityContext, isNotNull);
+        expect(input.securityContext.safeType.toString(), equals('SafeUrl'));
+        expect(input.securityContext.sanitizationAvailable, equals(true));
       }
       expect(outputElements, hasLength(0));
       expect(inputs.where((i) => i.name == '_privateField'), hasLength(0));
@@ -141,8 +145,27 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
         expect(input, isNotNull);
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("bool"));
+        expect(input.securityContext, isNull);
       }
       expect(outputElements, hasLength(0));
+    }
+    // iframe
+    {
+      final component = map['iframe'];
+      expect(component, isNotNull);
+      expect(component.classElement.displayName, 'IFrameElement');
+      expect(component.selector.toString(), 'iframe');
+      final inputs = component.inputs;
+      {
+        final input = inputs.singleWhere((i) => i.name == 'src');
+        expect(input, isNotNull);
+        expect(input.setter, isNotNull);
+        expect(input.setterType.toString(), equals("String"));
+        expect(input.securityContext, isNotNull);
+        expect(input.securityContext.safeType.toString(),
+            equals('SafeResourceUrl'));
+        expect(input.securityContext.sanitizationAvailable, equals(false));
+      }
     }
     // input
     {
@@ -239,6 +262,73 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       expect(input.setter, isNotNull);
       expect(input.setterType.toString(), equals("bool"));
     }
+    {
+      final input = inputElements['innerHtml'];
+      expect(input, isNotNull);
+      expect(identical(input, inputElements['innerHTML']), true);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals('String'));
+      expect(input.securityContext, isNotNull);
+      expect(input.securityContext.safeType.toString(), equals('SafeHtml'));
+      expect(input.securityContext.sanitizationAvailable, equals(true));
+    }
+  }
+}
+
+@reflectiveTest
+class BuildStandardAngularTest extends AbstractAngularTest {
+  // ignore: non_constant_identifier_names
+  Future test_perform() async {
+    final ng = await angularDriver.getStandardAngular();
+    // validate
+    expect(ng, isNotNull);
+    expect(ng.templateRef, isNotNull);
+    expect(ng.elementRef, isNotNull);
+    expect(ng.queryList, isNotNull);
+    expect(ng.pipeTransform, isNotNull);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_securitySchema() async {
+    final ng = await angularDriver.getStandardAngular();
+    // validate
+    expect(ng, isNotNull);
+    expect(ng.securitySchema, isNotNull);
+
+    final imgSrcSecurity = ng.securitySchema.lookup('img', 'src');
+    expect(imgSrcSecurity, isNotNull);
+    expect(imgSrcSecurity.safeType.toString(), 'SafeUrl');
+    expect(imgSrcSecurity.sanitizationAvailable, true);
+
+    final aHrefSecurity = ng.securitySchema.lookup('a', 'href');
+    expect(aHrefSecurity, isNotNull);
+    expect(aHrefSecurity.safeType.toString(), 'SafeUrl');
+    expect(aHrefSecurity.sanitizationAvailable, true);
+
+    final innerHtmlSecurity = ng.securitySchema.lookupGlobal('innerHTML');
+    expect(innerHtmlSecurity, isNotNull);
+    expect(innerHtmlSecurity.safeType.toString(), 'SafeHtml');
+    expect(innerHtmlSecurity.sanitizationAvailable, true);
+
+    final iframeSrcdocSecurity = ng.securitySchema.lookup('iframe', 'srcdoc');
+    expect(iframeSrcdocSecurity, isNotNull);
+    expect(iframeSrcdocSecurity.safeType.toString(), 'SafeHtml');
+    expect(iframeSrcdocSecurity.sanitizationAvailable, true);
+
+    final styleSecurity = ng.securitySchema.lookupGlobal('style');
+    expect(styleSecurity, isNotNull);
+    expect(styleSecurity.safeType.toString(), 'SafeStyle');
+    expect(styleSecurity.sanitizationAvailable, true);
+
+    final iframeSrcSecurity = ng.securitySchema.lookup('iframe', 'src');
+    expect(iframeSrcSecurity, isNotNull);
+    expect(iframeSrcSecurity.safeType.toString(), 'SafeResourceUrl');
+    expect(iframeSrcSecurity.sanitizationAvailable, false);
+
+    final scriptSrcSecurity = ng.securitySchema.lookup('script', 'src');
+    expect(scriptSrcSecurity, isNotNull);
+    expect(scriptSrcSecurity.safeType.toString(), 'SafeResourceUrl');
+    expect(scriptSrcSecurity.sanitizationAvailable, false);
   }
 }
 

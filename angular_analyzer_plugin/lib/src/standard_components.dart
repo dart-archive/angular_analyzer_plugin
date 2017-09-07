@@ -2,6 +2,7 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -25,9 +26,114 @@ class StandardAngular {
   final ClassElement elementRef;
   final ClassElement queryList;
   final ClassElement pipeTransform;
+  final SecuritySchema securitySchema;
 
   StandardAngular(
-      {this.templateRef, this.elementRef, this.queryList, this.pipeTransform});
+      {this.templateRef,
+      this.elementRef,
+      this.queryList,
+      this.pipeTransform,
+      this.securitySchema});
+
+  factory StandardAngular.fromAnalysis(
+      AnalysisResult ngResult, AnalysisResult securityResult) {
+    final ng = ngResult.unit.element.library.exportNamespace;
+    final security = securityResult.unit.element.library.exportNamespace;
+
+    SecurityContext makeSecurityContext(Element element,
+            {bool sanitizationAvailable: true}) =>
+        new SecurityContext((element as ClassElement)?.type,
+            sanitizationAvailable: sanitizationAvailable);
+
+    final securitySchema = new SecuritySchema(
+        htmlSecurityContext: makeSecurityContext(security.get('SafeHtml')),
+        urlSecurityContext: makeSecurityContext(security.get('SafeUrl')),
+        styleSecurityContext: makeSecurityContext(security.get('SafeStyle')),
+        scriptSecurityContext: makeSecurityContext(security.get('SafeScript'),
+            sanitizationAvailable: false),
+        resourceUrlSecurityContext: makeSecurityContext(
+            security.get('SafeResourceUrl'),
+            sanitizationAvailable: false));
+
+    return new StandardAngular(
+        queryList: ng.get("QueryList"),
+        elementRef: ng.get("ElementRef"),
+        templateRef: ng.get("TemplateRef"),
+        pipeTransform: ng.get("PipeTransform"),
+        securitySchema: securitySchema);
+  }
+}
+
+class SecuritySchema {
+  final Map<String, SecurityContext> schema = {};
+
+  void _registerSecuritySchema(SecurityContext context, List<String> specs) {
+    for (final spec in specs) {
+      schema[spec] = context;
+    }
+  }
+
+  SecuritySchema(
+      {SecurityContext htmlSecurityContext,
+      SecurityContext urlSecurityContext,
+      SecurityContext scriptSecurityContext,
+      SecurityContext styleSecurityContext,
+      SecurityContext resourceUrlSecurityContext}) {
+    // This is written to be easily synced to angular's security
+    _registerSecuritySchema(
+        htmlSecurityContext, ['iframe|srcdoc', '*|innerHTML', '*|outerHTML']);
+    _registerSecuritySchema(styleSecurityContext, ['*|style']);
+    _registerSecuritySchema(urlSecurityContext, [
+      '*|formAction',
+      'area|href',
+      'area|ping',
+      'audio|src',
+      'a|href',
+      'a|ping',
+      'blockquote|cite',
+      'body|background',
+      'del|cite',
+      'form|action',
+      'img|src',
+      'img|srcset',
+      'input|src',
+      'ins|cite',
+      'q|cite',
+      'source|src',
+      'source|srcset',
+      'video|poster',
+      'video|src'
+    ]);
+    _registerSecuritySchema(resourceUrlSecurityContext, [
+      'applet|code',
+      'applet|codebase',
+      'base|href',
+      'embed|src',
+      'frame|src',
+      'head|profile',
+      'html|manifest',
+      'iframe|src',
+      'link|href',
+      'media|src',
+      'object|codebase',
+      'object|data',
+      'script|src',
+      'track|src'
+    ]);
+    // TODO where's script security?
+  }
+
+  SecurityContext lookup(String elementName, String name) =>
+      schema['$elementName|$name'];
+
+  SecurityContext lookupGlobal(String name) => schema['*|$name'];
+}
+
+class SecurityContext {
+  final DartType safeType;
+  final bool sanitizationAvailable;
+
+  SecurityContext(this.safeType, {this.sanitizationAvailable = true});
 }
 
 class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
@@ -35,6 +141,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   final Map<String, OutputElement> events;
   final Map<String, InputElement> attributes;
   final Source source;
+  final SecuritySchema securitySchema;
 
   static const Map<String, String> specialElementClasses =
       const <String, String>{
@@ -57,19 +164,19 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   ClassElement classElement;
 
-  BuildStandardHtmlComponentsVisitor(
-      this.components, this.events, this.attributes, this.source);
+  BuildStandardHtmlComponentsVisitor(this.components, this.events,
+      this.attributes, this.source, this.securitySchema);
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
     classElement = node.element;
     super.visitClassDeclaration(node);
     if (classElement.name == 'HtmlElement') {
-      final outputElements = _buildOutputs(false);
+      final outputElements = _buildOutputs(true);
       for (final outputElement in outputElements) {
         events[outputElement.name] = outputElement;
       }
-      final inputElements = _buildInputs(false);
+      final inputElements = _buildInputs();
       for (final inputElement in inputElements) {
         attributes[inputElement.name] = inputElement;
         final originalName = inputElement.originalName;
@@ -138,8 +245,8 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   /// Return a new [Component] for the current [classElement].
   Component _buildComponent(String tag, int tagOffset) {
-    final inputElements = _buildInputs(true);
-    final outputElements = _buildOutputs(true);
+    final inputElements = _buildInputs(tagname: tag);
+    final outputElements = _buildOutputs(false);
     return new Component(classElement,
         inputs: inputElements,
         outputs: outputElements,
@@ -152,7 +259,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   /// TODO(mfairhurst) remove this fix once dart:html is fixed
   String fixName(String name) => name == 'innerHtml' ? 'innerHTML' : name;
 
-  List<InputElement> _buildInputs(bool skipHtmlElement) =>
+  List<InputElement> _buildInputs({String tagname}) =>
       _captureAspects((inputMap, accessor) {
         final name = fixName(accessor.displayName);
         final prettyName = alternativeInputs[name];
@@ -160,20 +267,22 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         if (!inputMap.containsKey(name)) {
           if (accessor.isSetter) {
             inputMap[name] = new InputElement(
-              prettyName ?? name,
-              accessor.nameOffset,
-              accessor.nameLength,
-              accessor.source,
-              accessor,
-              new SourceRange(accessor.nameOffset, accessor.nameLength),
-              accessor.variable.type,
-              originalName: originalName,
-            );
+                prettyName ?? name,
+                accessor.nameOffset,
+                accessor.nameLength,
+                accessor.source,
+                accessor,
+                new SourceRange(accessor.nameOffset, accessor.nameLength),
+                accessor.variable.type,
+                originalName: originalName,
+                securityContext: tagname == null
+                    ? securitySchema.lookupGlobal(name)
+                    : securitySchema.lookup(tagname, name));
           }
         }
-      }, skipHtmlElement); // Either grabbing HtmlElement attrs or skipping them
+      }, tagname == null); // Either grabbing HtmlElement attrs or skipping them
 
-  List<OutputElement> _buildOutputs(bool skipHtmlElement) =>
+  List<OutputElement> _buildOutputs(bool globalOutputs) =>
       _captureAspects((outputMap, accessor) {
         final domName = _getDomName(accessor);
         if (domName == null) {
@@ -206,7 +315,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
             }
           }
         }
-      }, skipHtmlElement); // Either grabbing HtmlElement events or skipping them
+      }, globalOutputs); // Either grabbing HtmlElement events or skipping them
 
   String _getDomName(Element element) {
     for (final annotation in element.metadata) {
@@ -222,8 +331,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     return null;
   }
 
-  List<T> _captureAspects<T>(
-      CaptureAspectFn<T> addAspect, bool skipHtmlElement) {
+  List<T> _captureAspects<T>(CaptureAspectFn<T> addAspect, bool globalAspects) {
     final aspectMap = <String, T>{};
     final visitedTypes = new Set<InterfaceType>();
 
@@ -233,7 +341,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
         // (even directives) can use them. Note, this leaves only a few
         // special elements with outputs such as BodyElement, everything else
         // relies on standardHtmlEvents checked after the outputs.
-        if (!skipHtmlElement || type.name != 'HtmlElement') {
+        if (globalAspects || type.name != 'HtmlElement') {
           type.accessors
               .where((elem) => !elem.isPrivate)
               .forEach((elem) => addAspect(aspectMap, elem));
