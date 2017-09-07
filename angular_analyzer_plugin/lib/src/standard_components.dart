@@ -79,7 +79,7 @@ class SecuritySchema {
       SecurityContext scriptSecurityContext,
       SecurityContext styleSecurityContext,
       SecurityContext resourceUrlSecurityContext}) {
-    // This written to be easily synced to angular's security
+    // This is written to be easily synced to angular's security
     _registerSecuritySchema(
         htmlSecurityContext, ['iframe|srcdoc', '*|innerHTML', '*|outerHTML']);
     _registerSecuritySchema(styleSecurityContext, ['*|style']);
