@@ -59,6 +59,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD,
   AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
   AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
+  AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -428,6 +429,12 @@ class AngularWarningCode extends ErrorCode {
   static const PIPE_TRANSFORM_REQ_ONE_ARG = const AngularWarningCode(
       'PIPE_TRANSFORM_REQ_ONE_ARG',
       "'transform' method requires at least one argument");
+
+  /// An error indicating that the 'transform' method within a Pipe
+  /// requires at least one argument.
+  static const EVENT_REDUCTION_NOT_ALLOWED = const AngularWarningCode(
+      'EVENT_REDUCTION_NOT_ALLOWED',
+      'Event reductions are only allowed on keyup and keydown events');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given
