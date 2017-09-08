@@ -17,3 +17,7 @@ dependency_overrides:
     path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/analyzer_plugin
   kernel:
     path: ABSOLUTE_PATH_TO_REPO/deps/sdk/pkg/kernel
+  angular_ast:
+    git:
+      url: https://github.com/dart-lang/angular_ast
+      ref: master

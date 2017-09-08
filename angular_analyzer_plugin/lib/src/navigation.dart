@@ -67,7 +67,8 @@ class AngularNavigation implements NavigationContributor {
       collector.addRegion(
           input.setterRange.offset,
           input.setterRange.length,
-          null, //protocol.convertElementKind(setter.kind),
+          protocol.ElementKind.UNKNOWN, // TODO create & use convertElement API
+          // protocol.convertElementKind(setter.kind),
           new protocol.Location(
               setter.source.fullName,
               setter.nameOffset,
