@@ -1,5 +1,6 @@
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as protocol;
+import 'package:analyzer_plugin/utilities/analyzer_converter.dart' as protocol;
 import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
 import 'package:analyzer/dart/element/element.dart' as engine;
 import 'package:analyzer/src/generated/source.dart';
@@ -67,8 +68,7 @@ class AngularNavigation implements NavigationContributor {
       collector.addRegion(
           input.setterRange.offset,
           input.setterRange.length,
-          protocol.ElementKind.UNKNOWN, // TODO create & use convertElement API
-          // protocol.convertElementKind(setter.kind),
+          new protocol.AnalyzerConverter().convertElementKind(setter.kind),
           new protocol.Location(
               setter.source.fullName,
               setter.nameOffset,
