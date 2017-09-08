@@ -681,6 +681,16 @@ class PrepareEventScopeVisitor extends AngularScopeVisitor {
 
   @override
   void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    if (attr.reductions.isNotEmpty &&
+        attr.name != 'keyup' &&
+        attr.name != 'keydown') {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attr.reductionsOffset,
+          attr.reductionsLength,
+          AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED));
+    }
+
     var eventType = typeProvider.dynamicType;
     var matched = false;
 

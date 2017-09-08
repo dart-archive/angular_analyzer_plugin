@@ -60,6 +60,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
   AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
   AngularWarningCode.UNSAFE_BINDING,
+  AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
@@ -436,6 +437,12 @@ class AngularWarningCode extends ErrorCode {
       'UNSAFE_BINDING',
       'A security exception will be thrown by this binding. You must use the '
       ' security service to get an instance of {0} and bind that result.');
+
+  /// An error indicating that an event other than `(keyup.x)` or `(keydown.+)`
+  /// etc, had reduction suffixes in that style, which is not allowed.
+  static const EVENT_REDUCTION_NOT_ALLOWED = const AngularWarningCode(
+      'EVENT_REDUCTION_NOT_ALLOWED',
+      'Event reductions are only allowed on keyup and keydown events');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given
