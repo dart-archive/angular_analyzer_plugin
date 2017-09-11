@@ -176,9 +176,10 @@ class StatementsBoundAttribute extends BoundAttributeInfo {
   @override
   String toString() => '(${super.toString()}, [$statements])';
 
-  int get reductionsOffset => nameOffset + name.length;
+  int get reductionsOffset =>
+      reductions.isEmpty ? null : nameOffset + name.length;
   int get reductionsLength =>
-      reductions.isEmpty ? 0 : '.'.length + reductions.join('.').length;
+      reductions.isEmpty ? null : '.'.length + reductions.join('.').length;
 
   @override
   void accept(AngularAstVisitor visitor) =>
