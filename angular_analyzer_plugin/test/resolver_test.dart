@@ -128,6 +128,26 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_reductionsOnRegularOutputsNotAllowed() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html')
+class TestPanel {
+  void handle(dynamic e) {
+  }
+}
+''');
+    var code = r'''
+<div (click.whatever)='handle($event)'></div>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED, code, '.whatever');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_nativeEventBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
