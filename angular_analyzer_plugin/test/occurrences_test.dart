@@ -1,5 +1,5 @@
 import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 void main() {
   defineReflectiveSuite(() {
