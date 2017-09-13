@@ -291,9 +291,9 @@ class AngularDriver
     if (standardAngular == null) {
       final source = _sourceFactory.resolveUri(
           null,
-          _hasAngular2Imported
-              ? "package:angular2/angular2.dart"
-              : "package:angular/angular.dart");
+          _hasAngularImported
+              ? "package:angular/angular.dart"
+              : "package:angular2/angular2.dart");
 
       if (source == null) {
         return standardAngular;
@@ -301,9 +301,9 @@ class AngularDriver
 
       final securitySource = _sourceFactory.resolveUri(
           null,
-          _hasAngular2Imported
-              ? "package:angular2/security.dart"
-              : "package:angular/security.dart");
+          _hasAngularImported
+              ? "package:angular/security.dart"
+              : "package:angular2/security.dart");
 
       standardAngular = new StandardAngular.fromAnalysis(
           await dartDriver.getResult(source.fullName),
