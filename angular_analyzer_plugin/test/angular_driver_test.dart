@@ -4538,7 +4538,8 @@ class ResolveHtmlTemplateTest extends AbstractAngularTest {
     fillErrorListener(result2.errors);
     views = result2.directives
         .map((d) => d is Component ? d.view : null)
-        .where((v) => v != null);
+        .where((v) => v != null)
+        .toList();
   }
 
   // ignore: non_constant_identifier_names
