@@ -10,5 +10,5 @@ cd $PACKAGE
 dartanalyzer lib test
 
 # Run the actual tests
-dart test/test_all.dart
+dart --checked test/test_all.dart
 

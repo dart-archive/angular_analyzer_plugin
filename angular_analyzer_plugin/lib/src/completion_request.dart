@@ -1,6 +1,7 @@
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/standard_ast_factory.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
@@ -63,6 +64,12 @@ class AngularCompletionRequest extends CompletionRequest {
       _dartSnippet = extractor.dartSnippet;
       _angularTarget = extractor.target;
       if (_dartSnippet != null) {
+        if (_dartSnippet is Expression) {
+          // wrap dart snippet in a ParenthesizedExpression, because the dart
+          // completion engine expects all expressions to have parents.
+          _dartSnippet =
+              astFactory.parenthesizedExpression(null, _dartSnippet, null);
+        }
         _completionTarget = new CompletionTarget.forOffset(null, offset,
             entryPoint: _dartSnippet);
       }
