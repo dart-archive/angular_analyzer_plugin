@@ -452,8 +452,8 @@ class AngularWarningCode extends ErrorCode {
 }
 
 class AngularHintCode extends AngularWarningCode {
-  /// An error code indicating that an output-bound statement
-  /// must be an [ExpressionStatement].
+  /// When a user does for instance `template: 'foo$bar$baz`, we cannot analyze
+  /// the template because we cannot easily map errors to code offsets.
   static const OFFSETS_CANNOT_BE_CREATED = const AngularHintCode(
       'OFFSETS_CANNOT_BE_CREATED',
       'Errors cannot be tracked for the constant expression because it is too'
