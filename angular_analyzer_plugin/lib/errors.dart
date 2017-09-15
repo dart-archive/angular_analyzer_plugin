@@ -39,7 +39,6 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
   AngularWarningCode.TEMPLATE_ATTR_NOT_USED,
   AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
-  AngularHintCode.OFFSETS_CANNOT_BE_CREATED,
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
@@ -61,6 +60,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
   AngularWarningCode.UNSAFE_BINDING,
   AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
+  AngularHintCode.OFFSETS_CANNOT_BE_CREATED,
 ];
 
 /// The lazy initialized map from [AngularWarningCode.uniqueName] to the
