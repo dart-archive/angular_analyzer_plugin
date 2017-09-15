@@ -160,16 +160,16 @@ class AnnotationProcessorMixin {
       final evaluator = new OffsettingConstantEvaluator();
       evaluator.value = expression.accept(evaluator);
 
-      if (evaluator.value is String) {
-        if (!evaluator.offsetsAreValid) {
-          errorReporter.reportErrorForNode(
-              AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
-              evaluator.lastUnoffsettableNode);
-        }
-        return evaluator;
+      if (!evaluator.offsetsAreValid) {
+        errorReporter.reportErrorForNode(
+            AngularHintCode.OFFSETS_CANNOT_BE_CREATED,
+            evaluator.lastUnoffsettableNode);
+      } else if (evaluator.value is! String &&
+          evaluator.value != utils.ConstantEvaluator.NOT_A_CONSTANT) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.STRING_VALUE_EXPECTED, expression);
       }
-      errorReporter.reportErrorForNode(
-          AngularWarningCode.STRING_VALUE_EXPECTED, expression);
+      return evaluator;
     }
     return null;
   }

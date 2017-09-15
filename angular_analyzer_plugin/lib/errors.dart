@@ -39,7 +39,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
   AngularWarningCode.TEMPLATE_ATTR_NOT_USED,
   AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
-  AngularWarningCode.OFFSETS_CANNOT_BE_CREATED,
+  AngularHintCode.OFFSETS_CANNOT_BE_CREATED,
   AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
   AngularWarningCode.OUTPUT_STATEMENT_REQUIRES_EXPRESSION_STATEMENT,
   AngularWarningCode.DISALLOWED_EXPRESSION,
@@ -306,13 +306,6 @@ class AngularWarningCode extends ErrorCode {
   static const DISALLOWED_EXPRESSION = const AngularWarningCode(
       'DISALLOWED_EXPRESSION', "{0} not allowed in angular templates");
 
-  /// An error code indicating that an output-bound statement
-  /// must be an [ExpressionStatement].
-  static const OFFSETS_CANNOT_BE_CREATED = const AngularWarningCode(
-      'OFFSETS_CANNOT_BE_CREATED',
-      'Errors cannot be tracked for the constant expression because it is too'
-      ' complex for errors to be mapped to locations in the file');
-
   /// An error code indicating that dom inside a component won't be transcluded
   static const CONTENT_NOT_TRANSCLUDED = const AngularWarningCode(
       'CONTENT_NOT_TRANSCLUDED',
@@ -456,4 +449,26 @@ class AngularWarningCode extends ErrorCode {
 
   @override
   ErrorType get type => ErrorType.STATIC_WARNING;
+}
+
+class AngularHintCode extends AngularWarningCode {
+  /// An error code indicating that an output-bound statement
+  /// must be an [ExpressionStatement].
+  static const OFFSETS_CANNOT_BE_CREATED = const AngularHintCode(
+      'OFFSETS_CANNOT_BE_CREATED',
+      'Errors cannot be tracked for the constant expression because it is too'
+      ' complex for errors to be mapped to locations in the file');
+
+  /// Initialize a newly created error code to have the given [name].
+  /// The message associated with the error will be created from the given
+  /// [message] template. The correction associated with the error will be
+  /// created from the given [correction] template.
+  const AngularHintCode(String name, String message, [String correction])
+      : super(name, message, correction);
+
+  @override
+  ErrorSeverity get errorSeverity => ErrorSeverity.INFO;
+
+  @override
+  ErrorType get type => ErrorType.HINT;
 }
