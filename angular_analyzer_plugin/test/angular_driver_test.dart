@@ -2048,7 +2048,7 @@ class ComponentA {
 ''');
     await getViews(source);
     errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+        <ErrorCode>[AngularHintCode.OFFSETS_CANNOT_BE_CREATED]);
   }
 
   // ignore: non_constant_identifier_names
@@ -4295,7 +4295,7 @@ class ComponentA {
     await getDirectives(source);
     expect(templates, hasLength(0));
     errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.STRING_VALUE_EXPECTED]);
+        <ErrorCode>[AngularHintCode.OFFSETS_CANNOT_BE_CREATED]);
   }
 
   // ignore: non_constant_identifier_names
