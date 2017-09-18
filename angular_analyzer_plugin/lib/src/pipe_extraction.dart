@@ -1,3 +1,4 @@
+import 'package:analyzer/analyzer.dart' as analyzer;
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -118,7 +119,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
     }
     for (final parameter in parameters) {
       // If named or positional
-      if (parameter.parameterKind.ordinal > 0) {
+      if (parameter.parameterKind == analyzer.ParameterKind.NAMED) {
         errorReporter.reportErrorForElement(
             AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS, parameter);
         continue;

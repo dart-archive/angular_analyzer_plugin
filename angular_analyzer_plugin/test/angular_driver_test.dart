@@ -766,6 +766,43 @@ class PipeA extends PipeTransform{}
   }
 
   // ignore: non_constant_identifier_names
+  Future test_Pipe_error_named_args() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+  transform({named}) {}
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_allowedOptionalArgs() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+  transform([named]) {}
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_exportAs_Component() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
