@@ -142,8 +142,11 @@ class DirectiveLinker {
           deserializeContentChildFields(annotations.contentChildFields);
       final contentChildrenFields =
           deserializeContentChildFields(annotations.contentChildrenFields);
-      annotatedClasses.add(new AngularAnnotatedClass(classElem, inputs, outputs,
-          contentChildFields, contentChildrenFields));
+      annotatedClasses.add(new AngularAnnotatedClass(classElem,
+          inputs: inputs,
+          outputs: outputs,
+          contentChildFields: contentChildFields,
+          contentChildrenFields: contentChildrenFields));
     }
 
     return annotatedClasses;
@@ -318,7 +321,7 @@ class ExportLinker {
 }
 
 class InheritedMetadataLinker {
-  AbstractDirective directive;
+  AbstractClassDirective directive;
   FileDirectiveProvider _fileDirectiveProvider;
   BindingTypeSynthesizer bindingSynthesizer;
 
@@ -442,8 +445,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     if (reference.prefix != "") {
       return null;
     }
-    final options =
-        directivesToLink.where((d) => d.classElement.name == reference.name);
+    final options = directivesToLink.where((d) => d.name == reference.name);
     if (options.length == 1) {
       return options.first;
     }
@@ -471,7 +473,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
     if (type != null && type.source != null) {
       if (type is ClassElement) {
-        final directive = await matchDirective(type);
+        final directive = await matchClassDirective(type);
 
         if (directive != null) {
           directives.add(await linkedAsChild(directive));
@@ -553,12 +555,12 @@ class ChildDirectiveLinker implements DirectiveMatcher {
   }
 
   @override
-  Future<AbstractDirective> matchDirective(ClassElement clazz) async {
+  Future<AbstractClassDirective> matchClassDirective(ClassElement clazz) async {
     final fileDirectives =
         await _fileDirectiveProvider.getUnlinkedClasses(clazz.source.fullName);
     final options = fileDirectives
         .where((d) => d.classElement.name == clazz.name)
-        .where((d) => d is AbstractDirective);
+        .where((d) => d is AbstractClassDirective);
 
     if (options.length == 1) {
       return options.first;
@@ -588,7 +590,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     for (final listItem in values) {
       final typeValue = listItem.toTypeValue();
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
-        final directive = await matchDirective(typeValue.element);
+        final directive = await matchClassDirective(typeValue.element);
         if (directive != null) {
           directives.add(await linkedAsChild(directive));
         } else {
@@ -660,13 +662,16 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
     // NOTE: Require the Exact type TemplateRef because that's what the
     // injector does.
-    directive.looksLikeTemplate = directive.classElement.constructors.any(
-        (constructor) => constructor.parameters
-            .any((param) => param.type == _standardAngular.templateRef.type));
+    directive.looksLikeTemplate = directive is FunctionalDirective
+        ? directive.functionElement.parameters
+            .any((param) => param.type == _standardAngular.templateRef.type)
+        : (directive as AbstractClassDirective).classElement.constructors.any(
+            (constructor) => constructor.parameters.any(
+                (param) => param.type == _standardAngular.templateRef.type));
 
     // ignore errors from linking subcomponents content childs
-    final errorIgnorer = new ErrorReporter(
-        new IgnoringErrorListener(), directive.classElement.source);
+    final errorIgnorer =
+        new ErrorReporter(new IgnoringErrorListener(), directive.source);
     await new ContentChildLinker(
             directive, this, _standardAngular, errorIgnorer)
         .linkContentChildren();
@@ -675,18 +680,18 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 }
 
 abstract class DirectiveMatcher {
-  Future<AbstractDirective> matchDirective(ClassElement clazz);
+  Future<AbstractDirective> matchClassDirective(ClassElement clazz);
   Future<Pipe> matchPipe(ClassElement clazz);
 }
 
 class ContentChildLinker {
   final AnalysisContext _context;
   final ErrorReporter _errorReporter;
-  final AbstractDirective _directive;
+  final AbstractClassDirective _directive;
   final DirectiveMatcher _directiveMatcher;
   final StandardAngular _standardAngular;
 
-  ContentChildLinker(AbstractDirective directive, this._directiveMatcher,
+  ContentChildLinker(AbstractClassDirective directive, this._directiveMatcher,
       this._standardAngular, this._errorReporter)
       : _context =
             directive.classElement.enclosingElement.enclosingElement.context,
@@ -791,7 +796,7 @@ class ContentChildLinker {
     } else if (value?.toTypeValue() != null) {
       final type = value.toTypeValue();
       final referencedDirective =
-          await _directiveMatcher.matchDirective(type.element);
+          await _directiveMatcher.matchClassDirective(type.element);
 
       AbstractQueriedChildType query;
       if (referencedDirective != null) {
