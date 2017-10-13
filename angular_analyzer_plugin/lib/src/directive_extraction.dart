@@ -108,8 +108,11 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
         outputElements.isNotEmpty ||
         contentChilds.isNotEmpty ||
         contentChildrens.isNotEmpty) {
-      return new AngularAnnotatedClass(_currentClassElement, inputElements,
-          outputElements, contentChilds, contentChildrens);
+      return new AngularAnnotatedClass(_currentClassElement,
+          inputs: inputElements,
+          outputs: outputElements,
+          contentChildFields: contentChilds,
+          contentChildrenFields: contentChildrens);
     }
 
     return null;
@@ -526,7 +529,7 @@ class AttributeAnnotationValidator {
 
   AttributeAnnotationValidator(this.errorReporter);
 
-  void validate(AbstractDirective directive) {
+  void validate(AbstractClassDirective directive) {
     final classElement = directive.classElement;
     for (final constructor in classElement.constructors) {
       for (final parameter in constructor.parameters) {

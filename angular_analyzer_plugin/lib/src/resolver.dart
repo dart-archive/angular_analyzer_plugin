@@ -425,8 +425,9 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
       List<AttributeInfo> attributes, AbstractDirective directive) {
     // TODO(scheglov) Once Angular has a way to describe variables, reimplement
     // https://github.com/angular/angular/issues/4850
-    if (directive.classElement.displayName == 'NgFor') {
-      final dartElem = new DartElement(directive.classElement);
+    if (directive.name == 'NgFor') {
+      final dartElem =
+          new DartElement((directive as AbstractClassDirective).classElement);
       internalVariables['index'] =
           new InternalVariable('index', dartElem, typeProvider.intType);
       internalVariables['even'] =
@@ -458,7 +459,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
     final exportAsMap = <String, List<InternalVariable>>{};
     for (final directive in directives) {
       final exportAs = directive.exportAs;
-      if (exportAs != null) {
+      if (exportAs != null && directive is AbstractClassDirective) {
         final name = exportAs.name;
         final type = directive.classElement.type;
         exportAsMap.putIfAbsent(name, () => <InternalVariable>[]);
@@ -811,12 +812,12 @@ class DirectiveResolver extends AngularAstVisitor {
         // we *know* they require a template.
         if (directive.looksLikeTemplate &&
             !element.isTemplate &&
-            directive.classElement.name != "NgIf" &&
-            directive.classElement.name != "NgFor") {
+            directive.name != "NgIf" &&
+            directive.name != "NgFor") {
           _reportErrorForRange(
               element.openingSpan,
               AngularWarningCode.CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE,
-              [directive.classElement.name]);
+              [directive.name]);
         }
       } else {
         unmatchedDirectives.add(directive);
@@ -904,10 +905,8 @@ class DirectiveResolver extends AngularAstVisitor {
             _errorReporter.reportErrorForOffset(
                 AngularWarningCode.SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES,
                 element.offset,
-                element.length, [
-              binding.boundDirective.classElement.name,
-              contentChild.field.fieldName
-            ]);
+                element.length,
+                [binding.boundDirective.name, contentChild.field.fieldName]);
           }
           binding.contentChildBindings[contentChild].boundElements.add(element);
 
@@ -1329,7 +1328,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
     if (binding.parent.boundDirectives
         .map((binding) => binding.boundDirective)
         // TODO enable this again for all directives, not just NgIf
-        .where((directive) => directive.classElement.name == "NgIf")
+        .where((directive) => directive.name == "NgIf")
         .any((directive) =>
             directive.inputs.any((input) => input.name == binding.name))) {
       errorListener.onError(new AnalysisError(

@@ -54,15 +54,13 @@ void assertPropertyReference(
   fail('Expected input "$name", but $element found.');
 }
 
-Component getComponentByClassName(
-        List<AbstractDirective> directives, String className) =>
-    getDirectiveByClassName(directives, className);
+Component getComponentByName(List<AbstractDirective> directives, String name) =>
+    getDirectiveByName(directives, name);
 
-AbstractDirective getDirectiveByClassName(
-        List<AbstractDirective> directives, String className) =>
-    directives.firstWhere(
-        (directive) => directive.classElement.name == className, orElse: () {
-      fail('DirectiveMetadata with the class "$className" was not found.');
+AbstractDirective getDirectiveByName(
+        List<AbstractDirective> directives, String name) =>
+    directives.firstWhere((directive) => directive.name == name, orElse: () {
+      fail('DirectiveMetadata with the class "$name" was not found.');
       return null;
     });
 

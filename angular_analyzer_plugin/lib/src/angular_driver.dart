@@ -389,7 +389,7 @@ class AngularDriver
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
       final pairResult = await resolveHtmlFrom(htmlPath, dartContext);
-      result.angularAnnotatedClasses.addAll(pairResult.angularAnnotatedClasses);
+      result.angularTopLevels.addAll(pairResult.angularTopLevels);
       result.errors.addAll(pairResult.errors);
       result.fullyResolvedDirectives.addAll(pairResult.fullyResolvedDirectives);
     }
@@ -693,7 +693,7 @@ class AngularDriver
         }
 
         for (final subDirective in (view?.directives ?? [])) {
-          usesDart.add(subDirective.classElement.source.fullName);
+          usesDart.add(subDirective.source.fullName);
         }
       }
     }
@@ -789,6 +789,7 @@ class AngularDriver
     final extractor =
         new DirectiveExtractor(ast, context.typeProvider, source, context);
     final classes = extractor.getAngularAnnotatedClasses();
+
     final directives = new List<AbstractDirective>.from(
         classes.where((c) => c is AbstractDirective));
 
@@ -851,7 +852,8 @@ class AngularDriver
   List<SummarizedDirectiveBuilder> serializeDirectives(
       List<AbstractDirective> directives) {
     final dirSums = <SummarizedDirectiveBuilder>[];
-    for (final directive in directives) {
+    for (final directive in new List<AbstractClassDirective>.from(
+        directives.where((d) => d is AbstractClassDirective))) {
       final selector = directive.selector.originalString;
       final selectorOffset = directive.selector.offset;
       final exportAs = directive?.exportAs?.name;
@@ -990,15 +992,18 @@ class AngularDriver
 class DirectivesResult {
   final String filename;
   List<AbstractDirective> get directives => new List<AbstractDirective>.from(
-      angularAnnotatedClasses.where((c) => c is AbstractDirective));
-  List<AngularAnnotatedClass> angularAnnotatedClasses;
+      angularTopLevels.where((c) => c is AbstractDirective));
+  List<AngularAnnotatedClass> get angularAnnotatedClasses =>
+      new List<AngularAnnotatedClass>.from(
+          angularTopLevels.where((c) => c is AngularAnnotatedClass));
+  final List<AngularTopLevel> angularTopLevels;
   final List<AbstractDirective> fullyResolvedDirectives = [];
   List<AnalysisError> errors;
   List<Pipe> pipes;
 
   bool cacheResult;
   DirectivesResult(
-      this.filename, this.angularAnnotatedClasses, this.pipes, this.errors,
+      this.filename, this.angularTopLevels, this.pipes, this.errors,
       {List<AbstractDirective> fullyResolvedDirectives: const []})
       : cacheResult = false {
     // Use `addAll` instead of initializing it to `const []` when not specified,
@@ -1008,6 +1013,6 @@ class DirectivesResult {
   }
 
   DirectivesResult.fromCache(this.filename, this.errors)
-      : angularAnnotatedClasses = const [],
+      : angularTopLevels = const [],
         cacheResult = true;
 }

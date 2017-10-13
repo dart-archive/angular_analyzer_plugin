@@ -15,44 +15,123 @@ import 'package:angular_analyzer_plugin/errors.dart';
 
 /// Might be a directive, or a component, or neither. It might simply have
 /// annotated @Inputs, @Outputs() intended to be inherited.
-class AngularAnnotatedClass {
+class AngularAnnotatedClass extends AngularTopLevel {
   /// The [ClassElement] this annotation is associated with.
   final dart.ClassElement classElement;
-  final List<InputElement> inputs;
-  final List<OutputElement> outputs;
+
+  AngularAnnotatedClass(this.classElement,
+      {List<InputElement> inputs,
+      List<OutputElement> outputs,
+      this.contentChildFields,
+      this.contentChildrenFields})
+      : super(inputs: inputs, outputs: outputs);
+
+  /// The source that contains this directive.
+  @override
+  Source get source => classElement.source;
+
+  @override
+  String toString() => '$runtimeType(${classElement.displayName} '
+      'inputs=$inputs '
+      'outputs=$outputs '
+      'attributes=$attributes)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is AngularAnnotatedClass && other.classElement == classElement;
+
+  @override
+  int get hashCode => classElement.hashCode;
+
+  @override
+  bool get isHtml => false;
+
+  // See [contentChildrenFields]. These are the linked versions.
+  @override
+  final contentChilds = <ContentChild>[];
+  @override
+  final contentChildren = <ContentChild>[];
 
   /// Which fields have been marked `@ContentChild`, and the range of the type
   /// argument. The element model contains the rest. This should be stored in the
   /// summary, so that at link time we can report errors discovered in the model
   /// against the range we saw it the AST.
+  @override
   List<ContentChildField> contentChildrenFields;
+  @override
   List<ContentChildField> contentChildFields;
-
-  AngularAnnotatedClass(this.classElement, this.inputs, this.outputs,
-      this.contentChildFields, this.contentChildrenFields);
 }
 
-/// An abstract model of an Angular directive.
-abstract class AbstractDirective extends AngularAnnotatedClass {
-  final AngularElement exportAs;
+/// A functional directive is applied when the directive is linked, but does
+/// nothing later in the program. Thus it cannot have inputs, outputs, etc. But
+/// for the sake of clean code, those methods are implemented to return null,
+/// empty list, etc.
+class FunctionalDirective implements AbstractDirective {
+  final dart.FunctionElement functionElement;
+  @override
   final Selector selector;
+  @override
   final List<ElementNameSelector> elementTags;
-  final attributes = <AngularElement>[];
 
-  bool get isHtml;
+  FunctionalDirective(this.functionElement, this.selector, this.elementTags);
 
-  // See [AngularAnnotatedClassMembers.contentChildrenFields]. These are the
-  // linked versions.
-  final contentChilds = <ContentChild>[];
-  final contentChildren = <ContentChild>[];
-
-  /// Its very hard to tell which directives are meant to be used with a *star.
-  /// However, any directives which have a `TemplateRef` as a constructor
-  /// parameter are almost certainly meant to be used with one. We use this for
-  /// whatever validation we can, and autocomplete suggestions.
+  /// @See [AbstractSelectable.looksLikeTemplate]
+  @override
   bool looksLikeTemplate = false;
 
-  AbstractDirective(dart.ClassElement classElement,
+  @override
+  AngularElement get exportAs => null;
+  @override
+  List<AngularElement> get attributes => const [];
+  @override
+  List<ContentChild> get contentChilds => const [];
+  @override
+  List<ContentChild> get contentChildren => const [];
+  @override
+  bool get isHtml => false;
+  @override
+  List<InputElement> get inputs => const [];
+  @override
+  List<OutputElement> get outputs => const [];
+  @override
+  List<ContentChildField> get contentChildFields => const [];
+  @override
+  List<ContentChildField> get contentChildrenFields => const [];
+
+  /// The source that contains this directive.
+  @override
+  Source get source => functionElement.source;
+
+  @override
+  String toString() => 'FunctionalDirective(${functionElement.displayName} '
+      'selector=$selector ';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FunctionalDirective && other.functionElement == functionElement;
+
+  @override
+  int get hashCode => functionElement.hashCode;
+
+  @override
+  String get name => functionElement.name;
+}
+
+abstract class AbstractClassDirective extends AngularAnnotatedClass
+    implements AbstractDirective {
+  @override
+  final Selector selector;
+
+  @override
+  final AngularElement exportAs;
+
+  @override
+  final List<ElementNameSelector> elementTags;
+
+  @override
+  String get name => classElement.name;
+
+  AbstractClassDirective(dart.ClassElement classElement,
       {this.exportAs,
       List<InputElement> inputs,
       List<OutputElement> outputs,
@@ -60,25 +139,55 @@ abstract class AbstractDirective extends AngularAnnotatedClass {
       this.elementTags,
       List<ContentChildField> contentChildFields,
       List<ContentChildField> contentChildrenFields})
-      : super(classElement, inputs, outputs, contentChildFields,
-            contentChildrenFields);
+      : super(classElement,
+            inputs: inputs,
+            outputs: outputs,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
+}
 
-  /// The source that contains this directive.
-  Source get source => classElement.source;
+abstract class AbstractDirective extends AngularTopLevel {
+  Selector get selector;
 
-  @override
-  String toString() => '$runtimeType(${classElement.displayName} '
-      'selector=$selector '
-      'inputs=$inputs '
-      'outputs=$outputs '
-      'attributes=$attributes)';
+  AngularElement get exportAs;
 
-  @override
-  bool operator ==(Object other) =>
-      other is AbstractDirective && other.classElement == classElement;
+  String get name;
 
-  @override
-  int get hashCode => classElement.hashCode;
+  List<ElementNameSelector> get elementTags;
+}
+
+/// An abstract model of an Angular top level construct.
+///
+/// This may be a functional directive, component, or normal directive...or even
+/// an [AngularAnnotatedClass] which is a class that defines component/directive
+/// behavior for the sake of being inherited.
+abstract class AngularTopLevel {
+  final attributes = <AngularElement>[];
+
+  bool get isHtml;
+  Source get source;
+
+  /// Its very hard to tell which directives are meant to be used with a *star.
+  /// However, any directives which have a `TemplateRef` as a constructor
+  /// parameter are almost certainly meant to be used with one. We use this for
+  /// whatever validation we can, and autocomplete suggestions.
+  bool looksLikeTemplate = false;
+
+  final List<InputElement> inputs;
+  final List<OutputElement> outputs;
+
+  /// See [AngularAnnotatedClassMembers.contentChildren]
+  List<ContentChild> get contentChilds;
+  List<ContentChild> get contentChildren;
+
+  /// See [AngularAnnotatedClassMembers.contentChildrenFields]
+  List<ContentChildField> get contentChildrenFields;
+  List<ContentChildField> get contentChildFields;
+
+  AngularTopLevel({
+    this.inputs,
+    this.outputs,
+  });
 }
 
 /// The base class for all Angular elements.
@@ -179,8 +288,10 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
     dart.DartType matchType;
 
     if (attr.value != "" && attr.value != null) {
-      final possibleDirectives =
-          element.directives.where((d) => d.exportAs.name == attr.value);
+      final possibleDirectives = new List<AbstractClassDirective>.from(
+          element.directives.where((d) =>
+              d.exportAs.name == attr.value &&
+              d is AbstractClassDirective)); // No functional directives
       if (possibleDirectives.isEmpty || possibleDirectives.length > 1) {
         // Don't validate based on an invalid state (that's reported as such).
         return;
@@ -190,8 +301,8 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
     } else if (element.localName == 'template') {
       matchType = angular.templateRef.type;
     } else {
-      final possibleComponents =
-          element.directives.where((d) => d is Component && !d.isHtml);
+      final possibleComponents = new List<Component>.from(
+          element.directives.where((d) => d is Component && !d.isHtml));
       if (possibleComponents.length > 1) {
         // Don't validate based on an invalid state (that's reported as such).
         return;
@@ -244,7 +355,7 @@ class ContentChild {
 }
 
 /// The model of an Angular component.
-class Component extends AbstractDirective {
+class Component extends AbstractClassDirective {
   View view;
   @override
   final bool isHtml;
@@ -292,7 +403,7 @@ class DartElement extends AngularElementImpl {
 }
 
 /// The model of an Angular directive.
-class Directive extends AbstractDirective {
+class Directive extends AbstractClassDirective {
   @override
   bool get isHtml => false;
 

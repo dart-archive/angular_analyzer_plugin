@@ -819,7 +819,7 @@ class ComponentB {
     await getDirectives(source);
     expect(directives, hasLength(2));
     {
-      final component = getComponentByClassName(directives, 'ComponentA');
+      final component = getComponentByName(directives, 'ComponentA');
       {
         final exportAs = component.exportAs;
         expect(exportAs.name, 'export-name');
@@ -827,7 +827,7 @@ class ComponentB {
       }
     }
     {
-      final component = getComponentByClassName(directives, 'ComponentB');
+      final component = getComponentByName(directives, 'ComponentB');
       {
         final exportAs = component.exportAs;
         expect(exportAs, isNull);
@@ -854,7 +854,7 @@ class DirectiveB {
     await getDirectives(source);
     expect(directives, hasLength(2));
     {
-      final directive = getDirectiveByClassName(directives, 'DirectiveA');
+      final directive = getDirectiveByName(directives, 'DirectiveA');
       {
         final exportAs = directive.exportAs;
         expect(exportAs.name, 'export-name');
@@ -862,7 +862,7 @@ class DirectiveB {
       }
     }
     {
-      final directive = getDirectiveByClassName(directives, 'DirectiveB');
+      final directive = getDirectiveByName(directives, 'DirectiveB');
       {
         final exportAs = directive.exportAs;
         expect(exportAs, isNull);
@@ -1924,9 +1924,8 @@ class MyComponent {}
       final view = getViewByClassName(views, 'MyComponent');
       {
         expect(view.directives, hasLength(3));
-        final directiveClassNames = view.directives
-            .map((directive) => directive.classElement.name)
-            .toList();
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
         expect(directiveClassNames,
             unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
       }
@@ -1967,9 +1966,8 @@ class MyComponent {}
       final view = getViewByClassName(views, 'MyComponent');
       {
         expect(view.directives, hasLength(3));
-        final directiveClassNames = view.directives
-            .map((directive) => directive.classElement.name)
-            .toList();
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
         expect(directiveClassNames,
             unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
       }
@@ -2001,9 +1999,8 @@ class MyComponent {}
       final view = getViewByClassName(views, 'MyComponent');
       {
         expect(view.directives, hasLength(2));
-        final directiveClassNames = view.directives
-            .map((directive) => directive.classElement.name)
-            .toList();
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
         expect(
             directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
       }
@@ -2161,7 +2158,7 @@ class MyComponent {}
     expect(views, hasLength(1));
     // MyComponent
     final view = getViewByClassName(views, 'MyComponent');
-    expect(view.component, getComponentByClassName(directives, 'MyComponent'));
+    expect(view.component, getComponentByName(directives, 'MyComponent'));
     expect(view.templateText, isNull);
     expect(view.templateUriSource, isNotNull);
     expect(view.templateUriSource, htmlSource);
@@ -2188,7 +2185,7 @@ class MyComponent {}
     expect(views, hasLength(1));
     // MyComponent
     final view = getViewByClassName(views, 'MyComponent');
-    expect(view.component, getComponentByClassName(directives, 'MyComponent'));
+    expect(view.component, getComponentByName(directives, 'MyComponent'));
     expect(view.templateText, isNull);
     expect(view.templateUriSource, isNotNull);
     expect(view.templateUriSource, htmlSource);
@@ -2220,17 +2217,15 @@ class MyComponent {}
     expect(views, hasLength(2));
     {
       final view = getViewByClassName(views, 'MyComponent');
-      expect(
-          view.component, getComponentByClassName(directives, 'MyComponent'));
+      expect(view.component, getComponentByName(directives, 'MyComponent'));
       expect(view.templateText, ' My template '); // spaces preserve offsets
       expect(view.templateOffset, code.indexOf('My template') - 1);
       expect(view.templateUriSource, isNull);
       expect(view.templateSource, source);
       {
         expect(view.directives, hasLength(2));
-        final directiveClassNames = view.directives
-            .map((directive) => directive.classElement.name)
-            .toList();
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
         expect(directiveClassNames,
             unorderedEquals(['OtherComponent', 'MyDirective']));
       }
@@ -2258,17 +2253,15 @@ class MyComponent {}
     expect(views, hasLength(2));
     {
       final view = getViewByClassName(views, 'MyComponent');
-      expect(
-          view.component, getComponentByClassName(directives, 'MyComponent'));
+      expect(view.component, getComponentByName(directives, 'MyComponent'));
       expect(view.templateText, ' My template '); // spaces preserve offsets
       expect(view.templateOffset, code.indexOf('My template') - 1);
       expect(view.templateUriSource, isNull);
       expect(view.templateSource, source);
       {
         expect(view.directives, hasLength(2));
-        final directiveClassNames = view.directives
-            .map((directive) => directive.classElement.name)
-            .toList();
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
         expect(directiveClassNames,
             unorderedEquals(['OtherComponent', 'MyDirective']));
       }
@@ -3272,8 +3265,7 @@ class MyComponent extends BaseComponent {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final component =
-        directives.firstWhere((d) => d.classElement.name == 'MyComponent');
+    final component = directives.firstWhere((d) => d.name == 'MyComponent');
     final compInputs = component.inputs;
     expect(compInputs, hasLength(1));
     {
@@ -3351,8 +3343,7 @@ class MyComponent {
     final source = newSource('/test.dart', code);
     await getDirectives(source);
     final component =
-        (directives.firstWhere((d) => d.classElement.name == 'MyComponent')
-                as Component)
+        (directives.firstWhere((d) => d.name == 'MyComponent') as Component)
             .view
             .directives
             .first;
@@ -3411,8 +3402,7 @@ class FinalComponent
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final component =
-        directives.firstWhere((d) => d.classElement.name == 'FinalComponent');
+    final component = directives.firstWhere((d) => d.name == 'FinalComponent');
     final compInputs = component.inputs;
     expect(compInputs, hasLength(1));
     {
@@ -3457,8 +3447,7 @@ class FinalComponent
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final component =
-        directives.firstWhere((d) => d.classElement.name == 'FinalComponent');
+    final component = directives.firstWhere((d) => d.name == 'FinalComponent');
     final inputNames = component.inputs.map((input) => input.name);
     expect(
         inputNames,
@@ -3493,8 +3482,8 @@ class VarianceComponent extends BaseComponent {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final component = directives
-        .firstWhere((d) => d.classElement.name == 'VarianceComponent');
+    final component =
+        directives.firstWhere((d) => d.name == 'VarianceComponent');
     final compInputs = component.inputs;
     final compOutputs = component.outputs;
     expect(compInputs, hasLength(1));
@@ -3534,8 +3523,8 @@ class ImproperlyDefinedComponent extends BaseComponent {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final component = directives
-        .firstWhere((d) => d.classElement.name == 'ImproperlyDefinedComponent');
+    final component =
+        directives.firstWhere((d) => d.name == 'ImproperlyDefinedComponent');
     final compInputs = component.inputs;
     final compOutputs = component.outputs;
     expect(compInputs, hasLength(1));
@@ -3734,8 +3723,8 @@ class ComponentC {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final componentA = getComponentByClassName(directives, 'ComponentA');
-    final componentB = getComponentByClassName(directives, 'ComponentB');
+    final componentA = getComponentByName(directives, 'ComponentA');
+    final componentB = getComponentByName(directives, 'ComponentB');
     // validate
     expect(templates, hasLength(3));
     {
@@ -3997,7 +3986,7 @@ class User {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final textPanel = getComponentByClassName(directives, 'TextPanel');
+    final textPanel = getComponentByName(directives, 'TextPanel');
     // validate
     expect(templates, hasLength(2));
     {
@@ -4054,7 +4043,7 @@ class ComponentB {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final componentA = getComponentByClassName(directives, 'ComponentA');
+    final componentA = getComponentByName(directives, 'ComponentA');
     // validate
     expect(templates, hasLength(2));
     {
