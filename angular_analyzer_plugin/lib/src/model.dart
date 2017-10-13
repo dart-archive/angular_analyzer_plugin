@@ -62,7 +62,7 @@ class AngularAnnotatedClass extends AngularTopLevel {
   List<ContentChildField> contentChildFields;
 }
 
-/// A functionoal directive is applied when the directive is linked, but does
+/// A functional directive is applied when the directive is linked, but does
 /// nothing later in the program. Thus it cannot have inputs, outputs, etc. But
 /// for the sake of clean code, those methods are implemented to return null,
 /// empty list, etc.
@@ -156,9 +156,10 @@ abstract class AbstractDirective extends AngularTopLevel {
   List<ElementNameSelector> get elementTags;
 }
 
-/// An abstract model of an Angular top level construct. This may be a
-/// functional directive, component, or normal directive...or even an
-/// [AngularAnnotatedClass] which is a class that defines component/directive
+/// An abstract model of an Angular top level construct.
+///
+/// This may be a functional directive, component, or normal directive...or even
+/// an [AngularAnnotatedClass] which is a class that defines component/directive
 /// behavior for the sake of being inherited.
 abstract class AngularTopLevel {
   final attributes = <AngularElement>[];
@@ -175,11 +176,11 @@ abstract class AngularTopLevel {
   final List<InputElement> inputs;
   final List<OutputElement> outputs;
 
-  // See [AngularAnnotatedClassMembers.contentChildren]
+  /// See [AngularAnnotatedClassMembers.contentChildren]
   List<ContentChild> get contentChilds;
   List<ContentChild> get contentChildren;
 
-  // See [AngularAnnotatedClassMembers.contentChildrenFields]
+  /// See [AngularAnnotatedClassMembers.contentChildrenFields]
   List<ContentChildField> get contentChildrenFields;
   List<ContentChildField> get contentChildFields;
 

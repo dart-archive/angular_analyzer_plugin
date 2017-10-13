@@ -3678,39 +3678,6 @@ class MyComponent extends Generic<String> {
       expect(output.eventType.toString(), equals("String"));
     }
   }
-
-  // ignore: non_constant_identifier_names
-  Future test_referencePartOfCurrentFile() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-part 'part.dart';
-
-@Component(
-    selector: 'my-component',
-    template: '<p></p>',
-    directives: const [PartDirective])
-class MyComponent {
-}
-''';
-    final source = newSource('/test.dart', code);
-    final partSource = newSource('/part.dart', r'''
-part of 'test.dart';
-
-@Directive(selector: '[attr]')
-class PartDirective {}
-        ''');
-    await getDirectives(partSource);
-    errorListener.assertNoErrors();
-    await getDirectives(source);
-    final Component component = directives.single;
-    final childDirectives = component.view.directives;
-    expect(childDirectives, hasLength(1));
-    final directive = childDirectives.first;
-    expect(directive, isNotNull);
-    expect(directive.name, 'PartDirective');
-    errorListener.assertNoErrors();
-  }
 }
 
 @reflectiveTest
