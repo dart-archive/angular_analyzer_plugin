@@ -1076,6 +1076,7 @@ class SummarizedDirectiveBuilder extends Object
     with _SummarizedDirectiveMixin
     implements idl.SummarizedDirective {
   SummarizedClassAnnotationsBuilder _classAnnotations;
+  String _functionName;
   bool _isComponent;
   String _selectorStr;
   int _selectorOffset;
@@ -1096,6 +1097,13 @@ class SummarizedDirectiveBuilder extends Object
 
   void set classAnnotations(SummarizedClassAnnotationsBuilder value) {
     this._classAnnotations = value;
+  }
+
+  @override
+  String get functionName => _functionName ??= '';
+
+  void set functionName(String value) {
+    this._functionName = value;
   }
 
   @override
@@ -1207,6 +1215,7 @@ class SummarizedDirectiveBuilder extends Object
 
   SummarizedDirectiveBuilder(
       {SummarizedClassAnnotationsBuilder classAnnotations,
+      String functionName,
       bool isComponent,
       String selectorStr,
       int selectorOffset,
@@ -1222,6 +1231,7 @@ class SummarizedDirectiveBuilder extends Object
       List<SummarizedExportedIdentifierBuilder> exports,
       List<SummarizedPipesUseBuilder> pipesUse})
       : _classAnnotations = classAnnotations,
+        _functionName = functionName,
         _isComponent = isComponent,
         _selectorStr = selectorStr,
         _selectorOffset = selectorOffset,
@@ -1254,6 +1264,7 @@ class SummarizedDirectiveBuilder extends Object
   void collectApiSignature(api_sig.ApiSignature signature) {
     signature.addBool(this._classAnnotations != null);
     this._classAnnotations?.collectApiSignature(signature);
+    signature.addString(this._functionName ?? '');
     signature.addBool(this._isComponent == true);
     signature.addString(this._selectorStr ?? '');
     signature.addInt(this._selectorOffset ?? 0);
@@ -1300,6 +1311,7 @@ class SummarizedDirectiveBuilder extends Object
 
   fb.Offset finish(fb.Builder fbBuilder) {
     fb.Offset offset_classAnnotations;
+    fb.Offset offset_functionName;
     fb.Offset offset_selectorStr;
     fb.Offset offset_exportAs;
     fb.Offset offset_templateUrl;
@@ -1310,6 +1322,9 @@ class SummarizedDirectiveBuilder extends Object
     fb.Offset offset_pipesUse;
     if (_classAnnotations != null) {
       offset_classAnnotations = _classAnnotations.finish(fbBuilder);
+    }
+    if (_functionName != null) {
+      offset_functionName = fbBuilder.writeString(_functionName);
     }
     if (_selectorStr != null) {
       offset_selectorStr = fbBuilder.writeString(_selectorStr);
@@ -1343,47 +1358,50 @@ class SummarizedDirectiveBuilder extends Object
     if (offset_classAnnotations != null) {
       fbBuilder.addOffset(0, offset_classAnnotations);
     }
+    if (offset_functionName != null) {
+      fbBuilder.addOffset(1, offset_functionName);
+    }
     if (_isComponent == true) {
-      fbBuilder.addBool(1, true);
+      fbBuilder.addBool(2, true);
     }
     if (offset_selectorStr != null) {
-      fbBuilder.addOffset(2, offset_selectorStr);
+      fbBuilder.addOffset(3, offset_selectorStr);
     }
     if (_selectorOffset != null && _selectorOffset != 0) {
-      fbBuilder.addUint32(3, _selectorOffset);
+      fbBuilder.addUint32(4, _selectorOffset);
     }
     if (offset_exportAs != null) {
-      fbBuilder.addOffset(4, offset_exportAs);
+      fbBuilder.addOffset(5, offset_exportAs);
     }
     if (_exportAsOffset != null && _exportAsOffset != 0) {
-      fbBuilder.addUint32(5, _exportAsOffset);
+      fbBuilder.addUint32(6, _exportAsOffset);
     }
     if (offset_templateUrl != null) {
-      fbBuilder.addOffset(6, offset_templateUrl);
+      fbBuilder.addOffset(7, offset_templateUrl);
     }
     if (_templateUrlOffset != null && _templateUrlOffset != 0) {
-      fbBuilder.addUint32(7, _templateUrlOffset);
+      fbBuilder.addUint32(8, _templateUrlOffset);
     }
     if (_templateUrlLength != null && _templateUrlLength != 0) {
-      fbBuilder.addUint32(8, _templateUrlLength);
+      fbBuilder.addUint32(9, _templateUrlLength);
     }
     if (offset_templateText != null) {
-      fbBuilder.addOffset(9, offset_templateText);
+      fbBuilder.addOffset(10, offset_templateText);
     }
     if (_templateOffset != null && _templateOffset != 0) {
-      fbBuilder.addUint32(10, _templateOffset);
+      fbBuilder.addUint32(11, _templateOffset);
     }
     if (offset_ngContents != null) {
-      fbBuilder.addOffset(11, offset_ngContents);
+      fbBuilder.addOffset(12, offset_ngContents);
     }
     if (offset_subdirectives != null) {
-      fbBuilder.addOffset(12, offset_subdirectives);
+      fbBuilder.addOffset(13, offset_subdirectives);
     }
     if (offset_exports != null) {
-      fbBuilder.addOffset(13, offset_exports);
+      fbBuilder.addOffset(14, offset_exports);
     }
     if (offset_pipesUse != null) {
-      fbBuilder.addOffset(14, offset_pipesUse);
+      fbBuilder.addOffset(15, offset_pipesUse);
     }
     return fbBuilder.endTable();
   }
@@ -1407,6 +1425,7 @@ class _SummarizedDirectiveImpl extends Object
   _SummarizedDirectiveImpl(this._bc, this._bcOffset);
 
   idl.SummarizedClassAnnotations _classAnnotations;
+  String _functionName;
   bool _isComponent;
   String _selectorStr;
   int _selectorOffset;
@@ -1430,65 +1449,71 @@ class _SummarizedDirectiveImpl extends Object
   }
 
   @override
+  String get functionName {
+    _functionName ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 1, '');
+    return _functionName;
+  }
+
+  @override
   bool get isComponent {
-    _isComponent ??= const fb.BoolReader().vTableGet(_bc, _bcOffset, 1, false);
+    _isComponent ??= const fb.BoolReader().vTableGet(_bc, _bcOffset, 2, false);
     return _isComponent;
   }
 
   @override
   String get selectorStr {
-    _selectorStr ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 2, '');
+    _selectorStr ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 3, '');
     return _selectorStr;
   }
 
   @override
   int get selectorOffset {
-    _selectorOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 3, 0);
+    _selectorOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 4, 0);
     return _selectorOffset;
   }
 
   @override
   String get exportAs {
-    _exportAs ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 4, '');
+    _exportAs ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 5, '');
     return _exportAs;
   }
 
   @override
   int get exportAsOffset {
-    _exportAsOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 5, 0);
+    _exportAsOffset ??= const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 6, 0);
     return _exportAsOffset;
   }
 
   @override
   String get templateUrl {
-    _templateUrl ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 6, '');
+    _templateUrl ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 7, '');
     return _templateUrl;
   }
 
   @override
   int get templateUrlOffset {
     _templateUrlOffset ??=
-        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 7, 0);
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 8, 0);
     return _templateUrlOffset;
   }
 
   @override
   int get templateUrlLength {
     _templateUrlLength ??=
-        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 8, 0);
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 9, 0);
     return _templateUrlLength;
   }
 
   @override
   String get templateText {
-    _templateText ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 9, '');
+    _templateText ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 10, '');
     return _templateText;
   }
 
   @override
   int get templateOffset {
     _templateOffset ??=
-        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 10, 0);
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 11, 0);
     return _templateOffset;
   }
 
@@ -1496,7 +1521,7 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedNgContent> get ngContents {
     _ngContents ??= const fb.ListReader<idl.SummarizedNgContent>(
             const _SummarizedNgContentReader())
-        .vTableGet(_bc, _bcOffset, 11, const <idl.SummarizedNgContent>[]);
+        .vTableGet(_bc, _bcOffset, 12, const <idl.SummarizedNgContent>[]);
     return _ngContents;
   }
 
@@ -1504,7 +1529,7 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedDirectiveUse> get subdirectives {
     _subdirectives ??= const fb.ListReader<idl.SummarizedDirectiveUse>(
             const _SummarizedDirectiveUseReader())
-        .vTableGet(_bc, _bcOffset, 12, const <idl.SummarizedDirectiveUse>[]);
+        .vTableGet(_bc, _bcOffset, 13, const <idl.SummarizedDirectiveUse>[]);
     return _subdirectives;
   }
 
@@ -1513,7 +1538,7 @@ class _SummarizedDirectiveImpl extends Object
     _exports ??= const fb.ListReader<idl.SummarizedExportedIdentifier>(
             const _SummarizedExportedIdentifierReader())
         .vTableGet(
-            _bc, _bcOffset, 13, const <idl.SummarizedExportedIdentifier>[]);
+            _bc, _bcOffset, 14, const <idl.SummarizedExportedIdentifier>[]);
     return _exports;
   }
 
@@ -1521,7 +1546,7 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedPipesUse> get pipesUse {
     _pipesUse ??= const fb.ListReader<idl.SummarizedPipesUse>(
             const _SummarizedPipesUseReader())
-        .vTableGet(_bc, _bcOffset, 14, const <idl.SummarizedPipesUse>[]);
+        .vTableGet(_bc, _bcOffset, 15, const <idl.SummarizedPipesUse>[]);
     return _pipesUse;
   }
 }
@@ -1532,6 +1557,7 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
     Map<String, Object> _result = <String, Object>{};
     if (classAnnotations != null)
       _result["classAnnotations"] = classAnnotations.toJson();
+    if (functionName != '') _result["functionName"] = functionName;
     if (isComponent != false) _result["isComponent"] = isComponent;
     if (selectorStr != '') _result["selectorStr"] = selectorStr;
     if (selectorOffset != 0) _result["selectorOffset"] = selectorOffset;
@@ -1560,6 +1586,7 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
   @override
   Map<String, Object> toMap() => {
         "classAnnotations": classAnnotations,
+        "functionName": functionName,
         "isComponent": isComponent,
         "selectorStr": selectorStr,
         "selectorOffset": selectorOffset,

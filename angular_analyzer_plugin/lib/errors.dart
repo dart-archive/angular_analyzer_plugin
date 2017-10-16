@@ -15,6 +15,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.STRING_VALUE_EXPECTED,
   AngularWarningCode.TYPE_LITERAL_EXPECTED,
   AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+  AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE,
   AngularWarningCode.UNRESOLVED_TAG,
   AngularWarningCode.UNTERMINATED_MUSTACHE,
   AngularWarningCode.UNOPENED_MUSTACHE,
@@ -60,6 +61,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
   AngularWarningCode.UNSAFE_BINDING,
   AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
+  AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED,
   AngularHintCode.OFFSETS_CANNOT_BE_CREATED,
 ];
 
@@ -140,6 +142,13 @@ class AngularWarningCode extends ErrorCode {
       'TYPE_IS_NOT_A_DIRECTIVE',
       'The type "{0}" is included in the directives list, but is not a'
       ' directive');
+
+  /// An error code indicating that a function not annotated with @Directive was
+  /// used as one.
+  static const FUNCTION_IS_NOT_A_DIRECTIVE = const AngularWarningCode(
+      'FUNCTION_IS_NOT_A_DIRECTIVE',
+      'The function "{0}" is included in the directives list, but is not a'
+      ' functional directive');
 
   /// An error code indicating that the value of type is not a Pipe.
   static const TYPE_IS_NOT_A_PIPE = const AngularWarningCode(
@@ -436,6 +445,14 @@ class AngularWarningCode extends ErrorCode {
   static const EVENT_REDUCTION_NOT_ALLOWED = const AngularWarningCode(
       'EVENT_REDUCTION_NOT_ALLOWED',
       'Event reductions are only allowed on keyup and keydown events');
+
+  /// An error indicating that functional directve had exportAs specified, which
+  /// is not allowed.
+  static const FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED =
+      const AngularWarningCode(
+          'FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED',
+          'Function directives cannot have an exportAs setting, because they'
+          " can't be exported");
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

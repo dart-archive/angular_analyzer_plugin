@@ -341,8 +341,7 @@ class GatherAnnotationsTest extends AbstractAngularTest {
   Future getDirectives(final source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
-    final result =
-        await angularDriver.getAngularAnnotatedClasses(source.fullName);
+    final result = await angularDriver.getAngularTopLevels(source.fullName);
     directives = result.directives;
     pipes = result.pipes;
     errors = result.errors;
@@ -597,6 +596,43 @@ class DirectiveB {
         expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_FunctionalDirective() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: 'dir-a.myClass[myAttr]')
+void directiveA() {
+}
+''');
+    await getDirectives(source);
+    expect(directives, hasLength(1));
+    final directive = directives.single;
+    expect(directive, const isInstanceOf<FunctionalDirective>());
+    expect(directive.name, "directiveA");
+    final selector = directive.selector;
+    expect(selector, const isInstanceOf<AndSelector>());
+    expect((selector as AndSelector).selectors, hasLength(3));
+    expect(directive.elementTags, hasLength(1));
+    expect(directive.elementTags[0], const isInstanceOf<ElementNameSelector>());
+    expect(directive.elementTags[0].toString(), 'dir-a');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_FunctionalDirective_notAllowedValues() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: 'dir-a.myClass[myAttr]',
+  exportAs: 'foo')
+void directiveA() {
+}
+''');
+    await getDirectives(source);
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED]);
   }
 
   // ignore: non_constant_identifier_names
@@ -1842,8 +1878,7 @@ class BuildUnitViewsTest extends AbstractAngularTest {
   Future getViews(final source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
-    final result =
-        await angularDriver.getAngularAnnotatedClasses(source.fullName);
+    final result = await angularDriver.getAngularTopLevels(source.fullName);
     directives = result.directives;
     pipes = result.pipes;
 
@@ -2007,6 +2042,76 @@ class MyComponent {}
     }
     // no errors
     errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_validFunctionalDirectivesList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+void directiveA() {}
+
+@Directive(selector: '[bbb]')
+void directiveB() {}
+
+const DIR_AB_DEEP = const [ const [ const [directiveA, directiveB]]];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB_DEEP])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertNoErrors();
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(2));
+        final directiveNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveNames, unorderedEquals(['directiveA', 'directiveB']));
+      }
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directivesList_invalidDirectiveEntries() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+void directiveB() {}
+
+void notADirective() {}
+class NotADirectiveEither {}
+
+const DIR_AB_DEEP = const [ const [ const [
+    DirectiveA, directiveB, notADirective, NotADirectiveEither]]];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB_DEEP])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(2));
+        final directiveNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveNames, unorderedEquals(['DirectiveA', 'directiveB']));
+      }
+    }
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+      AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE
+    ]);
   }
 
   // ignore: non_constant_identifier_names
@@ -2266,6 +2371,48 @@ class MyComponent {}
             unorderedEquals(['OtherComponent', 'MyDirective']));
       }
     }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_useFunctionalDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: 'my-directive')
+void myDirective() {}
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [myDirective])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertNoErrors();
+    expect(views, hasLength(1));
+    final view = views.single;
+    expect(view.component.name, 'MyComponent');
+    expect(view.directives, hasLength(1));
+    final directive = view.directives.single;
+    expect(directive.name, 'myDirective');
+    expect(directive, const isInstanceOf<FunctionalDirective>());
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_useFunctionNotFunctionalDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [notDirective])
+class MyComponent {}
+
+// put this after component, so indexOf works in assertErrorInCodeAtPosition
+void notDirective() {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE, code, 'notDirective');
   }
 
   // ignore: non_constant_identifier_names

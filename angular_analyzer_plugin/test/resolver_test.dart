@@ -3315,6 +3315,24 @@ class MyStarDirective {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_star_selectTemplateFunctionalDirectiveMatches() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel'
+    templateUrl: 'test_panel.html', directives: const [myStarDirective])
+class TestPanel {
+}
+@Directive(selector: 'template[myStarDirective]')
+void myStarDirective(TemplateRef ref) {}
+''');
+    final code = r'''
+<span *myStarDirective></span>
+''';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_standardHtmlComponent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel')

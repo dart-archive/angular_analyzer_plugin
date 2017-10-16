@@ -20,7 +20,7 @@ import 'package:analyzer/src/dart/ast/token.dart';
 import 'summary/idl.dart';
 
 abstract class FileDirectiveProvider {
-  Future<List<AngularAnnotatedClass>> getUnlinkedClasses(String path);
+  Future<List<AngularTopLevel>> getUnlinkedAngularTopLevels(String path);
   Future<List<NgContent>> getHtmlNgContent(String path);
 }
 
@@ -43,7 +43,7 @@ class DirectiveLinker {
 
   DirectiveLinker(this._directiveLinkerEnablement);
 
-  Future<List<AngularAnnotatedClass>> resynthesizeDirectives(
+  Future<List<AngularTopLevel>> resynthesizeDirectives(
       UnlinkedDartSummary unlinked, String path) async {
     if (unlinked == null) {
       return [];
@@ -53,9 +53,24 @@ class DirectiveLinker {
 
     final source = unit.source;
 
-    final annotatedClasses = <AngularAnnotatedClass>[];
+    final annotatedClasses = <AngularTopLevel>[];
 
     for (final dirSum in unlinked.directiveSummaries) {
+      final selector =
+          new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
+              .parse();
+      final elementTags = <ElementNameSelector>[];
+      selector.recordElementNameSelectors(elementTags);
+      if (dirSum.functionName != "") {
+        assert(dirSum.classAnnotations == null);
+        assert(dirSum.exportAs == "");
+        assert(dirSum.isComponent == false);
+        final functionElem =
+            unit.functions.singleWhere((f) => f.name == dirSum.functionName);
+        annotatedClasses
+            .add(new FunctionalDirective(functionElem, selector, elementTags));
+        continue;
+      }
       final classElem = unit.getType(dirSum.classAnnotations.className);
       final bindingSynthesizer = new BindingTypeSynthesizer(
           classElem,
@@ -66,11 +81,6 @@ class DirectiveLinker {
           ? null
           : new AngularElementImpl(dirSum.exportAs, dirSum.exportAsOffset,
               dirSum.exportAs.length, source);
-      final selector =
-          new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
-              .parse();
-      final elementTags = <ElementNameSelector>[];
-      selector.recordElementNameSelectors(elementTags);
       final inputs = deserializeInputs(
           dirSum.classAnnotations, classElem, source, bindingSynthesizer);
       final outputs = deserializeOutputs(
@@ -336,9 +346,10 @@ class InheritedMetadataLinker {
   Future link() async {
     for (final supertype in directive.classElement.allSupertypes) {
       final result = await _fileDirectiveProvider
-          .getUnlinkedClasses(supertype.element.source.fullName);
+          .getUnlinkedAngularTopLevels(supertype.element.source.fullName);
       final match = result.firstWhere(
-          (c) => c.classElement == supertype.element,
+          (c) =>
+              c is AngularAnnotatedClass && c.classElement == supertype.element,
           orElse: () => null);
 
       if (match == null) {
@@ -431,12 +442,14 @@ class ChildDirectiveLinker implements DirectiveMatcher {
       }
 
       exportLinker.linkExportsFor(directive);
-      await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
-          .link();
+      if (directive is AbstractClassDirective) {
+        await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
+            .link();
 
-      await new ContentChildLinker(
-              directive, this, _standardAngular, _errorReporter)
-          .linkContentChildren();
+        await new ContentChildLinker(
+                directive, this, _standardAngular, _errorReporter)
+            .linkContentChildren();
+      }
     }
   }
 
@@ -466,28 +479,30 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
   Future lookupDirectiveFromLibrary(DirectiveReference reference,
       LibraryScope scope, List<AbstractDirective> directives) async {
-    final type = scope.lookup(
+    final element = scope.lookup(
         astFactory.simpleIdentifier(
             new StringToken(TokenType.IDENTIFIER, reference.name, 0)),
         null);
 
-    if (type != null && type.source != null) {
-      if (type is ClassElement) {
-        final directive = await matchClassDirective(type);
+    if (element != null && element.source != null) {
+      if (element is ClassElement || element is FunctionElement) {
+        final directive = await matchDirectiveByElement(element);
 
         if (directive != null) {
           directives.add(await linkedAsChild(directive));
         } else {
           _errorReporter.reportErrorForOffset(
-              AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+              element is ClassElement
+                  ? AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE
+                  : AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE,
               reference.range.offset,
               reference.range.length,
-              [type.name]);
+              [element.name]);
         }
         return;
-      } else if (type is PropertyAccessorElement) {
-        type.variable.computeConstantValue();
-        final values = type.variable.constantValue?.toListValue();
+      } else if (element is PropertyAccessorElement) {
+        element.variable.computeConstantValue();
+        final values = element.variable.constantValue?.toListValue();
         if (values != null) {
           await _addDirectivesAndElementTagsForDartObject(
               directives, values, reference.range);
@@ -498,7 +513,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
             AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
             reference.range.offset,
             reference.range.length,
-            [type.variable.constantValue.toString()]);
+            [element.variable.constantValue.toString()]);
 
         return;
       }
@@ -555,12 +570,11 @@ class ChildDirectiveLinker implements DirectiveMatcher {
   }
 
   @override
-  Future<AbstractClassDirective> matchClassDirective(ClassElement clazz) async {
-    final fileDirectives =
-        await _fileDirectiveProvider.getUnlinkedClasses(clazz.source.fullName);
+  Future<AbstractDirective> matchDirectiveByElement(Element element) async {
+    final fileDirectives = await _fileDirectiveProvider
+        .getUnlinkedAngularTopLevels(element.source.fullName);
     final options = fileDirectives
-        .where((d) => d.classElement.name == clazz.name)
-        .where((d) => d is AbstractClassDirective);
+        .where((d) => d is AbstractDirective && d.name == element.name);
 
     if (options.length == 1) {
       return options.first;
@@ -590,7 +604,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     for (final listItem in values) {
       final typeValue = listItem.toTypeValue();
       if (typeValue is InterfaceType && typeValue.element is ClassElement) {
-        final directive = await matchClassDirective(typeValue.element);
+        final directive = await matchDirectiveByElement(typeValue.element);
         if (directive != null) {
           directives.add(await linkedAsChild(directive));
         } else {
@@ -600,19 +614,36 @@ class ChildDirectiveLinker implements DirectiveMatcher {
               errorRange.length,
               [typeValue.name]);
         }
-      } else {
-        final listValue = listItem.toListValue();
-        if (listValue != null) {
-          await _addDirectivesAndElementTagsForDartObject(
-              directives, listValue, errorRange);
+        continue;
+      }
+
+      final listValue = listItem.toListValue();
+      if (listValue != null) {
+        await _addDirectivesAndElementTagsForDartObject(
+            directives, listValue, errorRange);
+        continue;
+      }
+
+      final element = listItem.type?.element;
+      if (element is FunctionElement) {
+        final directive = await matchDirectiveByElement(element);
+        if (directive != null) {
+          directives.add(await linkedAsChild(directive));
         } else {
           _errorReporter.reportErrorForOffset(
-            AngularWarningCode.TYPE_LITERAL_EXPECTED,
-            errorRange.offset,
-            errorRange.length,
-          );
+              AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE,
+              errorRange.offset,
+              errorRange.length,
+              [element.name]);
         }
+        continue;
       }
+
+      _errorReporter.reportErrorForOffset(
+        AngularWarningCode.TYPE_LITERAL_EXPECTED,
+        errorRange.offset,
+        errorRange.length,
+      );
     }
   }
 
@@ -656,10 +687,6 @@ class ChildDirectiveLinker implements DirectiveMatcher {
           await _fileDirectiveProvider.getHtmlNgContent(source.fullName));
     }
 
-    // Important: Link inherited metadata before content child fields, as
-    // the directive may import unlinked content childs
-    await new InheritedMetadataLinker(directive, _fileDirectiveProvider).link();
-
     // NOTE: Require the Exact type TemplateRef because that's what the
     // injector does.
     directive.looksLikeTemplate = directive is FunctionalDirective
@@ -669,18 +696,26 @@ class ChildDirectiveLinker implements DirectiveMatcher {
             (constructor) => constructor.parameters.any(
                 (param) => param.type == _standardAngular.templateRef.type));
 
-    // ignore errors from linking subcomponents content childs
-    final errorIgnorer =
-        new ErrorReporter(new IgnoringErrorListener(), directive.source);
-    await new ContentChildLinker(
-            directive, this, _standardAngular, errorIgnorer)
-        .linkContentChildren();
+    if (directive is AbstractClassDirective) {
+      // Important: Link inherited metadata before content child fields, as
+      // the directive may import unlinked content childs
+      await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
+          .link();
+
+      // ignore errors from linking subcomponents content childs
+      final errorIgnorer =
+          new ErrorReporter(new IgnoringErrorListener(), directive.source);
+      await new ContentChildLinker(
+              directive, this, _standardAngular, errorIgnorer)
+          .linkContentChildren();
+    }
+
     return directive;
   }
 }
 
 abstract class DirectiveMatcher {
-  Future<AbstractDirective> matchClassDirective(ClassElement clazz);
+  Future<AbstractDirective> matchDirectiveByElement(Element element);
   Future<Pipe> matchPipe(ClassElement clazz);
 }
 
@@ -796,7 +831,7 @@ class ContentChildLinker {
     } else if (value?.toTypeValue() != null) {
       final type = value.toTypeValue();
       final referencedDirective =
-          await _directiveMatcher.matchClassDirective(type.element);
+          await _directiveMatcher.matchDirectiveByElement(type.element);
 
       AbstractQueriedChildType query;
       if (referencedDirective != null) {
