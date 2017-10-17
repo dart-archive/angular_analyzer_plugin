@@ -55,33 +55,35 @@ table SummarizedClassAnnotations {
 table SummarizedDirective {
   classAnnotations:SummarizedClassAnnotations (id: 0);
 
-  isComponent:bool (id: 1);
+  functionName:string (id: 1);
 
-  selectorStr:string (id: 2);
+  isComponent:bool (id: 2);
 
-  selectorOffset:uint (id: 3);
+  selectorStr:string (id: 3);
 
-  exportAs:string (id: 4);
+  selectorOffset:uint (id: 4);
 
-  exportAsOffset:uint (id: 5);
+  exportAs:string (id: 5);
 
-  templateUrl:string (id: 6);
+  exportAsOffset:uint (id: 6);
 
-  templateUrlOffset:uint (id: 7);
+  templateUrl:string (id: 7);
 
-  templateUrlLength:uint (id: 8);
+  templateUrlOffset:uint (id: 8);
 
-  templateText:string (id: 9);
+  templateUrlLength:uint (id: 9);
 
-  templateOffset:uint (id: 10);
+  templateText:string (id: 10);
 
-  ngContents:[SummarizedNgContent] (id: 11);
+  templateOffset:uint (id: 11);
 
-  subdirectives:[SummarizedDirectiveUse] (id: 12);
+  ngContents:[SummarizedNgContent] (id: 12);
 
-  exports:[SummarizedExportedIdentifier] (id: 13);
+  subdirectives:[SummarizedDirectiveUse] (id: 13);
 
-  pipesUse:[SummarizedPipesUse] (id: 14);
+  exports:[SummarizedExportedIdentifier] (id: 14);
+
+  pipesUse:[SummarizedPipesUse] (id: 15);
 }
 
 table SummarizedPipe {

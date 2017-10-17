@@ -446,7 +446,7 @@ class AngularDriver
 
   Future<DirectivesResult> resolveHtmlFrom(
       String htmlPath, String dartPath) async {
-    final result = await getAngularAnnotatedClasses(dartPath);
+    final result = await getAngularTopLevels(dartPath);
     final directives = result.directives;
     final pipes = result.pipes;
     final unit = (await dartDriver.getUnitElement(dartPath)).element;
@@ -469,7 +469,10 @@ class AngularDriver
         this, this, await getStandardAngular(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
-    directives.forEach(attrValidator.validate);
+
+    directives
+        .where((d) => d is AbstractClassDirective)
+        .forEach(attrValidator.validate);
 
     final fullyResolvedDirectives = <AbstractDirective>[];
 
@@ -624,7 +627,7 @@ class AngularDriver
       }
     }
 
-    final result = await getAngularAnnotatedClasses(path);
+    final result = await getAngularTopLevels(path);
     final directives = result.directives;
     final pipes = result.pipes;
     final unit = (await dartDriver.getUnitElement(path)).element;
@@ -644,7 +647,9 @@ class AngularDriver
         this, this, await getStandardAngular(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
-    directives.forEach(attrValidator.validate);
+    directives
+        .where((d) => d is AbstractClassDirective)
+        .forEach(attrValidator.validate);
     errors.addAll(linkErrorListener.errors);
 
     final htmlViews = <String>[];
@@ -757,14 +762,14 @@ class AngularDriver
   }
 
   @override
-  Future<List<AngularAnnotatedClass>> getUnlinkedClasses(path) async =>
-      (await getAngularAnnotatedClasses(path)).angularAnnotatedClasses;
+  Future<List<AngularTopLevel>> getUnlinkedAngularTopLevels(path) async =>
+      (await getAngularTopLevels(path)).angularTopLevels;
 
   @override
   Future<List<Pipe>> getUnlinkedPipes(path) async =>
-      (await getAngularAnnotatedClasses(path)).pipes;
+      (await getAngularTopLevels(path)).pipes;
 
-  Future<DirectivesResult> getAngularAnnotatedClasses(String path) async {
+  Future<DirectivesResult> getAngularTopLevels(String path) async {
     final baseKey = _fileTracker.getContentSignature(path).toHex();
     final key = '$baseKey.ngunlinked';
     final bytes = byteStore.get(key);
@@ -788,10 +793,10 @@ class AngularDriver
     final source = dartResult.unit.element.source;
     final extractor =
         new DirectiveExtractor(ast, context.typeProvider, source, context);
-    final classes = extractor.getAngularAnnotatedClasses();
+    final topLevels = extractor.getAngularTopLevels();
 
     final directives = new List<AbstractDirective>.from(
-        classes.where((c) => c is AbstractDirective));
+        topLevels.where((c) => c is AbstractDirective));
 
     final viewExtractor = new ViewExtractor(ast, directives, context, source)
       ..getViews();
@@ -827,7 +832,7 @@ class AngularDriver
     final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
       ..addAll(viewExtractor.errorListener.errors)
       ..addAll(pipeExtractor.errorListener.errors);
-    final result = new DirectivesResult(path, classes, pipes, errors);
+    final result = new DirectivesResult(path, topLevels, pipes, errors);
     final summary = serializeDartResult(result);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
@@ -852,8 +857,7 @@ class AngularDriver
   List<SummarizedDirectiveBuilder> serializeDirectives(
       List<AbstractDirective> directives) {
     final dirSums = <SummarizedDirectiveBuilder>[];
-    for (final directive in new List<AbstractClassDirective>.from(
-        directives.where((d) => d is AbstractClassDirective))) {
+    for (final directive in directives) {
       final selector = directive.selector.originalString;
       final selectorOffset = directive.selector.offset;
       final exportAs = directive?.exportAs?.name;
@@ -894,8 +898,12 @@ class AngularDriver
       }
 
       dirSums.add(new SummarizedDirectiveBuilder()
-        ..classAnnotations = serializeAnnotatedClass(directive)
+        ..classAnnotations = directive is AbstractClassDirective
+            ? serializeAnnotatedClass(directive)
+            : null
         ..isComponent = directive is Component
+        ..functionName =
+            directive is FunctionalDirective ? directive.name : null
         ..selectorStr = selector
         ..selectorOffset = selectorOffset
         ..exportAs = exportAs

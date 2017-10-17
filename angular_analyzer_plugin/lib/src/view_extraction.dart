@@ -178,6 +178,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
           final element = item.staticElement;
           // LIST_OF_DIRECTIVES or TypeLiteral
           if (element is ClassElement ||
+              element is FunctionElement ||
               element is PropertyAccessorElement &&
                   element.variable.constantValue != null) {
             directiveReferences.add(new DirectiveReference(

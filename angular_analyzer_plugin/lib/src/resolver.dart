@@ -825,7 +825,7 @@ class DirectiveResolver extends AngularAstVisitor {
     }
 
     for (final directive in unmatchedDirectives) {
-      if (directive is Directive &&
+      if (directive is AbstractDirective &&
           directive.selector.availableTo(elementView) &&
           !directive.looksLikeTemplate) {
         element.availableDirectives[directive] =

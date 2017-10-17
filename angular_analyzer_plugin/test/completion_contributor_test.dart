@@ -2486,6 +2486,29 @@ class MyDirective {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_availFunctionalDirective_attribute_begin() async {
+    final dartSource = newSource('/completionTest.dart', '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a',
+    directives: const [MyTagComponent, myDirective])
+class MyComp {
+}
+@Component(selector: 'my-tag', template: '')
+class MyTagComponent{}
+@Directive(selector: '[myDirective]')
+void myDirective() {}
+    ''');
+
+    addTestSource('<my-tag ^></my-tag>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('myDirective');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_noCompleteEmptyTagContents() async {
     final dartSource = newSource('/completionTest.dart', '''
 import 'package:angular2/angular2.dart';
@@ -3115,8 +3138,8 @@ class NotTemplateDirective {
   Future test_completeStarAttrsOnlyStar() async {
     final dartSource = newSource('/completionTest.dart', '''
 import 'package:angular2/angular2.dart';
-@Component(templateUrl: 'completionTest.html', selector: 'a',
-    directives: const [NgFor, NgIf, CustomTemplateDirective])
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives:
+    const [NgFor, NgIf, CustomTemplateDirective, functionalTemplateDirective])
 class MyComp {
   List<String> items;
 }
@@ -3125,6 +3148,9 @@ class MyComp {
 class CustomTemplateDirective {
   CustomTemplateDirective(TemplateRef tpl);
 }
+
+@Directive(selector: '[functionalTemplateDirective]')
+void functionalTemplateDirective(TemplateRef tpl);
     ''');
 
     addTestSource('<div *^></div>');
@@ -3136,6 +3162,7 @@ class CustomTemplateDirective {
     assertSuggestStar("*ngFor");
     assertSuggestStar("*ngIf");
     assertSuggestStar("*customTemplateDirective");
+    assertSuggestStar("*functionalTemplateDirective");
     assertNotSuggested("*ngForOf");
     assertNotSuggested("[id]");
     assertNotSuggested("id");

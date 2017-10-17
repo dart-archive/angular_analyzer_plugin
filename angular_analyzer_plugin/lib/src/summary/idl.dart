@@ -82,32 +82,34 @@ abstract class SummarizedDirective extends base.SummaryClass {
   @Id(0)
   SummarizedClassAnnotations get classAnnotations;
   @Id(1)
-  bool get isComponent;
+  String get functionName;
   @Id(2)
-  String get selectorStr;
+  bool get isComponent;
   @Id(3)
-  int get selectorOffset;
+  String get selectorStr;
   @Id(4)
-  String get exportAs;
+  int get selectorOffset;
   @Id(5)
-  int get exportAsOffset;
+  String get exportAs;
   @Id(6)
-  String get templateUrl;
+  int get exportAsOffset;
   @Id(7)
-  int get templateUrlOffset;
+  String get templateUrl;
   @Id(8)
-  int get templateUrlLength;
+  int get templateUrlOffset;
   @Id(9)
-  String get templateText;
+  int get templateUrlLength;
   @Id(10)
-  int get templateOffset;
+  String get templateText;
   @Id(11)
-  List<SummarizedNgContent> get ngContents;
+  int get templateOffset;
   @Id(12)
-  List<SummarizedDirectiveUse> get subdirectives;
+  List<SummarizedNgContent> get ngContents;
   @Id(13)
-  List<SummarizedExportedIdentifier> get exports;
+  List<SummarizedDirectiveUse> get subdirectives;
   @Id(14)
+  List<SummarizedExportedIdentifier> get exports;
+  @Id(15)
   List<SummarizedPipesUse> get pipesUse;
 }
 

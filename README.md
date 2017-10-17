@@ -119,7 +119,8 @@ Class decorators | Validation | Auto-Complete | Navigation | Refactoring
 -----------------|------------|---------------|------------|-------------
 `@Component(...) class MyComponent {}` | :white_check_mark: Validates directives list is all directives, that the template file exists, that a template is specified via string or URL but not both, requires a valid selector | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `@View(...) class MyComponent {}` | :warning: Supported, requires `@Directive` or `@Component`, but doesn't catch ambigous cases such as templates defined in the `@View` as well as `@Component` | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
-`@Directive(...) class MyDirective {}` | :white_check_mark: Validates directives list is all directives, that the template file exists, that a template is specified via string or URL but not both, requires a valid selector | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
+`@Directive(...) class MyDirective {}` | :white_check_mark: Validates directives list is all directives, requires a valid selector | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
+`@Directive(...) void directive(...) {}` | :white_check_mark: Validates directives list is all directives requires a valid selector, not exported | :no_pedestrians: | :no_pedestrians: | :no_pedestrians:
 `@Pipe(...) class MyPipe {}` | :x: | :no_pedestrians: | :no_pedestrians: | :x:
 `@Injectable() class MyService {}` | :x: | :no_pedestrians: | :no_pedestrians: | :x:
 

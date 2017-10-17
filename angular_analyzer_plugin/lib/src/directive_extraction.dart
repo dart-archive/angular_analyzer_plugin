@@ -32,18 +32,23 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     initAnnotationProcessor(_source);
   }
 
-  List<AngularAnnotatedClass> getAngularAnnotatedClasses() {
-    final directives = <AngularAnnotatedClass>[];
+  List<AngularTopLevel> getAngularTopLevels() {
+    final declarations = <AngularTopLevel>[];
     for (final unitMember in _unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
         final directive = _getAngularAnnotatedClass(unitMember);
         if (directive != null) {
-          directives.add(directive);
+          declarations.add(directive);
+        }
+      } else if (unitMember is ast.FunctionDeclaration) {
+        final directive = _getFunctionalDirective(unitMember);
+        if (directive != null) {
+          declarations.add(directive);
         }
       }
     }
 
-    return directives;
+    return declarations;
   }
 
   /// Returns an Angular [AbstractDirective] for to the given [node].
@@ -113,6 +118,33 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
           outputs: outputElements,
           contentChildFields: contentChilds,
           contentChildrenFields: contentChildrens);
+    }
+
+    return null;
+  }
+
+  /// Returns an Angular [FunctionalDirective] for to the given [node].
+  /// Returns `null` if not an Angular annotation.
+  FunctionalDirective _getFunctionalDirective(
+      ast.FunctionDeclaration functionDeclaration) {
+    final functionElement = functionDeclaration.element;
+    final annotationNode = functionDeclaration.metadata.firstWhere(
+        (ann) => isAngularAnnotation(ann, 'Directive'),
+        orElse: () => null);
+
+    if (annotationNode != null) {
+      // Don't fail to create a directive just because of a broken or missing
+      // selector, that results in cascading errors.
+      final selector = _parseSelector(annotationNode) ?? new AndSelector([]);
+      final elementTags = <ElementNameSelector>[];
+      final exportAs = getNamedArgument(annotationNode, 'exportAs');
+      if (exportAs != null) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED,
+            exportAs);
+      }
+      selector.recordElementNameSelectors(elementTags);
+      return new FunctionalDirective(functionElement, selector, elementTags);
     }
 
     return null;
