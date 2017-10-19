@@ -1,9 +1,9 @@
-# Angular2 analyzer plugin
+# AngularDart analyzer plugin
 
-A plugin for the Dart `analyzer` library [package](https://pub.dartlang.org/packages/analyzer) providing Angular2 support.
+A plugin for the Dart `analyzer` library [package](https://pub.dartlang.org/packages/analyzer) providing AngularDart support.
 
 ## Features and bugs
 
 Please file feature requests and bugs at the [issue tracker][tracker].
 
-[tracker]: https://github.com/angular/angular2-dart-analyzer/issues
+[tracker]: https://github.com/dart-lang/angular_analyzer_plugin/issues
