@@ -1,4 +1,4 @@
-# Angular2 Dart Analysis Plugins
+# Angular Dart Analysis Plugins
 
 ## Integration with Dart Analysis Server
 
