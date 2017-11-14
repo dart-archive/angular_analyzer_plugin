@@ -5,6 +5,7 @@ import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/dart/element/type.dart' as dart;
 import 'package:analyzer/dart/ast/ast.dart' as dart;
 import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:analyzer/task/model.dart' show AnalysisTarget;
@@ -594,6 +595,68 @@ class PipeReference {
   PipeReference(this.identifier, this.span, {this.prefix: ''});
 }
 
+abstract class DirectivesStrategy {
+  // A low-level sort of visitor strategy.
+  T resolve<T>(T Function(List<DirectiveReference>) arrayStrategyHandler,
+      T Function(DartObject, SourceRange) constStrategyHandler);
+}
+
+class ArrayOfDirectiveReferencesStrategy implements DirectivesStrategy {
+  final List<DirectiveReference> directiveReferences;
+
+  ArrayOfDirectiveReferencesStrategy(this.directiveReferences);
+
+  @override
+  T resolve<T>(T Function(List<DirectiveReference>) arrayStrategyHandler,
+          T Function(Null, Null) _) =>
+      arrayStrategyHandler(directiveReferences);
+}
+
+class UseConstValueStrategy implements DirectivesStrategy {
+  final dart.ClassElement annotatedObject;
+  final StandardAngular standardAngular;
+  final SourceRange sourceRange;
+
+  UseConstValueStrategy(
+      this.annotatedObject, this.standardAngular, this.sourceRange) {
+    assert(standardAngular != null);
+  }
+
+  @override
+  T resolve<T>(T Function(Null) _,
+          T Function(DartObject, SourceRange) constStrategyHandler) =>
+      constStrategyHandler(
+          annotatedObject.metadata
+              .where((m) => _isViewOrComponent(m.element?.enclosingElement))
+              .map((m) => _getDirectives(m.computeConstantValue()))
+              // TODO(mfairhurst): report error for double definition
+              .firstWhere((directives) => !(directives?.isNull ?? true),
+                  orElse: () => null),
+          sourceRange);
+
+  /// Check if an element is a View or Component
+  bool _isViewOrComponent(dart.Element element) =>
+      element != null &&
+      element is dart.ClassElement &&
+      (element.type.isSubtypeOf(standardAngular.view.type) ||
+          element.type.isSubtypeOf(standardAngular.component.type));
+
+  /// Traverse the inheritance hierarchy in the constant value, looking for the
+  /// 'directives' field at the highest level it occurs.
+  DartObject _getDirectives(DartObject value) {
+    do {
+      final directives = value.getField('directives');
+      if (directives != null) {
+        return directives;
+      }
+      // ignore: parameter_assignments
+      value = value.getField('(super)');
+    } while (value != null);
+
+    return null;
+  }
+}
+
 /// The model of an Angular view.
 class View implements AnalysisTarget {
   /// The [ClassElement] this view is associated with.
@@ -602,7 +665,8 @@ class View implements AnalysisTarget {
   final Component component;
   final List<AbstractDirective> directives;
   final List<Pipe> pipes;
-  final List<DirectiveReference> directiveReferences;
+  //final List<DirectiveReference> directiveReferences;
+  final DirectivesStrategy directivesStrategy;
   final List<PipeReference> pipeReferences;
   final String templateText;
   final int templateOffset;
@@ -641,7 +705,7 @@ class View implements AnalysisTarget {
       this.templateUriSource,
       this.templateUrlRange,
       this.annotation,
-      this.directiveReferences,
+      this.directivesStrategy,
       this.exports,
       this.pipeReferences}) {
     // stability/error-recovery: @Component can be missing

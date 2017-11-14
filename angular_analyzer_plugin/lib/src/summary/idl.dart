@@ -106,11 +106,17 @@ abstract class SummarizedDirective extends base.SummaryClass {
   @Id(12)
   List<SummarizedNgContent> get ngContents;
   @Id(13)
-  List<SummarizedDirectiveUse> get subdirectives;
+  bool get usesArrayOfDirectiveReferencesStrategy;
   @Id(14)
-  List<SummarizedExportedIdentifier> get exports;
+  List<SummarizedDirectiveUse> get subdirectives;
   @Id(15)
+  List<SummarizedExportedIdentifier> get exports;
+  @Id(16)
   List<SummarizedPipesUse> get pipesUse;
+  @Id(17)
+  int get constDirectiveStrategyOffset;
+  @Id(18)
+  int get constDirectiveStrategyLength;
 }
 
 abstract class SummarizedPipe extends base.SummaryClass {

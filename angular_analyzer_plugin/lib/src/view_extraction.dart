@@ -5,6 +5,7 @@ import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:angular_ast/angular_ast.dart' as ng_ast;
 import 'tasks.dart';
@@ -14,9 +15,10 @@ class ViewExtractor extends AnnotationProcessorMixin {
   Source source;
   ast.CompilationUnit unit;
   List<AbstractDirective> directivesDefinedInFile;
+  StandardAngular standardAngular;
 
-  ViewExtractor(
-      this.unit, this.directivesDefinedInFile, this.context, this.source);
+  ViewExtractor(this.unit, this.directivesDefinedInFile, this.context,
+      this.source, this.standardAngular);
 
   List<View> getViews() {
     initAnnotationProcessor(source);
@@ -131,9 +133,8 @@ class ViewExtractor extends AnnotationProcessorMixin {
     if (component == null) {
       return null;
     }
-    final directiveReferences = <DirectiveReference>[];
     final pipeReferences = <PipeReference>[];
-    findDirectives(annotation, directiveReferences);
+    final directivesStrategy = findDirectives(annotation, classElement);
     findPipes(annotation, pipeReferences);
     final exports = <ExportedIdentifier>[];
     findExports(annotation, exports);
@@ -143,7 +144,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
         templateOffset: templateOffset,
         templateUriSource: templateUriSource,
         templateUrlRange: templateUrlRange,
-        directiveReferences: directiveReferences,
+        directivesStrategy: directivesStrategy,
         pipeReferences: pipeReferences,
         annotation: annotation,
         exports: exports);
@@ -160,13 +161,14 @@ class ViewExtractor extends AnnotationProcessorMixin {
     return null;
   }
 
-  void findDirectives(
-      ast.Annotation annotation, List<DirectiveReference> directiveReferences) {
+  DirectivesStrategy findDirectives(
+      ast.Annotation annotation, ClassElement classElement) {
     // Prepare directives and elementTags
     // ignore: omit_local_variable_types
     final ast.Expression listExpression =
         getNamedArgument(annotation, 'directives');
     if (listExpression is ast.ListLiteral) {
+      final directiveReferences = <DirectiveReference>[];
       // ignore: omit_local_variable_types
       for (final ast.Expression item in listExpression.elements) {
         if (item is ast.Identifier) {
@@ -190,7 +192,11 @@ class ViewExtractor extends AnnotationProcessorMixin {
         errorReporter.reportErrorForNode(
             AngularWarningCode.TYPE_LITERAL_EXPECTED, item);
       }
+      return new ArrayOfDirectiveReferencesStrategy(directiveReferences);
     }
+
+    return new UseConstValueStrategy(classElement, standardAngular,
+        new SourceRange(listExpression?.offset, listExpression?.length));
   }
 
   void findPipes(

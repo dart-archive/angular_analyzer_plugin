@@ -286,6 +286,8 @@ class BuildStandardAngularTest extends AbstractAngularTest {
     expect(ng.elementRef, isNotNull);
     expect(ng.queryList, isNotNull);
     expect(ng.pipeTransform, isNotNull);
+    expect(ng.view, isNotNull);
+    expect(ng.component, isNotNull);
   }
 
   // ignore: non_constant_identifier_names
@@ -1967,6 +1969,86 @@ class MyComponent {}
     }
     // no errors
     errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives_not_list_syntax() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+const VARIABLE = const [DirectiveA, DirectiveB];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: VARIABLE)
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(
+        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
+    final directiveClassNames =
+        view.directives.map((directive) => directive.name).toList();
+    expect(directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives_not_list_syntax_view() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+const VARIABLE = const [DirectiveA, DirectiveB];
+
+@Component(selector: 'my-component')
+@View(template: 'My template', directives: VARIABLE)
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(
+        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
+    final directiveClassNames =
+        view.directives.map((directive) => directive.name).toList();
+    expect(directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives_not_list_syntax_errorWithinVariable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component')
+@View(template: 'My template', directives: VARIABLE)
+class MyComponent {}
+
+// A non-array is a type error in the analyzer; a non-component in an array is
+// not so we must test it. Define below usage for asserting position.
+const VARIABLE = const [Object];
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(
+        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE, code, 'VARIABLE');
   }
 
   // ignore: non_constant_identifier_names

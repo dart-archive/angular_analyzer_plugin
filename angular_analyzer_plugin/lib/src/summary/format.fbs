@@ -79,11 +79,17 @@ table SummarizedDirective {
 
   ngContents:[SummarizedNgContent] (id: 12);
 
-  subdirectives:[SummarizedDirectiveUse] (id: 13);
+  usesArrayOfDirectiveReferencesStrategy:bool (id: 13);
 
-  exports:[SummarizedExportedIdentifier] (id: 14);
+  subdirectives:[SummarizedDirectiveUse] (id: 14);
 
-  pipesUse:[SummarizedPipesUse] (id: 15);
+  exports:[SummarizedExportedIdentifier] (id: 15);
+
+  pipesUse:[SummarizedPipesUse] (id: 16);
+
+  constDirectiveStrategyOffset:uint (id: 17);
+
+  constDirectiveStrategyLength:uint (id: 18);
 }
 
 table SummarizedPipe {

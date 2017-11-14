@@ -40,8 +40,9 @@ class IgnoringErrorListener implements AnalysisErrorListener {
 
 class DirectiveLinker {
   final DirectiveLinkerEnablement _directiveLinkerEnablement;
+  final StandardAngular standardAngular;
 
-  DirectiveLinker(this._directiveLinkerEnablement);
+  DirectiveLinker(this._directiveLinkerEnablement, this.standardAngular);
 
   Future<List<AngularTopLevel>> resynthesizeDirectives(
       UnlinkedDartSummary unlinked, String path) async {
@@ -122,7 +123,13 @@ class DirectiveLinker {
             templateOffset: dirSum.templateOffset,
             templateUriSource: templateUriSource,
             templateUrlRange: templateUrlRange,
-            directiveReferences: subDirectives,
+            directivesStrategy: dirSum.usesArrayOfDirectiveReferencesStrategy
+                ? new ArrayOfDirectiveReferencesStrategy(subDirectives)
+                : new UseConstValueStrategy(
+                    classElem,
+                    standardAngular,
+                    new SourceRange(dirSum.constDirectiveStrategyOffset,
+                        dirSum.constDirectiveStrategyLength)),
             exports: exports,
             pipeReferences: pipeRefs);
       } else {
@@ -421,15 +428,33 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     for (final directive in directivesToLink) {
       if (directive is Component && directive.view != null) {
         // Link directive references to actual directive definition.
-        for (final reference in directive.view.directiveReferences) {
-          final referent = lookupDirectiveByName(reference, directivesToLink);
-          if (referent != null) {
-            directive.view.directives.add(await linkedAsChild(referent));
-          } else {
-            await lookupDirectiveFromLibrary(
-                reference, scope, directive.view.directives);
+        await directive.view.directivesStrategy.resolve((references) async {
+          for (final reference in references) {
+            final referent = lookupDirectiveByName(reference, directivesToLink);
+            if (referent != null) {
+              directive.view.directives.add(await linkedAsChild(referent));
+            } else {
+              await lookupDirectiveFromLibrary(
+                  reference, scope, directive.view.directives);
+            }
           }
-        }
+        }, (constValue, sourceRange) async {
+          if (constValue == null) {
+            return;
+          }
+
+          if (constValue.toListValue() != null) {
+            await _addDirectivesAndElementTagsForDartObject(
+                directive.view.directives,
+                constValue.toListValue(),
+                sourceRange);
+          }
+
+          // Note: We don't have to report an error here, because if a non-list
+          // was used for the directives parameter, that's a type error in the
+          // analyzer.
+        });
+
         // Link pipe references to actual pipe definition.
         for (final reference in directive.view.pipeReferences) {
           final referent = lookupPipeByName(reference, pipesToLink);

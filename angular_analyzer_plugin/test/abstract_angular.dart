@@ -203,6 +203,7 @@ abstract class Directive {
 }
 
 class Component extends Directive {
+  final List<Object> directives;
   const Component(
       {String selector,
       List<String> inputs,
@@ -220,7 +221,7 @@ class Component extends Directive {
       ChangeDetectionStrategy changeDetection,
       String templateUrl,
       String template,
-      dynamic directives,
+      this.directives,
       dynamic pipes,
       ViewEncapsulation encapsulation,
       List<String> exports,
@@ -235,10 +236,11 @@ class Pipe {
 }
 
 class View {
+  final List<Object> directives;
   const View(
       {String templateUrl,
       String template,
-      dynamic directives,
+      this.directives,
       dynamic pipes,
       ViewEncapsulation encapsulation,
       List<String> exports,

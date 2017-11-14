@@ -540,7 +540,7 @@ class AngularDriver
     final bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
-      return new DirectiveLinker(this).deserializeNgContents(
+      return new DirectiveLinker(this, standardAngular).deserializeNgContents(
           new UnlinkedHtmlSummary.fromBuffer(bytes).ngContents, source);
     }
 
@@ -743,7 +743,8 @@ class AngularDriver
 
   Future<List<AngularAnnotatedClass>> resynthesizeDirectives(
           UnlinkedDartSummary unlinked, String path) async =>
-      new DirectiveLinker(this).resynthesizeDirectives(unlinked, path);
+      new DirectiveLinker(this, standardAngular)
+          .resynthesizeDirectives(unlinked, path);
 
   Future<List<Pipe>> resynthesizePipes(
       UnlinkedDartSummary unlinked, String path) async {
@@ -798,7 +799,8 @@ class AngularDriver
     final directives = new List<AbstractDirective>.from(
         topLevels.where((c) => c is AbstractDirective));
 
-    final viewExtractor = new ViewExtractor(ast, directives, context, source)
+    final viewExtractor = new ViewExtractor(
+        ast, directives, context, source, await getStandardAngular())
       ..getViews();
 
     final tplErrorListener = new RecordingErrorListener();
@@ -872,26 +874,34 @@ class AngularDriver
             ..length = export.span.length);
         }
       }
-      final dirUseSums = <SummarizedDirectiveUseBuilder>[];
+      List<SummarizedDirectiveUseBuilder> dirUseSums;
       final ngContents = <SummarizedNgContentBuilder>[];
       String templateUrl;
       int templateUrlOffset;
       int templateUrlLength;
       String templateText;
       int templateTextOffset;
+      SourceRange constDirectivesSourceRange;
       if (directive is Component && directive.view != null) {
         templateUrl = directive.view?.templateUriSource?.fullName;
         templateUrlOffset = directive.view?.templateUrlRange?.offset;
         templateUrlLength = directive.view?.templateUrlRange?.length;
         templateText = directive.view.templateText;
         templateTextOffset = directive.view.templateOffset;
-        for (final reference in directive.view.directiveReferences) {
-          dirUseSums.add(new SummarizedDirectiveUseBuilder()
-            ..name = reference.name
-            ..prefix = reference.prefix
-            ..offset = reference.range.offset
-            ..length = reference.range.length);
-        }
+
+        dirUseSums = directive.view.directivesStrategy.resolve(
+            (references) => references
+                .map((reference) => new SummarizedDirectiveUseBuilder()
+                  ..name = reference.name
+                  ..prefix = reference.prefix
+                  ..offset = reference.range.offset
+                  ..length = reference.range.length)
+                .toList(),
+            (constValue, _) => null);
+
+        constDirectivesSourceRange = directive.view.directivesStrategy.resolve(
+            (references) => null, (constValue, sourceRange) => sourceRange);
+
         if (directive.ngContents != null) {
           ngContents.addAll(serializeNgContents(directive.ngContents));
         }
@@ -915,7 +925,10 @@ class AngularDriver
         ..templateUrlLength = templateUrlLength
         ..ngContents = ngContents
         ..exports = exports
-        ..subdirectives = dirUseSums);
+        ..usesArrayOfDirectiveReferencesStrategy = dirUseSums != null
+        ..subdirectives = dirUseSums
+        ..constDirectiveStrategyOffset = constDirectivesSourceRange?.offset
+        ..constDirectiveStrategyLength = constDirectivesSourceRange?.length);
     }
 
     return dirSums;
