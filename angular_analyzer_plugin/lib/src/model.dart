@@ -636,7 +636,6 @@ class UseConstValueStrategy implements DirectivesStrategy {
 
   /// Check if an element is a View or Component
   bool _isViewOrComponent(dart.Element element) =>
-      element != null &&
       element is dart.ClassElement &&
       (element.type.isSubtypeOf(standardAngular.view.type) ||
           element.type.isSubtypeOf(standardAngular.component.type));
@@ -665,7 +664,6 @@ class View implements AnalysisTarget {
   final Component component;
   final List<AbstractDirective> directives;
   final List<Pipe> pipes;
-  //final List<DirectiveReference> directiveReferences;
   final DirectivesStrategy directivesStrategy;
   final List<PipeReference> pipeReferences;
   final String templateText;
