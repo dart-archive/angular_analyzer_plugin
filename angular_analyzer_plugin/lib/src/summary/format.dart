@@ -1088,9 +1088,12 @@ class SummarizedDirectiveBuilder extends Object
   String _templateText;
   int _templateOffset;
   List<SummarizedNgContentBuilder> _ngContents;
+  bool _usesArrayOfDirectiveReferencesStrategy;
   List<SummarizedDirectiveUseBuilder> _subdirectives;
   List<SummarizedExportedIdentifierBuilder> _exports;
   List<SummarizedPipesUseBuilder> _pipesUse;
+  int _constDirectiveStrategyOffset;
+  int _constDirectiveStrategyLength;
 
   @override
   SummarizedClassAnnotationsBuilder get classAnnotations => _classAnnotations;
@@ -1190,6 +1193,14 @@ class SummarizedDirectiveBuilder extends Object
   }
 
   @override
+  bool get usesArrayOfDirectiveReferencesStrategy =>
+      _usesArrayOfDirectiveReferencesStrategy ??= false;
+
+  void set usesArrayOfDirectiveReferencesStrategy(bool value) {
+    this._usesArrayOfDirectiveReferencesStrategy = value;
+  }
+
+  @override
   List<SummarizedDirectiveUseBuilder> get subdirectives =>
       _subdirectives ??= <SummarizedDirectiveUseBuilder>[];
 
@@ -1213,6 +1224,22 @@ class SummarizedDirectiveBuilder extends Object
     this._pipesUse = value;
   }
 
+  @override
+  int get constDirectiveStrategyOffset => _constDirectiveStrategyOffset ??= 0;
+
+  void set constDirectiveStrategyOffset(int value) {
+    assert(value == null || value >= 0);
+    this._constDirectiveStrategyOffset = value;
+  }
+
+  @override
+  int get constDirectiveStrategyLength => _constDirectiveStrategyLength ??= 0;
+
+  void set constDirectiveStrategyLength(int value) {
+    assert(value == null || value >= 0);
+    this._constDirectiveStrategyLength = value;
+  }
+
   SummarizedDirectiveBuilder(
       {SummarizedClassAnnotationsBuilder classAnnotations,
       String functionName,
@@ -1227,9 +1254,12 @@ class SummarizedDirectiveBuilder extends Object
       String templateText,
       int templateOffset,
       List<SummarizedNgContentBuilder> ngContents,
+      bool usesArrayOfDirectiveReferencesStrategy,
       List<SummarizedDirectiveUseBuilder> subdirectives,
       List<SummarizedExportedIdentifierBuilder> exports,
-      List<SummarizedPipesUseBuilder> pipesUse})
+      List<SummarizedPipesUseBuilder> pipesUse,
+      int constDirectiveStrategyOffset,
+      int constDirectiveStrategyLength})
       : _classAnnotations = classAnnotations,
         _functionName = functionName,
         _isComponent = isComponent,
@@ -1243,9 +1273,13 @@ class SummarizedDirectiveBuilder extends Object
         _templateText = templateText,
         _templateOffset = templateOffset,
         _ngContents = ngContents,
+        _usesArrayOfDirectiveReferencesStrategy =
+            usesArrayOfDirectiveReferencesStrategy,
         _subdirectives = subdirectives,
         _exports = exports,
-        _pipesUse = pipesUse;
+        _pipesUse = pipesUse,
+        _constDirectiveStrategyOffset = constDirectiveStrategyOffset,
+        _constDirectiveStrategyLength = constDirectiveStrategyLength;
 
   /**
    * Flush [informative] data recursively.
@@ -1283,6 +1317,7 @@ class SummarizedDirectiveBuilder extends Object
         x?.collectApiSignature(signature);
       }
     }
+    signature.addBool(this._usesArrayOfDirectiveReferencesStrategy == true);
     if (this._subdirectives == null) {
       signature.addInt(0);
     } else {
@@ -1307,6 +1342,8 @@ class SummarizedDirectiveBuilder extends Object
         x?.collectApiSignature(signature);
       }
     }
+    signature.addInt(this._constDirectiveStrategyOffset ?? 0);
+    signature.addInt(this._constDirectiveStrategyLength ?? 0);
   }
 
   fb.Offset finish(fb.Builder fbBuilder) {
@@ -1394,14 +1431,25 @@ class SummarizedDirectiveBuilder extends Object
     if (offset_ngContents != null) {
       fbBuilder.addOffset(12, offset_ngContents);
     }
+    if (_usesArrayOfDirectiveReferencesStrategy == true) {
+      fbBuilder.addBool(13, true);
+    }
     if (offset_subdirectives != null) {
-      fbBuilder.addOffset(13, offset_subdirectives);
+      fbBuilder.addOffset(14, offset_subdirectives);
     }
     if (offset_exports != null) {
-      fbBuilder.addOffset(14, offset_exports);
+      fbBuilder.addOffset(15, offset_exports);
     }
     if (offset_pipesUse != null) {
-      fbBuilder.addOffset(15, offset_pipesUse);
+      fbBuilder.addOffset(16, offset_pipesUse);
+    }
+    if (_constDirectiveStrategyOffset != null &&
+        _constDirectiveStrategyOffset != 0) {
+      fbBuilder.addUint32(17, _constDirectiveStrategyOffset);
+    }
+    if (_constDirectiveStrategyLength != null &&
+        _constDirectiveStrategyLength != 0) {
+      fbBuilder.addUint32(18, _constDirectiveStrategyLength);
     }
     return fbBuilder.endTable();
   }
@@ -1437,9 +1485,12 @@ class _SummarizedDirectiveImpl extends Object
   String _templateText;
   int _templateOffset;
   List<idl.SummarizedNgContent> _ngContents;
+  bool _usesArrayOfDirectiveReferencesStrategy;
   List<idl.SummarizedDirectiveUse> _subdirectives;
   List<idl.SummarizedExportedIdentifier> _exports;
   List<idl.SummarizedPipesUse> _pipesUse;
+  int _constDirectiveStrategyOffset;
+  int _constDirectiveStrategyLength;
 
   @override
   idl.SummarizedClassAnnotations get classAnnotations {
@@ -1526,10 +1577,17 @@ class _SummarizedDirectiveImpl extends Object
   }
 
   @override
+  bool get usesArrayOfDirectiveReferencesStrategy {
+    _usesArrayOfDirectiveReferencesStrategy ??=
+        const fb.BoolReader().vTableGet(_bc, _bcOffset, 13, false);
+    return _usesArrayOfDirectiveReferencesStrategy;
+  }
+
+  @override
   List<idl.SummarizedDirectiveUse> get subdirectives {
     _subdirectives ??= const fb.ListReader<idl.SummarizedDirectiveUse>(
             const _SummarizedDirectiveUseReader())
-        .vTableGet(_bc, _bcOffset, 13, const <idl.SummarizedDirectiveUse>[]);
+        .vTableGet(_bc, _bcOffset, 14, const <idl.SummarizedDirectiveUse>[]);
     return _subdirectives;
   }
 
@@ -1538,7 +1596,7 @@ class _SummarizedDirectiveImpl extends Object
     _exports ??= const fb.ListReader<idl.SummarizedExportedIdentifier>(
             const _SummarizedExportedIdentifierReader())
         .vTableGet(
-            _bc, _bcOffset, 14, const <idl.SummarizedExportedIdentifier>[]);
+            _bc, _bcOffset, 15, const <idl.SummarizedExportedIdentifier>[]);
     return _exports;
   }
 
@@ -1546,8 +1604,22 @@ class _SummarizedDirectiveImpl extends Object
   List<idl.SummarizedPipesUse> get pipesUse {
     _pipesUse ??= const fb.ListReader<idl.SummarizedPipesUse>(
             const _SummarizedPipesUseReader())
-        .vTableGet(_bc, _bcOffset, 15, const <idl.SummarizedPipesUse>[]);
+        .vTableGet(_bc, _bcOffset, 16, const <idl.SummarizedPipesUse>[]);
     return _pipesUse;
+  }
+
+  @override
+  int get constDirectiveStrategyOffset {
+    _constDirectiveStrategyOffset ??=
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 17, 0);
+    return _constDirectiveStrategyOffset;
+  }
+
+  @override
+  int get constDirectiveStrategyLength {
+    _constDirectiveStrategyLength ??=
+        const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 18, 0);
+    return _constDirectiveStrategyLength;
   }
 }
 
@@ -1573,6 +1645,9 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
     if (ngContents.isNotEmpty)
       _result["ngContents"] =
           ngContents.map((_value) => _value.toJson()).toList();
+    if (usesArrayOfDirectiveReferencesStrategy != false)
+      _result["usesArrayOfDirectiveReferencesStrategy"] =
+          usesArrayOfDirectiveReferencesStrategy;
     if (subdirectives.isNotEmpty)
       _result["subdirectives"] =
           subdirectives.map((_value) => _value.toJson()).toList();
@@ -1580,6 +1655,10 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
       _result["exports"] = exports.map((_value) => _value.toJson()).toList();
     if (pipesUse.isNotEmpty)
       _result["pipesUse"] = pipesUse.map((_value) => _value.toJson()).toList();
+    if (constDirectiveStrategyOffset != 0)
+      _result["constDirectiveStrategyOffset"] = constDirectiveStrategyOffset;
+    if (constDirectiveStrategyLength != 0)
+      _result["constDirectiveStrategyLength"] = constDirectiveStrategyLength;
     return _result;
   }
 
@@ -1598,9 +1677,13 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
         "templateText": templateText,
         "templateOffset": templateOffset,
         "ngContents": ngContents,
+        "usesArrayOfDirectiveReferencesStrategy":
+            usesArrayOfDirectiveReferencesStrategy,
         "subdirectives": subdirectives,
         "exports": exports,
         "pipesUse": pipesUse,
+        "constDirectiveStrategyOffset": constDirectiveStrategyOffset,
+        "constDirectiveStrategyLength": constDirectiveStrategyLength,
       };
 
   @override
