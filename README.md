@@ -25,8 +25,6 @@ analyzer:
       enabled: true
 ```
 
-Eventually, only the forwards compatible section will be required.
-
 Then simply reboot your analysis server (inside IntelliJ this is done by clicking on the skull icon if it exists, or the refresh icon otherwise) and wait for the plugin to fully load, which can take a minute on the first run.
 
 ## Building -- For hacking on this plugin, or using the latest
