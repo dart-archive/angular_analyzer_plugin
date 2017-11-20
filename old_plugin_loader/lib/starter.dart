@@ -14,6 +14,7 @@ import 'package:analysis_server/protocol/protocol_generated.dart'
 import 'package:analysis_server/src/services/completion/completion_core.dart';
 import 'package:analysis_server/src/services/completion/completion_performance.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:analyzer/src/source/source_resource.dart';
 import 'package:analysis_server/src/domain_completion.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart'
@@ -50,7 +51,8 @@ class Starter {
         scheduler,
         byteStore,
         sourceFactory,
-        contentOverlay);
+        contentOverlay,
+        new AngularOptions.defaults());
     angularDrivers[driverPath] = driver;
     server.onFileAdded.listen((path) {
       if (server.contextManager.getContextFolderFor(path).path == driverPath) {
