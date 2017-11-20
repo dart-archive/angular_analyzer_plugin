@@ -17,6 +17,7 @@ import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/pipe_extraction.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
@@ -39,6 +40,7 @@ class AngularDriver
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
   final FileContentOverlay _contentOverlay;
+  final AngularOptions options;
   StandardHtml standardHtml;
   StandardAngular standardAngular;
   SourceFactory _sourceFactory;
@@ -56,8 +58,14 @@ class AngularDriver
   bool _hasAngular2Imported = false; // TODO only support package:angular
   final completionContributors = <CompletionContributor>[];
 
-  AngularDriver(this.notificationManager, this.dartDriver, this._scheduler,
-      this.byteStore, SourceFactory sourceFactory, this._contentOverlay) {
+  AngularDriver(
+      this.notificationManager,
+      this.dartDriver,
+      this._scheduler,
+      this.byteStore,
+      SourceFactory sourceFactory,
+      this._contentOverlay,
+      this.options) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
     _fileTracker = new FileTracker(this);

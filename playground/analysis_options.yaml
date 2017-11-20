@@ -2,7 +2,4 @@ analyzer:
   plugins:
     angular_analyzer_plugin:
       enabled: true
-
-plugins:
-  angular:
-    enabled: true
+      foo: bar

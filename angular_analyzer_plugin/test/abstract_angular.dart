@@ -10,6 +10,7 @@ import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:mockito/mockito.dart';
 import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
@@ -137,8 +138,14 @@ class AbstractAngularTest {
         contextRoot,
         sf,
         new AnalysisOptionsImpl());
-    angularDriver = new AngularDriver(new MockNotificationManager(), dartDriver,
-        scheduler, byteStore, sf, new FileContentOverlay());
+    angularDriver = new AngularDriver(
+        new MockNotificationManager(),
+        dartDriver,
+        scheduler,
+        byteStore,
+        sf,
+        new FileContentOverlay(),
+        new AngularOptions.defaults());
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();
