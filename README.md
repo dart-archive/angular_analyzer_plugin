@@ -27,7 +27,33 @@ analyzer:
 
 Then simply reboot your analysis server (inside IntelliJ this is done by clicking on the skull icon if it exists, or the refresh icon otherwise) and wait for the plugin to fully load, which can take a minute on the first run.
 
-## Building -- For hacking on this plugin, or using the latest
+## Loading an Exact Version
+
+This is much like the previous step. However, you should include this project in your pubspec:
+
+```
+dependencies:
+  angular_analyzer_plugin: 0.0.11
+```
+
+and then load the plugin as itself, rather than as a dependency of angular:
+
+```
+# forwards compatible (you need this)
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+      enabled: true
+
+# backwards compatible (you also need this, for the moment)
+plugins:
+  angular:
+    enabled: true
+```
+
+Like the previous installation option, you then just need to reboot your analysis server after running pub get.
+
+## Building -- For hacking on this plugin, or using the latest (unpublished)
 
 Download chrome depot tools, and clone this repository.
 
