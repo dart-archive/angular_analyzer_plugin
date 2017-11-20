@@ -16,6 +16,7 @@ import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/facade/exports_library_element.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
@@ -89,6 +90,7 @@ class TemplateResolver {
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
   final Map<String, InputElement> standardHtmlAttributes;
+  final AngularOptions options;
   final AnalysisErrorListener errorListener;
   final StandardAngular standardAngular;
 
@@ -109,7 +111,8 @@ class TemplateResolver {
       this.standardHtmlEvents,
       this.standardHtmlAttributes,
       this.standardAngular,
-      this.errorListener);
+      this.errorListener,
+      this.options);
 
   void resolve(Template template) {
     this.template = template;
@@ -129,7 +132,8 @@ class TemplateResolver {
         template,
         standardAngular,
         errorReporter,
-        errorListener);
+        errorListener,
+        new Set<String>.from(options.unknownTagNames));
     root.accept(directiveResolver);
     final contentResolver =
         new ComponentContentResolver(templateSource, template, errorListener);
@@ -721,7 +725,7 @@ class PrepareEventScopeVisitor extends AngularScopeVisitor {
       }
     }
 
-    if (!matched) {
+    if (!matched && !isOnCustomTag(attr)) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attr.nameOffset,
@@ -777,9 +781,16 @@ class DirectiveResolver extends AngularAstVisitor {
   final StandardAngular _standardAngular;
   final outerBindings = <DirectiveBinding>[];
   final outerElements = <ElementInfo>[];
+  final Set<String> customTagNames;
 
-  DirectiveResolver(this.allDirectives, this.templateSource, this.template,
-      this._standardAngular, this._errorReporter, this.errorListener);
+  DirectiveResolver(
+      this.allDirectives,
+      this.templateSource,
+      this.template,
+      this._standardAngular,
+      this._errorReporter,
+      this.errorListener,
+      this.customTagNames);
 
   @override
   void visitElementInfo(ElementInfo element) {
@@ -832,6 +843,8 @@ class DirectiveResolver extends AngularAstVisitor {
             directive.selector.getAttributeSelectors(elementView);
       }
     }
+
+    element.tagMatchedAsCustomTag = customTagNames.contains(element.localName);
 
     if (!element.isTemplate) {
       _checkNoStructuralDirectives(element.attributes);
@@ -965,7 +978,8 @@ class ComponentContentResolver extends AngularAstVisitor {
 
     if (!tagIsStandard &&
         !element.tagMatchedAsTransclusion &&
-        !element.tagMatchedAsDirective) {
+        !element.tagMatchedAsDirective &&
+        !element.tagMatchedAsCustomTag) {
       _reportErrorForRange(element.openingNameSpan,
           AngularWarningCode.UNRESOLVED_TAG, [element.localName]);
     }
@@ -1027,7 +1041,7 @@ class ComponentContentResolver extends AngularAstVisitor {
   }
 
   /// Check whether the given [name] is a standard HTML5 tag name.
-  static bool _isStandardTagName(String name) {
+  bool _isStandardTagName(String name) {
     // ignore: parameter_assignments
     name = name.toLowerCase();
     return !name.contains('-') || name == 'ng-content';
@@ -1256,7 +1270,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       }
     }
 
-    if (!outputMatched) {
+    if (!outputMatched && !isOnCustomTag(attribute)) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.nameOffset,
@@ -1305,7 +1319,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       }
     }
 
-    if (!inputMatched) {
+    if (!inputMatched && !isOnCustomTag(attribute)) {
       errorListener.onError(new AnalysisError(
           templateSource,
           attribute.nameOffset,
@@ -1622,6 +1636,17 @@ class SingleScopeResolver extends AngularScopeVisitor {
       astNode.accept(new _DartReferencesRecorder(template, dartVariables));
     }
   }
+}
+
+/// Custom tags shouldn't report things like unbound inputs/outputs
+bool isOnCustomTag(AngularAstNode node) {
+  if (node.parent == null) {
+    return false;
+  }
+
+  final parent = node.parent;
+
+  return parent is ElementInfo && parent.tagMatchedAsCustomTag;
 }
 
 /// Workaround for "This mixin application is invalid because all of the
