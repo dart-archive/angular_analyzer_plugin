@@ -13,15 +13,15 @@ class AngularOptionsTest {
   // ignore: non_constant_identifier_names
   void test_buildEmpty() {
     final options = new AngularOptions.defaults();
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, isEmpty);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
   void test_buildExact() {
-    final options = new AngularOptions(unknownTagNames: ['foo']);
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, equals(['foo']));
+    final options = new AngularOptions(customTagNames: ['foo']);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo']));
   }
 
   // ignore: non_constant_identifier_names
@@ -32,8 +32,8 @@ analyzer:
     angular:
       enabled: true
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, isEmpty);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -48,8 +48,8 @@ analyzer:
         - bar
         - baz
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, equals(['foo', 'bar', 'baz']));
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
 
   // ignore: non_constant_identifier_names
@@ -65,8 +65,8 @@ analyzer:
         - baz
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, isEmpty);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -82,8 +82,8 @@ analyzer:
         - baz
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, equals(['foo', 'bar', 'baz']));
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
 
   // ignore: non_constant_identifier_names
@@ -102,8 +102,8 @@ analyzer:
         - baz
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, isEmpty);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -122,8 +122,8 @@ analyzer:
       enabled: true
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, isEmpty);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -142,8 +142,8 @@ analyzer:
         - baz
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, equals(['foo', 'bar', 'baz']));
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
 
   // ignore: non_constant_identifier_names
@@ -169,8 +169,8 @@ analyzer:
         - this-is-good
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames,
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames,
         equals(['tags-from-angular', 'should-appear', 'this-is-good']));
   }
 
@@ -186,9 +186,9 @@ analyzer:
       enabled: true
       custom_tag_names: true
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, const isInstanceOf<List>());
-    expect(options.unknownTagNames, isEmpty);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, const isInstanceOf<List>());
+    expect(options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -210,7 +210,7 @@ analyzer:
         - this-is-good
 
 ''');
-    expect(options.unknownTagNames, isNotNull);
-    expect(options.unknownTagNames, equals(['should-appear', 'this-is-good']));
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['should-appear', 'this-is-good']));
   }
 }
