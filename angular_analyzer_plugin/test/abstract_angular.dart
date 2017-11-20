@@ -146,7 +146,7 @@ class AbstractAngularTest {
         sf,
         new FileContentOverlay(),
         new AngularOptions(
-            unknownTagNames: ['my-first-custom-tag', 'my-second-custom-tag']));
+            customTagNames: ['my-first-custom-tag', 'my-second-custom-tag']));
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();

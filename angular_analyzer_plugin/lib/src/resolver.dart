@@ -133,7 +133,7 @@ class TemplateResolver {
         standardAngular,
         errorReporter,
         errorListener,
-        new Set<String>.from(options.unknownTagNames));
+        new Set<String>.from(options.customTagNames));
     root.accept(directiveResolver);
     final contentResolver =
         new ComponentContentResolver(templateSource, template, errorListener);
@@ -1639,7 +1639,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
 }
 
 /// Custom tags shouldn't report things like unbound inputs/outputs
-bool isOnCustomTag(AngularAstNode node) {
+bool isOnCustomTag(AttributeInfo node) {
   if (node.parent == null) {
     return false;
   }
