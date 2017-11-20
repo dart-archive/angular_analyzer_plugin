@@ -1,12 +1,12 @@
 import 'package:yaml/yaml.dart';
 
 class AngularOptions {
-  AngularOptions({this.unknownTagNames});
+  AngularOptions({this.customTagNames});
   factory AngularOptions.from(String contents) =>
       new _OptionsBuilder(contents).build();
   factory AngularOptions.defaults() => new _OptionsBuilder.empty().build();
 
-  final List<String> unknownTagNames;
+  final List<String> customTagNames;
 }
 
 class _OptionsBuilder {
@@ -14,7 +14,7 @@ class _OptionsBuilder {
   dynamic angularOptions;
   dynamic angularPluginOptions;
 
-  List<String> unknownTagNames = const [];
+  List<String> customTagNames = const [];
 
   _OptionsBuilder.empty();
   _OptionsBuilder(String contents) : analysisOptions = loadYaml(contents) {
@@ -22,11 +22,10 @@ class _OptionsBuilder {
   }
 
   void resolve() {
-    unknownTagNames = getOption('custom_tag_names', isListOfStrings) ?? [];
+    customTagNames = getOption('custom_tag_names', isListOfStrings) ?? [];
   }
 
-  AngularOptions build() =>
-      new AngularOptions(unknownTagNames: unknownTagNames);
+  AngularOptions build() => new AngularOptions(customTagNames: customTagNames);
 
   void load() {
     if (analysisOptions['analyzer'] == null ||

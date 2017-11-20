@@ -68,7 +68,7 @@ class AngularDriver
       this.options) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
-    _fileTracker = new FileTracker(this);
+    _fileTracker = new FileTracker(this, options);
     // TODO only support package:angular once we all move to that
     _hasAngularImported =
         _sourceFactory.resolveUri(null, "package:angular/angular.dart") != null;
