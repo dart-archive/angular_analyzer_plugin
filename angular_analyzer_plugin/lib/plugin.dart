@@ -18,16 +18,15 @@ import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
 import 'package:analyzer_plugin/src/utilities/navigation/navigation.dart';
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
-import 'package:angular_analyzer_plugin/src/noop_driver.dart';
 import 'package:angular_analyzer_plugin/src/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/navigation_request.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
 import 'package:angular_analyzer_plugin/src/navigation.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:analyzer_plugin/protocol/protocol.dart' as plugin;
 import 'package:meta/meta.dart';
-import 'package:yaml/yaml.dart';
 
 class AngularAnalyzerPlugin extends ServerPlugin
     with CompletionMixin, NavigationMixin {
@@ -46,34 +45,23 @@ class AngularAnalyzerPlugin extends ServerPlugin
   String get contactInfo =>
       'Please file issues at https://github.com/dart-lang/angular_analyzer_plugin';
 
-  bool isEnabled(String optionsFilePath) {
-    if (optionsFilePath == null || optionsFilePath.isEmpty) {
-      return false;
+  AngularOptions getOptions(String optionsFilePath) {
+    if (optionsFilePath != null && optionsFilePath.isNotEmpty) {
+      final file = resourceProvider.getFile(optionsFilePath);
+      if (file.exists) {
+        final contents = file.readAsStringSync();
+        return new AngularOptions.from(contents);
+      }
     }
-
-    final file = resourceProvider.getFile(optionsFilePath);
-
-    if (!file.exists) {
-      return false;
-    }
-
-    final contents = file.readAsStringSync();
-    final options = loadYaml(contents);
-
-    return options['plugins'] != null &&
-        options['plugins']['angular'] != null &&
-        options['plugins']['angular']['enabled'] == true;
+    return new AngularOptions.defaults();
   }
 
   @override
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
     final root = new ContextRoot(contextRoot.root, contextRoot.exclude)
       ..optionsFilePath = contextRoot.optionsFile;
-    if (!isEnabled(root.optionsFilePath)) {
-      return new NoopDriver();
-    }
+    final options = getOptions(root.optionsFilePath);
 
-    // TODO new API to get this path safely?
     final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
       ..analysisDriverScheduler = analysisDriverScheduler
@@ -90,7 +78,8 @@ class AngularAnalyzerPlugin extends ServerPlugin
         analysisDriverScheduler,
         byteStore,
         sourceFactory,
-        fileContentOverlay);
+        fileContentOverlay,
+        options);
 
     driver.dartResultsStream
         .listen((result) => onResult(result, driver, templatesOnly: true));
