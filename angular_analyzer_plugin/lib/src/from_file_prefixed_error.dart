@@ -1,30 +1,32 @@
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/generated/source.dart';
 
-// A wrapper around AnalysisError which also links back to a "from" file for
-// context.
+// A wrapper around AnalysisError which also links back to a "from" file and
+// classname for context.
 //
 // Is a wrapper, not just an extension, so that it can have a different hashCode
 // than the error without a "from" path, in the case that a file is included
 // both sanely and strangely (which is common: prod and test).
 class FromFilePrefixedError implements AnalysisError {
   final String fromSourcePath;
+  final String classname;
   final String originalMessage;
   final AnalysisError originalError;
   String _message;
 
-  FromFilePrefixedError(Source fromSource, AnalysisError originalError)
+  FromFilePrefixedError(
+      Source fromSource, this.classname, AnalysisError originalError)
       : originalMessage = originalError.message,
         fromSourcePath = fromSource.fullName,
         originalError = originalError {
-    _message = "$originalMessage (from $fromSourcePath)";
+    _message = "In $classname: $originalMessage (from $fromSourcePath)";
   }
 
   FromFilePrefixedError.fromPath(
-      this.fromSourcePath, AnalysisError originalError)
+      this.fromSourcePath, this.classname, AnalysisError originalError)
       : originalMessage = originalError.message,
         originalError = originalError {
-    _message = "$originalMessage (from $fromSourcePath)";
+    _message = "In $classname: $originalMessage (from $fromSourcePath)";
   }
 
   @override

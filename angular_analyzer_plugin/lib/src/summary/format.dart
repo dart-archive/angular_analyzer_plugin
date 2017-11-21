@@ -2040,6 +2040,7 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object
     with _SummarizedAnalysisErrorFromPathMixin
     implements idl.SummarizedAnalysisErrorFromPath {
   String _path;
+  String _classname;
   SummarizedAnalysisErrorBuilder _originalError;
 
   @override
@@ -2050,6 +2051,13 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object
   }
 
   @override
+  String get classname => _classname ??= '';
+
+  void set classname(String value) {
+    this._classname = value;
+  }
+
+  @override
   SummarizedAnalysisErrorBuilder get originalError => _originalError;
 
   void set originalError(SummarizedAnalysisErrorBuilder value) {
@@ -2057,8 +2065,11 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object
   }
 
   SummarizedAnalysisErrorFromPathBuilder(
-      {String path, SummarizedAnalysisErrorBuilder originalError})
+      {String path,
+      String classname,
+      SummarizedAnalysisErrorBuilder originalError})
       : _path = path,
+        _classname = classname,
         _originalError = originalError;
 
   /**
@@ -2073,15 +2084,20 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object
    */
   void collectApiSignature(api_sig.ApiSignature signature) {
     signature.addString(this._path ?? '');
+    signature.addString(this._classname ?? '');
     signature.addBool(this._originalError != null);
     this._originalError?.collectApiSignature(signature);
   }
 
   fb.Offset finish(fb.Builder fbBuilder) {
     fb.Offset offset_path;
+    fb.Offset offset_classname;
     fb.Offset offset_originalError;
     if (_path != null) {
       offset_path = fbBuilder.writeString(_path);
+    }
+    if (_classname != null) {
+      offset_classname = fbBuilder.writeString(_classname);
     }
     if (_originalError != null) {
       offset_originalError = _originalError.finish(fbBuilder);
@@ -2090,8 +2106,11 @@ class SummarizedAnalysisErrorFromPathBuilder extends Object
     if (offset_path != null) {
       fbBuilder.addOffset(0, offset_path);
     }
+    if (offset_classname != null) {
+      fbBuilder.addOffset(1, offset_classname);
+    }
     if (offset_originalError != null) {
-      fbBuilder.addOffset(1, offset_originalError);
+      fbBuilder.addOffset(2, offset_originalError);
     }
     return fbBuilder.endTable();
   }
@@ -2116,6 +2135,7 @@ class _SummarizedAnalysisErrorFromPathImpl extends Object
   _SummarizedAnalysisErrorFromPathImpl(this._bc, this._bcOffset);
 
   String _path;
+  String _classname;
   idl.SummarizedAnalysisError _originalError;
 
   @override
@@ -2125,9 +2145,15 @@ class _SummarizedAnalysisErrorFromPathImpl extends Object
   }
 
   @override
+  String get classname {
+    _classname ??= const fb.StringReader().vTableGet(_bc, _bcOffset, 1, '');
+    return _classname;
+  }
+
+  @override
   idl.SummarizedAnalysisError get originalError {
     _originalError ??= const _SummarizedAnalysisErrorReader()
-        .vTableGet(_bc, _bcOffset, 1, null);
+        .vTableGet(_bc, _bcOffset, 2, null);
     return _originalError;
   }
 }
@@ -2138,6 +2164,7 @@ abstract class _SummarizedAnalysisErrorFromPathMixin
   Map<String, Object> toJson() {
     Map<String, Object> _result = <String, Object>{};
     if (path != '') _result["path"] = path;
+    if (classname != '') _result["classname"] = classname;
     if (originalError != null)
       _result["originalError"] = originalError.toJson();
     return _result;
@@ -2146,6 +2173,7 @@ abstract class _SummarizedAnalysisErrorFromPathMixin
   @override
   Map<String, Object> toMap() => {
         "path": path,
+        "classname": classname,
         "originalError": originalError,
       };
 

@@ -117,7 +117,9 @@ table SummarizedAnalysisError {
 table SummarizedAnalysisErrorFromPath {
   path:string (id: 0);
 
-  originalError:SummarizedAnalysisError (id: 1);
+  classname:string (id: 1);
+
+  originalError:SummarizedAnalysisError (id: 2);
 }
 
 table SummarizedBindable {

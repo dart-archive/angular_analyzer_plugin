@@ -147,6 +147,8 @@ abstract class SummarizedAnalysisErrorFromPath extends base.SummaryClass {
   @Id(0)
   String get path;
   @Id(1)
+  String get classname;
+  @Id(2)
   SummarizedAnalysisError get originalError;
 }
 
