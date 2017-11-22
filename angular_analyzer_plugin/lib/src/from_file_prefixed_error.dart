@@ -15,17 +15,17 @@ class FromFilePrefixedError implements AnalysisError {
   String _message;
 
   FromFilePrefixedError(
-      Source fromSource, this.classname, AnalysisError originalError)
-      : originalMessage = originalError.message,
-        fromSourcePath = fromSource.fullName,
-        originalError = originalError {
-    _message = "In $classname: $originalMessage (from $fromSourcePath)";
-  }
+      Source fromSource, String classname, AnalysisError originalError)
+      : this.fromPath(fromSource.fullName, classname, originalError);
 
   FromFilePrefixedError.fromPath(
       this.fromSourcePath, this.classname, AnalysisError originalError)
       : originalMessage = originalError.message,
-        originalError = originalError {
+        originalError = originalError,
+        assert(classname != null),
+        assert(classname.isNotEmpty),
+        assert(fromSourcePath != null),
+        assert(fromSourcePath.isNotEmpty) {
     _message = "In $classname: $originalMessage (from $fromSourcePath)";
   }
 
