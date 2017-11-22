@@ -512,7 +512,8 @@ class AngularDriver
                   standardHtml.events,
                   standardHtml.attributes,
                   await getStandardAngular(),
-                  tplErrorListener)
+                  tplErrorListener,
+                  options)
               .resolve(template);
 
           bool rightErrorType(AnalysisError e) =>
@@ -693,7 +694,8 @@ class AngularDriver
                   standardHtml.events,
                   standardHtml.attributes,
                   await getStandardAngular(),
-                  tplErrorListener)
+                  tplErrorListener,
+                  options)
               .resolve(template);
           errors
             ..addAll(tplParser.parseErrors.where(

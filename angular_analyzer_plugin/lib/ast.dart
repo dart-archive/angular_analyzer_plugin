@@ -417,6 +417,7 @@ class ElementInfo extends NodeInfo implements HasDirectives {
   bool tagMatchedAsTransclusion = false;
   bool tagMatchedAsDirective = false;
   bool tagMatchedAsImmediateContentChild = false;
+  bool tagMatchedAsCustomTag = false;
 
   ElementInfo(
       this.localName,

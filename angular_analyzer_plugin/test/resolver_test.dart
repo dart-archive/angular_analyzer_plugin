@@ -5079,6 +5079,65 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_customTagNames() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [])
+class TestPanel {
+  String foo;
+}
+''');
+    final code = r"""
+<my-first-custom-tag [unknownInput]="foo" (unknownOutput)="foo" #first str="val">
+  <my-second-custom-tag [unknownInput]="foo" (unknownOutput)="foo" #second str="val">
+  </my-second-custom-tag>
+</my-first-custom-tag>
+
+{{first.foo}} should be treated as "dynamic" and pass this check
+{{first.bar}} should be treated as "dynamic" and pass this check
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_customTagNames_unsuppressedErrors() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel')
+@View(templateUrl: 'test_panel.html', directives: const [])
+class TestPanel {
+  String aString;
+}
+''');
+    final code = r"""
+<my-first-custom-tag
+    [input]="nosuchgetter"
+    #foo="nosuchexport"
+    *noSuchStar
+    (x.noReductionAllowed)=""
+    (emptyEvent)
+    [emptyInput]>
+  {{aString + 1}}
+  <other-unknown-tag></other-unknown-tag>
+</my-first-custom-tag>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      AngularWarningCode.NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME,
+      AngularWarningCode.TEMPLATE_ATTR_NOT_USED,
+      AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
+      AngularWarningCode.EMPTY_BINDING,
+      AngularWarningCode.EMPTY_BINDING,
+      AngularWarningCode.EMPTY_BINDING,
+      StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE,
+      AngularWarningCode.UNRESOLVED_TAG
+    ]);
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';
