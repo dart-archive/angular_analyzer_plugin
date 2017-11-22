@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:analyzer/src/summary/api_signature.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 
 abstract class FileHasher {
   ApiSignature getContentHash(String path);
@@ -11,8 +12,9 @@ class FileTracker {
   static const int salt = 4;
 
   final FileHasher _fileHasher;
+  final AngularOptions _options;
 
-  FileTracker(this._fileHasher);
+  FileTracker(this._fileHasher, this._options);
 
   final _dartToDart = new _RelationshipTracker();
   final _dartToHtml = new _RelationshipTracker();
@@ -95,6 +97,11 @@ class FileTracker {
     for (final htmlPath in getHtmlPathsAffectingDart(dartPath)) {
       signature.addBytes(_getContentHash(htmlPath));
     }
+
+    // Note, options which affect ng-content extraction should not be hashed
+    // here. Those should be hashed into ContentSignature.
+    addTags(signature);
+
     return signature;
   }
 
@@ -108,7 +115,21 @@ class FileTracker {
         signature.addBytes(_getContentHash(subHtmlPath));
       }
     }
+
+    // Note, options which affect directive/view extraction should not be hashed
+    // here. Those should probably be hashed into ElementSignature.
+    addTags(signature);
+
     return signature;
+  }
+
+  /// Add tag names to the signature. Note: in the future when there are more
+  /// lists of strings in options to add, we must be careful that they are
+  /// properly delimited/differentiated!
+  void addTags(ApiSignature signature) {
+    for (final tagname in _options.customTagNames) {
+      signature.addString('t:$tagname');
+    }
   }
 
   ApiSignature getContentSignature(String path) {

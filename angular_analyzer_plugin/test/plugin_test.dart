@@ -49,8 +49,8 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
-    expect(driver.options.unknownTagNames, isNotNull);
-    expect(driver.options.unknownTagNames, isEmpty);
+    expect(driver.options.customTagNames, isNotNull);
+    expect(driver.options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -65,8 +65,8 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
-    expect(driver.options.unknownTagNames, isNotNull);
-    expect(driver.options.unknownTagNames, equals(['foo', 'bar', 'baz']));
+    expect(driver.options.customTagNames, isNotNull);
+    expect(driver.options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
 
   // ignore: non_constant_identifier_names
@@ -81,8 +81,8 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
-    expect(driver.options.unknownTagNames, isNotNull);
-    expect(driver.options.unknownTagNames, equals(['foo', 'bar', 'baz']));
+    expect(driver.options.customTagNames, isNotNull);
+    expect(driver.options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
 
   // ignore: non_constant_identifier_names
@@ -100,8 +100,8 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
-    expect(driver.options.unknownTagNames, isNotNull);
-    expect(driver.options.unknownTagNames, isEmpty);
+    expect(driver.options.customTagNames, isNotNull);
+    expect(driver.options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -119,8 +119,8 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
-    expect(driver.options.unknownTagNames, isNotNull);
-    expect(driver.options.unknownTagNames, equals(['foo', 'bar', 'baz']));
+    expect(driver.options.customTagNames, isNotNull);
+    expect(driver.options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
 }
 
