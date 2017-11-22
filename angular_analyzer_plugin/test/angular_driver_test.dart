@@ -4820,7 +4820,7 @@ class ComponentA {
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-aaa', templateUrl: "test.html")
-class ComponentA {
+class WeirdComponent {
 }
 ''';
     final dartSource = newSource('/weird.dart', code);
@@ -4830,8 +4830,10 @@ class ComponentA {
     final errors = errorListener.errors;
     expect(errors, hasLength(1));
     expect(errors.first, const isInstanceOf<FromFilePrefixedError>());
-    expect(errors.first.message,
-        equals('Unresolved tag "unresolved-tag" (from /weird.dart)'));
+    expect(
+        errors.first.message,
+        equals('In WeirdComponent:'
+            ' Unresolved tag "unresolved-tag" (from /weird.dart)'));
   }
 
   // ignore: non_constant_identifier_names

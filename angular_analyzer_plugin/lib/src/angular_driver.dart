@@ -330,7 +330,7 @@ class AngularDriver
               return null;
             }
             return new FromFilePrefixedError.fromPath(
-                error.path, originalError);
+                error.path, error.classname, originalError);
           })
           .where((e) => e != null)
           .toList();
@@ -410,6 +410,7 @@ class AngularDriver
           .where((error) => error is FromFilePrefixedError)
           .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
             ..path = (error as FromFilePrefixedError).fromSourcePath
+            ..classname = (error as FromFilePrefixedError).classname
             ..originalError =
                 summarizeError((error as FromFilePrefixedError).originalError))
           .toList();
@@ -525,9 +526,9 @@ class AngularDriver
 
           if (shorten(view.source.fullName) !=
               shorten(view.templateSource.fullName)) {
-            errors.addAll(tplErrorListener.errors
-                .where(rightErrorType)
-                .map((e) => new FromFilePrefixedError(view.source, e)));
+            errors.addAll(tplErrorListener.errors.where(rightErrorType).map(
+                (e) => new FromFilePrefixedError(
+                    view.source, directive.classElement.name, e)));
           } else {
             errors.addAll(tplErrorListener.errors.where(rightErrorType));
           }

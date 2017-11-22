@@ -9,7 +9,7 @@ abstract class FileHasher {
 }
 
 class FileTracker {
-  static const int salt = 4;
+  static const int salt = 5;
 
   final FileHasher _fileHasher;
   final AngularOptions _options;
