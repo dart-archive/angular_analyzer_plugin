@@ -39,16 +39,10 @@ dependencies:
 and then load the plugin as itself, rather than as a dependency of angular:
 
 ```
-# forwards compatible (you need this)
 analyzer:
   plugins:
     angular_analyzer_plugin:
       enabled: true
-
-# backwards compatible (you also need this, for the moment)
-plugins:
-  angular:
-    enabled: true
 ```
 
 Like the previous installation option, you then just need to reboot your analysis server after running pub get.
