@@ -33,24 +33,19 @@ class ViewExtractor extends AnnotationProcessorMixin {
     for (final unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
         final classElement = unitMember.element;
-        ast.Annotation viewAnnotation;
         ast.Annotation componentAnnotation;
 
         for (final annotation in unitMember.metadata) {
-          if (isAngularAnnotation(annotation, 'View')) {
-            viewAnnotation = annotation;
-          } else if (isAngularAnnotation(annotation, 'Component')) {
+          if (isAngularAnnotation(annotation, 'Component')) {
             componentAnnotation = annotation;
           }
         }
 
-        if (viewAnnotation == null && componentAnnotation == null) {
+        if (componentAnnotation == null) {
           continue;
         }
 
-        //@TODO when there's both a @View and @Component, handle edge cases
-        final view =
-            _createView(classElement, viewAnnotation ?? componentAnnotation);
+        final view = _createView(classElement, componentAnnotation);
 
         if (view != null) {
           views.add(view);

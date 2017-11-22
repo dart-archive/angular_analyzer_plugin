@@ -26,7 +26,6 @@ class StandardAngular {
   final ClassElement elementRef;
   final ClassElement queryList;
   final ClassElement pipeTransform;
-  final ClassElement view;
   final ClassElement component;
   final SecuritySchema securitySchema;
 
@@ -35,7 +34,6 @@ class StandardAngular {
       this.elementRef,
       this.queryList,
       this.pipeTransform,
-      this.view,
       this.component,
       this.securitySchema});
 
@@ -64,7 +62,6 @@ class StandardAngular {
         elementRef: ng.get("ElementRef"),
         templateRef: ng.get("TemplateRef"),
         pipeTransform: ng.get("PipeTransform"),
-        view: ng.get("View"),
         component: ng.get("Component"),
         securitySchema: securitySchema);
   }

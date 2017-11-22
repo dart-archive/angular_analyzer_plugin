@@ -72,15 +72,14 @@ class AngularNavigationTest extends AbstractAngularTest {
     code = r'''
 import '/angular/src/core/metadata.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text: my-text'])
-@View(template: r"<div>some text</div>")
+@Component(selector: 'text-panel', inputs: const ['text: my-text'],
+    template: r"<div>some text</div>")
 class TextPanel {
   String text; // 1
   @Input() longform; // 4
 }
 
-@Component(selector: 'UserPanel')
-@View(template: r"""
+@Component(selector: 'UserPanel', template: r"""
 <div>
   <text-panel [my-text]='user.name' [longform]='""'></text-panel> // close
 </div>
@@ -126,7 +125,7 @@ class User {
       _findRegionString('my-text', ']=');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf("my-text'])"));
+      expect(targetLocation.offset, code.indexOf("my-text'],"));
     }
     // template references field
     {
@@ -156,8 +155,7 @@ class User {
     code = r'''
 import 'package:angular/src/core/metadata.dart';
 
-@Component(selector: 'text-panel')
-@View(templateUrl: 'text_panel.html')
+@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
 class TextPanel {}
 ''';
     final dartSource = newSource('/test.dart', code);
@@ -180,8 +178,7 @@ class TextPanel {}
     final dartCode = r'''
 import 'package:angular/src/core/metadata.dart';
 
-@Component(selector: 'text-panel')
-@View(templateUrl: 'text_panel.html')
+@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
 class TextPanel {
   String text; // 1
 }

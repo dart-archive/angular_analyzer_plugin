@@ -286,7 +286,6 @@ class BuildStandardAngularTest extends AbstractAngularTest {
     expect(ng.elementRef, isNotNull);
     expect(ng.queryList, isNotNull);
     expect(ng.pipeTransform, isNotNull);
-    expect(ng.view, isNotNull);
     expect(ng.component, isNotNull);
   }
 
@@ -2001,41 +2000,12 @@ class MyComponent {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_directives_not_list_syntax_view() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-class DirectiveA {}
-
-@Directive(selector: '[bbb]')
-class DirectiveB {}
-
-const VARIABLE = const [DirectiveA, DirectiveB];
-
-@Component(selector: 'my-component')
-@View(template: 'My template', directives: VARIABLE)
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final view = getViewByClassName(views, 'MyComponent');
-    expect(
-        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
-    final directiveClassNames =
-        view.directives.map((directive) => directive.name).toList();
-    expect(directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
-    // no errors
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_directives_not_list_syntax_errorWithinVariable() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'my-component')
-@View(template: 'My template', directives: VARIABLE)
+@Component(selector: 'my-component', template: 'My template',
+    directives: VARIABLE)
 class MyComponent {}
 
 // A non-array is a type error in the analyzer; a non-component in an array is
@@ -2214,20 +2184,6 @@ class MyComponent {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_hasError_ComponentAnnotationMissing() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@View(template: 'AAA')
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.COMPONENT_ANNOTATION_MISSING]);
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_hasError_StringValueExpected() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
@@ -2358,33 +2314,6 @@ class MyComponent {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_templateExternalUsingViewAnnotation() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component')
-@View(templateUrl: 'my-template.html')
-class MyComponent {}
-''';
-    final dartSource = newSource('/test.dart', code);
-    final htmlSource = newSource('/my-template.html', '');
-    await getViews(dartSource);
-    expect(views, hasLength(1));
-    // MyComponent
-    final view = getViewByClassName(views, 'MyComponent');
-    expect(view.component, getComponentByName(directives, 'MyComponent'));
-    expect(view.templateText, isNull);
-    expect(view.templateUriSource, isNotNull);
-    expect(view.templateUriSource, htmlSource);
-    expect(view.templateSource, htmlSource);
-    {
-      final url = "'my-template.html'";
-      expect(view.templateUrlRange,
-          new SourceRange(code.indexOf(url), url.length));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_templateInline() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -2397,42 +2326,6 @@ class OtherComponent {}
 
 @Component(selector: 'my-component', template: 'My template',
     directives: const [MyDirective, OtherComponent])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    expect(views, hasLength(2));
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      expect(view.component, getComponentByName(directives, 'MyComponent'));
-      expect(view.templateText, ' My template '); // spaces preserve offsets
-      expect(view.templateOffset, code.indexOf('My template') - 1);
-      expect(view.templateUriSource, isNull);
-      expect(view.templateSource, source);
-      {
-        expect(view.directives, hasLength(2));
-        final directiveClassNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(directiveClassNames,
-            unorderedEquals(['OtherComponent', 'MyDirective']));
-      }
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_templateInlineUsingViewAnnotation() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: 'my-directive')
-class MyDirective {}
-
-@Component(selector: 'other-component')
-@View(template: 'Other template')
-class OtherComponent {}
-
-@Component(selector: 'my-component')
-@View(template: 'My template', directives: const [MyDirective, OtherComponent])
 class MyComponent {}
 ''';
     final source = newSource('/test.dart', code);
