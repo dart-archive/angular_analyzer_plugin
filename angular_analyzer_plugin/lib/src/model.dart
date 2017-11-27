@@ -247,19 +247,24 @@ class AngularElementImpl implements AngularElement {
 }
 
 abstract class AbstractQueriedChildType {
-  bool match(
-      ElementInfo element, StandardAngular angular, ErrorReporter reporter);
+  bool match(ElementInfo element, StandardAngular angular,
+      StandardHtml standardHtml, ErrorReporter reporter);
 }
 
 class TemplateRefQueriedChildType extends AbstractQueriedChildType {
   @override
-  bool match(NodeInfo element, StandardAngular _, ErrorReporter __) =>
+  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
+          ErrorReporter ___) =>
       element is ElementInfo && element.localName == 'template';
 }
 
-class ElementRefQueriedChildType extends AbstractQueriedChildType {
+// Represents both Element and HtmlElement, since the difference between them
+// is SVG which we don't yet analyze. Also represent ElementRef which will soon
+// be deprecated/removed.
+class ElementQueriedChildType extends AbstractQueriedChildType {
   @override
-  bool match(NodeInfo element, StandardAngular _, ErrorReporter __) =>
+  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
+          ErrorReporter ___) =>
       element is ElementInfo &&
       element.localName != 'template' &&
       !element.directives.any((boundDirective) =>
@@ -272,11 +277,12 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
   LetBoundQueriedChildType(this.letBoundName, this.containerType);
   @override
   bool match(NodeInfo element, StandardAngular angular,
-          ErrorReporter errorReporter) =>
+          StandardHtml standardHtml, ErrorReporter errorReporter) =>
       element is ElementInfo &&
       element.attributes.any((attribute) {
         if (attribute is TextAttribute && attribute.name == '#$letBoundName') {
-          _validateMatch(element, attribute, angular, errorReporter);
+          _validateMatch(
+              element, attribute, angular, standardHtml, errorReporter);
           return true;
         }
         return false;
@@ -284,9 +290,15 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
 
   /// Validate against a matching [TextAttribute] on a matching [ElementInfo],
   /// for assignability to [containerType] errors.
-  void _validateMatch(ElementInfo element, TextAttribute attr,
-      StandardAngular angular, ErrorReporter errorReporter) {
-    dart.DartType matchType;
+  void _validateMatch(
+      ElementInfo element,
+      TextAttribute attr,
+      StandardAngular angular,
+      StandardHtml standardHtml,
+      ErrorReporter errorReporter) {
+    // For Html, the possible match types is plural. So use a list in all cases
+    // instead of a single value for most and then have some exceptional code.
+    final matchTypes = <dart.DartType>[];
 
     if (attr.value != "" && attr.value != null) {
       final possibleDirectives = new List<AbstractClassDirective>.from(
@@ -298,9 +310,9 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
         return;
       }
       // TODO instantiate this type to bounds
-      matchType = possibleDirectives.first.classElement.type;
+      matchTypes.add(possibleDirectives.first.classElement.type);
     } else if (element.localName == 'template') {
-      matchType = angular.templateRef.type;
+      matchTypes.add(angular.templateRef.type);
     } else {
       final possibleComponents = new List<Component>.from(
           element.directives.where((d) => d is Component && !d.isHtml));
@@ -310,20 +322,24 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
       }
 
       if (possibleComponents.isEmpty) {
-        matchType = angular.elementRef.type;
+        // TODO differentiate between SVG (Element) and HTML (HtmlElement)
+        matchTypes
+          ..add(angular.elementRef.type)
+          ..add(standardHtml.elementClass.type)
+          ..add(standardHtml.htmlElementClass.type);
       } else {
         // TODO instantiate this type to bounds
-        matchType = possibleComponents.first.classElement.type;
+        matchTypes.add(possibleComponents.first.classElement.type);
       }
     }
 
     // Don't do isAssignable. Because we KNOW downcasting makes no sense here.
-    if (!containerType.isSupertypeOf(matchType)) {
+    if (!matchTypes.any(containerType.isSupertypeOf)) {
       errorReporter.reportErrorForOffset(
           AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
           element.offset,
           element.length,
-          [letBoundName, containerType, matchType]);
+          [letBoundName, containerType, matchTypes]);
     }
   }
 }
@@ -332,7 +348,8 @@ class DirectiveQueriedChildType extends AbstractQueriedChildType {
   final AbstractDirective directive;
   DirectiveQueriedChildType(this.directive);
   @override
-  bool match(NodeInfo element, StandardAngular _, ErrorReporter __) =>
+  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
+          ErrorReporter ___) =>
       element is ElementInfo &&
       element.directives.any((boundDirective) => boundDirective == directive);
 }

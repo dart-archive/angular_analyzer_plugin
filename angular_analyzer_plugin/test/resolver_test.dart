@@ -3887,6 +3887,30 @@ class TranscludeSome {
 
   Future
       // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildElement() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+  @ContentChild(Element)
+  Element foo;
+}
+''');
+    final code = r"""
+<transclude-some><div></div></transclude-some>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildTemplateRef() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -3957,8 +3981,9 @@ class ContentChildComponent {
 
   Future
       // ignore: non_constant_identifier_names
-      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundElementRef() async {
+      test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundElement() async {
     _addDartSource(r'''
+import 'dart:html';
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeNone])
 class TestPanel {
@@ -3966,7 +3991,9 @@ class TestPanel {
 @Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild('contentChild')
-  ElementRef foo;
+  Element foo;
+  @ContentChild('contentChild')
+  ElementRef foo; // to be deprecated, but ok
   @ContentChild('contentChild')
   dynamic fooDynamicShouldBeOk;
   @ContentChild('contentChild')
@@ -4099,6 +4126,31 @@ class TranscludeSome {
 
   Future
       // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildElement() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+  @ContentChild(Element)
+  Element foo;
+}
+''');
+    final code = r"""
+<transclude-some><template></template></transclude-some>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "<template></template>");
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildTemplateRef() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -4133,6 +4185,30 @@ class TestPanel {
 class TranscludeNone {
   @ContentChild(ElementRef)
   ElementRef foo;
+}
+''');
+    final code = r"""
+<transclude-none><template></template></transclude-none>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.CONTENT_NOT_TRANSCLUDED,
+        code, "<template></template>");
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentNoTransclusionsNoChildElementMatch() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
+class TestPanel {
+}
+@Component(selector: 'transclude-none', template: '')
+class TranscludeNone {
+  @ContentChild(Element)
+  Element foo;
 }
 ''');
     final code = r"""
@@ -4197,6 +4273,7 @@ class ContentChildComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingHigherComponentsIsStillNotTranscludedError() async {
     _addDartSource(r'''
+import 'dart:html';
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeNone, TranscludeAllWithContentChild])
 class TestPanel {
@@ -4208,7 +4285,7 @@ class TranscludeNone {
     template: '<ng-content></ng-content>')
 class TranscludeAllWithContentChild {
   @ContentChild("contentChildOfHigherComponent")
-  ElementRef foo;
+  Element foo;
 }
 ''');
     final code = r"""
@@ -4236,6 +4313,32 @@ class TestPanel {
 class HasContentChild {
   @ContentChild('contentChild')
   ElementRef foo;
+}
+''');
+    final code = r"""
+<has-content-child><template #contentChild></template></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<template #contentChild></template>");
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentChildLetBound_templateNotElement() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
+class TestPanel {
+}
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  Element foo;
 }
 ''');
     final code = r"""
@@ -4279,6 +4382,35 @@ class SomeComponent {
 
   Future
       // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentChildLetBound_componentNotElement() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeComponent])
+class TestPanel {
+}
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  Element foo;
+}
+@Component(selector: 'some-component', template: '')
+class SomeComponent {
+}
+''');
+    final code = r"""
+<has-content-child><some-component #contentChild></some-component></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<some-component #contentChild></some-component>");
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -4289,6 +4421,35 @@ class TestPanel {
 class HasContentChild {
   @ContentChild('contentChild')
   ElementRef foo;
+}
+@Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
+class SomeDirective {
+}
+''');
+    final code = r"""
+<has-content-child><div some-directive #contentChild="theDirective"></div></has-content-child>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
+        code,
+        "<div some-directive #contentChild=\"theDirective\"></div>");
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentChildLetBound_directiveNotElement() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeDirective])
+class TestPanel {
+}
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
+class HasContentChild {
+  @ContentChild('contentChild')
+  Element foo;
 }
 @Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
 class SomeDirective {
@@ -4613,8 +4774,9 @@ class HasContentChild {
 
   Future
       // ignore: non_constant_identifier_names
-      test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef_deeplyNested() async {
+      test_resolveTemplate_provideContentChildLetBound_directiveNotElement_deeplyNested() async {
     _addDartSource(r'''
+import 'dart:html';
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [HasContentChild, SomeDirective])
 class TestPanel {
@@ -4622,7 +4784,7 @@ class TestPanel {
 @Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
-  ElementRef foo;
+  Element foo;
 }
 @Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
 class SomeDirective {
@@ -4677,21 +4839,22 @@ class HasContentChildElementRef {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildrenOk() async {
     _addDartSource(r'''
+import 'dart:html';
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
-    directives: const [HasContentChildrenElementRef])
+    directives: const [HasContentChildrenElement])
 class TestPanel {
 }
-@Component(selector: 'has-content-children-element-ref', template: '')
-class HasContentChildrenElementRef {
-  @ContentChildren(ElementRef)
-  List<ElementRef> theElement;
+@Component(selector: 'has-content-children-element', template: '')
+class HasContentChildrenElement {
+  @ContentChildren(Element)
+  List<Element> theElement;
 }
 ''');
     final code = r"""
-<has-content-children-element-ref>
+<has-content-children-element>
   <div first></div>
   <div second></div>
-</has-content-children-element-ref>
+</has-content-children-element>
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -4701,22 +4864,23 @@ class HasContentChildrenElementRef {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildNestedOk() async {
     _addDartSource(r'''
+import 'dart:html';
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
-    directives: const [HasContentChildElementRef])
+    directives: const [HasContentChildElement])
 class TestPanel {
 }
-@Component(selector: 'has-content-child-element-ref', template: '')
-class HasContentChildElementRef {
-  @ContentChild(ElementRef)
-  ElementRef theElement;
+@Component(selector: 'has-content-child-element', template: '')
+class HasContentChildElement {
+  @ContentChild(Element)
+  Element theElement;
 }
 ''');
     final code = r"""
-<has-content-child-element-ref>
+<has-content-child-element>
   <div first>
     <div second></div>
   </div>
-</has-content-child-element-ref>
+</has-content-child-element>
     """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -4725,7 +4889,7 @@ class HasContentChildElementRef {
 
   Future
       // ignore: non_constant_identifier_names
-      test_resolveTemplate_provideDuplicateContentChildSiblingsError() async {
+      test_resolveTemplateRef_provideDuplicateContentChildSiblingsError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [HasContentChildTemplateRef])

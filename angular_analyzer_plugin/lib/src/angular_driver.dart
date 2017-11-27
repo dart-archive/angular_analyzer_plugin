@@ -289,7 +289,12 @@ class AngularDriver
       result.unit.accept(new BuildStandardHtmlComponentsVisitor(
           components, events, attributes, source, securitySchema));
 
-      standardHtml = new StandardHtml(components, events, attributes);
+      standardHtml = new StandardHtml(
+          components,
+          events,
+          attributes,
+          result.libraryElement.exportNamespace.get('Element'),
+          result.libraryElement.exportNamespace.get('HtmlElement'));
     }
 
     return standardHtml;
@@ -512,6 +517,7 @@ class AngularDriver
                   standardHtml.events,
                   standardHtml.attributes,
                   await getStandardAngular(),
+                  await getStandardHtml(),
                   tplErrorListener,
                   options)
               .resolve(template);
@@ -694,6 +700,7 @@ class AngularDriver
                   standardHtml.events,
                   standardHtml.attributes,
                   await getStandardAngular(),
+                  await getStandardHtml(),
                   tplErrorListener,
                   options)
               .resolve(template);
