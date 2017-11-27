@@ -274,6 +274,15 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       expect(input.securityContext.sanitizationAvailable, equals(true));
     }
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_buildStandardHtmlClasses() async {
+    final stdhtml = await angularDriver.getStandardHtml();
+    expect(stdhtml.elementClass, isNotNull);
+    expect(stdhtml.elementClass.name, 'Element');
+    expect(stdhtml.htmlElementClass, isNotNull);
+    expect(stdhtml.htmlElementClass.name, 'HtmlElement');
+  }
 }
 
 @reflectiveTest

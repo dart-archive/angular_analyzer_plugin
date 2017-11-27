@@ -751,6 +751,8 @@ class ContentChildLinker {
   final DirectiveMatcher _directiveMatcher;
   final StandardAngular _standardAngular;
 
+  final htmlTypes = new Set.from(['ElementRef', 'Element', 'HtmlElement']);
+
   ContentChildLinker(AbstractClassDirective directive, this._directiveMatcher,
       this._standardAngular, this._errorReporter)
       : _context =
@@ -861,8 +863,8 @@ class ContentChildLinker {
       AbstractQueriedChildType query;
       if (referencedDirective != null) {
         query = new DirectiveQueriedChildType(referencedDirective);
-      } else if (type.element.name == 'ElementRef') {
-        query = new ElementRefQueriedChildType();
+      } else if (htmlTypes.contains(type.element.name)) {
+        query = new ElementQueriedChildType();
       } else if (type.element.name == 'TemplateRef') {
         query = new TemplateRefQueriedChildType();
       } else {

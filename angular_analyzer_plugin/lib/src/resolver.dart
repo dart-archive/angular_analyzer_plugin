@@ -93,6 +93,7 @@ class TemplateResolver {
   final AngularOptions options;
   final AnalysisErrorListener errorListener;
   final StandardAngular standardAngular;
+  final StandardHtml standardHtml;
 
   Template template;
   View view;
@@ -111,6 +112,7 @@ class TemplateResolver {
       this.standardHtmlEvents,
       this.standardHtmlAttributes,
       this.standardAngular,
+      this.standardHtml,
       this.errorListener,
       this.options);
 
@@ -131,6 +133,7 @@ class TemplateResolver {
         templateSource,
         template,
         standardAngular,
+        standardHtml,
         errorReporter,
         errorListener,
         new Set<String>.from(options.customTagNames));
@@ -779,6 +782,7 @@ class DirectiveResolver extends AngularAstVisitor {
   final AnalysisErrorListener errorListener;
   final ErrorReporter _errorReporter;
   final StandardAngular _standardAngular;
+  final StandardHtml _standardHtml;
   final outerBindings = <DirectiveBinding>[];
   final outerElements = <ElementInfo>[];
   final Set<String> customTagNames;
@@ -788,6 +792,7 @@ class DirectiveResolver extends AngularAstVisitor {
       this.templateSource,
       this.template,
       this._standardAngular,
+      this._standardHtml,
       this._errorReporter,
       this.errorListener,
       this.customTagNames);
@@ -907,7 +912,7 @@ class DirectiveResolver extends AngularAstVisitor {
         }
 
         if (contentChild.query
-            .match(element, _standardAngular, _errorReporter)) {
+            .match(element, _standardAngular, _standardHtml, _errorReporter)) {
           binding.contentChildBindings.putIfAbsent(
               contentChild,
               () => new ContentChildBinding(
@@ -931,7 +936,7 @@ class DirectiveResolver extends AngularAstVisitor {
 
       for (var contentChildren in binding.boundDirective.contentChildren) {
         if (contentChildren.query
-            .match(element, _standardAngular, _errorReporter)) {
+            .match(element, _standardAngular, _standardHtml, _errorReporter)) {
           binding.contentChildrenBindings.putIfAbsent(
               contentChildren,
               () => new ContentChildBinding(
