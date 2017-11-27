@@ -243,19 +243,6 @@ class Pipe {
   const Pipe(this.name, {bool pure});
 }
 
-class View {
-  final List<Object> directives;
-  const View(
-      {String templateUrl,
-      String template,
-      this.directives,
-      dynamic pipes,
-      ViewEncapsulation encapsulation,
-      List<String> exports,
-      List<String> styles,
-      List<String> styleUrls});
-}
-
 class Input {
   final String bindingPropertyName;
   const Input([this.bindingPropertyName]);

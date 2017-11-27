@@ -627,18 +627,17 @@ class UseConstValueStrategy implements DirectivesStrategy {
           T Function(DartObject, SourceRange) constStrategyHandler) =>
       constStrategyHandler(
           annotatedObject.metadata
-              .where((m) => _isViewOrComponent(m.element?.enclosingElement))
+              .where((m) => _isComponent(m.element?.enclosingElement))
               .map((m) => _getDirectives(m.computeConstantValue()))
               // TODO(mfairhurst): report error for double definition
               .firstWhere((directives) => !(directives?.isNull ?? true),
                   orElse: () => null),
           sourceRange);
 
-  /// Check if an element is a View or Component
-  bool _isViewOrComponent(dart.Element element) =>
+  /// Check if an element is a Component
+  bool _isComponent(dart.Element element) =>
       element is dart.ClassElement &&
-      (element.type.isSubtypeOf(standardAngular.view.type) ||
-          element.type.isSubtypeOf(standardAngular.component.type));
+      element.type.isSubtypeOf(standardAngular.component.type);
 
   /// Traverse the inheritance hierarchy in the constant value, looking for the
   /// 'directives' field at the highest level it occurs.

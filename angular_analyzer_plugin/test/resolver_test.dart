@@ -48,8 +48,7 @@ class TemplateResolverTest extends AbstractAngularTest {
   // ignore: non_constant_identifier_names
   Future test_attribute_mixedCase() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -63,8 +62,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_attributeInterpolation() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String aaa; // 1
   String bbb; // 2
@@ -83,8 +81,7 @@ class TestPanel {
   Future test_expression_eventBinding() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -111,8 +108,7 @@ class TestPanel {
   Future test_expression_keyupdownWithKeysOk() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handle(dynamic e) {
   }
@@ -131,8 +127,7 @@ class TestPanel {
   Future test_expression_reductionsOnRegularOutputsNotAllowed() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handle(dynamic e) {
   }
@@ -151,8 +146,8 @@ class TestPanel {
   Future test_expression_nativeEventBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [SomeComponent])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: [SomeComponent])
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -174,8 +169,7 @@ class SomeComponent {
   Future test_expression_eventBinding_on() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -193,8 +187,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_valid() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -223,8 +217,8 @@ class TitleComponent {
   Future test_expression_nativeGlobalAttrBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [SomeComponent])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: [SomeComponent])
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -245,8 +239,8 @@ class SomeComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_asString() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
 }
 @Component(selector: 'title-comp', template: '')
@@ -267,8 +261,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_asString_fromDynamic() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
 }
 @Component(selector: 'title-comp', template: '')
@@ -294,8 +288,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_typeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -316,8 +310,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_asString_typeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
 }
 @Component(selector: 'title-comp', template: '')
@@ -340,8 +334,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_asBoool_noError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
 }
 @Component(selector: 'title-comp', template: '')
@@ -361,8 +355,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_asBool_typeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
 }
 @Component(selector: 'title-comp', template: '')
@@ -385,8 +379,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_nativeHtml_asString_notTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [],
+    templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -402,8 +396,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_noValue() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -424,8 +418,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_empty() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -648,8 +642,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_valid() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -679,8 +673,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_noAttr_emptyBinding() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -702,8 +696,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_inputTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -725,8 +719,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_outputTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -748,8 +742,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_outputBinding_noValue() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -795,8 +789,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_noInputToBind() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -817,8 +811,8 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_noOutputToBind() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -839,8 +833,7 @@ class TitleComponent {
   // ignore: non_constant_identifier_names
   Future test_expression_inputBinding_bind() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String text; // 1
 }
@@ -873,8 +866,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_outputBinding_typeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [TitleComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [TitleComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   takeString(String arg);
 }
@@ -1643,8 +1636,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_inputAndOutputBinding_genericDirective_ok() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String string;
 }
@@ -1669,8 +1662,8 @@ class GenericComponent<T> {
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_genericDirectiveChild_ok() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String string;
 }
@@ -1681,8 +1674,8 @@ class Generic<T> {
   EventEmitter<T> twoWayChange;
   T twoWay;
 }
-@Component(selector: 'generic-comp', template: '',
-    inputs: ['input', 'twoWay'], outputs: ['output', 'twoWayChange'])
+@Component(selector: 'generic-comp', template: '', inputs: ['input', 'twoWay'],
+    outputs: ['output', 'twoWayChange'])
 class GenericComponent<T> extends Generic<T> {
 }
 ''');
@@ -1698,8 +1691,8 @@ class GenericComponent<T> extends Generic<T> {
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_extendGenericUnbounded_ok() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String string;
 }
@@ -1710,8 +1703,8 @@ class Generic<T> {
   EventEmitter<T> twoWayChange;
   T twoWay;
 }
-@Component(selector: 'generic-comp', template: '',
-    inputs: ['input', 'twoWay'], outputs: ['output', 'twoWayChange'])
+@Component(selector: 'generic-comp', template: '', inputs: ['input', 'twoWay'],
+    outputs: ['output', 'twoWayChange'])
 class GenericComponent<T> extends Generic {
 }
 ''');
@@ -1727,8 +1720,8 @@ class GenericComponent<T> extends Generic {
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_genericDirective_chain_ok() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   String string;
 }
@@ -1753,8 +1746,8 @@ class GenericComponent<T extends E, E> {
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_genericDirective_nested_ok() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   List<String> stringList;
 }
@@ -1779,8 +1772,8 @@ class GenericComponent<T> {
       // ignore: non_constant_identifier_names
       test_expression_inputBinding_genericDirective_lowerBoundTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   int notString;
 }
@@ -1802,8 +1795,8 @@ class GenericComponent<T extends String> {
       // ignore: non_constant_identifier_names
       test_expression_input_genericDirective_lowerBoundChainTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   int notString;
 }
@@ -1825,8 +1818,8 @@ class GenericComponent<T extends O, O extends String> {
       // ignore: non_constant_identifier_names
       test_expression_input_genericDirective_lowerBoundNestedTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   List<int> notStringList;
 }
@@ -1848,8 +1841,8 @@ class GenericComponent<T extends String> {
       // ignore: non_constant_identifier_names
       test_expression_outputBinding_genericDirective_lowerBoundTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   takeInt(int i) {}
 }
@@ -1871,8 +1864,8 @@ class GenericComponent<T extends String> {
       // ignore: non_constant_identifier_names
       test_expression_twoWayBinding_genericDirective_lowerBoundTypeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    directives: const [GenericComponent], templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', directives: const [GenericComponent],
+    templateUrl: 'test_panel.html')
 class TestPanel {
   int anInt;
 }
@@ -1927,14 +1920,12 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_input_binding() async {
     _addDartSource(r'''
-@Component(
-    selector: 'name-panel',
-@View(template: r"<div>AAA</div>")
+@Component(selector: 'name-panel', template: r"<div>AAA</div>")
 class NamePanel {
   @Input() int value;
 }
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NamePanel])
 class TestPanel {
   int value;
 }
@@ -1949,8 +1940,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_ngFor() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> operators = [];
 }
@@ -1969,8 +1960,7 @@ class TestPanel {
       test_statement_eventBinding_single_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -1988,8 +1978,7 @@ class TestPanel {
   Future test_statement_eventBinding_single_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2008,8 +1997,7 @@ class TestPanel {
       test_statement_eventBinding_return_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2028,8 +2016,7 @@ class TestPanel {
   Future test_statement_eventBinding_return_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2048,8 +2035,7 @@ class TestPanel {
   Future test_statement_eventBinding_if_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2068,8 +2054,7 @@ class TestPanel {
   Future test_statement_eventBinding_if_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2088,8 +2073,7 @@ class TestPanel {
   Future test_statement_eventBinding_double_statement() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2107,8 +2091,7 @@ class TestPanel {
   Future test_statement_eventBinding_error_on_second_statement() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2127,8 +2110,7 @@ class TestPanel {
   Future test_statement_eventBinding_error_on_assignment_statement() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2149,8 +2131,7 @@ class TestPanel {
   Future test_statement_eventBinding_typeError() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2169,8 +2150,7 @@ class TestPanel {
   Future test_statement_eventBinding_all_semicolons() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2188,8 +2168,7 @@ class TestPanel {
   Future test_statement_eventBinding_single_variable() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2209,8 +2188,7 @@ class TestPanel {
       test_statement_eventBinding_unexpected_closing_brackets_at_end() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2229,8 +2207,7 @@ class TestPanel {
       test_statement_eventBinding_unexpected_closing_brackets_at_start() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2249,8 +2226,7 @@ class TestPanel {
       test_statement_eventBinding_typechecking_after_unexpected_bracket() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -2274,8 +2250,7 @@ class TestPanel {
 class BaseComponent {
   String text; // 1
 }
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel extends BaseComponent {
   main() {
     text.length;
@@ -2296,17 +2271,15 @@ class TestPanel extends BaseComponent {
   // ignore: non_constant_identifier_names
   Future test_inputReference() async {
     _addDartSource(r'''
-@Component(
-    selector: 'name-panel',
-    inputs: const ['aaa', 'bbb', 'ccc'])
-@View(template: r"<div>AAA</div>")
+@Component(selector: 'name-panel', inputs: const ['aaa', 'bbb', 'ccc'],
+  template: r"<div>AAA</div>")
 class NamePanel {
   int aaa;
   int bbb;
   int ccc;
 }
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NamePanel])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -2322,15 +2295,14 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_outputReference() async {
     _addDartSource(r'''
-@Component(selector: 'name-panel',
-    template: r"<div>AAA</div>")
+@Component(selector: 'name-panel', template: r"<div>AAA</div>")
 class NamePanel {
   @Output() EventEmitter aaa;
   @Output() EventEmitter bbb;
   @Output() EventEmitter ccc;
 }
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NamePanel])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -2353,15 +2325,13 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_twoWayReference() async {
     _addDartSource(r'''
-@Component(
-    selector: 'name-panel',
-@View(template: r"<div>AAA</div>")
+@Component(selector: 'name-panel', template: r"<div>AAA</div>")
 class NamePanel {
   @Input() int value;
   @Output() EventEmitter<int> valueChange;
 }
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NamePanel])
 class TestPanel {
   int value;
 }
@@ -2378,8 +2348,8 @@ class TestPanel {
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [MyDivComponent])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyDivComponent])
 class TestPanel {
   void handleClick(String s) {}
 }
@@ -2406,8 +2376,8 @@ class MyDirective {
   String aaa; // 1
 }
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [MyDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyDirective])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -2426,8 +2396,7 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_letVariable_in_nonTemplate() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {}
 ''');
     final html = r'''<div let-value></div>''';
@@ -2442,14 +2411,12 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_attributeReference() async {
     _addDartSource(r'''
-@Component(
-    selector: 'name-panel',
-    template: r"<div>AAA</div>")
+@Component(selector: 'name-panel', template: r"<div>AAA</div>")
 class NamePanel {
   NamePanel(@Attribute("name-panel-attr") String namePanelAttr);
 }
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NamePanel])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NamePanel])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -2468,8 +2435,7 @@ class TestPanel {}
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(Element e) {}
 }
@@ -2486,8 +2452,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_localVariable_exportAs_notFound() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {}
 ''');
     final code = r"""
@@ -2508,8 +2473,7 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_localVariable_exportAs_ambiguous() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
   directives: const [Directive1, Directive2])
 class TestPanel {}
 
@@ -2533,18 +2497,16 @@ class Directive2 {}
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'aaa', inputs: const ['target'])
-@View(template: '')
+@Component(selector: 'aaa', inputs: const ['target'], template: '')
 class ComponentA {
   void set target(ComponentB b) {}
 }
 
-@Component(selector: 'bbb')
-@View(template: '')
+@Component(selector: 'bbb', template: '')
 class ComponentB {}
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: [ComponentA, ComponentB])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: [ComponentA, ComponentB])
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -2561,8 +2523,7 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_ngContent() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {}
 ''');
     _addHtmlSource(r"""
@@ -2575,8 +2536,8 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_ngFor_iterableElementType() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   MyIterable<String> items = new MyIterable<String>();
 }
@@ -2600,8 +2561,8 @@ class MyIterable<T> extends BaseIterable<T> {
   // ignore: non_constant_identifier_names
   Future test_ngFor_operatorLocalVariable() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> operators = [];
 }
@@ -2633,8 +2594,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_operatorLocalVariableVarKeyword() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> operators = [];
 }
@@ -2656,8 +2617,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_star() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -2699,8 +2660,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_noStarError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -2720,8 +2681,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_customDirective_noStarError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [CustomTemplateDirective])
 class TestPanel {
 }
@@ -2745,8 +2705,7 @@ class CustomTemplateDirective {
   // ignore: non_constant_identifier_names
   Future test_customDirective_withStarOk() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [CustomTemplateDirective])
 class TestPanel {
 }
@@ -2767,8 +2726,7 @@ class CustomTemplateDirective {
   // ignore: non_constant_identifier_names
   Future test_customDirective_asTemplateAttrOk() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [CustomTemplateDirective])
 class TestPanel {
 }
@@ -2789,8 +2747,8 @@ class CustomTemplateDirective {
   // ignore: non_constant_identifier_names
   Future test_customDirective_starDoesntTakeTemplateError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NotTemplateDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NotTemplateDirective])
 class TestPanel {
 }
 
@@ -2810,8 +2768,8 @@ class NotTemplateDirective {
   // ignore: non_constant_identifier_names
   Future test_starNoDirectives() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
 class TestPanel {
 }
 ''');
@@ -2827,8 +2785,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_customDirective_templateDoesntTakeTemplateError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NotTemplateDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NotTemplateDirective])
 class TestPanel {
 }
 
@@ -2848,8 +2806,8 @@ class NotTemplateDirective {
   // ignore: non_constant_identifier_names
   Future test_templateNoDirectives() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
 class TestPanel {
 }
 ''');
@@ -2865,8 +2823,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_star_itemHiddenInElement() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -2883,8 +2841,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_templateAttribute() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -2916,8 +2874,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_templateAttribute2() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -2949,8 +2907,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngFor_templateElement() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -2982,8 +2940,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_letVar_template_cascading() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor, FoobarDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor, FoobarDirective])
 class TestPanel {
   List<String> items = [];
 }
@@ -3018,8 +2976,7 @@ class FoobarDirective {
   // ignore: non_constant_identifier_names
   Future test_hashRef_templateElement() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', 
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', 
   directives: const [HasTemplateInputComponent])
 class TestPanel {
 }
@@ -3066,8 +3023,8 @@ class HasTemplateInputComponent {
   // ignore: non_constant_identifier_names
   Future test_ngFor_hash_instead_of_let() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> items = [];
 }
@@ -3085,8 +3042,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngForSugar_dartExpression() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List<String> getItems(int unused) => [];
   int unused;
@@ -3107,8 +3064,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngForSugar_noDartExpressionError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
 }
 ''');
@@ -3123,8 +3080,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngForSugar_noTrackByExpressionError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgFor])
 class TestPanel {
   List items;
 }
@@ -3141,8 +3098,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngIf_star() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -3161,8 +3118,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngIf_noStarError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -3181,8 +3138,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngIf_emptyStarError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -3199,8 +3156,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngIf_starNoAttrError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -3216,8 +3173,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngIf_templateAttribute() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -3236,8 +3193,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_ngIf_templateElement() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   String text; // 1
 }
@@ -3255,8 +3212,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_templateTag_selectTemplateMatches() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel'
-    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+@Component(selector: 'test-panel' templateUrl: 'test_panel.html',
+    directives: const [MyStarDirective])
 class TestPanel {
 }
 @Directive(selector: 'template[myStarDirective]')
@@ -3277,8 +3234,8 @@ class MyStarDirective {
   // ignore: non_constant_identifier_names
   Future test_templateAttr() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel'
-    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyStarDirective])
 class TestPanel {
 }
 @Directive(selector: 'template[myStarDirective]')
@@ -3297,8 +3254,8 @@ class MyStarDirective {
   // ignore: non_constant_identifier_names
   Future test_star_selectTemplateMatches() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel'
-    templateUrl: 'test_panel.html', directives: const [MyStarDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyStarDirective])
 class TestPanel {
 }
 @Directive(selector: 'template[myStarDirective]')
@@ -3317,8 +3274,8 @@ class MyStarDirective {
   // ignore: non_constant_identifier_names
   Future test_star_selectTemplateFunctionalDirectiveMatches() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel'
-    templateUrl: 'test_panel.html', directives: const [myStarDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [myStarDirective])
 class TestPanel {
 }
 @Directive(selector: 'template[myStarDirective]')
@@ -3335,8 +3292,7 @@ void myStarDirective(TemplateRef ref) {}
   // ignore: non_constant_identifier_names
   Future test_standardHtmlComponent() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void inputChange(String value, String validationMessage) {}
 }
@@ -3361,8 +3317,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_standardHtmlComponentUsingRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void inputChange(String value, String validationMessage) {}
 }
@@ -3394,9 +3349,7 @@ class DeferredContentDirective {
   String deferred;
 }
 
-@Component(selector: 'test-panel')
-@View(
-    templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [DeferredContentDirective])
 class TestPanel {}
 ''');
@@ -3411,8 +3364,7 @@ class TestPanel {}
   // ignore: non_constant_identifier_names
   Future test_textInterpolation() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String aaa; // 1
   String bbb; // 2
@@ -3433,8 +3385,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_catchPkgHtmlGithubBug44() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   String aaa; // 1
   String bbb; // 2
@@ -3450,8 +3401,7 @@ class TestPanel {
   Future test_angleBracketInMustacheNoCrash_githubBug204() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -3474,8 +3424,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContentTracksSelectors() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -3492,8 +3441,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_noSelectorIsNull() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -3511,8 +3459,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_selectorParseError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -3531,8 +3478,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_emptySelectorError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -3551,8 +3497,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_noValueError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -3571,8 +3516,7 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_hasContentsError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -3594,12 +3538,11 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentWhereInvalid() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NoTransclude])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NoTransclude])
 class TestPanel {
 }
-@Component(selector: 'no-transclude')
-@View(template: '')
+@Component(selector: 'no-transclude', template: '')
 class NoTransclude {
 }
 ''');
@@ -3615,12 +3558,11 @@ class NoTransclude {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentNgSelectAll() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeAll])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeAll])
 class TestPanel {
 }
-@Component(selector: 'transclude-all')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'transclude-all', template: '<ng-content></ng-content>')
 class TranscludeAll {
 }
 ''');
@@ -3635,12 +3577,11 @@ class TranscludeAll {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentEmptyTextAlwaysOK() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [NoTransclude])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NoTransclude])
 class TestPanel {
 }
-@Component(selector: 'no-transclude')
-@View(template: '')
+@Component(selector: 'no-transclude', template: '')
 class NoTransclude {
 }
 ''');
@@ -3657,8 +3598,8 @@ class NoTransclude {
   Future test_resolvedTag_complexSelector() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyTag])
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -3678,12 +3619,12 @@ class MyTag {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentNgSelectAllWithSelectors() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeAll])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeAll])
 class TestPanel {
 }
-@Component(selector: 'transclude-all')
-@View(template: '<ng-content select="x"></ng-content><ng-content></ng-content>')
+@Component(selector: 'transclude-all',
+    template: '<ng-content select="x"></ng-content><ng-content></ng-content>')
 class TranscludeAll {
 }
 ''');
@@ -3698,12 +3639,12 @@ class TranscludeAll {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentNotMatchingSelectors() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeSome {
 }
 ''');
@@ -3719,12 +3660,12 @@ class TranscludeSome {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideTextInfosDontMatchSelectors() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeSome {
 }
 ''');
@@ -3740,12 +3681,12 @@ class TranscludeSome {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentMatchingSelectors() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="[transclude-me]"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="[transclude-me]"></ng-content>')
 class TranscludeSome {
 }
 ''');
@@ -3760,12 +3701,12 @@ class TranscludeSome {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentMatchingSelectorsKnowsTag() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeSome {
 }
 ''');
@@ -3781,13 +3722,13 @@ class TranscludeSome {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingSelectorsAndAllKnowsTag() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeAllAndKnowsTag])
 class TestPanel {
 }
-@Component(selector: 'transclude-all-and-knows-tag')
-@View(template:
+@Component(
+  selector: 'transclude-all-and-knows-tag',
+  template:
     '<ng-content select="transclude-me"></ng-content><ng-content></ng-content>')
 class TranscludeAllAndKnowsTag {
 }
@@ -3806,13 +3747,11 @@ class TranscludeAllAndKnowsTag {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_noDashesAroundTranscludedContent_stillError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeAllAndKnowsTag])
 class TestPanel {
 }
-@Component(selector: 'nodashes')
-@View(template: '')
+@Component(selector: 'nodashes', template: '')
 class TranscludeAllAndKnowsTag {
 }
 ''');
@@ -3829,13 +3768,12 @@ class TranscludeAllAndKnowsTag {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_noDashesAroundTranscludedContent_stillMatchesTag() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeAllAndKnowsTag])
 class TestPanel {
 }
-@Component(selector: 'nodashes')
-@View(template: '<ng-content select="custom-tag"></ng-content>')
+@Component(selector: 'nodashes',
+    template: '<ng-content select="custom-tag"></ng-content>')
 class TranscludeAllAndKnowsTag {
 }
 ''');
@@ -3853,12 +3791,12 @@ class TranscludeAllAndKnowsTag {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingSelectorsReportsUnknownTag() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="[transclude-me]"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="[transclude-me]"></ng-content>')
 class TranscludeSome {
 }
 ''');
@@ -3875,8 +3813,8 @@ class TranscludeSome {
   Future test_unResolvedTag_evenThoughMatchedComplexSelector() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyTag])
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -3902,8 +3840,8 @@ class MyTag {
   Future test_resolvedTag_evenThoughAlsoMatchesNonTagMatch() async {
     _addDartSource(r'''
 import 'dart:html';
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [MyTag])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [MyTag])
 class TestPanel {
   void handleClick(MouseEvent e) {
   }
@@ -3928,12 +3866,12 @@ class MyTag {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildElementRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeSome {
   @ContentChild(ElementRef)
   ElementRef foo;
@@ -3951,12 +3889,12 @@ class TranscludeSome {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-none',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeNone {
   @ContentChild(TemplateRef)
   TemplateRef foo;
@@ -3974,12 +3912,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild(TemplateRef)
   TemplateRef foo;
@@ -3997,13 +3934,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildDirective() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeNone, ContentChildComponent])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild(ContentChildComponent)
   ContentChildComponent foo;
@@ -4024,12 +3959,11 @@ class ContentChildComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundElementRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild('contentChild')
   ElementRef foo;
@@ -4051,12 +3985,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild('contentChild')
   TemplateRef foo;
@@ -4078,13 +4011,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundDirective() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeNone, ContentChildDirective])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild('contentChild')
   ContentChildDirective foo;
@@ -4113,13 +4044,11 @@ class Superclass {}
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildLetBoundComponent() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeNone, ContentChildComponent])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild('contentChild')
   ContentChildComponent foo;
@@ -4148,12 +4077,12 @@ class Superclass {}
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildElementRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeSome])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeSome {
   @ContentChild(ElementRef)
   ElementRef foo;
@@ -4172,12 +4101,12 @@ class TranscludeSome {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-some')
-@View(template: '<ng-content select="transclude-me"></ng-content>')
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
 class TranscludeNone {
   @ContentChild(TemplateRef)
   TemplateRef foo;
@@ -4196,12 +4125,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsNoChildElementRefMatch() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild(ElementRef)
   ElementRef foo;
@@ -4220,12 +4148,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsNoContentChildTemplateRefMatch() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild(TemplateRef)
   TemplateRef foo;
@@ -4244,13 +4171,11 @@ class TranscludeNone {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsNoContentChildDirectiveMatch() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     directives: const [TranscludeNone, ContentChildComponent])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
   @ContentChild(ContentChildComponent)
   ContentChildComponent foo;
@@ -4272,16 +4197,15 @@ class ContentChildComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingHigherComponentsIsStillNotTranscludedError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [TranscludeNone, TranscludeAllWithContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeNone, TranscludeAllWithContentChild])
 class TestPanel {
 }
-@Component(selector: 'transclude-none')
-@View(template: '')
+@Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
 }
-@Component(selector: 'transclude-all-with-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'transclude-all-with-content-child',
+    template: '<ng-content></ng-content>')
 class TranscludeAllWithContentChild {
   @ContentChild("contentChildOfHigherComponent")
   ElementRef foo;
@@ -4304,12 +4228,11 @@ class TranscludeAllWithContentChild {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotElementRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   ElementRef foo;
@@ -4330,12 +4253,11 @@ class HasContentChild {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_componentNotElementRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeComponent])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeComponent])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   ElementRef foo;
@@ -4359,12 +4281,11 @@ class SomeComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeDirective])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   ElementRef foo;
@@ -4388,12 +4309,11 @@ class SomeDirective {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_elementNotTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   TemplateRef foo;
@@ -4414,12 +4334,11 @@ class HasContentChild {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_componentNotTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeComponent])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeComponent])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   TemplateRef foo;
@@ -4443,12 +4362,11 @@ class SomeComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotTemplateRef() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeDirective])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   TemplateRef foo;
@@ -4472,12 +4390,11 @@ class SomeDirective {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_elementNotComponent() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeComponent foo;
@@ -4501,12 +4418,11 @@ class SomeComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotComponent() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeComponent foo;
@@ -4530,12 +4446,12 @@ class SomeComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_wrongComponent() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeOtherComponent])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeOtherComponent])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child',
+  template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeComponent foo;
@@ -4562,12 +4478,11 @@ class SomeOtherComponent {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_elementNotDirective() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeDirective foo;
@@ -4591,12 +4506,11 @@ class SomeDirective {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_element_directiveNotExported() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeDirective])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeDirective foo;
@@ -4620,12 +4534,11 @@ class SomeDirective {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotDirective() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeDirective foo;
@@ -4649,12 +4562,11 @@ class SomeDirective {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_wrongDirective() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeOtherDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeOtherDirective])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   SomeDirective foo;
@@ -4681,12 +4593,11 @@ class SomeOtherDirective {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_readValueIsAlwaysOk() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '')
+@Component(selector: 'has-content-child', template: '')
 class HasContentChild {
   @ContentChild('contentChild', read: ViewContainerRef)
   ViewContainerRef foo;
@@ -4704,12 +4615,11 @@ class HasContentChild {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef_deeplyNested() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChild, SomeDirective])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChild, SomeDirective])
 class TestPanel {
 }
-@Component(selector: 'has-content-child')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
   @ContentChild('contentChild')
   ElementRef foo;
@@ -4740,12 +4650,11 @@ class SomeDirective {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChildElementRef])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChildElementRef])
 class TestPanel {
 }
-@Component(selector: 'has-content-child-element-ref')
-@View(template: '')
+@Component(selector: 'has-content-child-element-ref', template: '')
 class HasContentChildElementRef {
   @ContentChild(ElementRef)
   ElementRef theElement;
@@ -4768,12 +4677,11 @@ class HasContentChildElementRef {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildrenOk() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChildrenElementRef])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChildrenElementRef])
 class TestPanel {
 }
-@Component(selector: 'has-content-children-element-ref')
-@View(template: '')
+@Component(selector: 'has-content-children-element-ref', template: '')
 class HasContentChildrenElementRef {
   @ContentChildren(ElementRef)
   QueryList<ElementRef> theElement;
@@ -4793,12 +4701,11 @@ class HasContentChildrenElementRef {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildNestedOk() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChildElementRef])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChildElementRef])
 class TestPanel {
 }
-@Component(selector: 'has-content-child-element-ref')
-@View(template: '')
+@Component(selector: 'has-content-child-element-ref', template: '')
 class HasContentChildElementRef {
   @ContentChild(ElementRef)
   ElementRef theElement;
@@ -4820,12 +4727,12 @@ class HasContentChildElementRef {
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideDuplicateContentChildSiblingsError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [HasContentChildTemplateRef])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [HasContentChildTemplateRef])
 class TestPanel {
 }
-@Component(selector: 'has-content-child-template-ref')
-@View(template: '<ng-content></ng-content>')
+@Component(selector: 'has-content-child-template-ref',
+    template: '<ng-content></ng-content>')
 class HasContentChildTemplateRef {
   @ContentChild(TemplateRef)
   TemplateRef theTemplate;
@@ -4870,16 +4777,18 @@ class MyClass {
   }
 }
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', exports: const [
-  myAccessor,
-  MyEnum,
-  myFunction,
-  MyClass,
-  prefixed.otherAccessor,
-  prefixed.OtherEnum,
-  prefixed.otherFunction,
-  prefixed.OtherClass
+@Component(
+  selector: 'test-panel',
+  templateUrl: 'test_panel.html',
+  exports: const [
+    myAccessor,
+    MyEnum,
+    myFunction,
+    MyClass,
+    prefixed.otherAccessor,
+    prefixed.OtherEnum,
+    prefixed.otherFunction,
+    prefixed.OtherClass
 ])
 class TestPanel {
   static void componentStatic() {
@@ -4957,8 +4866,8 @@ class MyClass {
   }
 }
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', exports: const [])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    exports: const [])
 class TestPanel {
 }
 ''');
@@ -5004,8 +4913,7 @@ can't be exported:
 import '/prefixed.dart' as prefixed;
 const int prefixNotAllowed = 1;
 
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html',
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     exports: const [prefixNotAllowed, prefixed.prefixRequired])
 class TestPanel {
 }
@@ -5028,8 +4936,8 @@ component class can't be used with a prefix: {{prefixed.TestPanel}}
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_invalidExportDoesntCrash() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', exports: const [garbage])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    exports: const [garbage])
 class TestPanel {
 }
 ''');
@@ -5046,8 +4954,7 @@ class TestPanel {
   Future test_resolveTemplate_resolvingBogusImportDoesntCrash() async {
     _addDartSource(r'''
 import ; // synthetic import
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
 }
 ''');
@@ -5063,8 +4970,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_nanTokenizationRangeError() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel',
-    templateUrl: 'test_panel.html', directives: const [NgIf])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [NgIf])
 class TestPanel {
   int i;
 }
@@ -5082,8 +4989,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_customTagNames() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
 class TestPanel {
   String foo;
 }
@@ -5105,8 +5012,8 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_customTagNames_unsuppressedErrors() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel')
-@View(templateUrl: 'test_panel.html', directives: const [])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
 class TestPanel {
   String aString;
 }
