@@ -2708,8 +2708,7 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(
-        childs.first.query, const isInstanceOf<ElementRefQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<ElementQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
@@ -2731,8 +2730,8 @@ class ComponentA {
     final component = directives.first;
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
-    expect(childrens.first.query,
-        const isInstanceOf<ElementRefQueriedChildType>());
+    expect(
+        childrens.first.query, const isInstanceOf<ElementQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
