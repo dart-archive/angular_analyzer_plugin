@@ -48,6 +48,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
   AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,
   AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
+  AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
   AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
   AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
   AngularWarningCode.DUPLICATE_EXPORT,
@@ -359,6 +360,16 @@ class AngularWarningCode extends ErrorCode {
 
   /// An error code indicating that @ContentChildren or @ViewChildren was used
   /// but the property wasn't a `QueryList`.
+  static const CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST =
+      const AngularWarningCode(
+          'CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST',
+          'The field {0} marked with @{1} expects a member of type List,'
+          ' but got {2}');
+
+  /// Here for backwards compatibility. Should not be used. Use
+  /// [CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST] instead. Note: we can remove this
+  /// the next time we tick the salt in `lib/src/file_tracker.dart`.
+  @deprecated
   static const CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST =
       const AngularWarningCode(
           'CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST',
