@@ -917,7 +917,8 @@ class ContentChildLinker {
         ?.instantiate([_context.typeProvider.bottomType]);
 
     final isList = setterType.isSupertypeOf(listBottom);
-    final isQueryList = setterType?.isSupertypeOf(queryListBottom) ?? false;
+    final isQueryList =
+        queryListBottom != null && setterType.isSupertypeOf(queryListBottom);
 
     if (!isList && !isQueryList) {
       _errorReporter.reportErrorForOffset(

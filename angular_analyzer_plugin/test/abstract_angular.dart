@@ -99,6 +99,13 @@ class AbstractAngularTest {
 
   GatheringErrorListener errorListener;
 
+  // flags specific to handling multiple versions of angular which may differ,
+  // but we still need to support.
+  final bool includeQueryList;
+
+  AbstractAngularTest() : includeQueryList = true;
+  AbstractAngularTest.future() : includeQueryList = false;
+
   Source newSource(String path, [String content = '']) {
     final file = resourceProvider.newFile(path, content);
     final source = file.createSource();
@@ -180,7 +187,9 @@ export 'src/core/change_detection.dart';
 library angular.security;
 export 'src/security/dom_sanitization_service.dart';
 ''');
-    newSource('/angular/src/core/metadata.dart', r'''
+    newSource(
+        '/angular/src/core/metadata.dart',
+        r'''
 import 'dart:async';
 
 abstract class Directive {
@@ -280,7 +289,13 @@ class DependencyMetadata {
 
 class TemplateRef {}
 class ElementRef {}
+''' +
+            (includeQueryList
+                ? r'''
 class QueryList<T> implements Iterable<T> {}
+'''
+                : '') +
+            r'''
 class ViewContainerRef {}
 class PipeTransform {}
 ''');

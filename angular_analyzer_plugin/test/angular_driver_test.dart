@@ -24,6 +24,7 @@ void main() {
     defineReflectiveTests(BuildStandardHtmlComponentsTest);
     defineReflectiveTests(BuildStandardAngularTest);
     defineReflectiveTests(GatherAnnotationsTest);
+    defineReflectiveTests(GatherAnnotationsOnFutureAngularTest);
     defineReflectiveTests(BuildUnitViewsTest);
     defineReflectiveTests(ResolveDartTemplatesTest);
     defineReflectiveTests(LinkDirectivesTest);
@@ -333,8 +334,7 @@ class BuildStandardAngularTest extends AbstractAngularTest {
   }
 }
 
-@reflectiveTest
-class GatherAnnotationsTest extends AbstractAngularTest {
+abstract class GatherAnnotationsTestMixin implements AbstractAngularTest {
   List<AbstractDirective> directives;
   List<Pipe> pipes;
   List<AnalysisError> errors;
@@ -348,7 +348,11 @@ class GatherAnnotationsTest extends AbstractAngularTest {
     errors = result.errors;
     fillErrorListener(errors);
   }
+}
 
+@reflectiveTest
+class GatherAnnotationsTest extends AbstractAngularTest
+    with GatherAnnotationsTestMixin {
   // ignore: non_constant_identifier_names
   Future test_Component() async {
     final source = newSource('/test.dart', r'''
@@ -1896,6 +1900,43 @@ class ComponentA {
     await getDirectives(source);
     // validate. Can't validate position because foo occurs so many times
     errorListener.assertErrorsWithCodes([AngularWarningCode.DUPLICATE_EXPORT]);
+  }
+}
+
+@reflectiveTest
+class GatherAnnotationsOnFutureAngularTest extends AbstractAngularTest
+    with GatherAnnotationsTestMixin {
+  GatherAnnotationsOnFutureAngularTest() : super.future();
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_worksInFuture() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
+    // validate
+    errorListener.assertNoErrors();
   }
 }
 
