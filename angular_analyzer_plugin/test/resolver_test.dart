@@ -4684,7 +4684,7 @@ class TestPanel {
 @Component(selector: 'has-content-children-element-ref', template: '')
 class HasContentChildrenElementRef {
   @ContentChildren(ElementRef)
-  QueryList<ElementRef> theElement;
+  List<ElementRef> theElement;
 }
 ''');
     final code = r"""

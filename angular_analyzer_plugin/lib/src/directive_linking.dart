@@ -907,16 +907,22 @@ class ContentChildLinker {
 
   DartType transformSetterTypeMultiple(
       DartType setterType, ContentChildField field, String annotationName) {
-    // construct QueryList<Bottom>, which is a supertype of all QueryList<T>
-    // NOTE: In most languages, you'd need QueryList<Object>, but not dart.
-    final queryListBottom = _standardAngular.queryList.type
+    // construct List<Bottom>, which is a supertype of all List<T>
+    // NOTE: In most languages, you'd need List<Object>, but not dart.
+    final listBottom = _context.typeProvider.listType
         .instantiate([_context.typeProvider.bottomType]);
+    // Temporarily check QueryList, which is deprecated, but allowed.
+    // CAREFUL: QueryList may be NULL, handle that gracefully.
+    final queryListBottom = _standardAngular.queryList?.type
+        ?.instantiate([_context.typeProvider.bottomType]);
 
-    final isQueryList = setterType.isSupertypeOf(queryListBottom);
+    final isList = setterType.isSupertypeOf(listBottom);
+    final isQueryList =
+        queryListBottom != null && setterType.isSupertypeOf(queryListBottom);
 
-    if (!isQueryList) {
+    if (!isList && !isQueryList) {
       _errorReporter.reportErrorForOffset(
-          AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
+          AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
           field.typeRange.offset,
           field.typeRange.length,
           [field.fieldName, annotationName, setterType]);

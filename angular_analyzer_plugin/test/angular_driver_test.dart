@@ -24,6 +24,7 @@ void main() {
     defineReflectiveTests(BuildStandardHtmlComponentsTest);
     defineReflectiveTests(BuildStandardAngularTest);
     defineReflectiveTests(GatherAnnotationsTest);
+    defineReflectiveTests(GatherAnnotationsOnFutureAngularTest);
     defineReflectiveTests(BuildUnitViewsTest);
     defineReflectiveTests(ResolveDartTemplatesTest);
     defineReflectiveTests(LinkDirectivesTest);
@@ -333,8 +334,7 @@ class BuildStandardAngularTest extends AbstractAngularTest {
   }
 }
 
-@reflectiveTest
-class GatherAnnotationsTest extends AbstractAngularTest {
+abstract class GatherAnnotationsTestMixin implements AbstractAngularTest {
   List<AbstractDirective> directives;
   List<Pipe> pipes;
   List<AnalysisError> errors;
@@ -348,7 +348,11 @@ class GatherAnnotationsTest extends AbstractAngularTest {
     errors = result.errors;
     fillErrorListener(errors);
   }
+}
 
+@reflectiveTest
+class GatherAnnotationsTest extends AbstractAngularTest
+    with GatherAnnotationsTestMixin {
   // ignore: non_constant_identifier_names
   Future test_Component() async {
     final source = newSource('/test.dart', r'''
@@ -1649,6 +1653,37 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ContentChildComp)
+  List<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_QueryList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
   QueryList<ContentChildComp> contentChildren;
 }
 
@@ -1681,7 +1716,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren()
-  QueryList<ContentChildComp> contentChildren;
+  List<ContentChildComp> contentChildren;
   @ContentChild()
   ContentChildComp contentChild;
 }
@@ -1713,7 +1748,7 @@ class ComponentA {
   @ContentChild(ContentChildComp) // 1
   void set contentChild(ContentChildComp contentChild) => null;
   @ContentChildren(ContentChildComp) // 2
-  void set contentChildren(QueryList<ContentChildComp> contentChildren) => null;
+  void set contentChildren(List<ContentChildComp> contentChildren) => null;
 }
 
 @Component(selector: 'foo', template: '')
@@ -1741,9 +1776,8 @@ class ContentChildComp {}
         equals(code.indexOf("ContentChildComp) // 2")));
     expect(children.nameRange.length, equals("ContentChildComp".length));
     expect(children.typeRange.offset,
-        equals(code.indexOf("QueryList<ContentChildComp>")));
-    expect(children.typeRange.length,
-        equals("QueryList<ContentChildComp>".length));
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
 
     errorListener.assertNoErrors();
   }
@@ -1866,6 +1900,43 @@ class ComponentA {
     await getDirectives(source);
     // validate. Can't validate position because foo occurs so many times
     errorListener.assertErrorsWithCodes([AngularWarningCode.DUPLICATE_EXPORT]);
+  }
+}
+
+@reflectiveTest
+class GatherAnnotationsOnFutureAngularTest extends AbstractAngularTest
+    with GatherAnnotationsTestMixin {
+  GatherAnnotationsOnFutureAngularTest() : super.future();
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_worksInFuture() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
+    // validate
+    errorListener.assertNoErrors();
   }
 }
 
@@ -2425,7 +2496,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ContentChildComp)
-  QueryList<ContentChildComp> contentChildren;
+  List<ContentChildComp> contentChildren;
 }
 
 @Component(selector: 'foo', template: '')
@@ -2455,7 +2526,7 @@ class ComponentA {
   @ContentChild(ContentChildComp) // 1
   void set contentChild(ContentChildComp contentChild) => null;
   @ContentChildren(ContentChildComp) // 2
-  void set contentChildren(QueryList<ContentChildComp> contentChildren) => null;
+  void set contentChildren(List<ContentChildComp> contentChildren) => null;
 }
 
 @Component(selector: 'foo', template: '')
@@ -2548,13 +2619,15 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren('foo')
-  QueryList<ContentChildComp> contentChildDirective;
+  List<ContentChildComp> contentChildDirective;
   @ContentChildren('fooTpl')
-  QueryList<TemplateRef> contentChildTpl;
+  List<TemplateRef> contentChildTpl;
   @ContentChildren('fooElem')
-  QueryList<ElementRef> contentChildElem;
+  List<ElementRef> contentChildElem;
   @ContentChildren('fooDynamic')
-  QueryList contentChildDynamic;
+  List contentChildDynamic;
+  @ContentChildren('fooQueryList')
+  QueryList<ContentChildComp> contentChildQueryList;
 }
 
 @Component(selector: 'foo', template: '')
@@ -2564,7 +2637,7 @@ class ContentChildComp {}
     await getViews(source);
     final component = directives.first;
     final childrens = component.contentChildren;
-    expect(childrens, hasLength(4));
+    expect(childrens, hasLength(5));
 
     final LetBoundQueriedChildType childrenDirective = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
@@ -2594,6 +2667,14 @@ class ContentChildComp {}
     expect(childrenDynamic, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenDynamic.letBoundName, equals("fooDynamic"));
     expect(childrenDynamic.containerType.toString(), equals("dynamic"));
+
+    final LetBoundQueriedChildType childrenQueryList = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildQueryList")
+        .query;
+    expect(childrenQueryList, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenQueryList.letBoundName, equals("fooQueryList"));
+    expect(
+        childrenQueryList.containerType.toString(), equals("ContentChildComp"));
 
     // validate
     errorListener.assertNoErrors();
@@ -2633,7 +2714,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ElementRef)
-  QueryList<ElementRef> contentChildren;
+  List<ElementRef> contentChildren;
 }
 ''';
     final source = newSource('/test.dart', code);
@@ -2656,7 +2737,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(TemplateRef)
-  QueryList<TemplateRef> contentChildren;
+  List<TemplateRef> contentChildren;
 }
 ''';
     final source = newSource('/test.dart', code);
@@ -2850,7 +2931,7 @@ class ContentChildCompSub extends ContentChildComp {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_notQueryList() async {
+  Future test_hasContentChildrenDirective_notList() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
@@ -2875,7 +2956,7 @@ class ContentChildComp {}
 
     // validate
     assertErrorInCodeAtPosition(
-        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
+        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
         code,
         'String');
   }
@@ -2916,7 +2997,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ContentChildComp)
-  QueryList<String> contentChildren;
+  List<String> contentChildren;
 }
 
 @Component(selector: 'foo', template: '')
@@ -2926,8 +3007,8 @@ class ContentChildComp {}
     await getViews(source);
 
     // validate
-    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-        code, 'QueryList<String>');
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
   }
 
   // ignore: non_constant_identifier_names
@@ -2938,7 +3019,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ContentChildComp)
-  QueryList contentChildren;
+  List contentChildren;
 }
 
 @Component(selector: 'foo', template: '')
@@ -3037,21 +3118,21 @@ class ContentChildComp {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_subtypingQueryListNotOk() async {
+  Future test_hasContentChildrenDirective_subtypingListNotOk() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ContentChildComp)
-  // this is not allowed. Angular makes a QueryList, regardless of your subtype
-  CannotSubtypeQueryList contentChild;
+  // this is not allowed. Angular makes a List, regardless of your subtype
+  CannotSubtypeList contentChild;
 }
 
 @Component(selector: 'foo', template: '')
 class ContentChildComp {}
 
-abstract class CannotSubtypeQueryList extends QueryList {}
+abstract class CannotSubtypeList extends List {}
 ''';
     final source = newSource('/test.dart', code);
     await getViews(source);
@@ -3065,9 +3146,9 @@ abstract class CannotSubtypeQueryList extends QueryList {}
 
     // validate
     assertErrorInCodeAtPosition(
-        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
+        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
         code,
-        'CannotSubtypeQueryList');
+        'CannotSubtypeList');
   }
 
   // ignore: non_constant_identifier_names
@@ -3100,7 +3181,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(TemplateRef)
-  QueryList<String> contentChildren;
+  List<String> contentChildren;
 }
 
 @Component(selector: 'foo', template: '')
@@ -3110,8 +3191,8 @@ class ContentChildComp {}
     await getViews(source);
 
     // validate
-    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-        code, 'QueryList<String>');
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
   }
 
   // ignore: non_constant_identifier_names
@@ -3144,7 +3225,7 @@ import 'package:angular2/angular2.dart';
 @Component(selector: 'my-component', template: '')
 class ComponentA {
   @ContentChildren(ElementRef)
-  QueryList<String> contentChildren;
+  List<String> contentChildren;
 }
 
 @Component(selector: 'foo', template: '')
@@ -3154,8 +3235,8 @@ class ContentChildComp {}
     await getViews(source);
 
     // validate
-    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-        code, 'QueryList<String>');
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
   }
 
   // ignore: non_constant_identifier_names
@@ -3168,7 +3249,7 @@ class ComponentA {
   @ContentChild(ContentChildComp, read: ViewContainerRef)
   ViewContainerRef contentChild;
   @ContentChildren(ContentChildComp, read: ViewContainerRef)
-  QueryList<ViewContainerRef> contentChildren;
+  List<ViewContainerRef> contentChildren;
 }
 
 @Component(selector: 'foo', template: '')
@@ -3372,11 +3453,11 @@ class BaseComponent {
   @ViewChild(BaseComponent)
   BaseComponent queryView;
   @ViewChildren(BaseComponent)
-  QueryList<BaseComponent> queryListView;
+  List<BaseComponent> queryListView;
   @ContentChild(BaseComponent)
   BaseComponent queryContent;
   @ContentChildren(BaseComponent)
-  QueryList<BaseComponent> queryListContent;
+  List<BaseComponent> queryListContent;
 
   // TODO host properties & listeners
 }
@@ -3438,11 +3519,11 @@ class BaseComponent {
   @ViewChild(BaseComponent)
   BaseComponent queryView;
   @ViewChildren(BaseComponent)
-  QueryList<BaseComponent> queryListView;
+  List<BaseComponent> queryListView;
   @ContentChild(BaseComponent)
   BaseComponent queryContent;
   @ContentChildren(BaseComponent)
-  QueryList<BaseComponent> queryListContent;
+  List<BaseComponent> queryListContent;
 
   // TODO host properties & listeners
 }
