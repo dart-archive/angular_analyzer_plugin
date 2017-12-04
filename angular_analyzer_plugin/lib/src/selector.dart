@@ -592,13 +592,16 @@ class SelectorParser {
   final String str;
   String currentMatchStr;
   _SelectorRegexMatch currentMatchType;
+  int currentMatchIndex;
   final Source source;
   SelectorParser(this.source, this.fileOffset, this.str);
 
   final RegExp _regExp = new RegExp(r'(\:not\()|'
-      r'([-\w]+)|'
-      r'(?:\.([-\w]+))|'
-      r'(?:\[([-\w*]+)(?:=([^\]]*))?\])|'
+      r'([-\w]+)|' // Tag
+      r'(?:\.([-\w]+))|' // Class
+      r'''(?:\[([-\w*]+)(?:=([^\]'"]*))?\])|''' // Attribute, no quotes
+      r"(?:\[([-\w]+)(?:='([^\]]*)')\])|" // Attribute, single quotes
+      r'(?:\[([-\w]+)(?:="([^\]]*)")\])|' // Attribute, double quotes
       r'(\))|'
       r'(\s*,\s*)|'
       r'(^\:contains\(\/(.+)\/\)$)'); // :contains doesn't mix with the rest
@@ -608,11 +611,16 @@ class SelectorParser {
     1: _SelectorRegexMatch.NotStart,
     2: _SelectorRegexMatch.Tag,
     3: _SelectorRegexMatch.Class,
-    4: _SelectorRegexMatch.Attribute,
-    // 5 is part of Attribute. Not a match type
-    6: _SelectorRegexMatch.NotEnd,
-    7: _SelectorRegexMatch.Comma,
-    8: _SelectorRegexMatch.Contains,
+    4: _SelectorRegexMatch.Attribute, // no quotes
+    // 5 is part of Attribute. Not a match type.
+    6: _SelectorRegexMatch.Attribute, // single quotes
+    // 7 is part of Attribute. Not a match type.
+    8: _SelectorRegexMatch.Attribute, // double quotes
+    // 9 is part of Attribute. Not a match type.
+    10: _SelectorRegexMatch.NotEnd,
+    11: _SelectorRegexMatch.Comma,
+    12: _SelectorRegexMatch.Contains,
+    // 13 is a part of Contains.
   };
 
   Match advance() {
@@ -633,6 +641,7 @@ class SelectorParser {
 
     for (final index in matchIndexToType.keys) {
       if (currentMatch[index] != null) {
+        currentMatchIndex = index;
         currentMatchType = matchIndexToType[index];
         currentMatchStr = currentMatch[index];
         return currentMatch;
@@ -685,9 +694,9 @@ class SelectorParser {
       } else if (currentMatchType == _SelectorRegexMatch.Attribute) {
         final nameIndex = currentMatch.start + '['.length;
         final nameOffset = fileOffset + nameIndex;
-        final value = currentMatch[5];
+        final value = currentMatch[currentMatchIndex + 1];
 
-        var name = currentMatch[4];
+        var name = currentMatchStr;
         var isWildcard = false;
         advance();
 
@@ -717,7 +726,8 @@ class SelectorParser {
           return new OrSelector(<Selector>[_andSelectors(selectors), rhs]);
         }
       } else if (currentMatchType == _SelectorRegexMatch.Contains) {
-        selectors.add(new ContainsSelector(currentMatch[9]));
+        selectors
+            .add(new ContainsSelector(currentMatch[currentMatchIndex + 1]));
         advance();
       } else {
         break;
