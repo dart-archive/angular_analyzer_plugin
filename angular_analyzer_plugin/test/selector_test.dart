@@ -592,6 +592,37 @@ class SelectorParserTest {
   }
 
   // ignore: non_constant_identifier_names
+  void test_attribute_hasValueWithQuotes() {
+    final AndSelector selector =
+        new SelectorParser(source, 10, '''[single='quotes'][double="quotes"]''')
+            .parse();
+    expect(selector, const isInstanceOf<AndSelector>());
+    expect(selector.selectors, hasLength(2));
+    {
+      final AttributeSelector subSelector = selector.selectors[0];
+      expect(subSelector, const isInstanceOf<AttributeSelector>());
+      {
+        final nameElement = subSelector.nameElement;
+        expect(nameElement.source, source);
+        expect(nameElement.name, 'single');
+      }
+      // Ensure there are no quotes within the value
+      expect(subSelector.value, 'quotes');
+    }
+    {
+      final AttributeSelector subSelector = selector.selectors[1];
+      expect(subSelector, const isInstanceOf<AttributeSelector>());
+      {
+        final nameElement = subSelector.nameElement;
+        expect(nameElement.source, source);
+        expect(nameElement.name, 'double');
+      }
+      // Ensure there are no quotes within the value
+      expect(subSelector.value, 'quotes');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
   void test_attribute_hasWildcard() {
     final AttributeSelector selector =
         new SelectorParser(source, 10, '[kind*=pretty]').parse();
