@@ -367,7 +367,7 @@ class ContentChild {
   final AbstractQueriedChildType query;
 
   /// Look up a symbol from the injector. We don't track the injector yet.
-  final String read;
+  final dart.DartType read;
 
   ContentChild(this.field, this.query, {this.read});
 }
