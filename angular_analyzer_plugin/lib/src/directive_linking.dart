@@ -414,9 +414,10 @@ class ChildDirectiveLinker implements DirectiveMatcher {
   final FilePipeProvider _filePipeProvider;
   final ErrorReporter _errorReporter;
   final StandardAngular _standardAngular;
+  final StandardHtml _standardHtml;
 
   ChildDirectiveLinker(this._fileDirectiveProvider, this._filePipeProvider,
-      this._standardAngular, this._errorReporter);
+      this._standardAngular, this._standardHtml, this._errorReporter);
 
   Future linkDirectivesAndPipes(
     List<AbstractDirective> directivesToLink,
@@ -471,8 +472,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
             .link();
 
-        await new ContentChildLinker(
-                directive, this, _standardAngular, _errorReporter)
+        await new ContentChildLinker(directive, this, _standardAngular,
+                _standardHtml, _errorReporter)
             .linkContentChildren();
       }
     }
@@ -731,7 +732,7 @@ class ChildDirectiveLinker implements DirectiveMatcher {
       final errorIgnorer =
           new ErrorReporter(new IgnoringErrorListener(), directive.source);
       await new ContentChildLinker(
-              directive, this, _standardAngular, errorIgnorer)
+              directive, this, _standardAngular, _standardHtml, errorIgnorer)
           .linkContentChildren();
     }
 
@@ -750,11 +751,12 @@ class ContentChildLinker {
   final AbstractClassDirective _directive;
   final DirectiveMatcher _directiveMatcher;
   final StandardAngular _standardAngular;
+  final StandardHtml _standardHtml;
 
   final htmlTypes = new Set.from(['ElementRef', 'Element', 'HtmlElement']);
 
   ContentChildLinker(AbstractClassDirective directive, this._directiveMatcher,
-      this._standardAngular, this._errorReporter)
+      this._standardAngular, this._standardHtml, this._errorReporter)
       : _context =
             directive.classElement.enclosingElement.enclosingElement.context,
         _directive = directive;
@@ -846,11 +848,30 @@ class ContentChildLinker {
     final read = getReadWithInheritance(annotationValue);
 
     if (value?.toStringValue() != null) {
+      final transformedType = transformSetterTypeFn(
+          bindingSynthesizer.getSetterType(member), field, annotationName);
+
+      if (transformedType == _standardHtml.elementClass.type ||
+          transformedType == _standardHtml.htmlElementClass.type) {
+        if (read != transformedType.name) {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+              field.nameRange.offset,
+              field.nameRange.length,
+              [field.fieldName, annotationName, transformedType.name]);
+        } else {
+          destinationArray.add(new ContentChild(
+              field,
+              new LetBoundQueriedChildType(
+                  value.toStringValue(), transformedType),
+              read: read));
+          return;
+        }
+      }
+
       // Take the type -- except, we can't validate DI symbols via `read`.
-      final setterType = read == null
-          ? transformSetterTypeFn(
-              bindingSynthesizer.getSetterType(member), field, annotationName)
-          : _context.typeProvider.dynamicType;
+      final setterType =
+          read == null ? transformedType : _context.typeProvider.dynamicType;
 
       destinationArray.add(new ContentChild(field,
           new LetBoundQueriedChildType(value.toStringValue(), setterType),

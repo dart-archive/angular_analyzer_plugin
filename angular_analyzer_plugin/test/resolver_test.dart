@@ -3911,6 +3911,30 @@ class TranscludeSome {
 
   Future
       // ignore: non_constant_identifier_names
+      test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildHtmlElement() async {
+    _addDartSource(r'''
+import 'dart:html';
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [TranscludeSome])
+class TestPanel {
+}
+@Component(selector: 'transclude-some',
+    template: '<ng-content select="transclude-me"></ng-content>')
+class TranscludeSome {
+  @ContentChild(HtmlElement)
+  HtmlElement foo;
+}
+''');
+    final code = r"""
+<transclude-some><div></div></transclude-some>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  Future
+      // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildTemplateRef() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -3990,7 +4014,7 @@ class TestPanel {
 }
 @Component(selector: 'transclude-none', template: '')
 class TranscludeNone {
-  @ContentChild('contentChild')
+  @ContentChild('contentChild', read: Element)
   Element foo;
   @ContentChild('contentChild')
   ElementRef foo; // to be deprecated, but ok
@@ -4284,7 +4308,7 @@ class TranscludeNone {
 @Component(selector: 'transclude-all-with-content-child',
     template: '<ng-content></ng-content>')
 class TranscludeAllWithContentChild {
-  @ContentChild("contentChildOfHigherComponent")
+  @ContentChild("contentChildOfHigherComponent", read: Element)
   Element foo;
 }
 ''');
@@ -4337,7 +4361,7 @@ class TestPanel {
 }
 @Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
-  @ContentChild('contentChild')
+  @ContentChild('contentChild', read: Element)
   Element foo;
 }
 ''');
@@ -4391,7 +4415,7 @@ class TestPanel {
 }
 @Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
-  @ContentChild('contentChild')
+  @ContentChild('contentChild', read: Element)
   Element foo;
 }
 @Component(selector: 'some-component', template: '')
@@ -4448,7 +4472,7 @@ class TestPanel {
 }
 @Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
-  @ContentChild('contentChild')
+  @ContentChild('contentChild', read: Element)
   Element foo;
 }
 @Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
@@ -4783,7 +4807,7 @@ class TestPanel {
 }
 @Component(selector: 'has-content-child', template: '<ng-content></ng-content>')
 class HasContentChild {
-  @ContentChild('contentChild')
+  @ContentChild('contentChild', read: Element)
   Element foo;
 }
 @Directive(selector: '[some-directive]', template: '', exportAs: "theDirective")
