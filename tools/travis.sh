@@ -9,7 +9,7 @@ cd $PACKAGE
 pwd
 # Check if we should resolve pub dependencies, or use what was fetched from
 # depot tools.
-if [ -z "$(git branch | grep 'SDK_AT_HEAD')" ]
+if [ -z "$(git branch | grep 'SDK_AT_HEAD')"  && "$PACKAGE" != old_plugin_loader ]
 then
   echo Using pub for the SDK dependencies.
   echo
