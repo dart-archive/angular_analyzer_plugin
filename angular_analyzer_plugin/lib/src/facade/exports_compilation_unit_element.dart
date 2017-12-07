@@ -171,6 +171,9 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   ClassElement getType(String className) =>
       types.firstWhere((type) => type.name == name, orElse: () => null);
 
+  @override
+  bool get isAlwaysThrows => _wrappedUnit.isAlwaysThrows;
+
   // CompilationUnitFacade's are not used for imports, which have prefixes
   bool _fromThisUnit(ExportedIdentifier export) => export.prefix == '';
 }
