@@ -479,8 +479,8 @@ class AngularDriver
     final linkErrorListener = new IgnoringErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, dartSource);
 
-    final linker = new ChildDirectiveLinker(
-        this, this, await getStandardAngular(), linkErrorReporter);
+    final linker = new ChildDirectiveLinker(this, this,
+        await getStandardAngular(), await getStandardHtml(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
 
@@ -659,8 +659,8 @@ class AngularDriver
     final linkErrorListener = new RecordingErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, source);
 
-    final linker = new ChildDirectiveLinker(
-        this, this, await getStandardAngular(), linkErrorReporter);
+    final linker = new ChildDirectiveLinker(this, this,
+        await getStandardAngular(), await getStandardHtml(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives
