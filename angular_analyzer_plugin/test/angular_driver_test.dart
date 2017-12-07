@@ -2749,9 +2749,6 @@ class ComponentA {
   @ContentChild('el', read: Element) // not HtmlElement
   HtmlElement contentChildNotHtmlElem;
 }
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
 ''';
     final source = newSource('/test.dart', code);
     await getViews(source);
@@ -2764,6 +2761,78 @@ class ContentChildComp {}
       AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
       AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
     ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future
+      solo_test_hasContentChildrenLetBound_elementReadDoesntMatchType() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('el', read: Element)
+  ElementRef elemRefNotElem;
+  @ContentChild('el', read: HtmlElement)
+  ElementRef elemRefNotHtmlElem;
+  @ContentChild('el', read: Element)
+  HtmlElement htmlElemNotElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future solo_test_hasContentChildrenLetBound_readSubtypeOfAttribute() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('el', read: Element)
+  Object objectNotElem;
+  @ContentChild('el', read: HtmlElement)
+  Element elemNotHtmlElem;
+  @ContentChild('el', read: HtmlElement)
+  Object objectNotHtmlElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final children = component.contentChilds;
+    expect(children, hasLength(3));
+
+    final LetBoundQueriedChildType objectNotElem =
+        children.singleWhere((c) => c.field.fieldName == 'objectNotElem').query;
+    expect(objectNotElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(objectNotElem.letBoundName, equals('el'));
+    expect(objectNotElem.containerType.toString(), equals('Element'));
+
+    final LetBoundQueriedChildType elemNotHtmlElem = children
+        .singleWhere((c) => c.field.fieldName == 'elemNotHtmlElem')
+        .query;
+    expect(elemNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(elemNotHtmlElem.letBoundName, equals('el'));
+    expect(elemNotHtmlElem.containerType.toString(), equals('HtmlElement'));
+
+    final LetBoundQueriedChildType objectNotHtmlElem = children
+        .singleWhere((c) => c.field.fieldName == 'objectNotHtmlElem')
+        .query;
+    expect(objectNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(objectNotHtmlElem.letBoundName, equals('el'));
+    expect(objectNotHtmlElem.containerType.toString(), equals('HtmlElement'));
+
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
