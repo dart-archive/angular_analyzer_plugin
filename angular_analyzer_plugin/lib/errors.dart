@@ -47,6 +47,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.STRING_STYLE_INPUT_BINDING_INVALID,
   AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
   AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,
+  AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
   AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST,
   AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
   AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
@@ -357,6 +358,13 @@ class AngularWarningCode extends ErrorCode {
       'UNKNOWN_CHILD_QUERY_TYPE',
       'The field {0} marked with @{1} must reference a directive, a string'
       ' let-binding name, TemplateRef, or ElementRef');
+
+  /// An error code indicating that a @ContentChild or @ContentChildren field
+  /// didn't have an expected value
+  static const CHILD_QUERY_TYPE_REQUIRES_READ = const AngularWarningCode(
+      'CHILD_QUERY_TYPE_REQUIRES_READ',
+      'The field {0} marked with @{1} cannot reference type {2} unless the @{1}'
+      ' annotation includes `read: {2}`');
 
   /// An error code indicating that @ContentChildren or @ViewChildren was used
   /// but the property wasn't a `QueryList`.

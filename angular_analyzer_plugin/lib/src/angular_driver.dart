@@ -289,7 +289,12 @@ class AngularDriver
       result.unit.accept(new BuildStandardHtmlComponentsVisitor(
           components, events, attributes, source, securitySchema));
 
-      standardHtml = new StandardHtml(components, events, attributes);
+      standardHtml = new StandardHtml(
+          components,
+          events,
+          attributes,
+          result.libraryElement.exportNamespace.get('Element'),
+          result.libraryElement.exportNamespace.get('HtmlElement'));
     }
 
     return standardHtml;
@@ -474,8 +479,8 @@ class AngularDriver
     final linkErrorListener = new IgnoringErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, dartSource);
 
-    final linker = new ChildDirectiveLinker(
-        this, this, await getStandardAngular(), linkErrorReporter);
+    final linker = new ChildDirectiveLinker(this, this,
+        await getStandardAngular(), await getStandardHtml(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
 
@@ -512,6 +517,7 @@ class AngularDriver
                   standardHtml.events,
                   standardHtml.attributes,
                   await getStandardAngular(),
+                  await getStandardHtml(),
                   tplErrorListener,
                   options)
               .resolve(template);
@@ -653,8 +659,8 @@ class AngularDriver
     final linkErrorListener = new RecordingErrorListener();
     final linkErrorReporter = new ErrorReporter(linkErrorListener, source);
 
-    final linker = new ChildDirectiveLinker(
-        this, this, await getStandardAngular(), linkErrorReporter);
+    final linker = new ChildDirectiveLinker(this, this,
+        await getStandardAngular(), await getStandardHtml(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
     directives
@@ -694,6 +700,7 @@ class AngularDriver
                   standardHtml.events,
                   standardHtml.attributes,
                   await getStandardAngular(),
+                  await getStandardHtml(),
                   tplErrorListener,
                   options)
               .resolve(template);

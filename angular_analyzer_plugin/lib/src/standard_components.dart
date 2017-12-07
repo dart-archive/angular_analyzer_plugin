@@ -12,12 +12,16 @@ class StandardHtml {
   final Map<String, OutputElement> events;
   final Map<String, InputElement> attributes;
 
+  final ClassElement elementClass;
+  final ClassElement htmlElementClass;
+
   /// In attributes, there can be multiple strings that point to the
   /// same [InputElement] generated from [alternativeInputs] (below).
   /// This will provide a static source of unique [InputElement]s.
   final Set<InputElement> uniqueAttributeElements;
 
-  StandardHtml(this.components, this.events, this.attributes)
+  StandardHtml(this.components, this.events, this.attributes, this.elementClass,
+      this.htmlElementClass)
       : uniqueAttributeElements = new Set.from(attributes.values);
 }
 

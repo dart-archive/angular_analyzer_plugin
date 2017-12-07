@@ -274,6 +274,15 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       expect(input.securityContext.sanitizationAvailable, equals(true));
     }
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_buildStandardHtmlClasses() async {
+    final stdhtml = await angularDriver.getStandardHtml();
+    expect(stdhtml.elementClass, isNotNull);
+    expect(stdhtml.elementClass.name, 'Element');
+    expect(stdhtml.htmlElementClass, isNotNull);
+    expect(stdhtml.htmlElementClass.name, 'HtmlElement');
+  }
 }
 
 @reflectiveTest
@@ -1958,6 +1967,7 @@ class BuildUnitViewsTest extends AbstractAngularTest {
         angularDriver,
         angularDriver,
         await angularDriver.getStandardAngular(),
+        await angularDriver.getStandardHtml(),
         new ErrorReporter(errorListener, source));
     await linker.linkDirectivesAndPipes(
         directives, pipes, dartResult.unit.element.library);
@@ -2557,6 +2567,7 @@ class ContentChildComp {}
   // ignore: non_constant_identifier_names
   Future test_hasContentChildLetBound() async {
     final code = r'''
+import 'dart:html';
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-component', template: '')
@@ -2565,8 +2576,12 @@ class ComponentA {
   ContentChildComp contentChildDirective;
   @ContentChild('fooTpl')
   TemplateRef contentChildTpl;
-  @ContentChild('fooElem')
-  ElementRef contentChildElem;
+  @ContentChild('fooElemRef')
+  ElementRef contentChildElemRef;
+  @ContentChild('fooElem', read: Element)
+  Element contentChildElem;
+  @ContentChild('fooHtmlElem', read: HtmlElement)
+  HtmlElement contentChildHtmlElem;
   @ContentChild('fooDynamic')
   dynamic contentChildDynamic;
 }
@@ -2578,7 +2593,7 @@ class ContentChildComp {}
     await getViews(source);
     final component = directives.first;
     final childs = component.contentChilds;
-    expect(childs, hasLength(4));
+    expect(childs, hasLength(6));
 
     final LetBoundQueriedChildType childDirective = childs
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
@@ -2598,6 +2613,20 @@ class ContentChildComp {}
         .query;
     expect(childElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childElement.letBoundName, equals("fooElem"));
+    expect(childElement.containerType.toString(), equals("Element"));
+
+    final LetBoundQueriedChildType childHtmlElement = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildElem")
+        .query;
+    expect(childHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childHtmlElement.letBoundName, equals("fooHtmlElem"));
+    expect(childHtmlElement.containerType.toString(), equals("HtmlElement"));
+
+    final LetBoundQueriedChildType childElementRef = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
+        .query;
+    expect(childElementRef, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childElement.letBoundName, equals("fooElemRef"));
     expect(childElement.containerType.toString(), equals("ElementRef"));
 
     final LetBoundQueriedChildType childDynamic = childs
@@ -2614,6 +2643,7 @@ class ContentChildComp {}
   // ignore: non_constant_identifier_names
   Future test_hasContentChildrenLetBound() async {
     final code = r'''
+import 'dart:html';
 import 'package:angular2/angular2.dart';
 
 @Component(selector: 'my-component', template: '')
@@ -2622,8 +2652,12 @@ class ComponentA {
   List<ContentChildComp> contentChildDirective;
   @ContentChildren('fooTpl')
   List<TemplateRef> contentChildTpl;
-  @ContentChildren('fooElem')
-  List<ElementRef> contentChildElem;
+  @ContentChildren('fooElem', read: Element)
+  List<Element> contentChildElem;
+  @ContentChildren('fooHtmlElem', read: HtmlElement)
+  List<HtmlElement> contentChildHtmlElem;
+  @ContentChildren('fooElemRef')
+  List<ElementRef> contentChildElemRef;
   @ContentChildren('fooDynamic')
   List contentChildDynamic;
   @ContentChildren('fooQueryList')
@@ -2637,7 +2671,7 @@ class ContentChildComp {}
     await getViews(source);
     final component = directives.first;
     final childrens = component.contentChildren;
-    expect(childrens, hasLength(5));
+    expect(childrens, hasLength(7));
 
     final LetBoundQueriedChildType childrenDirective = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
@@ -2659,7 +2693,21 @@ class ContentChildComp {}
         .query;
     expect(childrenElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenElement.letBoundName, equals("fooElem"));
-    expect(childrenElement.containerType.toString(), equals("ElementRef"));
+    expect(childrenElement.containerType.toString(), equals("Element"));
+
+    final LetBoundQueriedChildType childrenHtmlElement = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
+        .query;
+    expect(childrenHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenHtmlElement.letBoundName, equals("fooHtmlElem"));
+    expect(childrenHtmlElement.containerType.toString(), equals("HtmlElement"));
+
+    final LetBoundQueriedChildType childrenElementRef = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
+        .query;
+    expect(childrenElementRef, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenElementRef.letBoundName, equals("fooElemRef"));
+    expect(childrenElementRef.containerType.toString(), equals("ElementRef"));
 
     final LetBoundQueriedChildType childrenDynamic = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
@@ -2677,6 +2725,113 @@ class ContentChildComp {}
         childrenQueryList.containerType.toString(), equals("ContentChildComp"));
 
     // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenLetBound_elementWithoutReadError() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren('el') // missing read: Element
+  List<Element> contentChildrenElem;
+  @ContentChild('el') // missing read: Element
+  Element contentChildElem;
+  @ContentChild('el') // missing read: HtmlElement
+  HtmlElement contentChildHtmlElem;
+  @ContentChildren('el') // missing read: HtmlElement
+  List<HtmlElement> contentChildrenHtmlElem;
+  @ContentChildren('el', read: Element) // not HtmlElement
+  List<HtmlElement> contentChildrenNotHtmlElem;
+  @ContentChild('el', read: Element) // not HtmlElement
+  HtmlElement contentChildNotHtmlElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future
+      solo_test_hasContentChildrenLetBound_elementReadDoesntMatchType() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('el', read: Element)
+  ElementRef elemRefNotElem;
+  @ContentChild('el', read: HtmlElement)
+  ElementRef elemRefNotHtmlElem;
+  @ContentChild('el', read: Element)
+  HtmlElement htmlElemNotElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future solo_test_hasContentChildrenLetBound_readSubtypeOfAttribute() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('el', read: Element)
+  Object objectNotElem;
+  @ContentChild('el', read: HtmlElement)
+  Element elemNotHtmlElem;
+  @ContentChild('el', read: HtmlElement)
+  Object objectNotHtmlElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final children = component.contentChilds;
+    expect(children, hasLength(3));
+
+    final LetBoundQueriedChildType objectNotElem =
+        children.singleWhere((c) => c.field.fieldName == 'objectNotElem').query;
+    expect(objectNotElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(objectNotElem.letBoundName, equals('el'));
+    expect(objectNotElem.containerType.toString(), equals('Element'));
+
+    final LetBoundQueriedChildType elemNotHtmlElem = children
+        .singleWhere((c) => c.field.fieldName == 'elemNotHtmlElem')
+        .query;
+    expect(elemNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(elemNotHtmlElem.letBoundName, equals('el'));
+    expect(elemNotHtmlElem.containerType.toString(), equals('HtmlElement'));
+
+    final LetBoundQueriedChildType objectNotHtmlElem = children
+        .singleWhere((c) => c.field.fieldName == 'objectNotHtmlElem')
+        .query;
+    expect(objectNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(objectNotHtmlElem.letBoundName, equals('el'));
+    expect(objectNotHtmlElem.containerType.toString(), equals('HtmlElement'));
+
     errorListener.assertNoErrors();
   }
 
@@ -2699,8 +2854,7 @@ class ContentChildComp {}
     final component = directives.first;
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
-    expect(
-        childs.first.query, const isInstanceOf<ElementRefQueriedChildType>());
+    expect(childs.first.query, const isInstanceOf<ElementQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
@@ -2722,8 +2876,8 @@ class ComponentA {
     final component = directives.first;
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
-    expect(childrens.first.query,
-        const isInstanceOf<ElementRefQueriedChildType>());
+    expect(
+        childrens.first.query, const isInstanceOf<ElementQueriedChildType>());
 
     // validate
     errorListener.assertNoErrors();
