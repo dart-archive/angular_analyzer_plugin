@@ -3,6 +3,11 @@
 # Fast fail the script on failures.
 set -e
 
+if [[ -z "$TRAVIS_BRANCH" ]]
+then
+  TRAVIS_BRANCH="$(git branch)"
+fi
+
 # Go to the respective package directory
 cd $PACKAGE
 
@@ -10,7 +15,7 @@ cd $PACKAGE
 # depot tools.
 if [[ "$PACKAGE" != old_plugin_loader ]]
 then
-  if [[ -z "$(git branch | grep 'SDK_AT_HEAD')" ]]
+  if [[ -z "$(echo $TRAVIS_BRANCH | grep 'SDK_AT_HEAD')" ]]
   then
     echo Using pub for the SDK dependencies.
     echo
