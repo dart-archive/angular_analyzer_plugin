@@ -641,6 +641,26 @@ class MyComp {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeMemberInNgIfPartial() async {
+    final dartSource = newSource('/completionTest.dart', '''
+import 'package:angular2/angular2.dart';
+@Component(templateUrl: 'completionTest.html', selector: 'a', directives: const [NgIf])
+class MyComp {
+  String text;
+}
+    ''');
+
+    addTestSource('<div *ngIf="let ^" ></div>');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertNotSuggested('text');
+    assertNotSuggested('ngIf');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeDotMemberInNgFor() async {
     final dartSource = newSource('/completionTest.dart', '''
 import 'package:angular2/angular2.dart';
