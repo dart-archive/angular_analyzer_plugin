@@ -859,10 +859,17 @@ class TemplateCompleter {
         if (usedInputs.contains(input)) {
           continue;
         }
+
         // edge case. Don't think this comes up in standard.
         if (!input.name.startsWith(templateAttr.prefix)) {
           continue;
         }
+
+        // Unlike ngForTrackBy becoming trackBy, ngFor can't become anything.
+        if (input.name == templateAttr.prefix) {
+          continue;
+        }
+
         collector.addSuggestion(_createInputInTemplateSuggestion(
             templateAttr.prefix,
             input,

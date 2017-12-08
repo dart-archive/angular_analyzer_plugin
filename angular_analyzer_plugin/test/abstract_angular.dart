@@ -338,6 +338,8 @@ import 'metadata.dart';
 @Directive(selector: "[ngIf]", inputs: const ["ngIf"])
 class NgIf {
   NgIf(TemplateRef tpl);
+
+  @Input()
   set ngIf(newCondition) {}
 }
 ''');
