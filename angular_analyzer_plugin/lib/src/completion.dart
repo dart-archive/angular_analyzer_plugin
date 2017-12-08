@@ -865,7 +865,7 @@ class TemplateCompleter {
           continue;
         }
 
-        // Unlick ngForTrackBy becoming trackBy, ngFor can't become anything.
+        // Unlike ngForTrackBy becoming trackBy, ngFor can't become anything.
         if (input.name == templateAttr.prefix) {
           continue;
         }
