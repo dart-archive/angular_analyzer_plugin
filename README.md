@@ -1,4 +1,4 @@
-# Angular Dart Analysis Plugins
+# Angular Dart Analysis Plugin [![Build Status](https://travis-ci.org/dart-lang/angular_analyzer_plugin.svg?branch=master)](https://travis-ci.org/dart-lang/angular_analyzer_plugin)
 
 ## Integration with Dart Analysis Server
 
