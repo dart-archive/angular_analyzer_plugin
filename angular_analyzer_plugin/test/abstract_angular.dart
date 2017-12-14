@@ -157,7 +157,7 @@ class AbstractAngularTest {
         new FileContentOverlay(),
         contextRoot,
         sf,
-        new AnalysisOptionsImpl());
+        new AnalysisOptionsImpl()..strongMode = true);
     angularDriver = new AngularDriver(new MockNotificationManager(), dartDriver,
         scheduler, byteStore, sf, new FileContentOverlay(), ngOptions);
 

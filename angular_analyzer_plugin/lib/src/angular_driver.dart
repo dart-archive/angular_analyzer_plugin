@@ -567,6 +567,7 @@ class AngularDriver
           setIgnoredErrors(template, document);
           new TemplateResolver(
                   context.typeProvider,
+                  context.typeSystem,
                   standardHtml.components.values.toList(),
                   standardHtml.events,
                   standardHtml.attributes,
@@ -750,6 +751,7 @@ class AngularDriver
           setIgnoredErrors(template, document);
           new TemplateResolver(
                   context.typeProvider,
+                  context.typeSystem,
                   standardHtml.components.values.toList(),
                   standardHtml.events,
                   standardHtml.attributes,

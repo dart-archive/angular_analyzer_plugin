@@ -5278,6 +5278,46 @@ class TestPanel {
         StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r'$event');
   }
 
+  Future test_strongModeSemantics_strongEnabled() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
+class TestPanel {
+}
+''');
+    final code = r"""
+{{[1,2,3].add("five")}}
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes(
+        [StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_futureOr() async {
+    _addDartSource(r'''
+import 'dart:async';
+@Component(selector: 'future-or-apis', templateUrl: 'test_panel.html',
+    directives: const [FutureOrApis])
+class FutureOrApis {
+  @Input()
+  FutureOr<int> futureOrInt;
+  @Input()
+  Future<int> futureInt;
+  @Input()
+  int justInt;
+}
+''');
+    final code = r"""
+<future-or-apis [futureOrInt]="futureInt"></future-or-apis>
+<future-or-apis [futureOrInt]="justInt"></future-or-apis>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';
@@ -5319,6 +5359,7 @@ $code
         d is Component && d.view.templateUriSource != null;
     fillErrorListener(result.errors);
     errorListener.assertNoErrors();
+    directives = result.directives;
     final directive = result.directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
     final result2 = await angularDriver.resolveHtml(htmlPath);

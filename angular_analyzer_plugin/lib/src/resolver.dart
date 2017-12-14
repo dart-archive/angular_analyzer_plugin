@@ -87,6 +87,7 @@ class InternalVariable {
 /// [TemplateResolver]s resolve [Template]s.
 class TemplateResolver {
   final TypeProvider typeProvider;
+  final TypeSystem typeSystem;
   final List<Component> standardHtmlComponents;
   final Map<String, OutputElement> standardHtmlEvents;
   final Map<String, InputElement> standardHtmlAttributes;
@@ -108,6 +109,7 @@ class TemplateResolver {
 
   TemplateResolver(
       this.typeProvider,
+      this.typeSystem,
       this.standardHtmlComponents,
       this.standardHtmlEvents,
       this.standardHtmlAttributes,
@@ -186,8 +188,15 @@ class TemplateResolver {
             dartVarManager,
             errorListener))
         // Resolve the scopes
-        ..accept(new SingleScopeResolver(standardHtmlAttributes, view, template,
-            templateSource, typeProvider, errorListener, errorReporter));
+        ..accept(new SingleScopeResolver(
+            standardHtmlAttributes,
+            view,
+            template,
+            templateSource,
+            typeProvider,
+            typeSystem,
+            errorListener,
+            errorReporter));
 
       // Now the next scope is ready to be resolved
       final tplSearch = new NextTemplateElementsSearch();
@@ -1142,6 +1151,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   Template template;
   Source templateSource;
   TypeProvider typeProvider;
+  TypeSystem typeSystem;
   AnalysisErrorListener errorListener;
   ErrorReporter errorReporter;
 
@@ -1187,6 +1197,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       this.template,
       this.templateSource,
       this.typeProvider,
+      this.typeSystem,
       this.errorListener,
       this.errorReporter);
 
@@ -1263,7 +1274,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
           // half-complete-code case: ensure the expression is actually there
           if (attribute.expression != null &&
-              !eventType.isAssignableTo(attribute.expression.bestType)) {
+              !typeSystem.isAssignableTo(
+                  eventType, attribute.expression.bestType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.valueOffset,
@@ -1384,7 +1396,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
           if (!directiveBinding.boundDirective.isHtml &&
               !booleanException &&
-              !typeProvider.stringType.isAssignableTo(inputType)) {
+              !typeSystem.isAssignableTo(typeProvider.stringType, inputType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.nameOffset,
@@ -1435,7 +1447,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       final securityContext = input.securityContext;
 
       if (securityContext != null) {
-        if (attrType.isAssignableTo(securityContext.safeType)) {
+        if (typeSystem.isAssignableTo(attrType, securityContext.safeType)) {
           return;
         } else if (!securityContext.sanitizationAvailable) {
           errorListener.onError(new AnalysisError(
@@ -1448,7 +1460,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
         }
       }
 
-      if (!attrType.isAssignableTo(inputType)) {
+      if (!typeSystem.isAssignableTo(attrType, inputType)) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attr.valueOffset,
@@ -1504,7 +1516,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
     // half-complete-code case: ensure the expression is actually there
     if (attribute.expression != null &&
-        !attribute.expression.bestType.isAssignableTo(typeProvider.boolType)) {
+        !typeSystem.isAssignableTo(
+            attribute.expression.bestType, typeProvider.boolType)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         attribute.valueOffset,
@@ -1536,7 +1549,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       }
       // half-complete-code case: ensure the expression is actually there
       if (attribute.expression != null &&
-          !attribute.expression.bestType.isAssignableTo(typeProvider.numType)) {
+          !typeSystem.isAssignableTo(
+              attribute.expression.bestType, typeProvider.numType)) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.valueOffset,
