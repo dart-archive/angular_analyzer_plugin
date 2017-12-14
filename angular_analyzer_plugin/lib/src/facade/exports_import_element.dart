@@ -142,5 +142,8 @@ class ExportsImportElementFacade implements ImportElement {
   bool get isAlwaysThrows => _wrappedImport.isAlwaysThrows;
 
   @override
+  bool get isVisibleForTesting => _wrappedImport.isVisibleForTesting;
+
+  @override
   int get prefixOffset => _wrappedImport.prefixOffset;
 }

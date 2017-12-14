@@ -174,6 +174,9 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   @override
   bool get isAlwaysThrows => _wrappedUnit.isAlwaysThrows;
 
+  @override
+  bool get isVisibleForTesting => _wrappedUnit.isVisibleForTesting;
+
   // CompilationUnitFacade's are not used for imports, which have prefixes
   bool _fromThisUnit(ExportedIdentifier export) => export.prefix == '';
 }
