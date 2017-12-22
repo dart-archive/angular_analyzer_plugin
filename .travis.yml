@@ -11,6 +11,7 @@ before_script:
   - ./tools/get_deps.sh
 script:
   - ./tools/check_format.sh
+  - ./tools/check_no_solo_tests.sh
   - ./tools/travis.sh
 env:
   - PACKAGE=angular_analyzer_plugin

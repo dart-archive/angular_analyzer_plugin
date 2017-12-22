@@ -2616,7 +2616,7 @@ class ContentChildComp {}
     expect(childElement.containerType.toString(), equals("Element"));
 
     final LetBoundQueriedChildType childHtmlElement = childs
-        .singleWhere((c) => c.field.fieldName == "contentChildElem")
+        .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
         .query;
     expect(childHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childHtmlElement.letBoundName, equals("fooHtmlElem"));
@@ -2626,8 +2626,8 @@ class ContentChildComp {}
         .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
         .query;
     expect(childElementRef, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childElement.letBoundName, equals("fooElemRef"));
-    expect(childElement.containerType.toString(), equals("ElementRef"));
+    expect(childElementRef.letBoundName, equals("fooElemRef"));
+    expect(childElementRef.containerType.toString(), equals("ElementRef"));
 
     final LetBoundQueriedChildType childDynamic = childs
         .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
@@ -2758,14 +2758,13 @@ class ComponentA {
       AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
       AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
       AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
-      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
-      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
     ]);
   }
 
   // ignore: non_constant_identifier_names
-  Future
-      solo_test_hasContentChildrenLetBound_elementReadDoesntMatchType() async {
+  Future test_hasContentChildrenLetBound_elementReadDoesntMatchType() async {
     final code = r'''
 import 'dart:html';
 import 'package:angular2/angular2.dart';
@@ -2791,7 +2790,7 @@ class ComponentA {
   }
 
   // ignore: non_constant_identifier_names
-  Future solo_test_hasContentChildrenLetBound_readSubtypeOfAttribute() async {
+  Future test_hasContentChildrenLetBound_readSubtypeOfAttribute() async {
     final code = r'''
 import 'dart:html';
 import 'package:angular2/angular2.dart';
@@ -3414,10 +3413,10 @@ class ContentChildComp {}
     final component = directives.first;
     final childrens = component.contentChildren;
     expect(childrens, hasLength(1));
-    expect(childrens.first.read, equals('ViewContainerRef'));
+    expect(childrens.first.read.toString(), equals('ViewContainerRef'));
     final childs = component.contentChildren;
     expect(childs, hasLength(1));
-    expect(childs.first.read, equals('ViewContainerRef'));
+    expect(childs.first.read.toString(), equals('ViewContainerRef'));
     // validate
     errorListener.assertNoErrors();
   }
