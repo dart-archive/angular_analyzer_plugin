@@ -356,6 +356,27 @@ class TestComponent {
     expect(regions, hasLength(1));
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_navigateOnfocusin() async {
+    code = r'''
+import 'package:angular/src/core/metadata.dart';
+
+@Component(selector: 'test-comp', template: '<div (focusin)=""></div>')
+class TestComponent {
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation().computeNavigation(
+        new AngularNavigationRequest(
+            null, 'focusin'.length, code.indexOf('focusin'), result),
+        collector,
+        templatesOnly: false);
+
+    expect(regions, hasLength(0));
+  }
+
   void _findRegion(int offset, int length) {
     for (final region in regions) {
       if (region.offset == offset && region.length == length) {

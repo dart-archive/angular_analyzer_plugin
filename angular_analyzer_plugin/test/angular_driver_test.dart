@@ -245,6 +245,20 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       final outputElement = outputElements['dden'];
       expect(outputElement, isNull);
     }
+    {
+      // missing from dart:html, and supplied manually (with no getter)
+      final outputElement = outputElements['focusin'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), equals('FocusEvent'));
+    }
+    {
+      // missing from dart:html, and supplied manually (with no getter)
+      final outputElement = outputElements['focusout'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), equals('FocusEvent'));
+    }
   }
 
   // ignore: non_constant_identifier_names

@@ -88,6 +88,10 @@ class AngularNavigation implements NavigationContributor {
       final offset = resolvedRange.range.offset;
       final element = resolvedRange.element;
 
+      if (element.nameOffset == null) {
+        continue;
+      }
+
       final lineInfo = element.compilationElement?.lineInfo ??
           new LineInfo.fromContent(element.source.contents.data);
 
