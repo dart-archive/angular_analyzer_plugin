@@ -227,7 +227,7 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       expect(outputElement, isNotNull);
       expect(outputElement.getter, isNotNull);
       expect(outputElement.eventType, isNotNull);
-      expect(outputElement.eventType.toString(), equals('MouseEvent'));
+      expect(outputElement.eventType.toString(), 'MouseEvent');
     }
     {
       final outputElement = outputElements['change'];
@@ -244,6 +244,20 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       // used to happen from "hidden" which got truncated by 'on'.length
       final outputElement = outputElements['dden'];
       expect(outputElement, isNull);
+    }
+    {
+      // missing from dart:html, and supplied manually (with no getter)
+      final outputElement = outputElements['focusin'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), 'FocusEvent');
+    }
+    {
+      // missing from dart:html, and supplied manually (with no getter)
+      final outputElement = outputElements['focusout'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), 'FocusEvent');
     }
   }
 

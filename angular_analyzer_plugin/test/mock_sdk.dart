@@ -317,6 +317,7 @@ import 'dart:async';
 
 class Event {}
 class MouseEvent extends Event {}
+class FocusEvent extends Event {}
 class KeyEvent extends Event {}
 
 class DomName {

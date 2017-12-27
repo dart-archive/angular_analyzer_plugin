@@ -169,10 +169,27 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     'tabIndex': 'tabindex',
   };
 
+  static const missingOutputs = const {
+    'focusin': 'FocusEvent',
+    'focusout': 'FocusEvent',
+  };
+
   ClassElement classElement;
 
   BuildStandardHtmlComponentsVisitor(this.components, this.events,
       this.attributes, this.source, this.securitySchema);
+
+  @override
+  void visitCompilationUnit(ast.CompilationUnit unit) {
+    super.visitCompilationUnit(unit);
+
+    missingOutputs.forEach((name, type) {
+      final namespace = unit.element.library.publicNamespace;
+      final ClassElement eventClass = namespace.get(type);
+      events[name] = new OutputElement(
+          name, null, null, unit.element.source, null, null, eventClass.type);
+    });
+  }
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
