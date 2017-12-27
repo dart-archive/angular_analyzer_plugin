@@ -899,10 +899,8 @@ class ContentChildLinker {
 
       destinationArray.add(new ContentChild(field, query, read: read));
 
-      final setterType = transformSetterTypeFn(
-          bindingSynthesizer.getSetterType(member), field, annotationName);
       checkQueriedTypeAssignableTo(
-          setterType, read ?? type, field, annotationName);
+          transformedType, read ?? type, field, annotationName);
     } else {
       _errorReporter.reportErrorForOffset(
           AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE,
