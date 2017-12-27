@@ -231,7 +231,7 @@ class AngularElementImpl implements AngularElement {
 
   @override
   int get hashCode => JenkinsSmiHash.hash4(
-      name.hashCode, nameOffset, nameLength, source.hashCode);
+      name.hashCode, nameOffset ?? -1, nameLength ?? -1, source.hashCode);
 
   @override
   bool operator ==(Object other) =>
