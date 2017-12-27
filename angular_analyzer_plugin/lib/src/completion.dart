@@ -1167,8 +1167,10 @@ class TemplateCompleter {
 
   Element _createOutputElement(OutputElement outputElement, ElementKind kind) {
     final name = '(${ outputElement.name})';
+    // Note: We use `?? 0` below because focusin/out don't have ranges but we
+    // still want to suggest them.
     final location = new Location(outputElement.source.fullName,
-        outputElement.nameOffset, outputElement.nameLength, 0, 0);
+        outputElement.nameOffset ?? 0, outputElement.nameLength ?? 0, 0, 0);
     final flags = Element.makeFlags();
     return new Element(kind, name, flags,
         location: location, returnType: outputElement.eventType.toString());
