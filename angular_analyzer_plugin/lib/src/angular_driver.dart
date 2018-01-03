@@ -5,7 +5,9 @@ import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
@@ -276,6 +278,53 @@ class AngularDriver
     return;
   }
 
+  Future<OutputElement> getCustomOutputElement(
+      CustomEvent event, TypeProvider typeProvider) async {
+    OutputElement defaultOutput() => new OutputElement(
+        event.name,
+        event.nameOffset,
+        event.name.length,
+        options.source,
+        null,
+        null,
+        typeProvider.dynamicType);
+
+    final typePath =
+        event.typePath ?? (event.typeName != null ? 'dart:core' : null);
+    if (typePath == null) {
+      return defaultOutput();
+    }
+
+    final typeSource = _sourceFactory.resolveUri(null, typePath);
+    if (typeSource == null) {
+      return defaultOutput();
+    }
+
+    final typeResult = await dartDriver.getResult(typeSource.fullName);
+    if (typeResult == null) {
+      return defaultOutput();
+    }
+
+    final typeElement =
+        typeResult.libraryElement.publicNamespace.get(event.typeName);
+    if (typeElement is ClassElement) {
+      var type = typeElement.type;
+      if (type is ParameterizedType) {
+        type = type.instantiate(type.typeParameters
+            .map((p) => p.bound ?? typeProvider.objectType)
+            .toList());
+      }
+      return new OutputElement(event.name, event.nameOffset, event.name.length,
+          options.source, null, null, type);
+    }
+    if (typeElement is TypeDefiningElement) {
+      return new OutputElement(event.name, event.nameOffset, event.name.length,
+          options.source, null, null, typeElement.type);
+    }
+
+    return defaultOutput();
+  }
+
   Future<StandardHtml> getStandardHtml() async {
     if (standardHtml == null) {
       final source = _sourceFactory.resolveUri(null, DartSdk.DART_HTML);
@@ -284,15 +333,22 @@ class AngularDriver
       final securitySchema = (await getStandardAngular()).securitySchema;
 
       final components = <String, Component>{};
-      final events = <String, OutputElement>{};
+      final standardEvents = <String, OutputElement>{};
+      final customEvents = <String, OutputElement>{};
       final attributes = <String, InputElement>{};
       result.unit.accept(new BuildStandardHtmlComponentsVisitor(
-          components, events, attributes, source, securitySchema));
+          components, standardEvents, attributes, source, securitySchema));
+
+      for (final event in options.customEvents.values) {
+        customEvents[event.name] =
+            await getCustomOutputElement(event, result.typeProvider);
+      }
 
       standardHtml = new StandardHtml(
           components,
-          events,
           attributes,
+          standardEvents,
+          customEvents,
           result.libraryElement.exportNamespace.get('Element'),
           result.libraryElement.exportNamespace.get('HtmlElement'));
     }

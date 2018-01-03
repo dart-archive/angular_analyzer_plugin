@@ -101,6 +101,7 @@ class FileTracker {
     // Note, options which affect ng-content extraction should not be hashed
     // here. Those should be hashed into ContentSignature.
     addTags(signature);
+    addCustomEvents(signature);
 
     return signature;
   }
@@ -119,6 +120,7 @@ class FileTracker {
     // Note, options which affect directive/view extraction should not be hashed
     // here. Those should probably be hashed into ElementSignature.
     addTags(signature);
+    addCustomEvents(signature);
 
     return signature;
   }
@@ -129,6 +131,16 @@ class FileTracker {
   void addTags(ApiSignature signature) {
     for (final tagname in _options.customTagNames) {
       signature.addString('t:$tagname');
+    }
+  }
+
+  /// Add tag names to the signature. Note: in the future when there are more
+  /// lists of strings in options to add, we must be careful that they are
+  /// properly delimited/differentiated!
+  void addCustomEvents(ApiSignature signature) {
+    final hashString = _options.customEventsHashString;
+    if (hashString != null && hashString.isNotEmpty) {
+      signature.addString(hashString);
     }
   }
 

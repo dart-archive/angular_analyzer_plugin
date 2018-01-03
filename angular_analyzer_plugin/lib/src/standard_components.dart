@@ -9,8 +9,12 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 
 class StandardHtml {
   final Map<String, Component> components;
-  final Map<String, OutputElement> events;
   final Map<String, InputElement> attributes;
+  final Map<String, OutputElement> standardEvents;
+  final Map<String, OutputElement> customEvents;
+
+  Map<String, OutputElement> get events =>
+      new Map<String, OutputElement>.from(standardEvents)..addAll(customEvents);
 
   final ClassElement elementClass;
   final ClassElement htmlElementClass;
@@ -20,8 +24,8 @@ class StandardHtml {
   /// This will provide a static source of unique [InputElement]s.
   final Set<InputElement> uniqueAttributeElements;
 
-  StandardHtml(this.components, this.events, this.attributes, this.elementClass,
-      this.htmlElementClass)
+  StandardHtml(this.components, this.attributes, this.standardEvents,
+      this.customEvents, this.elementClass, this.htmlElementClass)
       : uniqueAttributeElements = new Set.from(attributes.values);
 }
 

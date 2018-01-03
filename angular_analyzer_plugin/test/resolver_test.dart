@@ -5233,6 +5233,51 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_customEvent_valid() async {
+    newSource('/custom-event.dart', r'''
+class CustomEvent {
+  int foo;
+}
+''');
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
+class TestPanel {
+  void acceptInt(int x) {}
+}
+''');
+    final code = r"""
+<div (custom-event)="acceptInt($event.foo)">
+</div>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_resolveTemplate_customEvent_invalid() async {
+    newSource('/custom_event.dart', r'''
+class CustomEvent {}
+''');
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    directives: const [])
+class TestPanel {
+  void acceptInt(int x) {}
+}
+''');
+    final code = r"""
+<div (custom-event)="acceptInt($event)">
+</div>
+    """;
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, r'$event');
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';

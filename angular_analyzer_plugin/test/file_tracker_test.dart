@@ -289,6 +289,7 @@ class FileTrackerTest {
     when(_fileHasher.getContentHash("bar.html")).thenReturn(barHtmlSignature);
     when(_fileHasher.getUnitElementHash("foo.dart"))
         .thenReturn(fooDartElementSignature);
+    when(_options.customEventsHashString).thenReturn('');
 
     final expectedSignature = new ApiSignature()
       ..addInt(FileTracker.salt)
@@ -318,6 +319,7 @@ class FileTrackerTest {
         .thenReturn(fooDartElementSignature);
     when(_fileHasher.getUnitElementHash("foo_test.dart"))
         .thenReturn(fooTestDartElementSignature);
+    when(_options.customEventsHashString).thenReturn('');
 
     final expectedSignature = new ApiSignature()
       ..addInt(FileTracker.salt)
@@ -378,6 +380,8 @@ class FileTrackerTest {
     final fooDartElementSignature = new ApiSignature()..addInt(1);
     when(_fileHasher.getUnitElementHash("foo.dart"))
         .thenReturn(fooDartElementSignature);
+    when(_options.customTagNames).thenReturn(['foo', 'bar']);
+    when(_options.customEventsHashString).thenReturn('');
 
     final expectedSignature = new ApiSignature()
       ..addInt(FileTracker.salt)
@@ -385,14 +389,12 @@ class FileTrackerTest {
       ..addString('t:foo')
       ..addString('t:bar');
 
-    when(_options.customTagNames).thenReturn(['foo', 'bar']);
-
     expect(_fileTracker.getDartSignature("foo.dart").toHex(),
         equals(expectedSignature.toHex()));
   }
 
   // ignore: non_constant_identifier_names
-  void test_htmlSignature_includesCustomTagNames() {
+  void test_htmlSignature_includesCustomEvents() {
     _fileTracker.setDartHtmlTemplates("foo.dart", ["foo.html"]);
 
     final fooHtmlSignature = new ApiSignature()..addInt(1);
@@ -406,10 +408,9 @@ class FileTrackerTest {
       ..addInt(FileTracker.salt)
       ..addBytes(fooHtmlSignature.toByteList())
       ..addBytes(fooDartElementSignature.toByteList())
-      ..addString('t:foo')
-      ..addString('t:bar');
+      ..addString(r'$customEvents');
 
-    when(_options.customTagNames).thenReturn(['foo', 'bar']);
+    when(_options.customEventsHashString).thenReturn(r'$customEvents');
 
     expect(_fileTracker.getHtmlSignature("foo.html").toHex(),
         equals(expectedSignature.toHex()));
