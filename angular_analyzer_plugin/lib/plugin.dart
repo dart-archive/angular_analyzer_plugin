@@ -49,8 +49,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
     if (optionsFilePath != null && optionsFilePath.isNotEmpty) {
       final file = resourceProvider.getFile(optionsFilePath);
       if (file.exists) {
-        final contents = file.readAsStringSync();
-        return new AngularOptions.from(contents);
+        return new AngularOptions.from(file.createSource());
       }
     }
     return new AngularOptions.defaults();

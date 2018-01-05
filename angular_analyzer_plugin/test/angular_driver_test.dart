@@ -8,6 +8,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_ast/angular_ast.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
@@ -22,6 +23,7 @@ void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AngularParseHtmlTest);
     defineReflectiveTests(BuildStandardHtmlComponentsTest);
+    defineReflectiveTests(BuildStandardHtmlTest);
     defineReflectiveTests(BuildStandardAngularTest);
     defineReflectiveTests(GatherAnnotationsTest);
     defineReflectiveTests(GatherAnnotationsOnFutureAngularTest);
@@ -296,6 +298,348 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
     expect(stdhtml.elementClass.name, 'Element');
     expect(stdhtml.htmlElementClass, isNotNull);
     expect(stdhtml.htmlElementClass.name, 'HtmlElement');
+  }
+}
+
+@reflectiveTest
+class BuildStandardHtmlTest extends AbstractAngularTest {
+  @override
+  void setUp() {
+    // Don't perform setup before tests. Tests will run `super.setUp()`.
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_perform() async {
+    super.setUp();
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.events, isNotNull);
+    expect(html.standardEvents, isNotNull);
+    expect(html.customEvents, isNotNull);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_untyped() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        foo:
+        bar:
+''', null);
+
+    super.setUp();
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(2));
+    {
+      final event = html.customEvents['foo'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+    {
+      final event = html.customEvents['bar'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_coreTypes() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        strEventImplicitCore:
+          type: String
+        strEventExplicitCore:
+          type: String
+          path: 'dart:core'
+        boolEventImplicitCore:
+          type: bool
+        boolEventExplicitCore:
+          type: bool
+          path: 'dart:core'
+''', null);
+
+    super.setUp();
+
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(4));
+    {
+      final event = html.customEvents['strEventImplicitCore'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'String');
+      expect(
+          event.eventType.element.source.fullName, '/sdk/lib/core/core.dart');
+    }
+    {
+      final event = html.customEvents['strEventExplicitCore'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'String');
+      expect(
+          event.eventType.element.source.fullName, '/sdk/lib/core/core.dart');
+    }
+    {
+      final event = html.customEvents['boolEventImplicitCore'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'bool');
+      expect(
+          event.eventType.element.source.fullName, '/sdk/lib/core/core.dart');
+    }
+    {
+      final event = html.customEvents['boolEventExplicitCore'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'bool');
+      expect(
+          event.eventType.element.source.fullName, '/sdk/lib/core/core.dart');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_noSource_dynamic() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        noSuchSource:
+          typePath: nonexist.dart
+''', null);
+
+    super.setUp();
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['noSuchSource'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_noSuchIdentifier_dynamic() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        noSuchIdentifier:
+          type: NonExistEvent
+          path: 'package:test_package/customevent.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/customevent.dart', r'''
+class NotTheCorrectEvent {}
+''');
+
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['noSuchIdentifier'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_typeIsNotAType_dynamic() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        notAType:
+          type: foo
+          path: 'package:test_package/customevent.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/customevent.dart', r'''
+int foo;
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['notAType'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_resolved() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        bar:
+          type: BarEvent
+          path: 'package:test_package/bar.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/bar.dart', r'''
+class BarEvent {}
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['bar'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'BarEvent');
+      expect(event.eventType.element.source.fullName, '/bar.dart');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_enum() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        enumType:
+          type: EnumType
+          path: 'package:test_package/enum.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/enum.dart', r'''
+enum EnumType {}
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['enumType'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'EnumType');
+      expect(event.eventType.element.source.fullName, '/enum.dart');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_typedef() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        typedef:
+          type: TypeDef
+          path: 'package:test_package/typedef.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/typedef.dart', r'''
+typedef TypeDef = int Function<T>();
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['typedef'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), '() → int');
+      expect(event.eventType.element.source.fullName, '/typedef.dart');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_generic() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        generic:
+          type: Generic
+          path: 'package:test_package/generic.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/generic.dart', r'''
+class Generic<T> {}
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['generic'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'Generic<dynamic>');
+      expect(event.eventType.element.source.fullName, '/generic.dart');
+    }
   }
 }
 

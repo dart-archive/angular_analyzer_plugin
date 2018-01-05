@@ -99,6 +99,21 @@ class AbstractAngularTest {
 
   GatheringErrorListener errorListener;
 
+  AngularOptions ngOptions = new AngularOptions(
+      customTagNames: [
+        'my-first-custom-tag',
+        'my-second-custom-tag'
+      ],
+      customEvents: {
+        'custom-event': new CustomEvent('custom-event', 'CustomEvent',
+            'package:test_package/custom_event.dart', 10)
+      },
+      source: () {
+        final mock = new MockSource();
+        when(mock.fullName).thenReturn('/analysis_options.yaml');
+        return mock;
+      }());
+
   // flags specific to handling multiple versions of angular which may differ,
   // but we still need to support.
   final bool includeQueryList;
@@ -123,8 +138,9 @@ class AbstractAngularTest {
 
     sdk = new MockSdk(resourceProvider: resourceProvider);
     final packageMap = <String, List<Folder>>{
-      "angular2": [resourceProvider.getFolder("/angular2")],
-      "angular": [resourceProvider.getFolder("/angular")]
+      'angular2': [resourceProvider.getFolder('/angular2')],
+      'angular': [resourceProvider.getFolder('/angular')],
+      'test_package': [resourceProvider.getFolder('/')],
     };
     final packageResolver =
         new PackageMapUriResolver(resourceProvider, packageMap);
@@ -145,15 +161,8 @@ class AbstractAngularTest {
         contextRoot,
         sf,
         new AnalysisOptionsImpl());
-    angularDriver = new AngularDriver(
-        new MockNotificationManager(),
-        dartDriver,
-        scheduler,
-        byteStore,
-        sf,
-        new FileContentOverlay(),
-        new AngularOptions(
-            customTagNames: ['my-first-custom-tag', 'my-second-custom-tag']));
+    angularDriver = new AngularDriver(new MockNotificationManager(), dartDriver,
+        scheduler, byteStore, sf, new FileContentOverlay(), ngOptions);
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();
@@ -537,3 +546,5 @@ class GatheringErrorListener implements AnalysisErrorListener {
 }
 
 class MockNotificationManager extends Mock implements NotificationManager {}
+
+class MockSource extends Mock implements Source {}
