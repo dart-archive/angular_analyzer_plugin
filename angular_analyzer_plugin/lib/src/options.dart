@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:yaml/yaml.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -6,9 +7,13 @@ class AngularOptions {
   AngularOptions({this.customTagNames, this.customEvents, this.source});
   factory AngularOptions.from(Source source) =>
       new _OptionsBuilder(null, source).build();
+  factory AngularOptions.defaults() => new _OptionsBuilder.empty().build();
+
+  /// For tests, its easier to pass the Source's contents directly rather than
+  /// creating mocks that returned mocked data that mocked contents.
+  @visibleForTesting
   factory AngularOptions.fromString(String content, Source source) =>
       new _OptionsBuilder(content, source).build();
-  factory AngularOptions.defaults() => new _OptionsBuilder.empty().build();
 
   final List<String> customTagNames;
   final Map<String, CustomEvent> customEvents;

@@ -5,7 +5,6 @@ import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
@@ -279,7 +278,7 @@ class AngularDriver
   }
 
   Future<OutputElement> getCustomOutputElement(
-      CustomEvent event, TypeProvider typeProvider) async {
+      CustomEvent event, DartType dynamicType) async {
     OutputElement defaultOutput() => new OutputElement(
         event.name,
         event.nameOffset,
@@ -287,7 +286,7 @@ class AngularDriver
         options.source,
         null,
         null,
-        typeProvider.dynamicType);
+        dynamicType);
 
     final typePath =
         event.typePath ?? (event.typeName != null ? 'dart:core' : null);
@@ -310,9 +309,8 @@ class AngularDriver
     if (typeElement is ClassElement) {
       var type = typeElement.type;
       if (type is ParameterizedType) {
-        type = type.instantiate(type.typeParameters
-            .map((p) => p.bound ?? typeProvider.objectType)
-            .toList());
+        type = type.instantiate(
+            type.typeParameters.map((p) => p.bound ?? dynamicType).toList());
       }
       return new OutputElement(event.name, event.nameOffset, event.name.length,
           options.source, null, null, type);
@@ -340,8 +338,8 @@ class AngularDriver
           components, standardEvents, attributes, source, securitySchema));
 
       for (final event in options.customEvents.values) {
-        customEvents[event.name] =
-            await getCustomOutputElement(event, result.typeProvider);
+        customEvents[event.name] = await getCustomOutputElement(
+            event, result.typeProvider.dynamicType);
       }
 
       standardHtml = new StandardHtml(

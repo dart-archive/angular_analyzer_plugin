@@ -637,7 +637,7 @@ class Generic<T> {}
       expect(event, isNotNull);
       expect(event.getter, isNull);
       expect(event.eventType, isNotNull);
-      expect(event.eventType.toString(), 'Generic<Object>');
+      expect(event.eventType.toString(), 'Generic<dynamic>');
       expect(event.eventType.element.source.fullName, '/generic.dart');
     }
   }
