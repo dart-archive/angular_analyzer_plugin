@@ -2405,7 +2405,7 @@ class TestPanel {}
     assertErrorInCodeAtPosition(
         NgParserWarningCode.INVALID_LET_BINDING_IN_NONTEMPLATE,
         html,
-        ' let-value');
+        'let-value');
   }
 
   // ignore: non_constant_identifier_names
