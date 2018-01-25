@@ -247,7 +247,7 @@ class Component extends Directive {
       this.directives,
       dynamic pipes,
       ViewEncapsulation encapsulation,
-      List<String> exports,
+      List exports,
       List<String> styles,
       List<String> styleUrls});
 }
