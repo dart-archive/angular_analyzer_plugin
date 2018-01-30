@@ -1678,12 +1678,12 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
       : super(library, source, typeProvider, errorListener);
 
   @override
-  Object visitAsExpression(AsExpression exp) {
+  void visitAsExpression(AsExpression exp) {
     // This means we generated this in a pipe, and its OK.
     if (exp.asOperator.offset == 0) {
-      return super.visitAsExpression(exp);
+      super.visitAsExpression(exp);
     } else {
-      return _reportUnacceptableNode(exp, "As expression");
+      _reportUnacceptableNode(exp, "As expression");
     }
   }
 
