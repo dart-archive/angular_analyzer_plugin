@@ -5191,7 +5191,6 @@ class ComponentA {
           (template) => template.view.classElement.name == className,
           orElse: () {
         fail('Template with the class "$className" was not found.');
-        return null;
       });
 }
 
