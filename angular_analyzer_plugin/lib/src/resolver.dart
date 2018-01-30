@@ -1688,19 +1688,19 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
   }
 
   @override
-  Object visitIsExpression(IsExpression exp) =>
+  void visitIsExpression(IsExpression exp) =>
       _reportUnacceptableNode(exp, "Is expression");
 
   @override
-  Object visitThrowExpression(ThrowExpression exp) =>
+  void visitThrowExpression(ThrowExpression exp) =>
       _reportUnacceptableNode(exp, "Throw");
 
   @override
-  Object visitSuperExpression(SuperExpression exp) =>
+  void visitSuperExpression(SuperExpression exp) =>
       _reportUnacceptableNode(exp, "Super references");
 
   @override
-  Object visitAssignmentExpression(AssignmentExpression exp) {
+  void visitAssignmentExpression(AssignmentExpression exp) {
     // Only block reassignment of locals, not poperties. Resolve elements to
     // check that.
     exp.leftHandSide.accept(elementResolver);
@@ -1709,34 +1709,33 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
     if ((variableElement == null ||
             variableElement is PropertyInducingElement) &&
         acceptAssignment) {
-      return super.visitAssignmentExpression(exp);
+      super.visitAssignmentExpression(exp);
     } else {
       _reportUnacceptableNode(exp, "Assignment of locals");
-      return null;
     }
   }
 
   @override
-  Object visitCascadeExpression(CascadeExpression exp) {
+  void visitCascadeExpression(CascadeExpression exp) {
     _reportUnacceptableNode(exp, "Cascades", false);
     // Only resolve the target, not the cascade sections.
-    return exp.target.accept(this);
+    exp.target.accept(this);
   }
 
   @override
-  Object visitAwaitExpression(AwaitExpression exp) =>
+  void visitAwaitExpression(AwaitExpression exp) =>
       _reportUnacceptableNode(exp, "Await");
 
   @override
-  Object visitFunctionExpression(FunctionExpression exp) =>
+  void visitFunctionExpression(FunctionExpression exp) =>
       _reportUnacceptableNode(exp, "Anonymous functions", false);
 
   @override
-  Object visitSymbolLiteral(SymbolLiteral exp) =>
+  void visitSymbolLiteral(SymbolLiteral exp) =>
       _reportUnacceptableNode(exp, "Symbol literal");
 
   @override
-  Object visitNamedExpression(NamedExpression exp) =>
+  void visitNamedExpression(NamedExpression exp) =>
       _reportUnacceptableNode(exp, "Named arguments");
 }
 
@@ -1766,49 +1765,46 @@ class AngularErrorVerifier extends ErrorVerifier
   }
 
   @override
-  Object visitRethrowExpression(RethrowExpression exp) =>
+  void visitRethrowExpression(RethrowExpression exp) =>
       _reportUnacceptableNode(exp, "Rethrow");
 
   @override
-  Object visitThisExpression(ThisExpression exp) =>
+  void visitThisExpression(ThisExpression exp) =>
       _reportUnacceptableNode(exp, "This references");
 
   @override
-  Object visitListLiteral(ListLiteral list) {
+  void visitListLiteral(ListLiteral list) {
     if (list.typeArguments != null) {
       _reportUnacceptableNode(list, "Typed list literals");
-      return null;
     } else {
-      return super.visitListLiteral(list);
+      super.visitListLiteral(list);
     }
   }
 
   @override
-  Object visitMapLiteral(MapLiteral map) {
+  void visitMapLiteral(MapLiteral map) {
     if (map.typeArguments != null) {
       _reportUnacceptableNode(map, "Typed map literals");
-      return null;
     } else {
-      return super.visitMapLiteral(map);
+      super.visitMapLiteral(map);
     }
   }
 
   @override
-  Object visitInstanceCreationExpression(InstanceCreationExpression exp) =>
+  void visitInstanceCreationExpression(InstanceCreationExpression exp) =>
       _reportUnacceptableNode(exp, "Usage of new");
 
   @override
-  Object visitAssignmentExpression(AssignmentExpression exp) {
+  void visitAssignmentExpression(AssignmentExpression exp) {
     // match ResolverVisitor to prevent fallout errors
     final variableElement = getOverridableStaticElement(exp.leftHandSide) ??
         getOverridablePropagatedElement(exp.leftHandSide);
     if ((variableElement == null ||
             variableElement is PropertyInducingElement) &&
         acceptAssignment) {
-      return super.visitAssignmentExpression(exp);
+      super.visitAssignmentExpression(exp);
     } else {
       exp.visitChildren(this);
-      return null;
     }
   }
 
