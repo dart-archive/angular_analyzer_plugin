@@ -67,7 +67,10 @@ class AngularAnalyzerPlugin extends ServerPlugin
       ..byteStore = byteStore
       ..performanceLog = logger
       ..fileContentOverlay = fileContentOverlay;
-    final dartDriver = builder.buildDriver(root);
+
+    final dartDriver = builder.buildDriver(root)
+      ..results.listen((_) {}) // Consume the stream, otherwise we leak.
+      ..exceptions.listen((_) {}); // Consume the stream, otherwise we leak.
 
     final sourceFactory = dartDriver.sourceFactory;
 
