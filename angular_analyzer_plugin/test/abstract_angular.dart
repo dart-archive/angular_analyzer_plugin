@@ -62,7 +62,6 @@ AbstractDirective getDirectiveByName(
         List<AbstractDirective> directives, String name) =>
     directives.firstWhere((directive) => directive.name == name, orElse: () {
       fail('DirectiveMetadata with the class "$name" was not found.');
-      return null;
     });
 
 ResolvedRange getResolvedRangeAtString(
@@ -77,14 +76,12 @@ ResolvedRange getResolvedRangeAtString(
   }, orElse: () {
     fail(
         'ResolvedRange at $offset of $str was not found in [\n${ranges.join('\n')}]');
-    return null;
   });
 }
 
 View getViewByClassName(List<View> views, String className) =>
     views.firstWhere((view) => view.classElement.name == className, orElse: () {
       fail('View with the class "$className" was not found.');
-      return null;
     });
 
 typedef bool ResolvedRangeCondition(ResolvedRange range);

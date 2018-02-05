@@ -5294,6 +5294,7 @@ $code
   ElementAssert _assertElement(String atString,
       [ResolvedRangeCondition condition]) {
     final resolvedRange = _findResolvedRange(atString, condition);
+
     return new ElementAssert(dartCode, dartSource, htmlCode, htmlSource,
         resolvedRange.element, resolvedRange.range.offset);
   }
