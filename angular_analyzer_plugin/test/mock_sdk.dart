@@ -28,32 +28,10 @@ const _LIB_ASYNC =
     const _MockSdkLibrary('dart:async', '$sdkRoot/lib/async/async.dart', '''
 library dart.async;
 
-import 'dart:math';
-
 part 'stream.dart';
+part 'future.dart';
 
-class Future<T> {
-  factory Future(computation()) => null;
-  factory Future.delayed(Duration duration, [T computation()]) => null;
-  factory Future.value([value]) => null;
-
-  static Future<List/*<T>*/> wait/*<T>*/(
-      Iterable<Future/*<T>*/> futures) => null;
-  Future/*<R>*/ then/*<R>*/(FutureOr/*<R>*/ onValue(T value)) => null;
-
-  Future<T> whenComplete(action());
-}
-
-class FutureOr<T> {}
-
-abstract class Completer<T> {
-  factory Completer() => new _AsyncCompleter<T>();
-  factory Completer.sync() => new _SyncCompleter<T>();
-  Future<T> get future;
-  void complete([value]);
-  void completeError(Object error, [StackTrace stackTrace]);
-  bool get isCompleted;
-}
+class Duration {}
 ''', const <String, String>{
   '$sdkRoot/lib/async/stream.dart': r'''
 part of dart.async;
@@ -77,6 +55,44 @@ abstract class StreamSubscription<T> {
 }
 
 abstract class StreamTransformer<S, T> {}
+''',
+  '$sdkRoot/lib/async/future.dart': r'''
+part of dart.async;
+class Future<T> {
+  factory Future(computation()) => null;
+  factory Future.delayed(Duration duration, [T computation()]) => null;
+  factory Future.value([value]) => null;
+
+  static Future<List/*<T>*/> wait/*<T>*/(
+      Iterable<Future/*<T>*/> futures) => null;
+  Future/*<R>*/ then/*<R>*/(FutureOr/*<R>*/ onValue(T value)) => null;
+
+  Future<T> whenComplete(action()) => null;
+}
+
+abstract class FutureOr<T> {}
+
+abstract class Completer<T> {
+  factory Completer() => new _AsyncCompleter<T>();
+  factory Completer.sync() => new _SyncCompleter<T>();
+  Future<T> get future;
+  void complete([value]);
+  void completeError(Object error, [StackTrace stackTrace]);
+  bool get isCompleted;
+}
+
+class _AsyncCompleter<T> implements Completer<T> {
+  Future<T> get future => null;
+  void complete([value]) => null;
+  void completeError(Object error, [StackTrace stackTrace]) => null;
+  bool get isCompleted => null;
+}
+class _SyncCompleter<T> implements Completer<T> {
+  Future<T> get future => null;
+  void complete([value]) => null;
+  void completeError(Object error, [StackTrace stackTrace]) => null;
+  bool get isCompleted => null;
+}
 '''
 });
 
@@ -520,6 +536,7 @@ class MockSdk implements DartSdk {
     "dart:html": "$sdkRoot/lib/html/dartium/html_dartium.dart",
     "dart:async": "$sdkRoot/lib/async/async.dart",
     "dart:async/stream.dart": "$sdkRoot/lib/async/stream.dart",
+    "dart:async/future.dart": "$sdkRoot/lib/async/future.dart",
     "dart:collection": "$sdkRoot/lib/collection/collection.dart",
     "dart:convert": "$sdkRoot/lib/convert/convert.dart",
     "dart:_foreign_helper": "$sdkRoot/lib/_foreign_helper/_foreign_helper.dart",
