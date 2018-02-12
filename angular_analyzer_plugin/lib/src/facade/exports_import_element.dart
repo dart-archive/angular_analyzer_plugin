@@ -139,5 +139,8 @@ class ExportsImportElementFacade implements ImportElement {
   PrefixElement get prefix => _wrappedImport.prefix;
 
   @override
+  bool get isAlwaysThrows => _wrappedImport.isAlwaysThrows;
+
+  @override
   int get prefixOffset => _wrappedImport.prefixOffset;
 }
