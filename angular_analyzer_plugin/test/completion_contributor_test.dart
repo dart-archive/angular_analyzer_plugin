@@ -168,6 +168,24 @@ class MyChildComponent {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_completeInput_as_plainAttribute_setterTypeError() async {
+    addTestSource('''
+import 'package:angular2/angular2.dart';
+@Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
+directives: const [MyChildComponent])
+class MyComponent {}
+@Component(template: '', selector: 'child-tag')
+class MyChildComponent {
+  @Input() stringInput;
+}
+    ''');
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+    assertSuggestSetter('stringInput');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_completeStandardInput_as_plainAttribute() async {
     addTestSource('''
 import 'package:angular2/angular2.dart';
