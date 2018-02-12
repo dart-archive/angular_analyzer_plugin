@@ -19,7 +19,6 @@ class MockSdkTest extends AbstractAngularTest {
     expect(dartResult.errors, isEmpty);
     expect(
         dartResult.libraryElement.exportNamespace.get('FutureOr'), isNotNull);
-    print(dartResult.libraryElement.context.typeProvider.futureOrType);
     expect(
         dartResult.libraryElement.context.typeProvider.futureOrType, isNotNull);
   }
