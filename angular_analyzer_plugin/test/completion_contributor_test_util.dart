@@ -44,7 +44,7 @@ abstract class AbstractCompletionContributorTest
       ];
 
   @override
-  Future computeSuggestions([int times = 200]) async {
+  Future computeSuggestions({skipExpects: false}) async {
     final templates = await angularDriver.getTemplatesForFile(testFile);
     final standardHtml = await angularDriver.getStandardHtml();
     final angularCompletionRequest = new AngularCompletionRequest(
@@ -63,19 +63,24 @@ abstract class AbstractCompletionContributorTest
     suggestions = collector.suggestions;
     replacementOffset = collector.offset;
     replacementLength = collector.length;
-    expect(suggestions, isNotNull, reason: 'expected suggestions');
+    if (!skipExpects) {
+      expect(suggestions, isNotNull, reason: 'expected suggestions');
+    }
   }
 
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of all the views.
   Future resolveSingleTemplate(Source dartSource) async {
     final result = await angularDriver.resolveDart(dartSource.fullName);
+
     for (var d in result.directives) {
-      if (d is Component && d.view.templateUriSource != null) {
+      if (d is Component && d.view?.templateUriSource != null) {
         final htmlPath = d.view.templateUriSource.fullName;
-        await angularDriver.resolveHtml(htmlPath);
+        return await angularDriver.resolveHtml(htmlPath);
       }
     }
+
+    return null;
   }
 }
 
@@ -94,12 +99,18 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
   /// Eventually all tests should be converted and this getter removed.
   bool get isNullExpectedReturnTypeConsideredDynamic => true;
 
-  void addTestSource(String content) {
-    expect(completionOffset, isNull, reason: 'Call addTestUnit exactly once');
+  void addTestSource(String content, {bool skipExpects: false}) {
+    if (!skipExpects) {
+      expect(completionOffset, isNull, reason: 'Call addTestUnit exactly once');
+    }
     completionOffset = content.indexOf('^');
-    expect(completionOffset, isNot(equals(-1)), reason: 'missing ^');
+    if (!skipExpects) {
+      expect(completionOffset, isNot(equals(-1)), reason: 'missing ^');
+    }
     final nextOffset = content.indexOf('^', completionOffset + 1);
-    expect(nextOffset, equals(-1), reason: 'too many ^');
+    if (!skipExpects) {
+      expect(nextOffset, equals(-1), reason: 'too many ^');
+    }
     // ignore: parameter_assignments, prefer_interpolation_to_compose_strings
     content = content.substring(0, completionOffset) +
         content.substring(completionOffset + 1);
@@ -568,7 +579,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
-  Future computeSuggestions([int times = 200]);
+  Future computeSuggestions();
 
   void failedCompletion(String message,
       [Iterable<CompletionSuggestion> completions]) {
