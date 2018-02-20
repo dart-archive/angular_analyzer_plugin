@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'completion_contributor_test_util.dart';
-import 'fuzz_util.dart';
+import '../completion_contributor_test_util.dart';
+import 'base.dart';
+import 'case.dart';
 
 void main() {
   new CompletionFuzzTest().test_fuzz_continually();
