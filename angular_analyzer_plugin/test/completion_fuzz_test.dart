@@ -1,22 +1,30 @@
 import 'dart:async';
 
-import 'package:angular_analyzer_plugin/src/model.dart';
-
-import 'abstract_angular.dart';
+import 'completion_contributor_test_util.dart';
 import 'fuzz_util.dart';
 
 void main() {
-  new FuzzTest().test_fuzz_continually();
+  new CompletionFuzzTest().test_fuzz_continually();
 }
 
-class FuzzTest extends AbstractAngularTest {
+//@reflectiveTest
+class CompletionFuzzTest extends AbstractCompletionContributorTest {
   final FuzzCaseProducer fuzzProducer = new FuzzCaseProducer();
+
+  @override
+  void setUp() {
+    testFile = '/test.html';
+    super.setUp();
+  }
 
   // ignore: non_constant_identifier_names
   Future test_fuzz_continually() async {
     const iters = 1000000;
     for (var i = 0; i < iters; ++i) {
-      final nextCase = fuzzProducer.nextCase;
+      final rawCase = fuzzProducer.nextCase;
+      final completionOffset = fuzzProducer.randomPos(rawCase.html);
+      final nextCase = new FuzzCase(rawCase.transformCount, rawCase.dart,
+          rawCase.html.replaceRange(completionOffset, completionOffset, '^'));
       print("Fuzz $i: ${nextCase.transformCount} transforms");
       await checkNoCrash(nextCase.dart, nextCase.html);
     }
@@ -29,17 +37,12 @@ class FuzzTest extends AbstractAngularTest {
         '<<==DART CODE==>>\n$dart\n<<==HTML CODE==>>\n$html\n<<==DONE==>>';
 
     runZoned(() {
-      super.setUp();
-      newSource('/test.dart', dart);
-      newSource('/test.html', html);
-      final resultFuture =
-          angularDriver.resolveDart('/test.dart').then((result) {
-        if (result.directives.isNotEmpty) {
-          final directive = result.directives.first;
-          if (directive is Component &&
-              directive.view?.templateUriSource?.fullName == '/test.html') {
-            return angularDriver.resolveHtml('/test.html');
-          }
+      setUp();
+      final dartSource = newSource('/test.dart', dart);
+      addTestSource(html, skipExpects: true);
+      final resultFuture = resolveSingleTemplate(dartSource).then((result) {
+        if (result != null) {
+          computeSuggestions(skipExpects: true);
         }
       });
       Future.wait([resultFuture]).then((_) {
