@@ -5,12 +5,12 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import '../abstract_angular.dart';
 import 'base.dart';
 import 'case.dart';
+import 'producer.dart';
 
-void main() {
-  new FuzzTest().test_fuzz_continually();
-}
+class AnalysisFuzzTest extends AbstractAngularTest implements Fuzzable {
+  @override
+  FuzzCase getNextCase(FuzzCaseProducer producer) => producer.nextCase;
 
-class FuzzTest extends AbstractAngularTest with FuzzTestMixin {
   @override
   Future perform(FuzzCase fuzzCase) async {
     newSource('/test.dart', fuzzCase.dart);

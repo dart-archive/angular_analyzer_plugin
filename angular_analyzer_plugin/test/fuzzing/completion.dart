@@ -3,13 +3,10 @@ import 'dart:async';
 import '../completion_contributor_test_util.dart';
 import 'base.dart';
 import 'case.dart';
-
-void main() {
-  new CompletionFuzzTest().test_fuzz_continually();
-}
+import 'producer.dart';
 
 class CompletionFuzzTest extends AbstractCompletionContributorTest
-    with FuzzTestMixin {
+    implements Fuzzable {
   @override
   void setUp() {
     testFile = '/test.html';
@@ -17,10 +14,10 @@ class CompletionFuzzTest extends AbstractCompletionContributorTest
   }
 
   @override
-  FuzzCase get nextCase {
+  FuzzCase getNextCase(FuzzCaseProducer fuzzProducer) {
     final rawCase = fuzzProducer.nextCase;
     final completionOffset = fuzzProducer.randomPos(rawCase.html);
-    return new FuzzCase(rawCase.transformCount, rawCase.dart,
+    return new FuzzCase(rawCase.seed, rawCase.transformCount, rawCase.dart,
         rawCase.html.replaceRange(completionOffset, completionOffset, '^'));
   }
 

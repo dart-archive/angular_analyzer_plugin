@@ -6,28 +6,42 @@ import 'values.dart';
 
 typedef String FuzzModification(String input);
 
+const _seedMax = 4294967296;
+
 class FuzzCaseProducer {
-  final Random random = new Random();
+  /// Unfortunately, the class [Random] does not allow access to the internal
+  /// state. To be able to reproduce fuzz cases, we must seed every case with a
+  /// custom number -- it can begin as a random seed, and increment from there.
+  int seed;
+
+  /// This is set once per iteration since we can seed it, but cannot get its
+  /// state after it has been used.
+  Random random;
 
   List<FuzzModification> fuzzOptions;
 
-  FuzzCaseProducer() {
+  // Generate a random initial seed using a *different* instance of [Random].
+  FuzzCaseProducer() : this.withSeed(new Random().nextInt(_seedMax));
+
+  FuzzCaseProducer.withSeed(this.seed) {
     fuzzOptions = <FuzzModification>[
-      fuzz_removeChar,
-      fuzz_truncate,
-      fuzz_addChar,
-      fuzz_copyLine,
-      fuzz_dropLine,
-      fuzz_joinLine,
-      fuzz_shuffleLines,
-      fuzz_copyChunk,
-      fuzz_addKeyword,
-      fuzz_addDartChunk,
-      fuzz_addHtmlChunk,
+      removeChar,
+      truncate,
+      addChar,
+      copyLine,
+      dropLine,
+      joinLine,
+      shuffleLines,
+      copyChunk,
+      addKeyword,
+      addDartChunk,
+      addHtmlChunk,
     ];
   }
 
   FuzzCase get nextCase {
+    final saveSeed = seed;
+    random = new Random(seed++);
     final transforms = random.nextInt(20) + 1;
     var dart = baseDart;
     var html = baseHtml;
@@ -40,7 +54,7 @@ class FuzzCaseProducer {
       }
     }
 
-    return new FuzzCase(transforms, dart, html);
+    return new FuzzCase(saveSeed, transforms, dart, html);
   }
 
   int randomPos(String s) {
@@ -61,8 +75,7 @@ class FuzzCaseProducer {
     return random.nextInt(s.length - 1);
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_removeChar(String input) {
+  String removeChar(String input) {
     final charpos = randomIndex(input.codeUnits);
     if (charpos == null) {
       return input;
@@ -70,8 +83,7 @@ class FuzzCaseProducer {
     return input.replaceRange(charpos, charpos + 1, '');
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_addChar(String input) {
+  String addChar(String input) {
     String newchar;
     if (input.isEmpty) {
       newchar = new String.fromCharCode(random.nextInt(128));
@@ -82,8 +94,7 @@ class FuzzCaseProducer {
     return input.replaceRange(charpos, charpos, newchar);
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_truncate(String input) {
+  String truncate(String input) {
     final charpos = randomPos(input);
     if (charpos == 0) {
       return '';
@@ -91,21 +102,18 @@ class FuzzCaseProducer {
     return input.substring(0, charpos);
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_shuffleLines(String input) {
+  String shuffleLines(String input) {
     final lines = input.split('\n')..shuffle(random);
     return lines.join('\n');
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_dropLine(String input) {
+  String dropLine(String input) {
     final lines = input.split('\n');
     lines.removeAt(randomIndex(lines)); // ignore: cascade_invocations
     return lines.join('\n');
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_joinLine(String input) {
+  String joinLine(String input) {
     final lines = input.split('\n');
     if (lines.length == 1) {
       return input;
@@ -118,8 +126,7 @@ class FuzzCaseProducer {
     return lines.join('\n');
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_copyLine(String input) {
+  String copyLine(String input) {
     final lines = input.split('\n');
     if (lines.length == 1) {
       return input;
@@ -132,19 +139,17 @@ class FuzzCaseProducer {
     return lines.join('\n');
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_copyChunk(String input) {
+  String copyChunk(String input) {
     if (input.isEmpty) {
       return input;
     }
 
-    final chunk = fuzz_truncate(input.substring(randomIndex(input.codeUnits)));
+    final chunk = truncate(input.substring(randomIndex(input.codeUnits)));
     final charpos = randomPos(input);
     return input.replaceRange(charpos, charpos, chunk);
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_addKeyword(String input) {
+  String addKeyword(String input) {
     final token = Keyword.values[randomIndex(Keyword.values)];
     if (input.isEmpty) {
       return input;
@@ -154,9 +159,8 @@ class FuzzCaseProducer {
     return input.replaceRange(charpos, charpos, token.lexeme);
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_addDartChunk(String input) {
-    var chunk = fuzz_truncate(dartSnippets);
+  String addDartChunk(String input) {
+    var chunk = truncate(dartSnippets);
     if (chunk.length > 80) {
       chunk = chunk.substring(0, random.nextInt(80));
     } else if (chunk.isEmpty) {
@@ -168,9 +172,8 @@ class FuzzCaseProducer {
     return input.replaceRange(charpos, charpos, chunk);
   }
 
-// ignore: non_constant_identifier_names
-  String fuzz_addHtmlChunk(String input) {
-    var chunk = fuzz_truncate(htmlSnippets);
+  String addHtmlChunk(String input) {
+    var chunk = truncate(htmlSnippets);
     if (chunk.length > 80) {
       chunk = chunk.substring(0, random.nextInt(80));
     } else if (chunk.isEmpty) {
