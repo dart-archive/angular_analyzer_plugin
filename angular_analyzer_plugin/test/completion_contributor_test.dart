@@ -3356,4 +3356,22 @@ class MyComp {
     assertSuggestLibrary('prefixed');
     assertNotSuggested('foo');
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeMemberOnDynamic() async {
+    final dartSource = newSource('/completionTest.dart', '''
+import 'package:angular2/angular2.dart
+@Component( s: '' templateUrl: 'completionTest.html
+class
+    ''');
+
+    // NOTE: This actually isn't valid angular yet (we flag it) but one day will
+    // be: once we move to angular_ast in both repos.
+    addTestSource('{{n.^');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+  }
 }
