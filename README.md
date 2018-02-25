@@ -1,5 +1,11 @@
 # Angular Dart Analysis Plugin [![Build Status](https://travis-ci.org/dart-lang/angular_analyzer_plugin.svg?branch=master)](https://travis-ci.org/dart-lang/angular_analyzer_plugin)
 
+** Requires angular-5.0.0\* and dart SDK 2.0.0-dev.31\*\* or higher to work. **
+
+\* Works with angular-4.0.0 by following the steps in the section "loading an exact version."
+
+\*\* Linux and Mac users should be able to an SDK version as old as 1.25.0-dev.12.0
+
 ## Integration with Dart Analysis Server
 
   To provide information for DAS clients the `server_plugin` plugin contributes several extensions.
@@ -8,11 +14,7 @@
 
 ![Preview gif](https://raw.githubusercontent.com/dart-lang/angular_analyzer_plugin/master/assets/angular-dart-intellij-plugin-demo.gif "Preview gif")
 
-**Check the pubspec.yaml in your project for transformers. They are not supported. You must manually add CORE_DIRECTIVES to your components right now for this plugin to work.**
-
 ## Installing By Angular Version -- For Angular Developers (recommended)
-
-Requires angular-4.0.0 and dart SDK 1.25.0-dev.12.0 or higher to work.
 
 Using this strategy allows the dart ecosystem to discover which version of our plugin will work best with your version of angular, and therefore is recommended.
 
@@ -27,13 +29,15 @@ analyzer:
 
 Then simply reboot your analysis server (inside IntelliJ this is done by clicking on the skull icon if it exists, or the refresh icon otherwise) and wait for the plugin to fully load, which can take a minute on the first run.
 
+The plugin will self-upgrade if you update angular. Otherwise, you can get any version of the plugin you wish by following the steps in the next section.
+
 ## Loading an Exact Version
 
 This is much like the previous step. However, you should include this project in your pubspec:
 
 ```
 dependencies:
-  angular_analyzer_plugin: 0.0.11
+  angular_analyzer_plugin: 0.0.13
 ```
 
 and then load the plugin as itself, rather than as a dependency of angular:
@@ -46,6 +50,22 @@ analyzer:
 ```
 
 Like the previous installation option, you then just need to reboot your analysis server after running pub get.
+
+## Troubleshooting
+
+If you have any issues, filing a ticket with us is always a welcome option. There are a few things you can try on your own, as well, to get an idea of what's going wrong:
+
+* Are you using angular 5 or newer? If not, are you loading a recent exact version of the plugin?
+* Are you using a bleeding edge SDK? The latest stable will not work correctly, and windows users require at least 2.0.0-dev-31.
+* Did you turn the plugin on correctly in your analysis options file?
+* Does your editor support html+dart analysis, or is it an old version? Some (such as VSCode, vim) may have special steps to show errors surfaced by dart analysis inside your html files.
+* From IntelliJ, there's a gear icon that has "analyzer diagnostics," which opens a web page that has a section for loaded plugins. Are there any errors?
+* Check the directory `~/.dartServer/.plugin_manager` (on Windows: `\Users\you\AppData\Local\.dartServer\.plugin_manager`). Does it have any subdirectories?
+* There should be a hash representing each plugin you've loaded. Can you run `pub get` from `HASH/analyzer_plugin`? (If you have multiple hashes, it should be safe to clear this directory & reload.)
+* If you run `bin/plugin.dart` from `.plugin_manager/HASH/analyzer_plugin`, do you get any import errors? (Note: this is expected to crash when launched in this way, but without import-related errors)
+
+We may ask you any or all of these questions if you open a ticket, so feel free to go run through these checks on your own to get a hint what might be wrong.
+
 
 ## Building -- For hacking on this plugin, or using the latest (unpublished)
 
@@ -63,19 +83,6 @@ Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be
 Then run `pub get`.
 
 You can now use this in projects on your local system which a correctly configured pubspec and analysis options. For instance, `playground/`. Note that it imports the plugin by path, and imports it as a plugin inside `analysis_options.yaml`.
-
-## Building & Installing -- Old Plugin Loader (deprecated)
-
-Download chrome depot tools, and clone this repository.
-
-Then run 
-```
-./tools/get_deps.sh
-cd old_plugin_loader/bin
-./make_snapshot
-```
-
-Back up `sdk_path/snapshots/analysis_server.dart.snapshot` and replace it with `server.snapshot`. Restart the dart analysis server by clicking the skull.
 
 ## Chart of Current Features
 
