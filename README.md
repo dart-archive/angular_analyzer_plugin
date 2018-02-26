@@ -1,6 +1,6 @@
 # Angular Dart Analysis Plugin [![Build Status](https://travis-ci.org/dart-lang/angular_analyzer_plugin.svg?branch=master)](https://travis-ci.org/dart-lang/angular_analyzer_plugin)
 
-** Requires angular-5.0.0\* and dart SDK 2.0.0-dev.31\*\* or higher to work. **
+**Requires angular-5.0.0\* and dart SDK 2.0.0-dev.31\*\* or higher to work.**
 
 \* Works with angular-4.0.0 by following the steps in the section "loading an exact version."
 
