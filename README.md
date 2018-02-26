@@ -64,7 +64,7 @@ If you have any issues, filing an issue with us is always a welcome option. Ther
 * There should be a hash representing each plugin you've loaded. Can you run `pub get` from `HASH/analyzer_plugin`? (If you have multiple hashes, it should be safe to clear this directory & reload.)
 * If you run `bin/plugin.dart` from `.plugin_manager/HASH/analyzer_plugin`, do you get any import errors? (Note: this is expected to crash when launched in this way, but without import-related errors)
 
-We may ask you any or all of these questions if you open a ticket, so feel free to go run through these checks on your own to get a hint what might be wrong.
+We may ask you any or all of these questions if you open an issue, so feel free to go run through these checks on your own to get a hint what might be wrong.
 
 
 ## Building -- For hacking on this plugin, or using the latest (unpublished)
