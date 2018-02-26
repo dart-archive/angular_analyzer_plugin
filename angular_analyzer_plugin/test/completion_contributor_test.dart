@@ -3356,4 +3356,21 @@ class MyComp {
     assertSuggestLibrary('prefixed');
     assertNotSuggested('foo');
   }
+
+  // ignore: non_constant_identifier_names
+  Future test_completeBeforeComment() async {
+    final dartSource = newSource('/completionTest.dart', '''
+import 'package:angular2/angular2.dart';
+class MyClass{}
+@Component(templateUrl: 'completionTest.html', selector: 'a')
+class MyComp {}
+    ''');
+
+    addTestSource('^<!-- comment! -->');
+
+    await resolveSingleTemplate(dartSource);
+    await computeSuggestions();
+    expect(replacementOffset, completionOffset);
+    expect(replacementLength, 0);
+  }
 }

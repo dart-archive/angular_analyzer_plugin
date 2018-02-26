@@ -588,7 +588,7 @@ class TemplateCompleter {
             (target.closingSpan.offset + target.closingSpan.length)) {
           // In closing tag, but could be directly after it; ex: '</div>^'.
           suggestHtmlTags(template, collector);
-          if (target.parent != null || target.parent is! DocumentInfo) {
+          if (target.parent != null && target.parent is! DocumentInfo) {
             suggestTransclusions(target.parent, collector);
           }
         }
