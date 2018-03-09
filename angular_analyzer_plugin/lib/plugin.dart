@@ -84,14 +84,14 @@ class AngularAnalyzerPlugin extends ServerPlugin
         options);
 
     driver.dartResultsStream
-        .listen((result) => onResult(result, driver, templatesOnly: true));
+        .listen((result) => onResult(result, driver, isHtml: false));
     driver.htmlResultsStream
-        .listen((result) => onResult(result, driver, templatesOnly: false));
+        .listen((result) => onResult(result, driver, isHtml: true));
     return driver;
   }
 
   void onResult(DirectivesResult result, AngularDriver driver,
-      {@required bool templatesOnly}) {
+      {@required bool isHtml}) {
     final collector = new NavigationCollectorImpl();
     final filename = result.filename;
 
@@ -104,7 +104,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
     if (result.cacheResult) {
       // get a non-cached result, so we have an AST.
       // TODO(mfairhurst) make this assurance in a less hacky way
-      templatesOnly
+      isHtml
           ? driver.resolveHtml(filename, ignoreCache: true)
           : driver.resolveDart(filename);
       return;
@@ -126,8 +126,8 @@ class AngularAnalyzerPlugin extends ServerPlugin
   Future<NavigationRequest> getNavigationRequest(
       plugin.AnalysisGetNavigationParams parameters) async {
     final AngularDriver driver = driverForPath(parameters.file);
-    final templatesOnly = parameters.file.endsWith('.html');
-    final result = templatesOnly
+    final isHtml = parameters.file.endsWith('.html');
+    final result = isHtml
         ? await driver.resolveHtml(parameters.file, ignoreCache: true)
         : await driver.resolveDart(parameters.file,
             onlyIfChangedSignature: false);
