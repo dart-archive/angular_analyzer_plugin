@@ -40,7 +40,7 @@ class AngularDriver
   final NotificationManager notificationManager;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
-  final FileContentOverlay _contentOverlay;
+  final FileContentOverlay contentOverlay;
   final AngularOptions options;
   StandardHtml standardHtml;
   StandardAngular standardAngular;
@@ -65,7 +65,7 @@ class AngularDriver
       this._scheduler,
       this.byteStore,
       SourceFactory sourceFactory,
-      this._contentOverlay,
+      this.contentOverlay,
       this.options) {
     _sourceFactory = sourceFactory.clone();
     _scheduler.add(this);
@@ -430,7 +430,7 @@ class AngularDriver
   }
 
   String getFileContent(String path) =>
-      _contentOverlay[path] ??
+      contentOverlay[path] ??
       ((source) =>
           source.exists() ? source.contents.data : "")(getSource(path));
 
