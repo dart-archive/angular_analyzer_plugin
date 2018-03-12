@@ -2,6 +2,9 @@
 
 ## Unpublished Changes
 
+- Fixed a performance problem due to new navigation features, and correctness
+  issue where local unsaved changes were used in html navigation line/offset
+  info.
 - Fixed crashes in latest IntelliJ due to new navigation features
 - Upgrade package:analyzer to support newest dart semantics.
 - Fixed crash autocompleting before a comment
