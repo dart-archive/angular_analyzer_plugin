@@ -2,7 +2,6 @@ analyzer:
   strong-mode: true
   exclude:
     - lib/src/summary/format.dart
-    - lib/src/angular_html_parser.dart
 
 linter:
   rules:

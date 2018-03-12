@@ -37,7 +37,7 @@ else
 fi
 
 # Analyze the test first
-dartanalyzer lib test
+dartanalyzer --fatal-infos --fatal-warnings --fatal-lints lib test
 
 # Run the actual tests
 dart --checked test/test_all.dart
