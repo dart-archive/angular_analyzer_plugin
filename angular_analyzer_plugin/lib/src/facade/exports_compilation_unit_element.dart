@@ -43,31 +43,61 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   int get id => _wrappedUnit.id;
 
   @override
-  bool get isDeprecated => _wrappedUnit.isDeprecated;
-
-  @override
-  bool get isFactory => _wrappedUnit.isFactory;
-
-  @override
-  bool get isJS => false;
-
-  @override
-  bool get isOverride => _wrappedUnit.isOverride;
-
-  @override
   bool get isPrivate => _wrappedUnit.isPrivate;
-
-  @override
-  bool get isProtected => _wrappedUnit.isProtected;
 
   @override
   bool get isPublic => _wrappedUnit.isPublic;
 
   @override
-  bool get isRequired => _wrappedUnit.isRequired;
+  bool get isSynthetic => _wrappedUnit.isSynthetic;
 
   @override
-  bool get isSynthetic => _wrappedUnit.isSynthetic;
+  bool get isDeprecated => hasDeprecated;
+
+  @override
+  bool get isFactory => hasFactory;
+
+  @override
+  bool get isJS => false;
+
+  @override
+  bool get isOverride => hasOverride;
+
+  @override
+  bool get isProtected => hasProtected;
+
+  @override
+  bool get isRequired => hasRequired;
+
+  @override
+  bool get isAlwaysThrows => hasAlwaysThrows;
+
+  @override
+  bool get isVisibleForTesting => hasVisibleForTesting;
+
+  @override
+  bool get hasDeprecated => _wrappedUnit.hasDeprecated;
+
+  @override
+  bool get hasFactory => _wrappedUnit.hasFactory;
+
+  @override
+  bool get hasJS => false;
+
+  @override
+  bool get hasOverride => _wrappedUnit.hasOverride;
+
+  @override
+  bool get hasProtected => _wrappedUnit.hasProtected;
+
+  @override
+  bool get hasRequired => _wrappedUnit.hasRequired;
+
+  @override
+  bool get hasAlwaysThrows => _wrappedUnit.hasAlwaysThrows;
+
+  @override
+  bool get hasVisibleForTesting => _wrappedUnit.hasVisibleForTesting;
 
   @override
   LibraryElement get library => libraryFacade;
@@ -170,12 +200,6 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   @override
   ClassElement getType(String className) =>
       types.firstWhere((type) => type.name == name, orElse: () => null);
-
-  @override
-  bool get isAlwaysThrows => _wrappedUnit.isAlwaysThrows;
-
-  @override
-  bool get isVisibleForTesting => _wrappedUnit.isVisibleForTesting;
 
   // CompilationUnitFacade's are not used for imports, which have prefixes
   bool _fromThisUnit(ExportedIdentifier export) => export.prefix == '';
