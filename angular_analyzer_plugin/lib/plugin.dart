@@ -110,7 +110,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
       return;
     }
 
-    new AngularNavigation()
+    new AngularNavigation(driver.contentOverlay)
       ..computeNavigation(
           new AngularNavigationRequest(filename, null, null, result),
           collector);

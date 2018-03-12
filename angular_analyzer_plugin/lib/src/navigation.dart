@@ -6,8 +6,13 @@ import 'package:analyzer/dart/element/element.dart' as engine;
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/navigation_request.dart';
+import 'package:analyzer/src/dart/analysis/file_state.dart';
 
 class AngularNavigation implements NavigationContributor {
+  final FileContentOverlay _contentOverlay;
+
+  AngularNavigation(this._contentOverlay);
+
   @override
   void computeNavigation(
       NavigationRequest baseRequest, NavigationCollector collector,
@@ -93,7 +98,8 @@ class AngularNavigation implements NavigationContributor {
       }
 
       final lineInfo = element.compilationElement?.lineInfo ??
-          new LineInfo.fromContent(element.source.contents.data);
+          new LineInfo.fromContent(
+              _contentOverlay[element.source.fullName] ?? "");
 
       if (lineInfo == null) {
         continue;
