@@ -95,7 +95,7 @@ class User {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(null, null, null, result), collector,
         templatesOnly: false);
     // input references setter
@@ -161,7 +161,7 @@ class TextPanel {}
     final dartSource = newSource('/test.dart', code);
     newSource('/text_panel.html', "");
     final result = await resolveDart(dartSource);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(null, null, null, result), collector,
         templatesOnly: false);
     // input references setter
@@ -191,7 +191,7 @@ class TextPanel {
     final dartSource = newSource('/test.dart', dartCode);
     newSource('/text_panel.html', htmlCode);
     final result = await resolveLinkedHtml(dartSource);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(null, null, null, result), collector,
         templatesOnly: false);
     // template references field
@@ -218,7 +218,7 @@ class TestComponent {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(
             null, 'fieldOne'.length, code.indexOf('fieldOne}}'), result),
         collector,
@@ -246,7 +246,7 @@ class TestComponent {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(
             null, '}}{{'.length, code.indexOf('}}{{'), result),
         collector,
@@ -269,7 +269,7 @@ class TestComponent {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(
             null, 'e}}{{f'.length, code.indexOf('e}}{{f'), result),
         collector,
@@ -305,7 +305,7 @@ class TestComponent {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(null, 'fieldOne}}{{fieldTwo'.length,
             code.indexOf('fieldOne}}{{fieldTwo'), result),
         collector,
@@ -341,7 +341,7 @@ class TestComponent {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(
             null, ' {{fieldOne}} '.length, code.indexOf(' {{'), result),
         collector,
@@ -368,7 +368,7 @@ class TestComponent {
     final source = newSource('/test.dart', code);
     // compute navigation regions
     final result = await resolveDart(source);
-    new AngularNavigation().computeNavigation(
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(
             null, 'focusin'.length, code.indexOf('focusin'), result),
         collector,

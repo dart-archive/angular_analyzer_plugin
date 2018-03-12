@@ -140,7 +140,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
   /// analysis [driver].
   @override
   List<NavigationContributor> getNavigationContributors(String path) =>
-      [new AngularNavigation()];
+      [new AngularNavigation(angularDriverForPath(path).contentOverlay)];
 
   void sendNotificationForSubscription(
       String fileName, plugin.AnalysisService service, AnalysisResult result) {
