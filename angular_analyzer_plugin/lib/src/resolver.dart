@@ -1753,10 +1753,24 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
       _reportUnacceptableNode(exp, "Named arguments");
 }
 
+/// Workaround for "This mixin application is invalid because all of the
+/// constructors in the base class 'ErrorVerifier' have optional parameters."
+/// in the definition of [AngularErrorVerifier].
+///
+/// See https://github.com/dart-lang/sdk/issues/15101 for details
+class _IntermediateErrorVerifier extends ErrorVerifier {
+  _IntermediateErrorVerifier(
+    ErrorReporter errorReporter,
+    LibraryElement library,
+    TypeProvider typeProvider,
+    InheritanceManager inheritanceManager,
+  ) : super(errorReporter, library, typeProvider, inheritanceManager, false);
+}
+
 /// Override the standard [ErrorVerifier] class to report unacceptable nodes,
 /// while suppressing secondary errors that would have been raised by
 /// [ErrorVerifier] if we let it see the bogus definitions.
-class AngularErrorVerifier extends ErrorVerifier
+class AngularErrorVerifier extends _IntermediateErrorVerifier
     with ReportUnacceptableNodesMixin {
   final bool acceptAssignment;
 
@@ -1770,7 +1784,7 @@ class AngularErrorVerifier extends ErrorVerifier
       {@required this.acceptAssignment})
       : errorReporter = errorReporter,
         typeProvider = typeProvider,
-        super(errorReporter, library, typeProvider, inheritanceManager, false);
+        super(errorReporter, library, typeProvider, inheritanceManager);
 
   @override
   void visitFunctionExpression(FunctionExpression exp) {

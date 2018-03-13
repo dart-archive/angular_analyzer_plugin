@@ -44,31 +44,61 @@ class ExportsImportElementFacade implements ImportElement {
   int get id => _wrappedImport.id;
 
   @override
-  bool get isDeprecated => _wrappedImport.isDeprecated;
-
-  @override
-  bool get isFactory => _wrappedImport.isFactory;
-
-  @override
-  bool get isJS => false;
-
-  @override
-  bool get isOverride => _wrappedImport.isOverride;
-
-  @override
   bool get isPrivate => _wrappedImport.isPrivate;
-
-  @override
-  bool get isProtected => _wrappedImport.isProtected;
 
   @override
   bool get isPublic => _wrappedImport.isPublic;
 
   @override
-  bool get isRequired => _wrappedImport.isRequired;
+  bool get isSynthetic => _wrappedImport.isSynthetic;
 
   @override
-  bool get isSynthetic => _wrappedImport.isSynthetic;
+  bool get isDeprecated => hasDeprecated;
+
+  @override
+  bool get isFactory => hasFactory;
+
+  @override
+  bool get isJS => false;
+
+  @override
+  bool get isOverride => hasOverride;
+
+  @override
+  bool get isProtected => hasProtected;
+
+  @override
+  bool get isRequired => hasRequired;
+
+  @override
+  bool get isAlwaysThrows => hasAlwaysThrows;
+
+  @override
+  bool get isVisibleForTesting => hasVisibleForTesting;
+
+  @override
+  bool get hasDeprecated => _wrappedImport.hasDeprecated;
+
+  @override
+  bool get hasFactory => _wrappedImport.hasFactory;
+
+  @override
+  bool get hasJS => false;
+
+  @override
+  bool get hasOverride => _wrappedImport.hasOverride;
+
+  @override
+  bool get hasProtected => _wrappedImport.hasProtected;
+
+  @override
+  bool get hasRequired => _wrappedImport.hasRequired;
+
+  @override
+  bool get hasAlwaysThrows => _wrappedImport.hasAlwaysThrows;
+
+  @override
+  bool get hasVisibleForTesting => _wrappedImport.hasVisibleForTesting;
 
   @override
   LibraryElement get library => libraryFacade;
@@ -137,12 +167,6 @@ class ExportsImportElementFacade implements ImportElement {
 
   @override
   PrefixElement get prefix => _wrappedImport.prefix;
-
-  @override
-  bool get isAlwaysThrows => _wrappedImport.isAlwaysThrows;
-
-  @override
-  bool get isVisibleForTesting => _wrappedImport.isVisibleForTesting;
 
   @override
   int get prefixOffset => _wrappedImport.prefixOffset;

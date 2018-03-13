@@ -49,31 +49,61 @@ class ExportsLibraryFacade extends ElementImpl implements LibraryElement {
   int get id => _wrappedLib.id;
 
   @override
-  bool get isDeprecated => _wrappedLib.isDeprecated;
-
-  @override
-  bool get isFactory => _wrappedLib.isFactory;
-
-  @override
-  bool get isJS => false;
-
-  @override
-  bool get isOverride => _wrappedLib.isOverride;
-
-  @override
   bool get isPrivate => _wrappedLib.isPrivate;
-
-  @override
-  bool get isProtected => _wrappedLib.isProtected;
 
   @override
   bool get isPublic => _wrappedLib.isPublic;
 
   @override
-  bool get isRequired => _wrappedLib.isRequired;
+  bool get isSynthetic => _wrappedLib.isSynthetic;
 
   @override
-  bool get isSynthetic => _wrappedLib.isSynthetic;
+  bool get isDeprecated => hasDeprecated;
+
+  @override
+  bool get isFactory => hasFactory;
+
+  @override
+  bool get isJS => false;
+
+  @override
+  bool get isOverride => hasOverride;
+
+  @override
+  bool get isProtected => hasProtected;
+
+  @override
+  bool get isRequired => hasRequired;
+
+  @override
+  bool get isAlwaysThrows => hasAlwaysThrows;
+
+  @override
+  bool get isVisibleForTesting => hasVisibleForTesting;
+
+  @override
+  bool get hasDeprecated => _wrappedLib.hasDeprecated;
+
+  @override
+  bool get hasFactory => _wrappedLib.hasFactory;
+
+  @override
+  bool get hasJS => false;
+
+  @override
+  bool get hasOverride => _wrappedLib.hasOverride;
+
+  @override
+  bool get hasProtected => _wrappedLib.hasProtected;
+
+  @override
+  bool get hasRequired => _wrappedLib.hasRequired;
+
+  @override
+  bool get hasAlwaysThrows => _wrappedLib.hasAlwaysThrows;
+
+  @override
+  bool get hasVisibleForTesting => _wrappedLib.hasVisibleForTesting;
 
   @override
   LibraryElement get library => this;
