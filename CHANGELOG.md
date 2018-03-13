@@ -1,5 +1,3 @@
-# CHANGELOG
-
 ## Unpublished Changes
 
 - Fixed a performance problem due to new navigation features, and correctness
@@ -98,6 +96,3 @@ handled by other frameworks (ie, polymer).
 # 0.0.10
 
 Started changelog.
-
-
-
