@@ -1764,8 +1764,7 @@ class _IntermediateErrorVerifier extends ErrorVerifier {
     LibraryElement library,
     TypeProvider typeProvider,
     InheritanceManager inheritanceManager,
-  )
-      : super(errorReporter, library, typeProvider, inheritanceManager, false);
+  ) : super(errorReporter, library, typeProvider, inheritanceManager, false);
 }
 
 /// Override the standard [ErrorVerifier] class to report unacceptable nodes,
