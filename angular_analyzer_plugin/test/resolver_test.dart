@@ -3491,7 +3491,7 @@ class TestPanel {
     await _resolveSingleTemplate(dartSource);
     expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
-        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "\"\"");
+        AngularWarningCode.SELECTOR_ATTRIBUTE_VALUE_MISSING, code, "\"\"");
   }
 
   // ignore: non_constant_identifier_names
@@ -3510,7 +3510,7 @@ class TestPanel {
     await _resolveSingleTemplate(dartSource);
     expect(template.view.component.ngContents, hasLength(0));
     assertErrorInCodeAtPosition(
-        AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "select");
+        AngularWarningCode.SELECTOR_ATTRIBUTE_VALUE_MISSING, code, "select");
   }
 
   // ignore: non_constant_identifier_names

@@ -13,6 +13,7 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
+import 'package:angular_ast/angular_ast.dart';
 
 /// Might be a directive, or a component, or neither. It might simply have
 /// annotated @Inputs, @Outputs() intended to be inherited.

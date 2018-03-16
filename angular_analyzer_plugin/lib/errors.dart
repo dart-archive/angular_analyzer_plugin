@@ -96,6 +96,12 @@ class AngularWarningCode extends ErrorCode {
   static const ARGUMENT_SELECTOR_MISSING = const AngularWarningCode(
       'ARGUMENT_SELECTOR_MISSING', 'Argument "selector" missing');
 
+  /// An error code indicating that an ng-content tag's selector attribute does
+  /// not actually contain a selector.
+  static const SELECTOR_ATTRIBUTE_VALUE_MISSING = const AngularWarningCode(
+      'SELECTOR_ATTRIBUTE_VALUE_MISSING',
+      'This selector attribute must be deleted or have a value specified');
+
   /// An error code indicating that the provided selector cannot be parsed.
   static const CANNOT_PARSE_SELECTOR = const AngularWarningCode(
       'CANNOT_PARSE_SELECTOR', 'Cannot parse the given selector ({0})');

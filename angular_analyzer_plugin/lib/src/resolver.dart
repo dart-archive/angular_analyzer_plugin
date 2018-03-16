@@ -1,6 +1,7 @@
 library angular2.src.analysis.analyzer_plugin.src.resolver;
 
 import 'dart:collection';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:meta/meta.dart';
 
 import 'package:analyzer/dart/ast/ast.dart' hide Directive;
@@ -1062,7 +1063,7 @@ class ComponentContentResolver extends AngularAstVisitor {
   }
 }
 
-class NgContentRecorder extends AngularScopeVisitor {
+class NgContentRecorder extends RecursiveTemplateAstVisitor<void> {
   final List<NgContent> ngContents;
   final Source source;
   final ErrorReporter errorReporter;
@@ -1074,59 +1075,51 @@ class NgContentRecorder extends AngularScopeVisitor {
   NgContentRecorder.forFile(this.ngContents, this.source, this.errorReporter);
 
   @override
-  void visitElementInfo(ElementInfo element) {
-    if (element.localName != 'ng-content') {
-      for (final child in element.childNodes) {
-        child.accept(this);
-      }
-
-      return;
-    }
-
-    final selectorAttrs = element.attributes.where((a) => a.name == 'select');
-
+  TemplateAst visitEmbeddedContent(EmbeddedContentAst element, [_]) {
     for (final child in element.childNodes) {
       if (!child.isSynthetic) {
         errorReporter.reportErrorForOffset(
             AngularWarningCode.NG_CONTENT_MUST_BE_EMPTY,
-            element.openingSpan.offset,
-            element.openingSpan.length);
+            element.offset,
+            element.length);
       }
     }
 
-    if (selectorAttrs.isEmpty) {
-      ngContents.add(new NgContent(element.offset, element.length));
-      return;
+    // Filter out synthetic ng-contents, which only occurs when there's a close
+    // tag with no open.
+    if (element is! ParsedEmbeddedContentAst) {
+      return element;
     }
 
-    // We don't actually check if selectors.length > 2, because the parser
-    // reports that.
+    final parsed = element as ParsedEmbeddedContentAst;
+
+    if (parsed.selectToken == null) {
+      ngContents.add(new NgContent(element.offset, element.length));
+      return element;
+    } else if (parsed.selectorValueToken == null) {
+      errorReporter.reportErrorForOffset(
+          AngularWarningCode.SELECTOR_ATTRIBUTE_VALUE_MISSING,
+          parsed.selectToken.offset,
+          parsed.selectToken.length);
+      return element;
+    }
+
     try {
-      final selectorAttr = selectorAttrs.first;
-      if (selectorAttr.value == null) {
-        // TODO(mfairhust) report different error for a missing selector
+      if (element.selector == "") {
         errorReporter.reportErrorForOffset(
-            AngularWarningCode.CANNOT_PARSE_SELECTOR,
-            selectorAttr.nameOffset,
-            selectorAttr.name.length,
-            ['missing']);
-      } else if (selectorAttr.value == "") {
-        // TODO(mfairhust) report different error for a missing selector
-        errorReporter.reportErrorForOffset(
-            AngularWarningCode.CANNOT_PARSE_SELECTOR,
-            selectorAttr.valueOffset - 1,
-            2,
-            ['missing']);
+            AngularWarningCode.SELECTOR_ATTRIBUTE_VALUE_MISSING,
+            parsed.selectorValueToken.offset,
+            2);
       } else {
-        final selector = new SelectorParser(
-                source, selectorAttr.valueOffset, selectorAttr.value)
+        final selector = new SelectorParser(source,
+                parsed.selectorValueToken.innerValue.offset, element.selector)
             .parse();
         ngContents.add(new NgContent.withSelector(
             element.offset,
             element.length,
             selector,
-            selectorAttr.valueOffset,
-            selectorAttr.value.length));
+            parsed.selectorValueToken.offset,
+            parsed.selectorValueToken.length));
       }
     } on SelectorParseError catch (e) {
       errorReporter.reportErrorForOffset(
@@ -1135,6 +1128,8 @@ class NgContentRecorder extends AngularScopeVisitor {
           e.length,
           [e.message]);
     }
+
+    return element;
   }
 }
 

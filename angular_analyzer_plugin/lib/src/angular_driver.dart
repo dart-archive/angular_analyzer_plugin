@@ -563,7 +563,8 @@ class AngularDriver
           template.ast =
               new HtmlTreeConverter(parser, htmlSource, tplErrorListener)
                   .convertFromAstList(tplParser.rawAst);
-          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+          new NgContentRecorder(directive, errorReporter)
+              .visitAll(tplParser.rawAst);
           setIgnoredErrors(template, document);
           new TemplateResolver(
                   context.typeProvider,
@@ -627,7 +628,8 @@ class AngularDriver
     final ast = new HtmlTreeConverter(parser, source, tplErrorListener)
         .convertFromAstList(tplParser.rawAst);
     final contents = <NgContent>[];
-    ast.accept(new NgContentRecorder.forFile(contents, source, errorReporter));
+    new NgContentRecorder.forFile(contents, source, errorReporter)
+        .visitAll(tplParser.rawAst);
 
     final summary = new UnlinkedHtmlSummaryBuilder()
       ..ngContents = serializeNgContents(contents);
@@ -747,7 +749,8 @@ class AngularDriver
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
               .convertFromAstList(tplParser.rawAst);
-          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+          new NgContentRecorder(directive, errorReporter)
+              .visitAll(tplParser.rawAst);
           setIgnoredErrors(template, document);
           new TemplateResolver(
                   context.typeProvider,
@@ -896,7 +899,8 @@ class AngularDriver
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
               .convertFromAstList(tplParser.rawAst);
-          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+          new NgContentRecorder(directive, errorReporter)
+              .visitAll(tplParser.rawAst);
         }
       }
     }
