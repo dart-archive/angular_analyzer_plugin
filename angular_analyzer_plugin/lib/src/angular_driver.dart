@@ -37,6 +37,7 @@ class AngularDriver
         FilePipeProvider,
         DirectiveLinkerEnablement,
         FileHasher {
+  // TODO(mfairhurst) remove NotificationManager & old plugin loader.
   final NotificationManager notificationManager;
   final AnalysisDriverScheduler _scheduler;
   final AnalysisDriver dartDriver;
@@ -640,6 +641,7 @@ class AngularDriver
   Future pushHtmlErrors(String htmlPath) async {
     final errors = (await resolveHtml(htmlPath)).errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(htmlPath));
+    // TODO(mfairhurst) remove this with old plugin loader
     notificationManager.recordAnalysisErrors(htmlPath, lineInfo, errors);
   }
 
@@ -654,6 +656,7 @@ class AngularDriver
     }
     final errors = result.errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(path));
+    // TODO(mfairhurst) remove this with old plugin loader
     notificationManager.recordAnalysisErrors(path, lineInfo, errors);
   }
 
