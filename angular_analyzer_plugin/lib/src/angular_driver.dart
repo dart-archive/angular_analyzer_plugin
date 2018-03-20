@@ -49,8 +49,8 @@ class AngularDriver
   final _addedFiles = new LinkedHashSet<String>();
   final _dartFiles = new LinkedHashSet<String>();
   final _changedFiles = new LinkedHashSet<String>();
-  final _requestedDartFiles = <String, List<Completer>>{};
-  final _requestedHtmlFiles = <String, List<Completer>>{};
+  final _requestedDartFiles = <String, List<Completer<DirectivesResult>>>{};
+  final _requestedHtmlFiles = <String, List<Completer<DirectivesResult>>>{};
   final _filesToAnalyze = new HashSet<String>();
   final _htmlFilesToAnalyze = new HashSet<String>();
   final ByteStore byteStore;
@@ -149,22 +149,40 @@ class AngularDriver
     _scheduler.notify(this);
   }
 
-  Future<List<AnalysisError>> requestDartErrors(String path) {
-    final completer = new Completer<List<AnalysisError>>();
+  /// Get a fully linked (warning: slow) [DirectivesResult] for the components
+  /// this Dart path, and their templates (if defined in the component directly
+  /// rather than linking to a different html file).
+  Future<DirectivesResult> requestDartResult(String path) {
+    final completer = new Completer<DirectivesResult>();
     _requestedDartFiles
-        .putIfAbsent(path, () => <Completer<List<AnalysisError>>>[])
+        .putIfAbsent(path, () => <Completer<DirectivesResult>>[])
         .add(completer);
     _scheduler.notify(this);
     return completer.future;
   }
 
-  Future<List<AnalysisError>> requestHtmlErrors(String path) {
-    final completer = new Completer<List<AnalysisError>>();
+  /// Get a fully linked (warning: slow) [DirectivesResult] for the templates in
+  /// this HTML path. Note that you may get an empty HTML file if dart analysis
+  /// has not finished finding all `templateUrl`s.
+  Future<DirectivesResult> requestHtmlResult(String path) {
+    final completer = new Completer<DirectivesResult>();
     _requestedHtmlFiles
-        .putIfAbsent(path, () => <Completer<List<AnalysisError>>>[])
+        .putIfAbsent(path, () => <Completer<DirectivesResult>>[])
         .add(completer);
     _scheduler.notify(this);
     return completer.future;
+  }
+
+  @deprecated
+  Future<List<AnalysisError>> requestDartErrors(String path) async {
+    final result = await requestDartResult(path);
+    return result.errors;
+  }
+
+  @deprecated
+  Future<List<AnalysisError>> requestHtmlErrors(String path) async {
+    final result = await requestDartResult(path);
+    return result.errors;
   }
 
   @override
@@ -196,12 +214,12 @@ class AngularDriver
   @override
   Future<Null> performWork() async {
     if (standardAngular == null) {
-      getStandardAngular(); // ignore: unawaited_futures
+      await getStandardAngular();
       return;
     }
 
     if (standardHtml == null) {
-      getStandardHtml(); // ignore: unawaited_futures
+      await getStandardHtml();
       return;
     }
 
@@ -214,16 +232,13 @@ class AngularDriver
     if (_requestedDartFiles.isNotEmpty) {
       final path = _requestedDartFiles.keys.first;
       final completers = _requestedDartFiles.remove(path);
-      // Note: We can't use await here, or the dart analysis becomes a future in
-      // a queue that won't be completed until the scheduler schedules the dart
-      // driver, which doesn't happen because its waiting for us.
-      // ignore: unawaited_futures
-      resolveDart(path, onlyIfChangedSignature: false).then((result) {
-        completers.forEach((completer) =>
-            completer.complete(result?.errors ?? <AnalysisError>[]));
-      }, onError: (e) {
-        completers.forEach((completer) => completer.completeError(e));
-      });
+      try {
+        final result = await _resolveDart(path,
+            onlyIfChangedSignature: false, ignoreCache: true);
+        completers.forEach((completer) => completer.complete(result));
+      } catch (e, st) {
+        completers.forEach((completer) => completer.completeError(e, st));
+      }
 
       return;
     }
@@ -231,46 +246,39 @@ class AngularDriver
     if (_requestedHtmlFiles.isNotEmpty) {
       final path = _requestedHtmlFiles.keys.first;
       final completers = _requestedHtmlFiles.remove(path);
-      // Note: We can't use await here, or the dart analysis becomes a future in
-      // a queue that won't be completed until the scheduler schedules the dart
-      // driver, which doesn't happen because its waiting for us.
-      // ALSO assume .dart and .html paths correlate, otherwise we'd have to
-      // wait for all dart analysis to complete.
-      Future resolvedHtml;
+      DirectivesResult result;
 
-      // Try resolving HTML using the existing dart/html relationships which may
-      // be already known. However, if we don't see any relationships, try using
-      // the .dart equivalent. Better than no result -- the real one WILL come.
-      if (_fileTracker.getDartPathsReferencingHtml(path).isEmpty) {
-        resolvedHtml = resolveHtmlFrom(path, path.replaceAll(".html", ".dart"));
-      } else {
-        resolvedHtml = resolveHtml(path);
-      }
+      try {
+        // Try resolving HTML using the existing dart/html relationships which may
+        // be already known. However, if we don't see any relationships, try using
+        // the .dart equivalent. Better than no result -- the real one WILL come.
+        if (_fileTracker.getDartPathsReferencingHtml(path).isEmpty) {
+          result =
+              await _resolveHtmlFrom(path, path.replaceAll(".html", ".dart"));
+        } else {
+          result = await _resolveHtml(path, ignoreCache: true);
+        }
 
-      // After whichever resolution is complete, push errors.
-      // ignore: unawaited_futures
-      resolvedHtml.then((result) {
-        completers.forEach((completer) =>
-            completer.complete(result?.errors ?? <AnalysisError>[]));
-      }, onError: (e) {
+        // After whichever resolution is complete, push errors.
+        completers.forEach((completer) => completer.complete(result));
+      } catch (e, st) {
         completers.forEach((completer) => completer.completeError(e));
-      });
+      }
+      ;
 
       return;
     }
 
     if (_filesToAnalyze.isNotEmpty) {
       final path = _filesToAnalyze.first;
-      // ignore: unawaited_futures
-      pushDartErrors(path);
+      await pushDartErrors(path);
       _filesToAnalyze.remove(path);
       return;
     }
 
     if (_htmlFilesToAnalyze.isNotEmpty) {
       final path = _htmlFilesToAnalyze.first;
-      // ignore: unawaited_futures
-      pushHtmlErrors(path);
+      await pushHtmlErrors(path);
       _htmlFilesToAnalyze.remove(path);
       return;
     }
@@ -435,7 +443,7 @@ class AngularDriver
       ((source) =>
           source.exists() ? source.contents.data : "")(getSource(path));
 
-  Future<DirectivesResult> resolveHtml(
+  Future<DirectivesResult> _resolveHtml(
     String htmlPath, {
     bool ignoreCache: false,
   }) async {
@@ -456,7 +464,7 @@ class AngularDriver
 
     for (final dartContext
         in _fileTracker.getDartPathsReferencingHtml(htmlPath)) {
-      final pairResult = await resolveHtmlFrom(htmlPath, dartContext);
+      final pairResult = await _resolveHtmlFrom(htmlPath, dartContext);
       result.angularTopLevels.addAll(pairResult.angularTopLevels);
       result.errors.addAll(pairResult.errors);
       result.fullyResolvedDirectives.addAll(pairResult.fullyResolvedDirectives);
@@ -489,12 +497,8 @@ class AngularDriver
     }
 
     final directiveResults = isDartFile
-        ? await resolveDart(
-            filePath,
-            withDirectivesAndPipes: true,
-            onlyIfChangedSignature: false,
-          )
-        : await resolveHtml(filePath, ignoreCache: true);
+        ? await requestDartResult(filePath)
+        : await requestHtmlResult(filePath);
     final directives = directiveResults.directives;
     if (directives == null) {
       return templates;
@@ -513,7 +517,7 @@ class AngularDriver
     return templates;
   }
 
-  Future<DirectivesResult> resolveHtmlFrom(
+  Future<DirectivesResult> _resolveHtmlFrom(
       String htmlPath, String dartPath) async {
     final result = await getAngularTopLevels(dartPath);
     final directives = result.directives;
@@ -639,7 +643,7 @@ class AngularDriver
   }
 
   Future pushHtmlErrors(String htmlPath) async {
-    final errors = (await resolveHtml(htmlPath)).errors;
+    final errors = (await _resolveHtml(htmlPath)).errors;
     final lineInfo = new LineInfo.fromContent(getFileContent(htmlPath));
     // TODO(mfairhurst) remove this with old plugin loader
     notificationManager.recordAnalysisErrors(htmlPath, lineInfo, errors);
@@ -650,7 +654,7 @@ class AngularDriver
   Future pushDartOccurrences(String path) async {}
 
   Future pushDartErrors(String path) async {
-    final result = await resolveDart(path);
+    final result = await _resolveDart(path);
     if (result == null) {
       return;
     }
@@ -660,9 +664,8 @@ class AngularDriver
     notificationManager.recordAnalysisErrors(path, lineInfo, errors);
   }
 
-  Future<DirectivesResult> resolveDart(String path,
-      {bool withDirectivesAndPipes: false,
-      bool onlyIfChangedSignature: true}) async {
+  Future<DirectivesResult> _resolveDart(String path,
+      {bool ignoreCache: false, bool onlyIfChangedSignature: true}) async {
     // This happens when the path is..."hidden by a generated file"..whch I
     // don't understand, but, can protect against. Should not be analyzed.
     // TODO detect this on file add rather than on file analyze.
@@ -680,7 +683,7 @@ class AngularDriver
 
     lastSignatures[path] = key;
 
-    if (!withDirectivesAndPipes) {
+    if (!ignoreCache) {
       final bytes = byteStore.get(key);
       if (bytes != null) {
         final summary = new LinkedDartSummary.fromBuffer(bytes);

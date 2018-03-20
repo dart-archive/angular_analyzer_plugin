@@ -5354,7 +5354,7 @@ $code
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of the last one.
   Future _resolveSingleTemplate(Source dartSource) async {
-    final result = await angularDriver.resolveDart(dartSource.fullName);
+    final result = await angularDriver.requestDartResult(dartSource.fullName);
     bool finder(AbstractDirective d) =>
         d is Component && d.view.templateUriSource != null;
     fillErrorListener(result.errors);
@@ -5362,7 +5362,7 @@ $code
     directives = result.directives;
     final directive = result.directives.singleWhere(finder);
     final htmlPath = (directive as Component).view.templateUriSource.fullName;
-    final result2 = await angularDriver.resolveHtml(htmlPath);
+    final result2 = await angularDriver.requestHtmlResult(htmlPath);
     fillErrorListener(result2.errors);
     final view = (result2.directives.singleWhere(finder) as Component).view;
 

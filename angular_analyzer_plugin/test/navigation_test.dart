@@ -28,11 +28,11 @@ class AngularNavigationTest extends AbstractAngularTest {
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of all the views.
   Future<DirectivesResult> resolveLinkedHtml(Source dartSource) async {
-    final result = await angularDriver.resolveDart(dartSource.fullName);
+    final result = await angularDriver.requestDartResult(dartSource.fullName);
     for (var d in result.directives) {
       if (d is Component && d.view.templateUriSource != null) {
         final htmlPath = d.view.templateUriSource.fullName;
-        return await angularDriver.resolveHtml(htmlPath);
+        return await angularDriver.requestHtmlResult(htmlPath);
       }
     }
 
@@ -42,7 +42,7 @@ class AngularNavigationTest extends AbstractAngularTest {
   /// Compute all the views declared in the given [dartSource], and return its
   /// result
   Future<DirectivesResult> resolveDart(Source dartSource) async =>
-      await angularDriver.resolveDart(dartSource.fullName);
+      await angularDriver.requestDartResult(dartSource.fullName);
 
   List<_RecordedNavigationRegion> regions = <_RecordedNavigationRegion>[];
   NavigationCollector collector = new NavigationCollectorMock();
