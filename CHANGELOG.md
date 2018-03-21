@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Fixed an order-of-operations bug where getting completions before errors
+  suppressed the subsequent error notification.
 - Fixed a performance problem due to new navigation features, and correctness
   issue where local unsaved changes were used in html navigation line/offset
   info.
