@@ -264,7 +264,6 @@ class AngularDriver
       } catch (e, st) {
         completers.forEach((completer) => completer.completeError(e));
       }
-      ;
 
       return;
     }
