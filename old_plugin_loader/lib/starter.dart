@@ -46,6 +46,7 @@ class Starter {
       sourceFactory,
       analysisOptions) {
     final driver = new AngularDriver(
+        resourceProvider,
         new ServerNotificationManager(server, analysisDriver),
         analysisDriver,
         scheduler,
