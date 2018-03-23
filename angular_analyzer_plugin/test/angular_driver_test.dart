@@ -3939,7 +3939,7 @@ class LinkDirectivesTest extends AbstractAngularTest {
   Future getDirectives(final source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
-    final ngResult = await angularDriver.resolveDart(source.fullName);
+    final ngResult = await angularDriver.requestDartResult(source.fullName);
     directives = ngResult.directives;
     errors = ngResult.errors;
     fillErrorListener(errors);
@@ -4403,7 +4403,7 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
   Future getDirectives(final source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
-    final ngResult = await angularDriver.resolveDart(source.fullName);
+    final ngResult = await angularDriver.requestDartResult(source.fullName);
     directives = ngResult.directives;
     errors = ngResult.errors;
     fillErrorListener(errors);
@@ -5199,10 +5199,10 @@ class ResolveHtmlTemplatesTest extends AbstractAngularTest {
   List<Template> templates;
   Future getDirectives(Source htmlSource, List<Source> dartSources) async {
     for (final dartSource in dartSources) {
-      final result = await angularDriver.resolveDart(dartSource.fullName);
+      final result = await angularDriver.requestDartResult(dartSource.fullName);
       fillErrorListener(result.errors);
     }
-    final result2 = await angularDriver.resolveHtml(htmlSource.fullName);
+    final result2 = await angularDriver.requestHtmlResult(htmlSource.fullName);
     fillErrorListener(result2.errors);
     templates = result2.directives
         .map((d) => d is Component ? d.view?.template : null)
@@ -5271,9 +5271,9 @@ class TextPanelB {
 class ResolveHtmlTemplateTest extends AbstractAngularTest {
   List<View> views;
   Future getDirectives(Source htmlSource, Source dartSource) async {
-    final result = await angularDriver.resolveDart(dartSource.fullName);
+    final result = await angularDriver.requestDartResult(dartSource.fullName);
     fillErrorListener(result.errors);
-    final result2 = await angularDriver.resolveHtml(htmlSource.fullName);
+    final result2 = await angularDriver.requestHtmlResult(htmlSource.fullName);
     fillErrorListener(result2.errors);
     views = result2.directives
         .map((d) => d is Component ? d.view : null)

@@ -69,11 +69,11 @@ abstract class AbstractCompletionContributorTest
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of all the views.
   Future resolveSingleTemplate(Source dartSource) async {
-    final result = await angularDriver.resolveDart(dartSource.fullName);
+    final result = await angularDriver.requestDartResult(dartSource.fullName);
     for (var d in result.directives) {
       if (d is Component && d.view.templateUriSource != null) {
         final htmlPath = d.view.templateUriSource.fullName;
-        await angularDriver.resolveHtml(htmlPath);
+        await angularDriver.requestHtmlResult(htmlPath);
       }
     }
   }

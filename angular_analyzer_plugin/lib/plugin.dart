@@ -65,7 +65,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
 
     final logger = new PerformanceLog(new StringBuffer());
     final builder = new ContextBuilder(resourceProvider, sdkManager, null)
-      ..analysisDriverScheduler = analysisDriverScheduler
+      ..analysisDriverScheduler = (new AnalysisDriverScheduler(logger)..start())
       ..byteStore = byteStore
       ..performanceLog = logger
       ..fileContentOverlay = fileContentOverlay;
@@ -129,8 +129,8 @@ class AngularAnalyzerPlugin extends ServerPlugin
       // get a non-cached result, so we have an AST.
       // TODO(mfairhurst) make this assurance in a less hacky way
       isHtml
-          ? driver.resolveHtml(filename, ignoreCache: true)
-          : driver.resolveDart(filename);
+          ? driver.requestHtmlResult(filename)
+          : driver.requestDartResult(filename);
       return;
     }
 
@@ -152,9 +152,8 @@ class AngularAnalyzerPlugin extends ServerPlugin
     final AngularDriver driver = driverForPath(parameters.file);
     final isHtml = parameters.file.endsWith('.html');
     final result = isHtml
-        ? await driver.resolveHtml(parameters.file, ignoreCache: true)
-        : await driver.resolveDart(parameters.file,
-            onlyIfChangedSignature: false);
+        ? await driver.requestHtmlResult(parameters.file)
+        : await driver.requestDartResult(parameters.file);
     return new AngularNavigationRequest(
         parameters.file, parameters.offset, parameters.length, result);
   }

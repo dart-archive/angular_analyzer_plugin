@@ -605,12 +605,12 @@ class CounterComponent {
       newSource('/test.dart', dart);
       newSource('/test.html', html);
       final resultFuture =
-          angularDriver.resolveDart('/test.dart').then((result) {
+          angularDriver.requestDartResult('/test.dart').then((result) {
         if (result.directives.isNotEmpty) {
           final directive = result.directives.first;
           if (directive is Component &&
               directive.view?.templateUriSource?.fullName == '/test.html') {
-            return angularDriver.resolveHtml('/test.html');
+            return angularDriver.requestHtmlResult('/test.html');
           }
         }
       });

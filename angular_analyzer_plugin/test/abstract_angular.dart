@@ -150,7 +150,7 @@ class AbstractAngularTest {
     final contextRoot = new ContextRoot(testPath, []);
 
     dartDriver = new AnalysisDriver(
-        scheduler,
+        new AnalysisDriverScheduler(logger)..start(),
         logger,
         resourceProvider,
         byteStore,
