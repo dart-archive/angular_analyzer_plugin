@@ -77,6 +77,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
     final sourceFactory = dartDriver.sourceFactory;
 
     final driver = new AngularDriver(
+        resourceProvider,
         // TODO(mfairhurst) remove NotificationManager & old plugin loader.
         new NoopNotificationManager(),
         dartDriver,

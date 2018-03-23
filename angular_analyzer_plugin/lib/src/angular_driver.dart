@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/sdk.dart';
@@ -37,6 +38,7 @@ class AngularDriver
         FilePipeProvider,
         DirectiveLinkerEnablement,
         FileHasher {
+  final ResourceProvider _resourceProvider;
   // TODO(mfairhurst) remove NotificationManager & old plugin loader.
   final NotificationManager notificationManager;
   final AnalysisDriverScheduler _scheduler;
@@ -61,6 +63,7 @@ class AngularDriver
   final completionContributors = <CompletionContributor>[];
 
   AngularDriver(
+      this._resourceProvider,
       this.notificationManager,
       this.dartDriver,
       this._scheduler,
@@ -812,7 +815,7 @@ class AngularDriver
 
   @override
   Source getSource(String path) =>
-      _sourceFactory.resolveUri(null, 'file:$path');
+      _resourceProvider.getFile(path).createSource();
 
   @override
   Future<CompilationUnitElement> getUnit(String path) async =>
