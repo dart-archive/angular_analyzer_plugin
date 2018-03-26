@@ -265,7 +265,7 @@ class AngularDriver
         // After whichever resolution is complete, push errors.
         completers.forEach((completer) => completer.complete(result));
       } catch (e, st) {
-        completers.forEach((completer) => completer.completeError(e));
+        completers.forEach((completer) => completer.completeError(e, st));
       }
 
       return;
