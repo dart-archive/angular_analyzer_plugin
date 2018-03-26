@@ -8,6 +8,9 @@
 - Fixed crashes in latest IntelliJ due to new navigation features
 - Upgrade package:analyzer to support newest dart semantics.
 - Fixed crash autocompleting before a comment
+- Upgraded package:analyzer for latest dart semantics + bug fixes
+- Upgraded package:analyzer_plugin for fix with autocompleting members on
+  dynamic values
 
 ## 0.0.13
 
