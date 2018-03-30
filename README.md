@@ -1,4 +1,4 @@
-# Angular Dart Analysis Plugin [![Build Status](https://travis-ci.org/dart-lang/angular_analyzer_plugin.svg?branch=master)](https://travis-ci.org/dart-lang/angular_analyzer_plugin)
+[![Build Status](https://travis-ci.org/dart-lang/angular_analyzer_plugin.svg?branch=master)](https://travis-ci.org/dart-lang/angular_analyzer_plugin)
 
 **Requires angular-5.0.0\* and dart SDK 2.0.0-dev.31\*\* or higher to work.**
 
@@ -20,7 +20,7 @@ Using this strategy allows the dart ecosystem to discover which version of our p
 
 Simply add to your [analysis_options.yaml file](https://www.dartlang.org/guides/language/analysis-options#the-analysis-options-file):
 
-```
+```yaml
 analyzer:
   plugins:
     angular:
@@ -35,14 +35,14 @@ The plugin will self-upgrade if you update angular. Otherwise, you can get any v
 
 This is much like the previous step. However, you should include this project in your pubspec:
 
-```
+```yaml
 dependencies:
   angular_analyzer_plugin: 0.0.13
 ```
 
 and then load the plugin as itself, rather than as a dependency of angular:
 
-```
+```yaml
 analyzer:
   plugins:
     angular_analyzer_plugin:
@@ -72,10 +72,10 @@ We may ask you any or all of these questions if you open an issue, so feel free 
 Download chrome depot tools, and clone this repository.
 
 Then run 
-```
-./tools/get_deps.sh
-cd angular_analyzer_plugin/tools/analyzer_plugin
-cp pubspec.yaml.defaults pubspec.yaml
+```console
+$ ./tools/get_deps.sh
+$ cd angular_analyzer_plugin/tools/analyzer_plugin
+$ cp pubspec.yaml.defaults pubspec.yaml
 ```
 
 Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be absolute for the moment! Once they can be relative this step will not be required.
