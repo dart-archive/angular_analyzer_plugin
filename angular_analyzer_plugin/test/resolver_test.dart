@@ -5319,7 +5319,7 @@ class FutureOrApis {
   }
 
   // ignore: non_constant_identifier_names
-  Future solo_test_tripleEq() async {
+  Future test_tripleEq() async {
     _addDartSource(r'''
 import 'dart:async';
 @Component(selector: 'a', templateUrl: 'test_panel.html')
