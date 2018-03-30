@@ -5318,6 +5318,22 @@ class FutureOrApis {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_tripleEq() async {
+    _addDartSource(r'''
+import 'dart:async';
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class UseTripleEq {
+  bool a;
+  int b;
+}
+''');
+    final code = r'{{a === b}}';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';

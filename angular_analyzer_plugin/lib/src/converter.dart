@@ -629,8 +629,14 @@ class EmbeddedDartParser {
 
   /// Scan the given Dart [code] that starts at [offset].
   Token _scanDartCode(int offset, String code) {
+    // Warning: we lexically and unintelligently "accept" `===` for now by
+    // replacing it with `==`. This is actually OK for us since we can butcher
+    // string literal contents fine, and it won't affect analysis.
+    final noTripleEquals =
+        code.replaceAll('===', '== ').replaceAll('!==', '!= ');
+
     // ignore: prefer_interpolation_to_compose_strings
-    final text = ' ' * offset + code;
+    final text = ' ' * offset + noTripleEquals;
     final reader = new CharSequenceReader(text);
     final scanner = new Scanner(templateSource, reader, errorListener);
     return scanner.tokenize();
