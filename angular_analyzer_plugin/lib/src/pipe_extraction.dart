@@ -104,7 +104,8 @@ class PipeExtractor extends AnnotationProcessorMixin {
       return pipe;
     }
 
-    final transformMethod = classElement.getMethod('transform');
+    final transformMethod =
+        classElement.lookUpMethod('transform', classElement.library);
     if (transformMethod == null) {
       errorReporter.reportErrorForElement(
           AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD, classElement);
