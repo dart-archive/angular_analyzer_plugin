@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Added support for === operator.
+
 ## 0.0.14
 
 - Fixed issues with locating sources in Windows
