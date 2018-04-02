@@ -2788,6 +2788,37 @@ class MyComponent {}
   }
 
   // ignore: non_constant_identifier_names
+  Future test_template_relativeToLibForParts() async {
+    final libCode = r'''
+import 'package:angular2/angular2.dart';
+part 'parts/part.dart';
+    ''';
+    final partCode = r'''
+part of '../lib.dart';
+@Component(selector: 'my-component', templateUrl: 'parts/my-template.html')
+class MyComponent {}
+''';
+    final dartLibSource = newSource('/lib.dart', libCode);
+    final dartPartSource = newSource('/parts/part.dart', partCode);
+    final htmlSource = newSource('/parts/my-template.html', '');
+    await getViews(dartPartSource);
+    errorListener.assertNoErrors();
+    expect(views, hasLength(1));
+    // MyComponent
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(view.component, getComponentByName(directives, 'MyComponent'));
+    expect(view.templateText, isNull);
+    expect(view.templateUriSource, isNotNull);
+    expect(view.templateUriSource, htmlSource);
+    expect(view.templateSource, htmlSource);
+    {
+      final url = "'parts/my-template.html'";
+      expect(view.templateUrlRange,
+          new SourceRange(partCode.indexOf(url), url.length));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_useFunctionalDirective() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -5354,6 +5385,48 @@ class TextPanel {
         final element = assertGetter(resolvedRange);
         expect(element.name, 'text');
         expect(element.nameOffset, dartCode.indexOf('text; // 1'));
+      }
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasView_withTemplate_relativeToLibForParts() async {
+    final libCode = r'''
+import 'package:angular2/angular2.dart';
+part 'parts/part.dart';
+    ''';
+    final partCode = r'''
+part of '../lib.dart';
+@Component(selector: 'my-component', templateUrl: 'parts/my-template.html')
+class MyComponent {
+  String text; // 1
+}
+''';
+    final htmlCode = r'''
+<div>
+  {{text}}
+</div>
+''';
+    final dartLibSource = newSource('/lib.dart', libCode);
+    final dartPartSource = newSource('/parts/part.dart', partCode);
+    final htmlSource = newSource('/parts/my-template.html', htmlCode);
+    await getDirectives(htmlSource, dartPartSource);
+    errorListener.assertNoErrors();
+    expect(views, hasLength(1));
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      expect(view.templateUriSource, isNotNull);
+      // resolve this View
+      final template = view.template;
+      expect(template, isNotNull);
+      expect(template.view, view);
+      expect(template.ranges, hasLength(1));
+      {
+        final resolvedRange =
+            getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
+        final element = assertGetter(resolvedRange);
+        expect(element.name, 'text');
+        expect(element.nameOffset, partCode.indexOf('text; // 1'));
       }
     }
   }

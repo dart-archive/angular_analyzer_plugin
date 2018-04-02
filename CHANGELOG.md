@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Fixed a bug where parts' templateUrls should be relative to the parts' library
+  and not the part itself.
 - Added support for === operator.
 
 ## 0.0.14

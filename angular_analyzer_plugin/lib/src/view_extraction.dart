@@ -72,7 +72,8 @@ class ViewExtractor extends AnnotationProcessorMixin {
       final templateUrl = getExpressionString(templateUrlExpression);
       if (templateUrl != null) {
         final sourceFactory = context.sourceFactory;
-        templateUriSource = sourceFactory.resolveUri(source, templateUrl);
+        templateUriSource =
+            sourceFactory.resolveUri(classElement.library.source, templateUrl);
 
         if (templateUriSource == null || !templateUriSource.exists()) {
           errorReporter.reportErrorForNode(
