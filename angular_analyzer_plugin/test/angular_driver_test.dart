@@ -1058,6 +1058,38 @@ class PipeB extends PipeTransform {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_pipeInheritance() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class BasePipe extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipe', pure: false)
+class MyPipe extends BasePipe {
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    {
+      final pipe = pipes[0];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipe');
+      expect(pure, false);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'int');
+      expect(pipe.optionalArgumentTypes, hasLength(0));
+    }
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_Pipe_error_no_pipeTransform() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
