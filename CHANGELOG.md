@@ -1,5 +1,6 @@
 ## Unpublished Changes
 
+- Support '^=' css selector syntax.
 - Upgrade package:analyzer to support newest dart semantics.
 
 ## 0.0.15

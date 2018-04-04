@@ -15,6 +15,7 @@ void main() {
     defineReflectiveTests(OrSelectorTest);
     defineReflectiveTests(NotSelectorTest);
     defineReflectiveTests(AttributeValueRegexSelectorTest);
+    defineReflectiveTests(AttributeStartsWithSelectorTest);
     defineReflectiveTests(SelectorParserTest);
     defineReflectiveTests(SuggestTagsTest);
     defineReflectiveTests(HtmlTagForSelectorTest);
@@ -231,18 +232,6 @@ class WildcardAttributeSelectorTest extends _SelectorTest {
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     expect(selector.availableTo(element), true);
   }
-
-  // ignore: non_constant_identifier_names
-  void test_toString_hasValue() {
-    final selector = new WildcardAttributeSelector(nameElement, 'daffy');
-    expect(selector.toString(), '[kind*=daffy]');
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_toString_noValue() {
-    final selector = new WildcardAttributeSelector(nameElement, null);
-    expect(selector.toString(), '[kind*]');
-  }
 }
 
 @reflectiveTest
@@ -381,6 +370,79 @@ class AttributeValueRegexSelectorTest extends _SelectorTest {
   void test_match_justOne() {
     when(element.attributes)
         .thenReturn({'kind': 'bcd', 'plop': 'zabcz', 'klark': 'efg'});
+    expect(
+        selector.match(element, template), equals(SelectorMatch.NonTagMatch));
+    expect(selector.availableTo(element), true);
+  }
+}
+
+@reflectiveTest
+class AttributeStartsWithSelectorTest extends _SelectorTest {
+  final selector = new AttributeStartsWithSelector(
+      new AngularElementImpl('abc', 10, 5, null), 'xyz');
+
+  // ignore: non_constant_identifier_names
+  void test_noMatch_wrongAttrName() {
+    when(element.attributes).thenReturn({'abcd': 'xyz'});
+    when(element.attributeNameSpans)
+        .thenReturn({'abcd': _newStringSpan(100, 'abcd')});
+    expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    expect(selector.availableTo(element), equals(true));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_noMatch_valueNotStartWith() {
+    when(element.attributes).thenReturn({'abc': 'axyz'});
+    when(element.attributeNameSpans)
+        .thenReturn({'abc': _newStringSpan(100, 'abc')});
+    expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    // available to is false, because the attribute already exists and so
+    // suggesting it would lead to duplication.
+    expect(selector.availableTo(element), equals(false));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_noMatch_any() {
+    when(element.attributes).thenReturn(
+        {'abc': 'wrong value', 'wrong-attr': 'xyz', 'klark': 'efg'});
+    when(element.attributeNameSpans).thenReturn({
+      'abc': _newStringSpan(100, 'abc'),
+      'xyz': _newStringSpan(110, 'xyz'),
+      'klark': _newStringSpan(120, 'klark')
+    });
+    expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    expect(selector.availableTo(element), equals(false));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_exactMatch() {
+    when(element.attributes).thenReturn({'abc': 'xyz'});
+    when(element.attributeNameSpans)
+        .thenReturn({'abc': _newStringSpan(100, 'abc')});
+    expect(
+        selector.match(element, template), equals(SelectorMatch.NonTagMatch));
+    expect(selector.availableTo(element), true);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_withExtraCharsMatch() {
+    when(element.attributes).thenReturn({'abc': 'xyz and stuff'});
+    when(element.attributeNameSpans)
+        .thenReturn({'abc': _newStringSpan(100, 'abc')});
+    expect(
+        selector.match(element, template), equals(SelectorMatch.NonTagMatch));
+    expect(selector.availableTo(element), true);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_match_justOne() {
+    when(element.attributes)
+        .thenReturn({'abc': 'xyz and stuff', 'plop': 'zabcz', 'klark': 'efg'});
+    when(element.attributeNameSpans).thenReturn({
+      'abc': _newStringSpan(100, 'abc'),
+      'plop': _newStringSpan(110, 'plop'),
+      'klark': _newStringSpan(120, 'klark')
+    });
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
     expect(selector.availableTo(element), true);
@@ -668,6 +730,24 @@ class SelectorParserTest {
       expect(nameElement.nameLength, 'ng-for'.length);
     }
     expect(selector.value, isNull);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_attribute_startsWith() {
+    final AttributeStartsWithSelector selector =
+        new SelectorParser(source, 10, '[foo^=bar]').parse();
+    expect(selector, const isInstanceOf<AttributeStartsWithSelector>());
+    expect(selector.nameElement.name, 'foo');
+    expect(selector.value, 'bar');
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_attribute_startsWith_quoted() {
+    final AttributeStartsWithSelector selector =
+        new SelectorParser(source, 10, '[foo^="bar"]').parse();
+    expect(selector, const isInstanceOf<AttributeStartsWithSelector>());
+    expect(selector.nameElement.name, 'foo');
+    expect(selector.value, 'bar');
   }
 
   // ignore: non_constant_identifier_names
