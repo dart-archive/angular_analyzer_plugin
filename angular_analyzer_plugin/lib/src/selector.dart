@@ -134,6 +134,10 @@ class AttributeSelector extends AttributeSelectorBase {
       value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
+  List<AngularElement> getAttributes(ElementView element) =>
+      match(element, null) == SelectorMatch.NonTagMatch ? [] : [nameElement];
+
+  @override
   String toString() {
     final name = nameElement.name;
     if (value != null) {
@@ -231,6 +235,33 @@ class AttributeValueRegexSelector extends Selector {
   void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
     // empty
   }
+}
+
+/// The [Selector] that matches elements that have an attribute with any name,
+/// and with contents that match the given regex.
+class AttributeStartsWithSelector extends AttributeSelectorBase {
+  @override
+  final AngularElement nameElement;
+
+  final String value;
+
+  AttributeStartsWithSelector(this.nameElement, this.value);
+
+  @override
+  bool matchValue(String attributeValue) => attributeValue.startsWith(value);
+
+  @override
+  bool availableTo(ElementView element) =>
+      !element.attributes.containsKey(nameElement.name) ||
+      match(element, null) == SelectorMatch.NonTagMatch;
+
+  @override
+  String toString() => '[$nameElement^=$value]';
+
+  @override
+  List<HtmlTagForSelector> refineTagSuggestions(
+          List<HtmlTagForSelector> context) =>
+      context;
 }
 
 /// The [Selector] that matches elements with the given (static) classes.
@@ -783,6 +814,10 @@ class SelectorParser {
           isWildcard = true;
           name = name.replaceAll('*', '');
           selectors.add(new WildcardAttributeSelector(
+              new SelectorName(name, nameOffset, name.length, source), value));
+          continue;
+        } else if (operator == '^=') {
+          selectors.add(new AttributeStartsWithSelector(
               new SelectorName(name, nameOffset, name.length, source), value));
           continue;
         }
