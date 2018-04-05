@@ -138,6 +138,7 @@ class AttributeSelectorTest extends _SelectorTest {
   void test_match_notName() {
     final selector = new AttributeSelector(nameElement, null);
     when(element.attributes).thenReturn({'not-kind': 'no-matter'});
+    when(element.attributeNameSpans).thenReturn({'not-kind': null});
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     expect(selector.availableTo(element), true);
   }

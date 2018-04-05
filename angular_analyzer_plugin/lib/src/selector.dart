@@ -64,32 +64,29 @@ class AndSelector extends Selector {
   }
 }
 
-/// The [Selector] that matches elements that have an attribute with the
-/// given name, and (optionally) with the given value;
-class AttributeSelector extends Selector {
-  final AngularElement nameElement;
-  final String value;
-
-  AttributeSelector(this.nameElement, this.value);
+abstract class AttributeSelectorBase extends Selector {
+  AngularElement get nameElement;
 
   @override
   SelectorMatch match(ElementView element, Template template) {
-    final name = nameElement.name;
     SourceRange attributeSpan;
     String attributeValue;
 
-    if (!element.attributes.containsKey(name)) {
+    // Different selectors may find attributes differently
+    final matchedName = findAttribute(element);
+    if (matchedName == null) {
       return SelectorMatch.NoMatch;
     }
-    attributeSpan = element.attributeNameSpans[name];
-    attributeValue = element.attributes[name];
+
+    attributeSpan = element.attributeNameSpans[matchedName];
+    attributeValue = element.attributes[matchedName];
 
     if (attributeSpan == null) {
       return SelectorMatch.NoMatch;
     }
 
-    // match the actual value against the required
-    if (value != null && attributeValue != value) {
+    // Different selectors may match the attribute value differently
+    if (!matchValue(attributeValue)) {
       return SelectorMatch.NoMatch;
     }
 
@@ -102,14 +99,39 @@ class AttributeSelector extends Selector {
     return SelectorMatch.NonTagMatch;
   }
 
+  String findAttribute(ElementView element) => nameElement.name;
+
+  bool matchValue(String attributeValue);
+
+  @override
+  List<AngularElement> getAttributes(ElementView element) =>
+      element.attributes.keys.contains(findAttribute(element))
+          ? []
+          : [nameElement];
+
+  @override
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
+}
+
+/// The [Selector] that matches elements that have an attribute with the
+/// given name, and (optionally) with the given value;
+class AttributeSelector extends AttributeSelectorBase {
+  @override
+  final AngularElement nameElement;
+  final String value;
+
+  AttributeSelector(this.nameElement, this.value);
+
+  @override
+  bool matchValue(String attributeValue) =>
+      value == null || attributeValue == value;
+
   // Want to always return true since this doesn't narrow scope.
   @override
   bool availableTo(ElementView element) =>
       value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
-
-  @override
-  List<AngularElement> getAttributes(ElementView element) =>
-      match(element, null) == SelectorMatch.NonTagMatch ? [] : [nameElement];
 
   @override
   String toString() {
@@ -128,60 +150,25 @@ class AttributeSelector extends Selector {
     }
     return context;
   }
-
-  @override
-  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
-    // empty
-  }
 }
 
-/// The [Selector] that matches elements that have an attribute with the
-/// given name, and (optionally) with the given value;
-class WildcardAttributeSelector extends Selector {
+/// The [WildcardSelector] that matches elements that have attributes that start
+/// with the given name, and (optionally) with the given value.
+class WildcardAttributeSelector extends AttributeSelectorBase {
+  @override
   final AngularElement nameElement;
   final String value;
 
   WildcardAttributeSelector(this.nameElement, this.value);
 
   @override
-  SelectorMatch match(ElementView element, Template template) {
-    final name = nameElement.name;
-    SourceRange attributeSpan;
-    String attributeValue;
-
-    for (final attrName in element.attributes.keys) {
-      if (attrName.startsWith(name)) {
-        attributeValue = element.attributes[attrName];
-        attributeSpan = element.attributeNameSpans[attrName];
-        break;
-      }
-    }
-
-    if (attributeSpan == null) {
-      return SelectorMatch.NoMatch;
-    }
-
-    // match the actual value against the required
-    if (value != null && attributeValue != value) {
-      return SelectorMatch.NoMatch;
-    }
-
-    // OK
-    if (template != null) {
-      template.addRange(
-          new SourceRange(attributeSpan.offset, attributeSpan.length),
-          nameElement);
-    }
-    return SelectorMatch.NonTagMatch;
-  }
-
-  // Want to always return true since this doesn't narrow scope.
-  @override
-  bool availableTo(ElementView element) =>
-      value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
+  String findAttribute(ElementView element) => element.attributes.keys
+      .firstWhere((attrName) => attrName.startsWith(nameElement.name),
+          orElse: () => null);
 
   @override
-  List<AngularElement> getAttributes(ElementView element) => [nameElement];
+  bool matchValue(String attributeValue) =>
+      value == null || attributeValue == value;
 
   @override
   String toString() {
@@ -201,10 +188,10 @@ class WildcardAttributeSelector extends Selector {
     return context;
   }
 
+  // Want to always return true since this doesn't narrow scope.
   @override
-  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
-    // empty
-  }
+  bool availableTo(ElementView element) =>
+      value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
 }
 
 /// The [Selector] that matches elements that have an attribute with any name,
