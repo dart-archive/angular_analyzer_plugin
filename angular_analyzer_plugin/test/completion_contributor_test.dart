@@ -2155,7 +2155,7 @@ class MyDirective {}
     await computeSuggestions();
     expect(replacementOffset, completionOffset);
     expect(replacementLength, 0);
-    assertNotSuggested('bar');
+    assertSuggestSetter('bar');
   }
 
   // ignore: non_constant_identifier_names
