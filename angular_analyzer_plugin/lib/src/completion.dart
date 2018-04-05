@@ -1011,18 +1011,18 @@ class TemplateCompleter {
   /// and extracts non-violating plain-text attribute-directives
   /// and inputs (if name overlaps with attribute-directive).
   void suggestFromAvailableDirectives(
-    Map<AbstractDirective, List<AttributeSelector>> availableDirectives,
+    Map<AbstractDirective, List<AngularElement>> availableDirectives,
     CompletionCollector collector, {
     bool suggestInputs: false,
     bool suggestBananas: false,
     bool suggestPlainAttributes: false,
   }) {
     availableDirectives.forEach((directive, selectors) {
-      final attributeSelectors = <String, AttributeSelector>{};
+      final attributeSelectors = <String, AngularElement>{};
       final validInputs = <InputElement>[];
 
-      for (final aSelector in selectors) {
-        attributeSelectors[aSelector.nameElement.name] = aSelector;
+      for (final attribute in selectors) {
+        attributeSelectors[attribute.name] = attribute;
       }
 
       for (final input in directive.inputs) {
@@ -1053,8 +1053,8 @@ class TemplateCompleter {
 
       if (suggestPlainAttributes) {
         attributeSelectors.forEach((name, selector) {
-          final nameOffset = selector.nameElement.nameOffset;
-          final locationSource = selector.nameElement.source.fullName;
+          final nameOffset = selector.nameOffset;
+          final locationSource = selector.source.fullName;
           collector.addSuggestion(_createPlainAttributeSuggestions(
               name,
               DART_RELEVANCE_DEFAULT,
