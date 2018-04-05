@@ -42,10 +42,8 @@ class AndSelector extends Selector {
       selectors.every((selector) => selector.availableTo(element));
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) =>
-      selectors
-          .expand((selector) => selector.getAttributeSelectors(element))
-          .toList();
+  List<AngularElement> getAttributes(ElementView element) =>
+      selectors.expand((selector) => selector.getAttributes(element)).toList();
 
   @override
   String toString() => selectors.join(' && ');
@@ -125,10 +123,10 @@ class AttributeSelector extends Selector {
       value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) =>
+  List<AngularElement> getAttributes(ElementView element) =>
       (isWildcard || match(element, null) == SelectorMatch.NonTagMatch)
           ? []
-          : [this];
+          : [nameElement];
 
   @override
   String toString() {
@@ -177,7 +175,7 @@ class AttributeValueRegexSelector extends Selector {
       match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
+  List<AngularElement> getAttributes(ElementView element) => [];
 
   @override
   String toString() => '[*=$regexpStr]';
@@ -233,7 +231,7 @@ class ClassSelector extends Selector {
   bool availableTo(ElementView element) => true;
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
+  List<AngularElement> getAttributes(ElementView element) => [];
 
   @override
   String toString() => '.${nameElement.name}';
@@ -285,7 +283,7 @@ class ElementNameSelector extends Selector {
       nameElement.name == element.localName;
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
+  List<AngularElement> getAttributes(ElementView element) => [];
 
   @override
   String toString() => nameElement.name;
@@ -341,10 +339,8 @@ class OrSelector extends Selector {
       selectors.any((selector) => selector.availableTo(element));
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) =>
-      selectors
-          .expand((selector) => selector.getAttributeSelectors(element))
-          .toList();
+  List<AngularElement> getAttributes(ElementView element) =>
+      selectors.expand((selector) => selector.getAttributes(element)).toList();
 
   @override
   String toString() => selectors.join(' || ');
@@ -385,7 +381,7 @@ class NotSelector extends Selector {
       condition.match(element, null) == SelectorMatch.NoMatch;
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
+  List<AngularElement> getAttributes(ElementView element) => [];
 
   @override
   String toString() => ":not($condition)";
@@ -425,7 +421,7 @@ class ContainsSelector extends Selector {
   bool availableTo(ElementView element) => false;
 
   @override
-  List<AttributeSelector> getAttributeSelectors(ElementView element) => [];
+  List<AngularElement> getAttributes(ElementView element) => [];
 
   @override
   String toString() => ":contains($regex)";
@@ -459,9 +455,10 @@ abstract class Selector {
   /// without having to change/remove existing decorator.
   bool availableTo(ElementView element);
 
-  /// Returns a list of all [AttributeSelector]s that does not
-  /// violate the current selector's rules as defined by [availableTo].
-  List<AttributeSelector> getAttributeSelectors(ElementView element);
+  /// Returns a list of all [AngularElement]s where each is an attribute name,
+  /// and each attribute could be added to [element] and the selector would
+  /// still be [availableTo] it.
+  List<AngularElement> getAttributes(ElementView element);
 
   /// See [HtmlTagForSelector] for info on what this does.
   List<HtmlTagForSelector> refineTagSuggestions(
