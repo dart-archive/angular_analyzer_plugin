@@ -43,7 +43,7 @@ Some larger items:
 
 Example syntax:
 
-```
+```yaml
   analyzer:
     plugins:
       angular:
@@ -93,7 +93,7 @@ Some larger items:
 
 Example syntax:
 
-```
+```yaml
   analyzer:
     plugins:
       angular:
