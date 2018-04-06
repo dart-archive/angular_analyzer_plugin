@@ -233,15 +233,13 @@ class WildcardAttributeSelectorTest extends _SelectorTest {
 
   // ignore: non_constant_identifier_names
   void test_toString_hasValue() {
-    final selector =
-        new WildcardAttributeSelector(nameElement, 'daffy');
+    final selector = new WildcardAttributeSelector(nameElement, 'daffy');
     expect(selector.toString(), '[kind*=daffy]');
   }
 
   // ignore: non_constant_identifier_names
   void test_toString_noValue() {
-    final selector =
-        new WildcardAttributeSelector(nameElement, null);
+    final selector = new WildcardAttributeSelector(nameElement, null);
     expect(selector.toString(), '[kind*]');
   }
 }
