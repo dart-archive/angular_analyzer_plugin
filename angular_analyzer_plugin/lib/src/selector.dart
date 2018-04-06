@@ -581,6 +581,31 @@ class HtmlTagForSelector {
   }
 }
 
+const _attributeRegexStr = // comment here for formatting:
+    r'\[' // begins with '['
+    '($_attributeNameRegexStr)' // capture the attribute name
+    '(?:$_attributeEqualsValueRegexStr)?' // non-capturing optional value
+    r'\]' // ends with ']'
+    ;
+
+const _attributeNameRegexStr =
+    r'[-\w]+|\*'; // chars with dash, may end with or be just '*'.
+
+const _attributeEqualsValueRegexStr = // comment here for formatting:
+    r'(\^=|\*=|=)' // capture which type of '=' operator
+    // include values. Don't capture here, they contain captures themselves.
+    '(?:$_attributeNoQuoteValueRegexStr|$_attributeQuotedValueRegexStr)';
+
+const _attributeNoQuoteValueRegexStr =
+    r'''([^\]'"]+)''' // Capture anything but ']' or a quote.
+    ;
+
+const _attributeQuotedValueRegexStr = // comment here for formatting:
+    r"'([^\]']*)'" // Capture the contents of a single quoted string
+    r'|' // or
+    r'"([^\]"]*)"' // Capture the contents of a double quoted string
+    ;
+
 class SelectorParser {
   Match currentMatch;
   Iterator<Match> matches;
@@ -596,9 +621,7 @@ class SelectorParser {
   final RegExp _regExp = new RegExp(r'(\:not\()|'
       r'([-\w]+)|' // Tag
       r'(?:\.([-\w]+))|' // Class
-      r'''(?:\[([-\w*]+)(?:=([^\]'"]*))?\])|''' // Attribute, no quotes
-      r"(?:\[([-\w]+)(?:='([^\]]*)')\])|" // Attribute, single quotes
-      r'(?:\[([-\w]+)(?:="([^\]]*)")\])|' // Attribute, double quotes
+      '(?:$_attributeRegexStr)|' // Attribute, in a non-capturing group.
       r'(\))|'
       r'(\s*,\s*)|'
       r'(^\:contains\(\/(.+)\/\)$)'); // :contains doesn't mix with the rest
@@ -610,15 +633,19 @@ class SelectorParser {
     3: _SelectorRegexMatch.Class,
     4: _SelectorRegexMatch.Attribute, // no quotes
     // 5 is part of Attribute. Not a match type.
-    6: _SelectorRegexMatch.Attribute, // single quotes
+    // 6 is part of Attribute. Not a match type.
     // 7 is part of Attribute. Not a match type.
-    8: _SelectorRegexMatch.Attribute, // double quotes
-    // 9 is part of Attribute. Not a match type.
-    10: _SelectorRegexMatch.NotEnd,
-    11: _SelectorRegexMatch.Comma,
-    12: _SelectorRegexMatch.Contains,
-    // 13 is a part of Contains.
+    // 8 is part of Attribute. Not a match type.
+    9: _SelectorRegexMatch.NotEnd,
+    10: _SelectorRegexMatch.Comma,
+    11: _SelectorRegexMatch.Contains,
+    // 12 is a part of Contains.
   };
+
+  static const _operatorMatch = 5;
+  static const _unquotedValueMatch = 6;
+  static const _singleQuotedValueMatch = 7;
+  static const _doubleQuotedValueMatch = 8;
 
   Match advance() {
     if (!matches.moveNext()) {
@@ -691,7 +718,10 @@ class SelectorParser {
       } else if (currentMatchType == _SelectorRegexMatch.Attribute) {
         final nameIndex = currentMatch.start + '['.length;
         final nameOffset = fileOffset + nameIndex;
-        final value = currentMatch[currentMatchIndex + 1];
+        final operator = currentMatch[_operatorMatch];
+        final value = currentMatch[_unquotedValueMatch] ??
+            currentMatch[_singleQuotedValueMatch] ??
+            currentMatch[_doubleQuotedValueMatch];
 
         var name = currentMatchStr;
         var isWildcard = false;
@@ -701,10 +731,13 @@ class SelectorParser {
             value != null &&
             value.startsWith('/') &&
             value.endsWith('/')) {
+          if (operator != '=') {
+            _unexpected(operator, nameIndex + name.length);
+          }
           selectors.add(new AttributeValueRegexSelector(
               value.substring(1, value.length - 1)));
           continue;
-        } else if (name.endsWith('*')) {
+        } else if (operator == '*=') {
           isWildcard = true;
           name = name.replaceAll('*', '');
         }
