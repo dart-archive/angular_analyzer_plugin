@@ -29,8 +29,20 @@ class AngularOptionsTest {
     final options = new AngularOptions.fromString('''
 analyzer:
   plugins:
+    - angular
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
+    expect(options.customEvents, isNotNull);
+    expect(options.customEvents, isEmpty);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_defaults_emptyObject() {
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
     angular:
-      enabled: true
 ''', null);
     expect(options.customTagNames, isNotNull);
     expect(options.customTagNames, isEmpty);
@@ -44,7 +56,6 @@ analyzer:
 analyzer:
   plugins:
     angular:
-      enabled: true
       custom_tag_names:
         - foo
         - bar
@@ -60,7 +71,6 @@ analyzer:
 analyzer:
   plugins:
     angular:
-      enabled: true
       custom_events:
         foo:
           type: String
@@ -108,7 +118,6 @@ analyzer:
 analyzer:
   plugins:
     angular:
-      enabled: true
       custom_events:
         foo:
           type: String
@@ -130,7 +139,6 @@ analyzer:
 analyzer:
   plugins:
     craaangularrrrrk:
-      enabled: true
       custom_tag_names:
         - foo
         - bar
@@ -147,7 +155,6 @@ analyzer:
 analyzer:
   plugins:
     angular_analyzer_plugin:
-      enabled: true
       custom_tag_names:
         - foo
         - bar
@@ -156,94 +163,6 @@ analyzer:
 ''', null);
     expect(options.customTagNames, isNotNull);
     expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_buildYaml_selfLoadingIgnoredIfNotEnabled() {
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-
-    angular_analyzer_plugin:
-      enabled: false
-      custom_tag_names:
-        - foo
-        - bar
-        - baz
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, isEmpty);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_buildYaml_angularIgnoredIfNotEnabled() {
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    angular:
-      enabled: false
-      custom_tag_names:
-        - foo
-        - bar
-        - baz
-
-    angular_analyzer_plugin:
-      enabled: true
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, isEmpty);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_buildYaml_angularAndSelfLoadingMerged() {
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-
-    angular_analyzer_plugin:
-      enabled: true
-      custom_tag_names:
-        - foo
-        - bar
-        - baz
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_buildYaml_angularPrioritizedOverSelfLoading() {
-    // TODO(mfairhurst) this should be an error/warning.
-    // However, not critical.
-    // For now, let's at least test this so it doesn't change willy-nilly.
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-      custom_tag_names:
-        - tags-from-angular
-        - should-appear
-        - this-is-good
-
-    angular_analyzer_plugin:
-      enabled: true
-      custom_tag_names:
-        - tags-from-plugin
-        - should-not-appear
-        - this-is-good
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames,
-        equals(['tags-from-angular', 'should-appear', 'this-is-good']));
   }
 
   // ignore: non_constant_identifier_names
@@ -255,34 +174,10 @@ analyzer:
 analyzer:
   plugins:
     angular:
-      enabled: true
       custom_tag_names: true
 ''', null);
     expect(options.customTagNames, isNotNull);
     expect(options.customTagNames, const isInstanceOf<List>());
     expect(options.customTagNames, isEmpty);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_buildYaml_nonMangledValuesPrioritizedOverMangled() {
-    // TODO(mfairhurst) this should be an error/warning.
-    // However, not critical.
-    // For now, let's at least test this so it doesn't change willy-nilly.
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-      custom_tag_names: 10
-
-    angular_analyzer_plugin:
-      enabled: true
-      custom_tag_names:
-        - should-appear
-        - this-is-good
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, equals(['should-appear', 'this-is-good']));
   }
 }

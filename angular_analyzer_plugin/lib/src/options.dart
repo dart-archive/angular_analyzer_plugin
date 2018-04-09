@@ -65,7 +65,6 @@ class CustomEvent {
 class _OptionsBuilder {
   dynamic analysisOptions;
   dynamic angularOptions;
-  dynamic angularPluginOptions;
 
   List<String> customTagNames = const [];
   Map<String, CustomEvent> customEvents = {};
@@ -101,30 +100,35 @@ class _OptionsBuilder {
       return;
     }
 
-    // default path
-    angularOptions = optionsIfEnabled('angular');
-    // specific-version path (see project root Readme.md)
-    angularPluginOptions = optionsIfEnabled('angular_analyzer_plugin');
-
-    if ((angularOptions ?? angularPluginOptions) != null) {
+    if (loadSection('angular') || loadSection('angular_analyzer_plugin')) {
       resolve();
     }
   }
 
-  dynamic optionsIfEnabled(String key) {
-    final section = analysisOptions['analyzer']['plugins'][key];
-    if (section != null && section['enabled'] != true) {
-      return null;
+  bool loadSection(String key) {
+    final pluginSection = analysisOptions['analyzer']['plugins'];
+
+    // Standard case, just turn on the plugin.
+    if (pluginSection is List) {
+      return pluginSection.contains(key);
     }
-    return section;
+
+    // The only other case we support is sections with configs
+    if (pluginSection is! Map) {
+      return false;
+    }
+
+    // Edge case, a section with a config (such as custom tag names).
+    final specified = pluginSection.containsKey(key);
+    if (specified) {
+      angularOptions = pluginSection[key];
+    }
+    return specified;
   }
 
   dynamic getOption(String key, bool validator(input)) {
-    if (angularOptions != null && validator(angularOptions[key])) {
+    if (angularOptions is Map && validator(angularOptions[key])) {
       return angularOptions[key];
-    } else if (angularPluginOptions != null &&
-        validator(angularPluginOptions[key])) {
-      return angularPluginOptions[key];
     }
     return null;
   }

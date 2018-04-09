@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- No longer require `enabled: true`. Setup documentation will be changed later,
+  since the new setup won't work with older plugins.
 - Refactored attribute autocompletion
 - Fixed a bug where pipes that inherited transform() got flagged.
 - Fixed a bug where parts' templateUrls should be relative to the parts' library
