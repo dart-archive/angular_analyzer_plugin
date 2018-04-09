@@ -2,33 +2,15 @@ name: angular2_quickstart
 description: QuickStart
 version: 0.0.1
 environment:
-  sdk: '>=1.24.0-dev.1.0 <2.0.0'
+  sdk: '>=2.0.0-dev.35.0 <2.0.0'
 
 dependencies:
-  angular2: ^3.1.0
+  angular: 5.0.0-alpha+9
+  angular_forms: 2.0.0-alpha+1
 
 dev_dependencies:
-  angular_test: ^1.0.0-beta+2
-  browser: ^0.10.0
-  dart_to_js_script_rewriter: ^1.0.1
-  test: ^0.12.21
-  angular_analyzer_plugin: 0.0.8
+  angular_analyzer_plugin: any
 
 dependency_overrides:
   angular_analyzer_plugin:
     path: ../angular_analyzer_plugin
-  analyzer_plugin:
-    path: ../deps/sdk/pkg/analyzer_plugin
-
-transformers:
-- angular2:
-    entry_points: web/main.dart
-- angular2/transform/reflection_remover:
-    $include: test/**_test.dart
-- test/pub_serve:
-    $include: test/**_test.dart
-- dart_to_js_script_rewriter
-
-web:
-  compiler:
-    debug: dartdevc

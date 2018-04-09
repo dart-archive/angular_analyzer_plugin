@@ -67,18 +67,16 @@ If you have any issues, filing an issue with us is always a welcome option. Ther
 We may ask you any or all of these questions if you open an issue, so feel free to go run through these checks on your own to get a hint what might be wrong.
 
 
-## Building -- For hacking on this plugin, or using the latest (unpublished)
+## Building -- For hacking on this plugin, or using the latest unpublished.
 
-Download chrome depot tools, and clone this repository.
+There's an `pubspec.yaml` file that needs to be updated to point to your local system:
 
-Then run 
 ```console
-$ ./tools/get_deps.sh
 $ cd angular_analyzer_plugin/tools/analyzer_plugin
 $ cp pubspec.yaml.defaults pubspec.yaml
 ```
 
-Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be absolute for the moment! Once they can be relative this step will not be required.
+Modify `pubspec.yaml` in this folder to fix the absolute paths. They **must** be absolute!
 
 Then run `pub get`.
 
