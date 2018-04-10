@@ -84,44 +84,6 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
     expect(driver.options.customTagNames, isNotNull);
     expect(driver.options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
-
-  // ignore: non_constant_identifier_names
-  void test_createAnalysisDriver_customTagNames_onlyInDisabledSection() {
-    setAnalysisYamlBothPluginSections(angularOptions: [
-      'enabled: true',
-    ], angularPluginOptions: [
-      'enabled: false',
-      'custom_tag_names:',
-      '  - foo',
-      '  - bar',
-      '  - baz',
-    ]);
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
-
-    expect(driver, isNotNull);
-    expect(driver.options, isNotNull);
-    expect(driver.options.customTagNames, isNotNull);
-    expect(driver.options.customTagNames, isEmpty);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_createAnalysisDriver_customTagNames_onlyInEnabledSection() {
-    setAnalysisYamlBothPluginSections(angularOptions: [
-      'enabled: false',
-    ], angularPluginOptions: [
-      'enabled: true',
-      'custom_tag_names:',
-      '  - foo',
-      '  - bar',
-      '  - baz',
-    ]);
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
-
-    expect(driver, isNotNull);
-    expect(driver.options, isNotNull);
-    expect(driver.options.customTagNames, isNotNull);
-    expect(driver.options.customTagNames, equals(['foo', 'bar', 'baz']));
-  }
 }
 
 /// Unfortunately, package:yaml doesn't support dumping to yaml. So this is
@@ -144,22 +106,13 @@ class AnalysisOptionsUtilsBase {
 
   void enableAnalyzerPluginsAngular({List<String> extraOptions = const []}) =>
       setOptionsFileContent(optionsHeader +
-          optionsSection('angular',
-              extraOptions: ['enabled: true']..addAll(extraOptions)));
+          optionsSection('angular', extraOptions: extraOptions));
 
   void enableAnalyzerPluginsAngularPlugin(
           {List<String> extraOptions = const []}) =>
       setOptionsFileContent(optionsHeader +
           optionsSection('angular_analyzer_plugin',
-              extraOptions: ['enabled: true']..addAll(extraOptions)));
-
-  void setAnalysisYamlBothPluginSections(
-          {List<String> angularOptions = const [],
-          List<String> angularPluginOptions = const []}) =>
-      setOptionsFileContent(optionsHeader +
-          optionsSection('angular', extraOptions: angularOptions) +
-          optionsSection('angular_analyzer_plugin',
-              extraOptions: angularPluginOptions));
+              extraOptions: extraOptions));
 
   String optionsHeader = '''
 analyzer:
@@ -193,7 +146,6 @@ class AnalysisOptionsUtilsTest extends AnalysisOptionsUtilsBase {
 analyzer:
   plugins:
     angular:
-      enabled: true
 
 ''');
   }
@@ -209,7 +161,6 @@ analyzer:
 analyzer:
   plugins:
     angular:
-      enabled: true
       foo: bar
       baz:
         - qux
@@ -229,7 +180,6 @@ analyzer:
 analyzer:
   plugins:
     angular_analyzer_plugin:
-      enabled: true
 
 ''');
   }
@@ -246,36 +196,7 @@ analyzer:
 analyzer:
   plugins:
     angular_analyzer_plugin:
-      enabled: true
       foo: bar
-      baz:
-        - qux
-
-''');
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_setAnalysisYamlBothPluginSections() {
-    setAnalysisYamlBothPluginSections(angularOptions: [
-      'foo:',
-      '  - bar',
-    ], angularPluginOptions: [
-      'baz:',
-      '  - qux',
-    ]);
-
-    final optionsText = resourceProvider
-        .getFile('/test/analysis_options.yaml')
-        .readAsStringSync();
-
-    expect(optionsText, '''
-analyzer:
-  plugins:
-    angular:
-      foo:
-        - bar
-
-    angular_analyzer_plugin:
       baz:
         - qux
 
