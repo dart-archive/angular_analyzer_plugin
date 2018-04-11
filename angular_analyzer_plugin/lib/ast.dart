@@ -3,7 +3,6 @@ import 'dart:collection';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:meta/meta.dart';
 
