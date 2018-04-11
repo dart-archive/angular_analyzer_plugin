@@ -100,34 +100,51 @@ class _OptionsBuilder {
       return;
     }
 
-    if (loadSection('angular') || loadSection('angular_analyzer_plugin')) {
+    if (loadTopLevelSection() ||
+        loadPluginSection('angular') ||
+        loadPluginSection('angular_analyzer_plugin')) {
       resolve();
     }
   }
 
-  bool loadSection(String key) {
-    final pluginSection = analysisOptions['analyzer']['plugins'];
+  /// Attempt to load the top level `angular` config section into
+  /// [angularOptions]. If the section exists and is a map, return true. This is
+  /// the going-forward default case.
+  bool loadTopLevelSection() {
+    if (analysisOptions['angular'] is Map) {
+      angularOptions = analysisOptions['angular'];
+      return true;
+    }
+    return false;
+  }
 
-    // Standard case, just turn on the plugin.
-    if (pluginSection is List) {
-      return pluginSection.contains(key);
+  /// Look for a plugin enabled by name [key], which for historical purposes is
+  /// allowed via "angular" or "angular_analyzer_plugin." Return true if that
+  /// plugin is specified, and as an edge case, it may have config to load into
+  /// [angularOptions]. This will soon be removed.
+  bool loadPluginSection(String key) {
+    final pluginsSection = analysisOptions['analyzer']['plugins'];
+
+    // This is common. This means the plugin is turned on but has no config.
+    if (pluginsSection is List) {
+      return pluginsSection.contains(key);
     }
 
-    // The only other case we support is sections with configs
-    if (pluginSection is! Map) {
+    // Protect against confusing configs
+    if (pluginsSection is! Map) {
       return false;
     }
 
-    // Edge case, a section with a config (such as custom tag names).
-    final specified = pluginSection.containsKey(key);
+    // Outdated edge case, support a map of options under `plugins: x: ...`.
+    final specified = pluginsSection.containsKey(key);
     if (specified) {
-      angularOptions = pluginSection[key];
+      angularOptions = pluginsSection[key];
     }
     return specified;
   }
 
   dynamic getOption(String key, bool validator(input)) {
-    if (angularOptions is Map && validator(angularOptions[key])) {
+    if (angularOptions != null && validator(angularOptions[key])) {
       return angularOptions[key];
     }
     return null;
