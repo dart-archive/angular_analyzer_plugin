@@ -38,7 +38,7 @@ analyzer:
   }
 
   // ignore: non_constant_identifier_names
-  void test_buildYaml_defaults_emptyObject() {
+  void test_buildYaml_defaults_legacy_emptyObject() {
     final options = new AngularOptions.fromString('''
 analyzer:
   plugins:
@@ -51,7 +51,7 @@ analyzer:
   }
 
   // ignore: non_constant_identifier_names
-  void test_buildYaml_simple_tags() {
+  void test_buildYaml_legacy_simple_tags() {
     final options = new AngularOptions.fromString('''
 analyzer:
   plugins:
@@ -66,7 +66,7 @@ analyzer:
   }
 
   // ignore: non_constant_identifier_names
-  void test_buildYaml_dynamic_events() {
+  void test_buildYaml_legacy_dynamic_events() {
     final code = '''
 analyzer:
   plugins:
@@ -79,6 +79,118 @@ analyzer:
           path: 'package:foo/bar/baz.dart'
         empty:
 
+''';
+    final options = new AngularOptions.fromString(code, null);
+    expect(options.customEvents, isNotNull);
+    expect(options.customEvents, hasLength(3));
+
+    {
+      final event = options.customEvents['foo'];
+      expect(event, isNotNull);
+      expect(event.name, 'foo');
+      expect(event.typeName, 'String');
+      expect(event.typePath, isNull);
+      expect(event.nameOffset, code.indexOf('foo'));
+    }
+
+    {
+      final event = options.customEvents['bar'];
+      expect(event, isNotNull);
+      expect(event.name, 'bar');
+      expect(event.typeName, 'BarEvent');
+      expect(event.typePath, 'package:foo/bar/baz.dart');
+      expect(event.nameOffset, code.indexOf('bar'));
+    }
+
+    {
+      final event = options.customEvents['empty'];
+      expect(event, isNotNull);
+      expect(event.name, 'empty');
+      expect(event.typeName, null);
+      expect(event.typePath, null);
+      expect(event.nameOffset, code.indexOf('empty'));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_legacy_selfLoading() {
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+      custom_tag_names:
+        - foo
+        - bar
+        - baz
+
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_legacy_mangledValueIgnored() {
+    // TODO(mfairhurst) this should be an error/warning.
+    // However, the most important thing is that we don't propagate the mangled
+    // values which can cause later crashes.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular:
+      custom_tag_names: true
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, const isInstanceOf<List>());
+    expect(options.customTagNames, isEmpty);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_defaults_emptyObject() {
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    - angular
+
+angular:
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, isEmpty);
+    expect(options.customEvents, isNotNull);
+    expect(options.customEvents, isEmpty);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_simple_tags() {
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    - angular
+
+angular:
+  custom_tag_names:
+    - foo
+    - bar
+    - baz
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_dynamic_events() {
+    final code = '''
+analyzer:
+  plugins:
+    - angular
+
+angular:
+  custom_events:
+    foo:
+      type: String
+    bar:
+      type: BarEvent
+      path: 'package:foo/bar/baz.dart'
+    empty:
 ''';
     final options = new AngularOptions.fromString(code, null);
     expect(options.customEvents, isNotNull);
@@ -134,38 +246,6 @@ analyzer:
   }
 
   // ignore: non_constant_identifier_names
-  void test_buildYaml_ignoresUnrelatedPlugin() {
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    craaangularrrrrk:
-      custom_tag_names:
-        - foo
-        - bar
-        - baz
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, isEmpty);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_buildYaml_selfLoading() {
-    final options = new AngularOptions.fromString('''
-analyzer:
-  plugins:
-    angular_analyzer_plugin:
-      custom_tag_names:
-        - foo
-        - bar
-        - baz
-
-''', null);
-    expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
-  }
-
-  // ignore: non_constant_identifier_names
   void test_buildYaml_mangledValueIgnored() {
     // TODO(mfairhurst) this should be an error/warning.
     // However, the most important thing is that we don't propagate the mangled
@@ -173,11 +253,165 @@ analyzer:
     final options = new AngularOptions.fromString('''
 analyzer:
   plugins:
-    angular:
-      custom_tag_names: true
+    - angular
+
+angular:
+  custom_tag_names: true
 ''', null);
     expect(options.customTagNames, isNotNull);
     expect(options.customTagNames, const isInstanceOf<List>());
     expect(options.customTagNames, isEmpty);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_topLevelAndPluginConfigMerged() {
+    // TODO(mfairhurst) this is a temporary edge case. For now, let's at least
+    // test this so it doesn't change willy-nilly.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular:
+      custom_events:
+        empty:
+
+angular:
+  custom_tag_names:
+    - foo
+    - bar
+    - baz
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
+
+    expect(options.customEvents, isNotNull);
+    expect(options.customEvents, hasLength(1));
+    {
+      final event = options.customEvents['empty'];
+      expect(event, isNotNull);
+      expect(event.name, 'empty');
+      expect(event.typeName, null);
+      expect(event.typePath, null);
+      expect(event.nameOffset, isNotNull);
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_topLevelAndSelfLoadingPluginConfigMerged() {
+    // TODO(mfairhurst) this is a temporary edge case. For now, let's at least
+    // test this so it doesn't change willy-nilly.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+      custom_events:
+        empty:
+
+angular:
+  custom_tag_names:
+    - foo
+    - bar
+    - baz
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['foo', 'bar', 'baz']));
+
+    expect(options.customEvents, isNotNull);
+    expect(options.customEvents, hasLength(1));
+    {
+      final event = options.customEvents['empty'];
+      expect(event, isNotNull);
+      expect(event.name, 'empty');
+      expect(event.typeName, null);
+      expect(event.typePath, null);
+      expect(event.nameOffset, isNotNull);
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_toplevelPrioritizedOverPluginConfig() {
+    // TODO(mfairhurst) this is a temporary edge case. For now, let's at least
+    // test this so it doesn't change willy-nilly.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular:
+      custom_tag_names:
+        - tags-from-plugin
+        - should-not-appear
+        - this-is-good
+
+angular:
+  custom_tag_names:
+    - tags-from-angular
+    - should-appear
+    - this-is-good
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames,
+        equals(['tags-from-angular', 'should-appear', 'this-is-good']));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_toplevelPrioritizedOverSelfLoadingPluginConfig() {
+    // TODO(mfairhurst) this is a temporary edge case. For now, let's at least
+    // test this so it doesn't change willy-nilly.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+      custom_tag_names:
+        - tags-from-plugin
+        - should-not-appear
+        - this-is-good
+
+angular:
+  custom_tag_names:
+    - tags-from-angular
+    - should-appear
+    - this-is-good
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames,
+        equals(['tags-from-angular', 'should-appear', 'this-is-good']));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_nonMangledValuesPrioritizedOverMangled() {
+    // TODO(mfairhurst) this is a temporary edge case. For now, let's at least
+    // test this so it doesn't change willy-nilly.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular:
+      custom_tag_names:
+        - should-appear
+        - this-is-good
+
+angular:
+  custom_tag_names: 10
+
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['should-appear', 'this-is-good']));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_buildYaml_nonMangledValuesPrioritizedOverMangled2() {
+    // TODO(mfairhurst) this is a temporary edge case. For now, let's at least
+    // test this so it doesn't change willy-nilly.
+    final options = new AngularOptions.fromString('''
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+      custom_tag_names:
+        - should-appear
+        - this-is-good
+
+angular:
+  custom_tag_names: 10
+
+''', null);
+    expect(options.customTagNames, isNotNull);
+    expect(options.customTagNames, equals(['should-appear', 'this-is-good']));
   }
 }

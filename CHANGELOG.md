@@ -1,12 +1,53 @@
 ## Unpublished Changes
 
-- No longer require `enabled: true`. Setup documentation will be changed later,
-  since the new setup won't work with older plugins.
 - Refactored attribute autocompletion
 - Fixed a bug where pipes that inherited transform() got flagged.
 - Fixed a bug where parts' templateUrls should be relative to the parts' library
   and not the part itself.
 - Added support for === operator.
+
+Some larger items:
+
+### Newer options config
+
+The required config has been changed in a backwards-compatible way. However,
+setup documentation will be changed later, since the *new setup instructions*
+won't work *with older plugins*. After publish + a delay, the setup instructions
+will be updated accordingly.
+
+Specifically, we no longer require `enabled: true`, and we are moving from
+configuring the plugin inside `analyzer`, to having its own top level. This
+solves a number of problems related to finding, merging, or modifying config,
+with a potentially large number of methods of loading the plugin.
+
+Old:
+
+```yaml
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_tag_names:
+        - foo
+        - bar
+```
+
+New:
+
+```yaml
+analyzer:
+  plugins:
+    - angular
+
+angular:
+  custom_tag_names:
+    - foo
+    - bar
+```
+
+This is encouraged for users on more recent versions than 0.0.14. Support for
+the old system will likely first be flagged within the dart analyzer itself, and
+then dropped from our plugin a while after that.
 
 ## 0.0.14
 

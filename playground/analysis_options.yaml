@@ -1,5 +1,3 @@
 analyzer:
   plugins:
-    angular_analyzer_plugin:
-      enabled: true
-      foo: bar
+    - angular_analyzer_plugin
