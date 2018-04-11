@@ -64,8 +64,7 @@ class CustomEvent {
 
 class _OptionsBuilder {
   dynamic analysisOptions;
-  dynamic pluginSection;
-  dynamic toplevelSection;
+  dynamic angularOptions;
 
   List<String> customTagNames = const [];
   Map<String, CustomEvent> customEvents = {};
@@ -101,43 +100,54 @@ class _OptionsBuilder {
       return;
     }
 
-    if (analysisOptions['angular'] is Map) {
-      toplevelSection = analysisOptions['angular'];
+    if (loadTopLevelSection() ||
+        loadPluginSection('angular') ||
+        loadPluginSection('angular_analyzer_plugin')) {
+      resolve();
     }
-
-    // Use || to load angular, and if it fails, load angular_analyzer_plugin.
-    loadSection('angular') || loadSection('angular_analyzer_plugin');
-
-    resolve();
   }
 
-  bool loadSection(String key) {
+  /// Attempt to load the top level `angular` config section into
+  /// [angularOptions]. If the section exists and is a map, return true. This is
+  /// the going-forward default case.
+  bool loadTopLevelSection() {
+    if (analysisOptions['angular'] is Map) {
+      angularOptions = analysisOptions['angular'];
+      return true;
+    }
+    return false;
+  }
+
+  /// Look for a plugin enabled by name [key], which for historical purposes is
+  /// allowed via "angular" or "angular_analyzer_plugin." Return true if that
+  /// plugin is specified, and as an edge case, it may have config to load into
+  /// [angularOptions]. This will soon be removed.
+  bool loadPluginSection(String key) {
     final pluginsSection = analysisOptions['analyzer']['plugins'];
 
-    // Standard case, just turn on the plugin.
+    // This is common. This means the plugin is turned on but has no config.
     if (pluginsSection is List) {
       return pluginsSection.contains(key);
     }
 
-    // The only other case we support is sections with configs
+    // Protect against confusing configs
     if (pluginsSection is! Map) {
       return false;
     }
 
-    // Edge case, a section with a config (such as custom tag names).
+    // Outdated edge case, support a map of options under `plugins: x: ...`.
     final specified = pluginsSection.containsKey(key);
     if (specified) {
-      pluginSection = pluginsSection[key];
+      angularOptions = pluginsSection[key];
     }
     return specified;
   }
 
   dynamic getOption(String key, bool validator(input)) {
-    if (toplevelSection != null && validator(toplevelSection[key])) {
-      return toplevelSection[key];
-    } else if (pluginSection != null && validator(pluginSection[key])) {
-      return pluginSection[key];
+    if (angularOptions != null && validator(angularOptions[key])) {
+      return angularOptions[key];
     }
+    return null;
   }
 
   bool isListOfStrings(values) =>
