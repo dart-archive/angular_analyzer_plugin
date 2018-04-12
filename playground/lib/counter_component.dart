@@ -1,5 +1,6 @@
-import 'package:angular2/angular2.dart';
+import 'dart:async';
 import 'dart:html';
+import 'package:angular/angular.dart';
 
 const foo = 1;
 
@@ -10,12 +11,13 @@ const foo = 1;
 class CounterComponent {
   @Input()
   int count;
+  StreamController<int> _incrementedController;
   @Output()
-  EventEmitter<int> incremented;
+  Stream<int> get incremented => _incrementedController.stream;
 
   increment(MouseEvent event) {
     count++;
-    incremented.add(count);
+    _incrementedController.add(count);
   }
 
   CounterComponent() {}
