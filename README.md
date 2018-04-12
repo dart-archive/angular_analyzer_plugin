@@ -23,8 +23,7 @@ Simply add to your [analysis_options.yaml file](https://www.dartlang.org/guides/
 ```yaml
 analyzer:
   plugins:
-    angular:
-      enabled: true
+    - angular
 ```
 
 Then simply reboot your analysis server (inside IntelliJ this is done by clicking on the skull icon if it exists, or the refresh icon otherwise) and wait for the plugin to fully load, which can take a minute on the first run.
@@ -45,8 +44,7 @@ and then load the plugin as itself, rather than as a dependency of angular:
 ```yaml
 analyzer:
   plugins:
-    angular_analyzer_plugin:
-      enabled: true
+    - angular_analyzer_plugin
 ```
 
 Like the previous installation option, you then just need to reboot your analysis server after running pub get.
@@ -58,14 +56,17 @@ If you have any issues, filing an issue with us is always a welcome option. Ther
 * Are you using angular 5 or newer? If not, are you loading a recent exact version of the plugin?
 * Are you using a bleeding edge SDK? The latest stable will not work correctly, and windows users require at least 2.0.0-dev-31.
 * Did you turn the plugin on correctly in your analysis options file?
+* From IntelliJ in the Dart Analysis panel, there's a gear icon that has "analyzer diagnostics," which opens a web page that has a section for loaded plugins. Does it show up? Which version are you on? Is it out of date? Are there any errors?
 * Does your editor support html+dart analysis, or is it an old version? Some (such as VSCode, vim) may have special steps to show errors surfaced by dart analysis inside your html files.
-* From IntelliJ in the Dart Analysis panel, there's a gear icon that has "analyzer diagnostics," which opens a web page that has a section for loaded plugins. Are there any errors?
 * Check the directory `~/.dartServer/.plugin_manager` (on Windows: `\Users\you\AppData\Local\.dartServer\.plugin_manager`). Does it have any subdirectories?
 * There should be a hash representing each plugin you've loaded. Can you run `pub get` from `HASH/analyzer_plugin`? (If you have multiple hashes, it should be safe to clear this directory & reload.)
 * If you run `bin/plugin.dart` from `.plugin_manager/HASH/analyzer_plugin`, do you get any import errors? (Note: this is expected to crash when launched in this way, but without import-related errors)
 
 We may ask you any or all of these questions if you open an issue, so feel free to go run through these checks on your own to get a hint what might be wrong.
 
+## Upgrading
+
+Any dart users on 2.0.0-dev.48 or newer will get updates on every restart of the analysis server. If you are on an older dart version than that, check the Troubleshooting section.
 
 ## Building -- For hacking on this plugin, or using the latest unpublished.
 
