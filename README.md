@@ -66,7 +66,7 @@ We may ask you any or all of these questions if you open an issue, so feel free 
 
 ## Upgrading
 
-Any dart users on 2.0.0-dev.48 or newer will get updates on every restart of the analysis server. If you are on an older dart version than that, check the Troubleshooting section.
+Any Dart users on 2.0.0-dev.48 or newer will get updates on every restart of the analysis server. If you are on an older Dart version than that, check the Troubleshooting section.
 
 ## Building -- For hacking on this plugin, or using the latest unpublished.
 
