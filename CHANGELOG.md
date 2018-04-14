@@ -1,5 +1,9 @@
 ## Unpublished Changes
 
+## 0.0.15
+
+- Fixed bug where the version pushed over the plugin API (available in the
+  analyzer diagnostics page) said 1.0.0-alpha.0 instead of the pub version.
 - Refactored attribute autocompletion
 - Fixed a bug where pipes that inherited transform() got flagged.
 - Fixed a bug where parts' templateUrls should be relative to the parts' library
@@ -11,9 +15,7 @@ Some larger items:
 ### Newer options config
 
 The required config has been changed in a backwards-compatible way. However,
-setup documentation will be changed later, since the *new setup instructions*
-won't work *with older plugins*. After publish + a delay, the setup instructions
-will be updated accordingly.
+note that while 0.0.14's config works for 0.0.15 users, the reverse is not true.
 
 Specifically, we no longer require `enabled: true`, and we are moving from
 configuring the plugin inside `analyzer`, to having its own top level. This
