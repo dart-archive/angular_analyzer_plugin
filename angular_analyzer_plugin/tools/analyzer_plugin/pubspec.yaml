@@ -4,5 +4,5 @@ description: Self-loader of the plugin for people using an exact version.
 environment:
   sdk: '>=1.24.0-dev.1.0'
 dependencies:
-  angular_analyzer_plugin: '0.0.15'
+  angular_analyzer_plugin: '0.0.15+1'
 dev_dependencies:

@@ -56,7 +56,7 @@ If you have any issues, filing an issue with us is always a welcome option. Ther
 * Are you using angular 5 or newer? If not, are you loading a recent exact version of the plugin?
 * Are you using a bleeding edge SDK? The latest stable will not work correctly, and windows users require at least 2.0.0-dev-31.
 * Did you turn the plugin on correctly in your analysis options file?
-* From IntelliJ in the Dart Analysis panel, there's a gear icon that has "analyzer diagnostics," which opens a web page that has a section for loaded plugins. Does it show up? Which version are you on? Is it out of date? Are there any errors?
+* From IntelliJ in the Dart Analysis panel, there's a gear icon that has "analyzer diagnostics," which opens a web page that has a section for loaded plugins. Are there any errors?
 * Does your editor support html+dart analysis, or is it an old version? Some (such as VSCode, vim) may have special steps to show errors surfaced by dart analysis inside your html files.
 * Check the directory `~/.dartServer/.plugin_manager` (on Windows: `\Users\you\AppData\Local\.dartServer\.plugin_manager`). Does it have any subdirectories?
 * There should be a hash representing each plugin you've loaded. Can you run `pub get` from `HASH/analyzer_plugin`? (If you have multiple hashes, it should be safe to clear this directory & reload.)

@@ -2,8 +2,6 @@
 
 ## 0.0.15
 
-- Fixed bug where the version pushed over the plugin API (available in the
-  analyzer diagnostics page) said 1.0.0-alpha.0 instead of the pub version.
 - Refactored attribute autocompletion
 - Fixed a bug where pipes that inherited transform() got flagged.
 - Fixed a bug where parts' templateUrls should be relative to the parts' library
