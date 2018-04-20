@@ -726,13 +726,11 @@ class View {
   }
 
   /// The source that contains this view.
-  @override
   Source get source => classElement.source;
 
   /// The source that contains this template, [source] or [templateUriSource].
   Source get templateSource => templateUriSource ?? source;
 
-  @override
   Source get librarySource => null;
 
   @override
