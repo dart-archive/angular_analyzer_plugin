@@ -731,8 +731,6 @@ class View {
   /// The source that contains this template, [source] or [templateUriSource].
   Source get templateSource => templateUriSource ?? source;
 
-  Source get librarySource => null;
-
   @override
   String toString() => 'View('
       'classElement=$classElement, '
