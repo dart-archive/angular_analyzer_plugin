@@ -8,7 +8,6 @@ import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
-import 'package:analyzer/task/model.dart' show AnalysisTarget;
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
@@ -673,7 +672,7 @@ class UseConstValueStrategy implements DirectivesStrategy {
 }
 
 /// The model of an Angular view.
-class View implements AnalysisTarget {
+class View {
   /// The [ClassElement] this view is associated with.
   final dart.ClassElement classElement;
 
