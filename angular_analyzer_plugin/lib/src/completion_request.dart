@@ -9,6 +9,10 @@ import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
+import 'package:analyzer/dart/ast/token.dart' show TokenType;
+// TODO(mfairhurst): import these from package:analyzer once they're exported.
+import 'package:front_end/src/scanner/token.dart'
+    show SyntheticBeginToken, SyntheticToken;
 
 class AngularCompletionRequest extends CompletionRequest {
   final List<Template> templates;
@@ -67,8 +71,11 @@ class AngularCompletionRequest extends CompletionRequest {
         if (_dartSnippet is Expression) {
           // wrap dart snippet in a ParenthesizedExpression, because the dart
           // completion engine expects all expressions to have parents.
-          _dartSnippet =
-              astFactory.parenthesizedExpression(null, _dartSnippet, null);
+          _dartSnippet = astFactory.parenthesizedExpression(
+              new SyntheticBeginToken(TokenType.OPEN_PAREN, _dartSnippet.offset)
+                ..next = _dartSnippet.beginToken,
+              _dartSnippet,
+              new SyntheticToken(TokenType.CLOSE_PAREN, _dartSnippet.end));
         }
         _completionTarget = new CompletionTarget.forOffset(null, offset,
             entryPoint: _dartSnippet);
