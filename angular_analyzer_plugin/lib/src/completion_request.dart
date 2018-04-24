@@ -9,7 +9,7 @@ import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
-import 'package:analyzer/src/dart/ast/token.dart' show TokenType;
+import 'package:analyzer/dart/ast/token.dart' show TokenType;
 // TODO(mfairhurst): import these from package:analyzer once they're exported.
 import 'package:front_end/src/scanner/token.dart'
     show SyntheticBeginToken, SyntheticToken;
