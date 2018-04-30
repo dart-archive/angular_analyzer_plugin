@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Upgrade package:analyzer to support newest dart semantics.
+
 ## 0.0.15
 
 - Refactored attribute autocompletion
