@@ -2136,29 +2136,6 @@ class MyDirective {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_availDirective_wildcard_attribute_begin() async {
-    final dartSource = newSource('/completionTest.dart', '''
-import 'package:angular2/angular2.dart';
-@Component(templateUrl: 'completionTest.html', selector: 'a',
-    directives: const [MyTagComponent, MyDirective])
-class MyComp {
-}
-@Component(selector: 'my-tag', template: '')
-class MyTagComponent{}
-@Directive(selector: '[bar*]')
-class MyDirective {}
-    ''');
-
-    addTestSource('<my-tag ^></my-tag>');
-
-    await resolveSingleTemplate(dartSource);
-    await computeSuggestions();
-    expect(replacementOffset, completionOffset);
-    expect(replacementLength, 0);
-    assertSuggestSetter('bar');
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_availDirective_attribute_middle() async {
     final dartSource = newSource('/completionTest.dart', '''
 import 'package:angular2/angular2.dart';
