@@ -392,7 +392,8 @@ class HtmlTreeConverter {
   }
 
   StatementsBoundAttribute _convertStatementsBoundAttribute(
-      ParsedEventAst ast) {
+      EventAst eventAst) {
+    final ast = eventAst as ParsedEventAst;
     final prefixToken = ast.prefixToken;
     final nameToken = ast.nameToken;
     final suffixToken = ast.suffixToken;
