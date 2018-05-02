@@ -391,8 +391,7 @@ class HtmlTreeConverter {
     return templateAttribute;
   }
 
-  StatementsBoundAttribute _convertStatementsBoundAttribute(
-      EventAst eventAst) {
+  StatementsBoundAttribute _convertStatementsBoundAttribute(EventAst eventAst) {
     final ast = eventAst as ParsedEventAst;
     final prefixToken = ast.prefixToken;
     final nameToken = ast.nameToken;
