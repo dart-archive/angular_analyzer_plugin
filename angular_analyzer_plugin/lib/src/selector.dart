@@ -69,10 +69,9 @@ class AndSelector extends Selector {
 /// given name, and (optionally) with the given value;
 class AttributeSelector extends Selector {
   final AngularElement nameElement;
-  final bool isWildcard;
   final String value;
 
-  AttributeSelector(this.nameElement, this.value, {@required this.isWildcard});
+  AttributeSelector(this.nameElement, this.value);
 
   @override
   SelectorMatch match(ElementView element, Template template) {
@@ -80,27 +79,14 @@ class AttributeSelector extends Selector {
     SourceRange attributeSpan;
     String attributeValue;
 
-    // standard case: exact match, use hash for fast lookup
-    if (!isWildcard) {
-      if (!element.attributes.containsKey(name)) {
-        return SelectorMatch.NoMatch;
-      }
-      attributeSpan = element.attributeNameSpans[name];
-      attributeValue = element.attributes[name];
-    } else {
-      // nonstandard case: wildcard, check if any start with specified name
-      for (final attrName in element.attributes.keys) {
-        if (attrName.startsWith(name)) {
-          attributeSpan = element.attributeNameSpans[attrName];
-          attributeValue = element.attributes[attrName];
-          break;
-        }
-      }
+    if (!element.attributes.containsKey(name)) {
+      return SelectorMatch.NoMatch;
+    }
+    attributeSpan = element.attributeNameSpans[name];
+    attributeValue = element.attributes[name];
 
-      // no matching prop to wildcard
-      if (attributeSpan == null) {
-        return SelectorMatch.NoMatch;
-      }
+    if (attributeSpan == null) {
+      return SelectorMatch.NoMatch;
     }
 
     // match the actual value against the required
@@ -124,9 +110,7 @@ class AttributeSelector extends Selector {
 
   @override
   List<AngularElement> getAttributes(ElementView element) =>
-      (isWildcard || match(element, null) == SelectorMatch.NonTagMatch)
-          ? []
-          : [nameElement];
+      match(element, null) == SelectorMatch.NonTagMatch ? [] : [nameElement];
 
   @override
   String toString() {
@@ -135,6 +119,78 @@ class AttributeSelector extends Selector {
       return '[$name=$value]';
     }
     return '[$name]';
+  }
+
+  @override
+  List<HtmlTagForSelector> refineTagSuggestions(
+      List<HtmlTagForSelector> context) {
+    for (final tag in context) {
+      tag.setAttribute(nameElement.name, value: value);
+    }
+    return context;
+  }
+
+  @override
+  void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
+    // empty
+  }
+}
+
+/// The [Selector] that matches elements that have an attribute with the
+/// given name, and (optionally) with the given value;
+class WildcardAttributeSelector extends Selector {
+  final AngularElement nameElement;
+  final String value;
+
+  WildcardAttributeSelector(this.nameElement, this.value);
+
+  @override
+  SelectorMatch match(ElementView element, Template template) {
+    final name = nameElement.name;
+    SourceRange attributeSpan;
+    String attributeValue;
+
+    for (final attrName in element.attributes.keys) {
+      if (attrName.startsWith(name)) {
+        attributeValue = element.attributes[attrName];
+        attributeSpan = element.attributeNameSpans[attrName];
+        break;
+      }
+    }
+
+    if (attributeSpan == null) {
+      return SelectorMatch.NoMatch;
+    }
+
+    // match the actual value against the required
+    if (value != null && attributeValue != value) {
+      return SelectorMatch.NoMatch;
+    }
+
+    // OK
+    if (template != null) {
+      template.addRange(
+          new SourceRange(attributeSpan.offset, attributeSpan.length),
+          nameElement);
+    }
+    return SelectorMatch.NonTagMatch;
+  }
+
+  // Want to always return true since this doesn't narrow scope.
+  @override
+  bool availableTo(ElementView element) =>
+      value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
+
+  @override
+  List<AngularElement> getAttributes(ElementView element) => [nameElement];
+
+  @override
+  String toString() {
+    final name = nameElement.name;
+    if (value != null) {
+      return '[$name*=$value]';
+    }
+    return '[$name*]';
   }
 
   @override
@@ -740,11 +796,13 @@ class SelectorParser {
         } else if (operator == '*=') {
           isWildcard = true;
           name = name.replaceAll('*', '');
+          selectors.add(new WildcardAttributeSelector(
+              new SelectorName(name, nameOffset, name.length, source), value));
+          continue;
         }
 
         selectors.add(new AttributeSelector(
-            new SelectorName(name, nameOffset, name.length, source), value,
-            isWildcard: isWildcard));
+            new SelectorName(name, nameOffset, name.length, source), value));
       } else if (currentMatchType == _SelectorRegexMatch.Comma) {
         advance();
         final rhs = parseNested();
