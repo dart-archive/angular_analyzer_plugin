@@ -83,6 +83,12 @@ class ExportsImportElementFacade implements ImportElement {
   bool get hasFactory => _wrappedImport.hasFactory;
 
   @override
+  bool get hasIsTest => _wrappedImport.hasIsTest;
+
+  @override
+  bool get hasIsTestGroup => _wrappedImport.hasIsTestGroup;
+
+  @override
   bool get hasJS => false;
 
   @override
