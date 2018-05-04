@@ -5,7 +5,6 @@ import 'dart:collection';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
-import 'package:meta/meta.dart';
 
 enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
 
