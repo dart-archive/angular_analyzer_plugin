@@ -2,6 +2,10 @@
 
 - Better error message for when attribute selectors have an operator but no
   value.
+- In previous versions, the `x*=y` selector was working incorrectly. It matched
+  attributes whose *names began with* `x` and optionally contained a value `y`.
+  This has been fixed to do the correct thing: match an attribute of name `x`
+  when the value contains `y`.
 - Support '^=' css selector syntax.
 - Upgrade package:analyzer to support newest dart semantics.
 
