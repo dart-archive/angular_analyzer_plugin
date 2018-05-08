@@ -751,6 +751,42 @@ class SelectorParserTest {
   }
 
   // ignore: non_constant_identifier_names
+  void test_attribute_regularOperator_noValue() {
+    try {
+      new SelectorParser(source, 0, '[foo=]').parse();
+    } on FormatException catch (e) {
+      expect(e.message, contains('Unexpected ]'));
+      expect(e.offset, '[foo='.length);
+      return;
+    }
+    fail("was supposed to throw");
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_attribute_beginsWithOperator_noValue() {
+    try {
+      new SelectorParser(source, 0, '[foo^=]').parse();
+    } on FormatException catch (e) {
+      expect(e.message, contains('Unexpected ]'));
+      expect(e.offset, '[foo^='.length);
+      return;
+    }
+    fail("was supposed to throw");
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_attribute_containsOperator_noValue() {
+    try {
+      new SelectorParser(source, 0, '[foo*=]').parse();
+    } on FormatException catch (e) {
+      expect(e.message, contains('Unexpected ]'));
+      expect(e.offset, '[foo*='.length);
+      return;
+    }
+    fail("was supposed to throw");
+  }
+
+  // ignore: non_constant_identifier_names
   void test_bad() {
     try {
       new SelectorParser(source, 0, '+name').parse();

@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Better error message for when attribute selectors have an operator but no
+  value.
 - Support '^=' css selector syntax.
 - Upgrade package:analyzer to support newest dart semantics.
 

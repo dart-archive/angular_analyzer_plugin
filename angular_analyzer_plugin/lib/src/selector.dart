@@ -670,7 +670,7 @@ const _attributeEqualsValueRegexStr = // comment here for formatting:
     '(?:$_attributeNoQuoteValueRegexStr|$_attributeQuotedValueRegexStr)';
 
 const _attributeNoQuoteValueRegexStr =
-    r'''([^\]'"]+)''' // Capture anything but ']' or a quote.
+    r'''([^\]'"]*)''' // Capture anything but ']' or a quote.
     ;
 
 const _attributeQuotedValueRegexStr = // comment here for formatting:
@@ -795,6 +795,10 @@ class SelectorParser {
         final value = currentMatch[_unquotedValueMatch] ??
             currentMatch[_singleQuotedValueMatch] ??
             currentMatch[_doubleQuotedValueMatch];
+
+        if (operator != null && value.isEmpty) {
+          _unexpected(']', currentMatch.end - 1);
+        }
 
         var name = currentMatchStr;
         var isWildcard = false;
