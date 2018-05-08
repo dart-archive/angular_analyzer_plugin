@@ -9,7 +9,7 @@ void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AndSelectorTest);
     defineReflectiveTests(AttributeSelectorTest);
-    defineReflectiveTests(WildcardAttributeSelectorTest);
+    defineReflectiveTests(AttributeContainsSelectorTest);
     defineReflectiveTests(ClassSelectorTest);
     defineReflectiveTests(ElementNameSelectorTest);
     defineReflectiveTests(OrSelectorTest);
@@ -193,41 +193,66 @@ class AttributeSelectorTest extends _SelectorTest {
 }
 
 @reflectiveTest
-class WildcardAttributeSelectorTest extends _SelectorTest {
+class AttributeContainsSelectorTest extends _SelectorTest {
   final AngularElement nameElement =
       new AngularElementImpl('kind', 10, 5, null);
   // ignore: non_constant_identifier_names
-  void test_match_wildCard() {
-    final selector = new WildcardAttributeSelector(nameElement, null);
-    when(element.attributes).thenReturn({'kindatrue': 'no-matter'});
+  void test_match() {
+    final selector = new AttributeContainsSelector(nameElement, 'search');
+    when(element.attributes).thenReturn({'kind': 'include the search here'});
     when(element.attributeNameSpans)
-        .thenReturn({'kindatrue': _newStringSpan(100, "kindatrue")});
+        .thenReturn({'kind': _newStringSpan(100, 'kind')});
     // verify
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
+    _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
     expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
-  void test_match_wildCard_value() {
-    final selector = new WildcardAttributeSelector(nameElement, 'good-value');
-    when(element.attributes).thenReturn({'kindatrue': 'good-value'});
+  void test_match_begins() {
+    final selector = new AttributeContainsSelector(nameElement, 'start');
+    when(element.attributes).thenReturn({'kind': 'start is matched'});
     when(element.attributeNameSpans)
-        .thenReturn({'kindatrue': _newStringSpan(100, 'kindatrue')});
+        .thenReturn({'kind': _newStringSpan(100, 'kind')});
     // verify
     expect(
         selector.match(element, template), equals(SelectorMatch.NonTagMatch));
-    _assertRange(resolvedRanges[0], 100, 9, selector.nameElement);
+    _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
     expect(selector.availableTo(element), true);
   }
 
   // ignore: non_constant_identifier_names
-  void test_noMatch_wildCard() {
-    final selector = new WildcardAttributeSelector(nameElement, null);
-    when(element.attributes).thenReturn({'indatrue': 'no-matter'});
+  void test_match_ends() {
+    final selector = new AttributeContainsSelector(nameElement, 'end');
+    when(element.attributes).thenReturn({'kind': 'matches at the end'});
     when(element.attributeNameSpans)
-        .thenReturn({'indatrue': _newStringSpan(100, "indatrue")});
+        .thenReturn({'kind': _newStringSpan(100, 'kind')});
+    // verify
+    expect(
+        selector.match(element, template), equals(SelectorMatch.NonTagMatch));
+    _assertRange(resolvedRanges[0], 100, 4, selector.nameElement);
+    expect(selector.availableTo(element), true);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_noMatch_value() {
+    final selector =
+        new AttributeContainsSelector(nameElement, 'not appearing');
+    when(element.attributes).thenReturn({'kind': 'not related'});
+    when(element.attributeNameSpans)
+        .thenReturn({'kind': _newStringSpan(100, 'kind')});
+    // verify
+    expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
+    expect(selector.availableTo(element), false);
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_noMatch_attributeName() {
+    final selector = new AttributeContainsSelector(nameElement, 'match');
+    when(element.attributes).thenReturn({'unmatched': 'this is matched'});
+    when(element.attributeNameSpans)
+        .thenReturn({'unmatched': _newStringSpan(100, 'unmatched')});
     // verify
     expect(selector.match(element, template), equals(SelectorMatch.NoMatch));
     expect(selector.availableTo(element), true);
@@ -691,7 +716,7 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_attribute_hasWildcard() {
-    final WildcardAttributeSelector selector =
+    final AttributeContainsSelector selector =
         new SelectorParser(source, 10, '[kind*=pretty]').parse();
     {
       final nameElement = selector.nameElement;
@@ -994,19 +1019,7 @@ class SuggestTagsTest {
 
   // ignore: non_constant_identifier_names
   void test_suggestWildcardProperty() {
-    final selector = new WildcardAttributeSelector(
-        new AngularElementImpl('attr', 10, 5, null), null);
-
-    final suggestions = _evenInvalidSuggestions(selector);
-    expect(suggestions.length, 1);
-    expect(suggestions.first.isValid, isFalse);
-    // [attr*] tells us they at LEAST want attr
-    expect(suggestions.first.toString(), equals('<null attr'));
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_suggestWildcardPropertyValue() {
-    final selector = new WildcardAttributeSelector(
+    final selector = new AttributeContainsSelector(
         new AngularElementImpl('attr', 10, 5, null), "value");
 
     final suggestions = _evenInvalidSuggestions(selector);
@@ -1044,7 +1057,7 @@ class SuggestTagsTest {
   void test_suggestAndMergesSuggestionConstraints() {
     final nameSelector =
         new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
-    final attrSelector = new WildcardAttributeSelector(
+    final attrSelector = new AttributeContainsSelector(
         new AngularElementImpl('attr', 10, 5, null), "value");
     final selector = new AndSelector([nameSelector, attrSelector]);
 
@@ -1058,7 +1071,7 @@ class SuggestTagsTest {
   void test_suggestOrMergesSuggestionConstraints() {
     final nameSelector =
         new ElementNameSelector(new AngularElementImpl('panel', 10, 5, null));
-    final attrSelector = new WildcardAttributeSelector(
+    final attrSelector = new AttributeContainsSelector(
         new AngularElementImpl('attr', 10, 5, null), "value");
     final selector = new OrSelector([nameSelector, attrSelector]);
 
@@ -1076,12 +1089,12 @@ class SuggestTagsTest {
   void test_suggestOrAnd() {
     final nameSelector1 =
         new ElementNameSelector(new AngularElementImpl('name1', 10, 5, null));
-    final attrSelector1 = new WildcardAttributeSelector(
+    final attrSelector1 = new AttributeContainsSelector(
         new AngularElementImpl('attr1', 10, 5, null), "value");
     final andSelector1 = new AndSelector([nameSelector1, attrSelector1]);
     final nameSelector2 =
         new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
-    final attrSelector2 = new WildcardAttributeSelector(
+    final attrSelector2 = new AttributeContainsSelector(
         new AngularElementImpl('attr2', 10, 5, null), "value");
     final andSelector2 = new AndSelector([nameSelector2, attrSelector2]);
     final selector = new OrSelector([andSelector1, andSelector2]);
@@ -1102,9 +1115,9 @@ class SuggestTagsTest {
         new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
     final orSelector1 = new OrSelector([nameSelector1, nameSelector2]);
 
-    final attrSelector1 = new WildcardAttributeSelector(
+    final attrSelector1 = new AttributeContainsSelector(
         new AngularElementImpl('attr1', 10, 5, null), "value");
-    final attrSelector2 = new WildcardAttributeSelector(
+    final attrSelector2 = new AttributeContainsSelector(
         new AngularElementImpl('attr2', 10, 5, null), "value");
     final orSelector2 = new OrSelector([attrSelector1, attrSelector2]);
 
@@ -1130,9 +1143,9 @@ class SuggestTagsTest {
         new ElementNameSelector(new AngularElementImpl('name2', 10, 5, null));
     final orSelector1 = new OrSelector([nameSelector1, nameSelector2]);
 
-    final attrSelector1 = new WildcardAttributeSelector(
+    final attrSelector1 = new AttributeContainsSelector(
         new AngularElementImpl('attr1', 10, 5, null), "value");
-    final attrSelector2 = new WildcardAttributeSelector(
+    final attrSelector2 = new AttributeContainsSelector(
         new AngularElementImpl('attr2', 10, 5, null), "value");
     final orSelector2 = new OrSelector([attrSelector1, attrSelector2]);
 

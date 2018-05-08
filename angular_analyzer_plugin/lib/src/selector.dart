@@ -111,6 +111,11 @@ abstract class AttributeSelectorBase extends Selector {
           : [nameElement];
 
   @override
+  bool availableTo(ElementView element) =>
+      !element.attributes.keys.contains(findAttribute(element)) ||
+      match(element, null) != SelectorMatch.NoMatch;
+
+  @override
   void recordElementNameSelectors(List<ElementNameSelector> recordingList) {
     // empty
   }
@@ -128,11 +133,6 @@ class AttributeSelector extends AttributeSelectorBase {
   @override
   bool matchValue(String attributeValue) =>
       value == null || attributeValue == value;
-
-  // Want to always return true since this doesn't narrow scope.
-  @override
-  bool availableTo(ElementView element) =>
-      value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
   List<AngularElement> getAttributes(ElementView element) =>
@@ -157,31 +157,22 @@ class AttributeSelector extends AttributeSelectorBase {
   }
 }
 
-/// The [WildcardSelector] that matches elements that have attributes that start
-/// with the given name, and (optionally) with the given value.
-class WildcardAttributeSelector extends AttributeSelectorBase {
+/// The [AttributeContainsSelector] that matches elements that have attributes
+/// with the given name, and that attribute contains the value of the selector.
+class AttributeContainsSelector extends AttributeSelectorBase {
   @override
   final AngularElement nameElement;
   final String value;
 
-  WildcardAttributeSelector(this.nameElement, this.value);
+  AttributeContainsSelector(this.nameElement, this.value);
 
   @override
-  String findAttribute(ElementView element) => element.attributes.keys
-      .firstWhere((attrName) => attrName.startsWith(nameElement.name),
-          orElse: () => null);
-
-  @override
-  bool matchValue(String attributeValue) =>
-      value == null || attributeValue == value;
+  bool matchValue(String attributeValue) => attributeValue.contains(value);
 
   @override
   String toString() {
     final name = nameElement.name;
-    if (value != null) {
-      return '[$name*=$value]';
-    }
-    return '[$name*]';
+    return '[$name*=$value]';
   }
 
   @override
@@ -192,11 +183,6 @@ class WildcardAttributeSelector extends AttributeSelectorBase {
     }
     return context;
   }
-
-  // Want to always return true since this doesn't narrow scope.
-  @override
-  bool availableTo(ElementView element) =>
-      value == null ? true : match(element, null) == SelectorMatch.NonTagMatch;
 }
 
 /// The [Selector] that matches elements that have an attribute with any name,
@@ -250,11 +236,6 @@ class AttributeStartsWithSelector extends AttributeSelectorBase {
 
   @override
   bool matchValue(String attributeValue) => attributeValue.startsWith(value);
-
-  @override
-  bool availableTo(ElementView element) =>
-      !element.attributes.containsKey(nameElement.name) ||
-      match(element, null) == SelectorMatch.NonTagMatch;
 
   @override
   String toString() => '[$nameElement^=$value]';
@@ -803,7 +784,6 @@ class SelectorParser {
         }
 
         var name = currentMatchStr;
-        var isWildcard = false;
         advance();
 
         if (name == '*' &&
@@ -817,9 +797,8 @@ class SelectorParser {
               value.substring(1, value.length - 1)));
           continue;
         } else if (operator == '*=') {
-          isWildcard = true;
           name = name.replaceAll('*', '');
-          selectors.add(new WildcardAttributeSelector(
+          selectors.add(new AttributeContainsSelector(
               new SelectorName(name, nameOffset, name.length, source), value));
           continue;
         } else if (operator == '^=') {
