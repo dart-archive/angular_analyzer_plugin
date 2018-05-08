@@ -158,7 +158,7 @@ class AttributeSelector extends AttributeSelectorBase {
 }
 
 /// The [AttributeContainsSelector] that matches elements that have attributes
-/// have the given name, and that attribute contains the value of the selector.
+/// with the given name, and that attribute contains the value of the selector.
 class AttributeContainsSelector extends AttributeSelectorBase {
   @override
   final AngularElement nameElement;
