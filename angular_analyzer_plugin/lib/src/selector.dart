@@ -5,6 +5,7 @@ import 'dart:collection';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
+import 'package:meta/meta.dart';
 
 enum SelectorMatch { NoMatch, NonTagMatch, TagMatch }
 
@@ -797,7 +798,8 @@ class SelectorParser {
             currentMatch[_doubleQuotedValueMatch];
 
         if (operator != null && value.isEmpty) {
-          _unexpected(']', currentMatch.end - 1);
+          _expected('a value after $operator',
+              actual: ']', offset: currentMatch.end - 1);
         }
 
         var name = currentMatchStr;
@@ -864,6 +866,12 @@ class SelectorParser {
   void _unexpected(String eString, int eOffset) {
     throw new SelectorParseError(
         "Unexpected $eString", str, eOffset, eString.length);
+  }
+
+  void _expected(String expected,
+      {@required String actual, @required int offset}) {
+    throw new SelectorParseError(
+        "Expected $expected, got $actual", str, offset, actual.length);
   }
 
   Selector _andSelectors(List<Selector> selectors) {

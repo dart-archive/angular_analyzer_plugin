@@ -755,7 +755,7 @@ class SelectorParserTest {
     try {
       new SelectorParser(source, 0, '[foo=]').parse();
     } on FormatException catch (e) {
-      expect(e.message, contains('Unexpected ]'));
+      expect(e.message, contains('Expected a value after =, got ]'));
       expect(e.offset, '[foo='.length);
       return;
     }
@@ -767,7 +767,7 @@ class SelectorParserTest {
     try {
       new SelectorParser(source, 0, '[foo^=]').parse();
     } on FormatException catch (e) {
-      expect(e.message, contains('Unexpected ]'));
+      expect(e.message, contains('Expected a value after ^=, got ]'));
       expect(e.offset, '[foo^='.length);
       return;
     }
@@ -779,7 +779,7 @@ class SelectorParserTest {
     try {
       new SelectorParser(source, 0, '[foo*=]').parse();
     } on FormatException catch (e) {
-      expect(e.message, contains('Unexpected ]'));
+      expect(e.message, contains('Expected a value after *=, got ]'));
       expect(e.offset, '[foo*='.length);
       return;
     }
