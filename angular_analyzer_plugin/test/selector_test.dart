@@ -628,7 +628,6 @@ class SelectorParserTest {
   void test_and() {
     final AndSelector selector =
         new SelectorParser(source, 10, '[ng-for][ng-for-of]').parse();
-    expect(selector, const isInstanceOf<AndSelector>());
     expect(selector.selectors, hasLength(2));
     {
       final AttributeSelector subSelector = selector.selectors[0];
@@ -652,7 +651,6 @@ class SelectorParserTest {
   void test_attribute_hasValue() {
     final AttributeSelector selector =
         new SelectorParser(source, 10, '[kind=pretty]').parse();
-    expect(selector, const isInstanceOf<AttributeSelector>());
     {
       final nameElement = selector.nameElement;
       expect(nameElement.source, source);
@@ -668,11 +666,9 @@ class SelectorParserTest {
     final AndSelector selector =
         new SelectorParser(source, 10, '''[single='quotes'][double="quotes"]''')
             .parse();
-    expect(selector, const isInstanceOf<AndSelector>());
     expect(selector.selectors, hasLength(2));
     {
       final AttributeSelector subSelector = selector.selectors[0];
-      expect(subSelector, const isInstanceOf<AttributeSelector>());
       {
         final nameElement = subSelector.nameElement;
         expect(nameElement.source, source);
@@ -683,7 +679,6 @@ class SelectorParserTest {
     }
     {
       final AttributeSelector subSelector = selector.selectors[1];
-      expect(subSelector, const isInstanceOf<AttributeSelector>());
       {
         final nameElement = subSelector.nameElement;
         expect(nameElement.source, source);
@@ -698,7 +693,6 @@ class SelectorParserTest {
   void test_attribute_hasWildcard() {
     final WildcardAttributeSelector selector =
         new SelectorParser(source, 10, '[kind*=pretty]').parse();
-    expect(selector, const isInstanceOf<WildcardAttributeSelector>());
     {
       final nameElement = selector.nameElement;
       expect(nameElement.source, source);
@@ -713,7 +707,6 @@ class SelectorParserTest {
   void test_attribute_textRegex() {
     final AttributeValueRegexSelector selector =
         new SelectorParser(source, 10, '[*=/pretty/]').parse();
-    expect(selector, const isInstanceOf<AttributeValueRegexSelector>());
     expect(selector.regexpStr, 'pretty');
   }
 
@@ -721,7 +714,6 @@ class SelectorParserTest {
   void test_attribute_noValue() {
     final AttributeSelector selector =
         new SelectorParser(source, 10, '[ng-for]').parse();
-    expect(selector, const isInstanceOf<AttributeSelector>());
     {
       final nameElement = selector.nameElement;
       expect(nameElement.source, source);
@@ -736,7 +728,6 @@ class SelectorParserTest {
   void test_attribute_startsWith() {
     final AttributeStartsWithSelector selector =
         new SelectorParser(source, 10, '[foo^=bar]').parse();
-    expect(selector, const isInstanceOf<AttributeStartsWithSelector>());
     expect(selector.nameElement.name, 'foo');
     expect(selector.value, 'bar');
   }
@@ -745,7 +736,6 @@ class SelectorParserTest {
   void test_attribute_startsWith_quoted() {
     final AttributeStartsWithSelector selector =
         new SelectorParser(source, 10, '[foo^="bar"]').parse();
-    expect(selector, const isInstanceOf<AttributeStartsWithSelector>());
     expect(selector.nameElement.name, 'foo');
     expect(selector.value, 'bar');
   }
@@ -764,7 +754,6 @@ class SelectorParserTest {
   void test_class() {
     final ClassSelector selector =
         new SelectorParser(source, 10, '.nice').parse();
-    expect(selector, const isInstanceOf<ClassSelector>());
     final nameElement = selector.nameElement;
     expect(nameElement.source, source);
     expect(nameElement.name, 'nice');
@@ -776,7 +765,6 @@ class SelectorParserTest {
   void test_elementName() {
     final ElementNameSelector selector =
         new SelectorParser(source, 10, 'text-panel').parse();
-    expect(selector, const isInstanceOf<ElementNameSelector>());
     final nameElement = selector.nameElement;
     expect(nameElement.source, source);
     expect(nameElement.name, 'text-panel');
@@ -788,7 +776,6 @@ class SelectorParserTest {
   void test_or() {
     final OrSelector selector =
         new SelectorParser(source, 10, 'aaa,bbb').parse();
-    expect(selector, const isInstanceOf<OrSelector>());
     expect(selector.selectors, hasLength(2));
     {
       final ElementNameSelector subSelector = selector.selectors[0];
@@ -812,7 +799,6 @@ class SelectorParserTest {
   void test_not() {
     final NotSelector selector =
         new SelectorParser(source, 10, ':not(aaa)').parse();
-    expect(selector, const isInstanceOf<NotSelector>());
     {
       final ElementNameSelector condition = selector.condition;
       final nameElement = condition.nameElement;
@@ -827,7 +813,6 @@ class SelectorParserTest {
   void test_contains() {
     final ContainsSelector selector =
         new SelectorParser(source, 10, ':contains(/aaa/)').parse();
-    expect(selector, const isInstanceOf<ContainsSelector>());
     expect(selector.regex, 'aaa');
   }
 
@@ -837,77 +822,62 @@ class SelectorParserTest {
             source, 10, 'aaa, bbb:not(ccc), :not(:not(ddd)[eee], fff[ggg])')
         .parse();
 
-    expect(selector, const isInstanceOf<OrSelector>());
     expect(
         selector.toString(),
         equals('aaa || bbb && :not(ccc) || '
             ':not(:not(ddd) && [eee] || fff && [ggg])'));
     {
       final ElementNameSelector subSelector = selector.selectors[0];
-      expect(subSelector, const isInstanceOf<ElementNameSelector>());
       expect(subSelector.toString(), "aaa");
     }
     {
       final AndSelector subSelector = selector.selectors[1];
-      expect(subSelector, const isInstanceOf<AndSelector>());
       expect(subSelector.toString(), "bbb && :not(ccc)");
       {
         final ElementNameSelector subSelector2 = subSelector.selectors[0];
-        expect(subSelector2, const isInstanceOf<ElementNameSelector>());
         expect(subSelector2.toString(), "bbb");
       }
       {
         final NotSelector subSelector2 = subSelector.selectors[1];
-        expect(subSelector2, const isInstanceOf<NotSelector>());
         expect(subSelector2.toString(), ":not(ccc)");
         {
           final ElementNameSelector subSelector3 = subSelector2.condition;
-          expect(subSelector3, const isInstanceOf<ElementNameSelector>());
           expect(subSelector3.toString(), "ccc");
         }
       }
     }
     {
       final NotSelector subSelector = selector.selectors[2];
-      expect(subSelector, const isInstanceOf<NotSelector>());
       expect(
           subSelector.toString(), ":not(:not(ddd) && [eee] || fff && [ggg])");
       {
         final OrSelector subSelector2 = subSelector.condition;
-        expect(subSelector2, const isInstanceOf<OrSelector>());
         expect(subSelector2.toString(), ":not(ddd) && [eee] || fff && [ggg]");
         {
           final AndSelector subSelector3 = subSelector2.selectors[0];
-          expect(subSelector3, const isInstanceOf<AndSelector>());
           expect(subSelector3.toString(), ":not(ddd) && [eee]");
           {
             final NotSelector subSelector4 = subSelector3.selectors[0];
-            expect(subSelector4, const isInstanceOf<NotSelector>());
             expect(subSelector4.toString(), ":not(ddd)");
             {
               final ElementNameSelector subSelector5 = subSelector4.condition;
-              expect(subSelector5, const isInstanceOf<ElementNameSelector>());
               expect(subSelector5.toString(), "ddd");
             }
           }
           {
             final AttributeSelector subSelector4 = subSelector3.selectors[1];
-            expect(subSelector4, const isInstanceOf<AttributeSelector>());
             expect(subSelector4.toString(), "[eee]");
           }
         }
         {
           final AndSelector subSelector3 = subSelector2.selectors[1];
-          expect(subSelector3, const isInstanceOf<AndSelector>());
           expect(subSelector3.toString(), "fff && [ggg]");
           {
             final ElementNameSelector subSelector4 = subSelector3.selectors[0];
-            expect(subSelector4, const isInstanceOf<ElementNameSelector>());
             expect(subSelector4.toString(), "fff");
           }
           {
             final AttributeSelector subSelector4 = subSelector3.selectors[1];
-            expect(subSelector4, const isInstanceOf<AttributeSelector>());
             expect(subSelector4.toString(), "[ggg]");
           }
         }
