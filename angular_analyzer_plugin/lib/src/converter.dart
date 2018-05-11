@@ -51,6 +51,7 @@ class HtmlTreeConverter {
         properties: node.properties,
         references: node.references,
         stars: node.stars,
+        annotationBindings: node.annotations,
       )..sort((a, b) => a.offset.compareTo(b.offset));
       final closeComponent = node.closeComplement;
       SourceRange openingSpan;
@@ -255,6 +256,7 @@ class HtmlTreeConverter {
     List<ReferenceAst> references: const [],
     List<StarAst> stars: const [],
     List<LetBindingAst> letBindings: const [],
+    List<AnnotationAst> annotationBindings: const [],
   }) {
     final returnAttributes = <AttributeInfo>[];
 
@@ -317,6 +319,21 @@ class HtmlTreeConverter {
             value,
             valueOffset, <Mustache>[]));
       }
+    }
+
+    for (final annotationBinding in annotationBindings) {
+      String value;
+      int valueOffset;
+      // TODO(mfairhurst): use value in newest angular_ast
+      //if (annotationBinding.valueToken != null) {
+      //  value = letBinding.valueToken.innerValue.lexeme;
+      //  valueOffset = letBinding.valueToken.innerValue.offset;
+      //}
+      returnAttributes.add(new TextAttribute(
+          '@${annotationBinding.name}',
+          annotationBinding.beginToken.offset,
+          value,
+          valueOffset, <Mustache>[]));
     }
 
     stars.map(_convertTemplateAttribute).forEach(returnAttributes.add);

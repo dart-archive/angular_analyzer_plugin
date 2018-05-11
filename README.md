@@ -121,6 +121,8 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 `<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :white_check_mark: | :white_check_mark: some bugs ,mostly works | :x:
 `<p>Card No.: {{cardNumber \| myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:
 `<my-component @deferred>` | :x: | :x: | :x: | :x:
+`<div @i18n="description">content</div>` | :last_quarter_moon: basic usage checked with some limitations | :x: | :x: | :x:
+`<div foo="content" @i18n-foo="description"></div>` | :last_quarter_moon: basic usage checked with some limitations | :x: | :x: | :x:
 
 Built-in directives | Validation | Auto-Complete | Navigation | Refactoring
 --------------------|------------|---------------|------------|-------------

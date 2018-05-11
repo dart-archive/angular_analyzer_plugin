@@ -5334,6 +5334,95 @@ class UseTripleEq {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_i18n_mustacheNotAllowed() async {
+    _addDartSource(r'''
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class TestComponent {
+}
+''');
+    final code = r'<div @i18n="foo">{{binding}}</div>';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N,
+      StaticWarningCode.UNDEFINED_IDENTIFIER, // the binding itself
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_i18n_markupNotAllowed() async {
+    _addDartSource(r'''
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class TestComponent {
+}
+''');
+    final code = r'<div @i18n="foo"><b>stuff</b></div>';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.MARKUP_NOT_ALLOWED_IN_I18N, code, r'<b>stuff</b>');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_i18n_ngContentNotAllowed() async {
+    _addDartSource(r'''
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class TestComponent {
+}
+''');
+    final code = r'<div @i18n="foo"><ng-content></ng-content></div>';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.MARKUP_NOT_ALLOWED_IN_I18N,
+        code, r'<ng-content></ng-content>');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_i18n_attribute_mustachesNotAllowed() async {
+    _addDartSource(r'''
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class TestComponent {
+}
+''');
+    final code = r'<div foo="{{binding}}" @i18n-foo="foo"></div>';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N,
+      StaticWarningCode.UNDEFINED_IDENTIFIER, // the binding itself
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_i18n_attribute_missing() async {
+    _addDartSource(r'''
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class TestComponent {
+}
+''');
+    final code = r'<div @i18n-missing="foo"></div>';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.I18N_REFERENCES_MISSING_ATTRIBUTE,
+        code,
+        r'@i18n-missing');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_i18n_attribute_ok() async {
+    _addDartSource(r'''
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class TestComponent {
+}
+''');
+    final code = r'<div foo="bar" @i18n-foo="baz"></div>';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';

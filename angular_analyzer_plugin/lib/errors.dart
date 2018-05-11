@@ -64,6 +64,9 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.UNSAFE_BINDING,
   AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
   AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED,
+  AngularWarningCode.MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N,
+  AngularWarningCode.MARKUP_NOT_ALLOWED_IN_I18N,
+  AngularWarningCode.I18N_REFERENCES_MISSING_ATTRIBUTE,
   AngularHintCode.OFFSETS_CANNOT_BE_CREATED,
 ];
 
@@ -472,6 +475,28 @@ class AngularWarningCode extends ErrorCode {
           'FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED',
           'Function directives cannot have an exportAs setting, because they'
           " can't be exported");
+
+  /// An error indicating that a mustache was used inside of an @i18n-marked
+  /// node, which is not allowed.
+  static const MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N = const AngularWarningCode(
+      'MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N',
+      'Mustache bindings are not allowed in @i18n-annotated nodes. Try using'
+      ' package:intl directly instead the angular i18n support.');
+
+  /// An error indicating that markup was used inside of an @i18n-marked node,
+  /// which is not allowed.
+  static const MARKUP_NOT_ALLOWED_IN_I18N = const AngularWarningCode(
+      'TAGS_NOT_ALLOWED_IN_I18N',
+      'For security reasons, markup is not allowed in @i18n-annotated nodes.'
+      ' Try using package:intl directly with the markup bound as variables,'
+      ' instead of using the angular i18n support.');
+
+  /// An error indicating that an @i18n-attr annotation was used with no
+  /// corresponding "attr" attribute.
+  static const I18N_REFERENCES_MISSING_ATTRIBUTE = const AngularWarningCode(
+      'I18N_REFERENCES_MISSING_ATTRIBUTE',
+      'The binding @i18n-{0} marks an attribute {0} for internationalization,'
+      ' but no attribute named {0} exists on the element');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given

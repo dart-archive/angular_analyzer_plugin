@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Validate @i18n usage for markup that's not allowed, mustaches that aren't
+  allowed, and attribute i18n references that don't exist.
 - Better error message for when attribute selectors have an operator but no
   value.
 - In previous versions, the `x*=y` selector was working incorrectly. It matched

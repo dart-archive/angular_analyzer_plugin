@@ -784,6 +784,16 @@ class NextTemplateElementsSearch extends AngularAstVisitor {
   }
 }
 
+/**
+ * A visitor that matches Directives and Components to tags. It does not require
+ * a complicated visit order, but rather a simple depth-last recursive pattern.
+ *
+ * While resolving directives, it can link content childs and transclusions so
+ * that [ComponentContentResolver] can find untransluded content. It reports
+ * basic directive usage errors like unused templates/template attrs, ngFor and
+ * ngIf on a non-template, and issues with @i18n usage. All of those are also
+ * single-pass simple analyses that can be done before any other traversals.
+ */
 class DirectiveResolver extends AngularAstVisitor {
   final List<AbstractDirective> allDirectives;
   final Source templateSource;
@@ -865,6 +875,7 @@ class DirectiveResolver extends AngularAstVisitor {
     }
 
     recordContentChildren(element);
+    findI18nUsageErrors(element);
 
     for (final child in element.childNodes) {
       child.accept(this);
@@ -959,6 +970,54 @@ class DirectiveResolver extends AngularAstVisitor {
         }
       }
     }
+  }
+
+  void findI18nUsageErrors(ElementInfo element) {
+    // If this is an @i18n node for the node's text:
+    if (element.attributes.any((attr) => attr.name == '@i18n')) {
+      // Then there may not be any mustaches.
+      new List<TextInfo>.from(
+              element.children.where((child) => child is TextInfo))
+          .expand((textInfo) =>
+              textInfo.children.where((child) => child is Mustache))
+          .forEach((child) {
+        _reportErrorForRange(new SourceRange(child.offset, child.length),
+            AngularWarningCode.MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N);
+      });
+      // And there may not be any markup.
+      element.children
+          .where((child) =>
+              child is ElementInfo ||
+              child is Template ||
+              child is ContentChild)
+          .forEach((child) {
+        _reportErrorForRange(new SourceRange(child.offset, child.length),
+            AngularWarningCode.MARKUP_NOT_ALLOWED_IN_I18N);
+      });
+    }
+
+    // Find @i18n-x="..." for all x with no attrs named x on the element.
+    element.attributes
+        .where((attr) => attr.name.startsWith('@i18n-'))
+        .forEach((attr) {
+      final i18nName = attr.name.substring('@i18n-'.length);
+      final affectedAttr = element.attributes
+          .singleWhere((attr) => attr.name == i18nName, orElse: () => null);
+
+      if (affectedAttr == null) {
+        _reportErrorForRange(new SourceRange(attr.nameOffset, attr.name.length),
+            AngularWarningCode.I18N_REFERENCES_MISSING_ATTRIBUTE, [i18nName]);
+      } else {
+        // The internationalized attr may not contain any mustaches.
+        affectedAttr.children
+            .where((child) => child is Mustache)
+            .forEach((mustache) {
+          _reportErrorForRange(
+              new SourceRange(mustache.offset, mustache.length),
+              AngularWarningCode.MUSTACHE_BINDINGS_NOT_ALLOWED_IN_I18N);
+        });
+      }
+    });
   }
 
   void _reportErrorForRange(SourceRange range, ErrorCode errorCode,
