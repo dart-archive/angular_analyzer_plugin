@@ -78,7 +78,8 @@ class _OptionsBuilder {
   }
 
   void resolve() {
-    customTagNames = getOption('custom_tag_names', isListOfStrings) ?? [];
+    customTagNames = new List<String>.from(
+        getOption('custom_tag_names', isListOfStrings) ?? []);
     getOption('custom_events', isMapOfObjects)
         ?.nodes
         ?.forEach((nameNode, props) {

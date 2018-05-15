@@ -545,8 +545,8 @@ class AngularDriver
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
 
-    directives
-        .where((d) => d is AbstractClassDirective)
+    new List<AbstractClassDirective>.from(
+            directives.where((d) => d is AbstractClassDirective))
         .forEach(attrValidator.validate);
 
     final fullyResolvedDirectives = <AbstractDirective>[];
@@ -726,8 +726,8 @@ class AngularDriver
         await getStandardAngular(), await getStandardHtml(), linkErrorReporter);
     await linker.linkDirectivesAndPipes(directives, pipes, unit.library);
     final attrValidator = new AttributeAnnotationValidator(linkErrorReporter);
-    directives
-        .where((d) => d is AbstractClassDirective)
+    new List<AbstractClassDirective>.from(
+            directives.where((d) => d is AbstractClassDirective))
         .forEach(attrValidator.validate);
     errors.addAll(linkErrorListener.errors);
 
@@ -804,10 +804,11 @@ class AngularDriver
     return directivesResult;
   }
 
-  List<SummarizedAnalysisError> summarizeErrors(List<AnalysisError> errors) =>
+  List<SummarizedAnalysisErrorBuilder> summarizeErrors(
+          List<AnalysisError> errors) =>
       errors.map(summarizeError).toList();
 
-  SummarizedAnalysisError summarizeError(AnalysisError error) =>
+  SummarizedAnalysisErrorBuilder summarizeError(AnalysisError error) =>
       new SummarizedAnalysisErrorBuilder(
           offset: error.offset,
           length: error.length,
@@ -823,7 +824,7 @@ class AngularDriver
   Future<CompilationUnitElement> getUnit(String path) async =>
       (await dartDriver.getUnitElement(path)).element;
 
-  Future<List<AngularAnnotatedClass>> resynthesizeDirectives(
+  Future<List<AngularTopLevel>> resynthesizeDirectives(
           UnlinkedDartSummary unlinked, String path) async =>
       new DirectiveLinker(this, standardAngular)
           .resynthesizeDirectives(unlinked, path);
