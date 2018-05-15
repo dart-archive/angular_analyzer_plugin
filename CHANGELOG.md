@@ -1,5 +1,6 @@
 ## Unpublished Changes
 
+- Support dart 2 runtimes
 - Better error message for when attribute selectors have an operator but no
   value.
 - In previous versions, the `x*=y` selector was working incorrectly. It matched
