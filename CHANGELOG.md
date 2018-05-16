@@ -1,5 +1,7 @@
 ## Unpublished Changes
 
+- Fixed an issue where you couldn't reference a static member of the component
+  class without a warning.
 - Support dart 2 runtimes
 - Better error message for when attribute selectors have an operator but no
   value.
