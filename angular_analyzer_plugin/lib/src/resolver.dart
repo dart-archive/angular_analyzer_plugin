@@ -1603,7 +1603,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // verify
     final verifier = new AngularErrorVerifier(
         errorReporter, library, typeProvider, new InheritanceManager(library),
-        acceptAssignment: acceptAssignment);
+        acceptAssignment: acceptAssignment)
+      ..enclosingClass = classElement;
     astNode.accept(verifier);
   }
 
