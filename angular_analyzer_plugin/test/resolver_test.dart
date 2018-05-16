@@ -5334,6 +5334,40 @@ class UseTripleEq {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
+  Future test_staticSelfReferenceOk() async {
+    _addDartSource(r'''
+import 'dart:async';
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class HasStatic {
+  static bool myStatic;
+}
+''');
+    final code = r'{{myStatic}}';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_staticParentReferenceNotOk() async {
+    _addDartSource(r'''
+import 'dart:async';
+@Component(selector: 'a', templateUrl: 'test_panel.html')
+class ChildOfHasStatic extends HasStatic {
+}
+class HasStatic {
+  static bool myParentsStatic;
+}
+''');
+    final code = r'{{myParentsStatic}}';
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertErrorsWithCodes([
+      StaticTypeWarningCode.UNQUALIFIED_REFERENCE_TO_NON_LOCAL_STATIC_MEMBER
+    ]);
+  }
+
   void _addDartSource(final code) {
     dartCode = '''
 import 'package:angular2/angular2.dart';
