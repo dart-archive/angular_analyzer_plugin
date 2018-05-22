@@ -147,7 +147,8 @@ class AbstractAngularTest {
       new ResourceUriResolver(resourceProvider)
     ]);
     final testPath = resourceProvider.convertPath('/test');
-    final contextRoot = new ContextRoot(testPath, []);
+    final contextRoot =
+        new ContextRoot(resourceProvider.pathContext, testPath, []);
 
     dartDriver = new AnalysisDriver(
         new AnalysisDriverScheduler(logger)..start(),
