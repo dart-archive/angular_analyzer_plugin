@@ -181,6 +181,9 @@ class _ResolveResultShell implements ResolveResult {
   @override
   Uri get uri => null;
 
+  @override
+  bool get isPart => false;
+
   _ResolveResultShell(this.path, {this.libraryElement, this.typeProvider});
 }
 
