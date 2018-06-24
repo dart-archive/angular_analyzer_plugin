@@ -41,5 +41,5 @@ dartanalyzer lib test
 
 # Run the actual tests
 dart --no-preview-dart-2 --checked test/test_all.dart # in dart 1 mode
-dart --preview-dart-2 test/test_all.dart # and dart 2 mode
+dart --enable-asserts test/test_all.dart # and dart 2 mode
 
