@@ -121,8 +121,6 @@ class Starter {
           ];
           final completionRequest = new CompletionRequestImpl(
             null, // AnalysisResult - unneeded for AngularCompletion
-            server.resourceProvider,
-            source,
             params.offset,
             performance,
           );
