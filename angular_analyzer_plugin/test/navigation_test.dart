@@ -53,11 +53,9 @@ class AngularNavigationTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    when(collector.addRegion(
-        typed(argThat(const isInstanceOf<int>())),
-        typed(argThat(const isInstanceOf<int>())),
-        typed(any),
-        typed(any))).thenAnswer((invocation) {
+    when(collector.addRegion(typed(argThat(const isInstanceOf<int>())),
+            typed(argThat(const isInstanceOf<int>())), typed(any), typed(any)))
+        .thenAnswer((invocation) {
       final offset = invocation.positionalArguments[0] as int;
       final length = invocation.positionalArguments[1] as int;
       final targetKind = invocation.positionalArguments[2];
