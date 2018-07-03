@@ -22,7 +22,7 @@ class FileTrackerTest {
     _options = new _AngularOptionsMock();
     _fileTracker = new FileTracker(_fileHasher, _options);
 
-    when(_options.customTagNames).thenReturn([]);
+    when(_options.customTagNames).thenReturn(<String>[]);
   }
 
   // ignore: non_constant_identifier_names
