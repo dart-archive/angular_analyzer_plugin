@@ -1166,7 +1166,7 @@ class TemplateCompleter {
   }
 
   Element _createOutputElement(OutputElement outputElement, ElementKind kind) {
-    final name = '(${ outputElement.name})';
+    final name = '(${outputElement.name})';
     // Note: We use `?? 0` below because focusin/out don't have ranges but we
     // still want to suggest them.
     final location = new Location(outputElement.source.fullName,
