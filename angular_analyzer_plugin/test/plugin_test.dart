@@ -121,10 +121,7 @@ analyzer:
 
   String optionsSection(String key, {List<String> extraOptions = const []}) =>
       '''
-    $key:
-${extraOptions.map((option) => """
-      $option
-""").join('')}
+    $key:${extraOptions.map((option) => "\n      $option").join('')}\n
 ''';
 
   void setOptionsFileContent(String content) {
