@@ -435,7 +435,7 @@ class AngularDriver
   @override
   ApiSignature getContentHash(String path) {
     final key = new ApiSignature();
-    final contentBytes = UTF8.encode(getFileContent(path));
+    final contentBytes = utf8.encode(getFileContent(path));
     key.addBytes(md5.convert(contentBytes).bytes);
     return key;
   }
