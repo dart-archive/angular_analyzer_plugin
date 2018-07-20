@@ -1603,7 +1603,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // verify
     final verifier = new AngularErrorVerifier(
         errorReporter, library, typeProvider, new InheritanceManager(library),
-        acceptAssignment: acceptAssignment);
+        acceptAssignment: acceptAssignment)
+      ..enclosingClass = classElement;
     astNode.accept(verifier);
   }
 
@@ -1718,8 +1719,7 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
     // Only block reassignment of locals, not poperties. Resolve elements to
     // check that.
     exp.leftHandSide.accept(elementResolver);
-    final variableElement = getOverridableStaticElement(exp.leftHandSide) ??
-        getOverridablePropagatedElement(exp.leftHandSide);
+    final variableElement = ErrorVerifier.getVariableElement(exp.leftHandSide);
     if ((variableElement == null ||
             variableElement is PropertyInducingElement) &&
         acceptAssignment) {
@@ -1824,9 +1824,7 @@ class AngularErrorVerifier extends _IntermediateErrorVerifier
 
   @override
   void visitAssignmentExpression(AssignmentExpression exp) {
-    // match ResolverVisitor to prevent fallout errors
-    final variableElement = getOverridableStaticElement(exp.leftHandSide) ??
-        getOverridablePropagatedElement(exp.leftHandSide);
+    final variableElement = ErrorVerifier.getVariableElement(exp.leftHandSide);
     if ((variableElement == null ||
             variableElement is PropertyInducingElement) &&
         acceptAssignment) {
@@ -1834,38 +1832,6 @@ class AngularErrorVerifier extends _IntermediateErrorVerifier
     } else {
       exp.visitChildren(this);
     }
-  }
-
-  /// Copied from ResolverVisitor
-  VariableElement getOverridablePropagatedElement(Expression expression) {
-    Element element;
-    if (expression is SimpleIdentifier) {
-      element = expression.propagatedElement;
-    } else if (expression is PrefixedIdentifier) {
-      element = expression.propagatedElement;
-    } else if (expression is PropertyAccess) {
-      element = expression.propertyName.propagatedElement;
-    }
-    if (element is VariableElement) {
-      return element;
-    }
-    return null;
-  }
-
-  /// Copied from ResolverVisitor
-  VariableElement getOverridableStaticElement(Expression expression) {
-    Element element;
-    if (expression is SimpleIdentifier) {
-      element = expression.staticElement;
-    } else if (expression is PrefixedIdentifier) {
-      element = expression.staticElement;
-    } else if (expression is PropertyAccess) {
-      element = expression.propertyName.staticElement;
-    }
-    if (element is VariableElement) {
-      return element;
-    }
-    return null;
   }
 }
 

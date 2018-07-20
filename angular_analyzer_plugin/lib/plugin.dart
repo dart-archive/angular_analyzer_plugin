@@ -59,7 +59,8 @@ class AngularAnalyzerPlugin extends ServerPlugin
 
   @override
   AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
-    final root = new ContextRoot(contextRoot.root, contextRoot.exclude)
+    final root = new ContextRoot(contextRoot.root, contextRoot.exclude,
+        pathContext: resourceProvider.pathContext)
       ..optionsFilePath = contextRoot.optionsFile;
     final options = getOptions(root.optionsFilePath);
 
