@@ -118,7 +118,7 @@ abstract class _PackageBundleMixin implements idl.PackageBundle {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class LinkedHtmlSummaryBuilder extends Object
@@ -268,7 +268,7 @@ abstract class _LinkedHtmlSummaryMixin implements idl.LinkedHtmlSummary {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class UnlinkedHtmlSummaryBuilder extends Object
@@ -376,7 +376,7 @@ abstract class _UnlinkedHtmlSummaryMixin implements idl.UnlinkedHtmlSummary {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class LinkedDartSummaryBuilder extends Object
@@ -584,7 +584,7 @@ abstract class _LinkedDartSummaryMixin implements idl.LinkedDartSummary {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class UnlinkedDartSummaryBuilder extends Object
@@ -815,7 +815,7 @@ abstract class _UnlinkedDartSummaryMixin implements idl.UnlinkedDartSummary {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedClassAnnotationsBuilder extends Object
@@ -1069,7 +1069,7 @@ abstract class _SummarizedClassAnnotationsMixin
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedDirectiveBuilder extends Object
@@ -1687,7 +1687,7 @@ abstract class _SummarizedDirectiveMixin implements idl.SummarizedDirective {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedPipeBuilder extends Object
@@ -1846,7 +1846,7 @@ abstract class _SummarizedPipeMixin implements idl.SummarizedPipe {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedAnalysisErrorBuilder extends Object
@@ -2033,7 +2033,7 @@ abstract class _SummarizedAnalysisErrorMixin
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedAnalysisErrorFromPathBuilder extends Object
@@ -2178,7 +2178,7 @@ abstract class _SummarizedAnalysisErrorFromPathMixin
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedBindableBuilder extends Object
@@ -2334,7 +2334,7 @@ abstract class _SummarizedBindableMixin implements idl.SummarizedBindable {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedDirectiveUseBuilder extends Object
@@ -2491,7 +2491,7 @@ abstract class _SummarizedDirectiveUseMixin
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedNgContentBuilder extends Object
@@ -2644,7 +2644,7 @@ abstract class _SummarizedNgContentMixin implements idl.SummarizedNgContent {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedContentChildFieldBuilder extends Object
@@ -2826,7 +2826,7 @@ abstract class _SummarizedContentChildFieldMixin
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedExportedIdentifierBuilder extends Object
@@ -2984,7 +2984,7 @@ abstract class _SummarizedExportedIdentifierMixin
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
 
 class SummarizedPipesUseBuilder extends Object
@@ -3140,5 +3140,5 @@ abstract class _SummarizedPipesUseMixin implements idl.SummarizedPipesUse {
       };
 
   @override
-  String toString() => convert.JSON.encode(toJson());
+  String toString() => convert.json.encode(toJson());
 }
