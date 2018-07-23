@@ -53,8 +53,12 @@ class AngularNavigationTest extends AbstractAngularTest {
   @override
   void setUp() {
     super.setUp();
-    when(collector.addRegion(typed(argThat(const isInstanceOf<int>())),
-            typed(argThat(const isInstanceOf<int>())), typed(any), typed(any)))
+    // TODO(mfairhurst): remove `as dynamic`. See https://github.com/dart-lang/sdk/issues/33934
+    when(collector.addRegion(
+            typed(argThat(const isInstanceOf<int>())),
+            typed(argThat(const isInstanceOf<int>())),
+            typed(any),
+            typed(any)) as dynamic)
         .thenAnswer((invocation) {
       final offset = invocation.positionalArguments[0] as int;
       final length = invocation.positionalArguments[1] as int;
