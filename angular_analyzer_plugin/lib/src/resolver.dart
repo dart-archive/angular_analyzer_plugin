@@ -1718,8 +1718,7 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
     // Only block reassignment of locals, not poperties. Resolve elements to
     // check that.
     exp.leftHandSide.accept(elementResolver);
-    final variableElement = getOverridableStaticElement(exp.leftHandSide) ??
-        getOverridablePropagatedElement(exp.leftHandSide);
+    final variableElement = getOverridableStaticElement(exp.leftHandSide);
     if ((variableElement == null ||
             variableElement is PropertyInducingElement) &&
         acceptAssignment) {

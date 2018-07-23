@@ -1,8 +1,8 @@
 analyzer:
-  strong-mode: true
   exclude:
+    # TODO(devoncarew): We should remove this blanket exclusion - it could mask
+    # other issues.
     - lib/src/summary/format.dart
-    - lib/src/angular_html_parser.dart
 
 linter:
   rules:
