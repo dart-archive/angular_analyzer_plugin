@@ -167,6 +167,9 @@ class _ResolveResultShell implements ResolveResult {
   List<AnalysisError> get errors => const [];
 
   @override
+  bool get isPart => false;
+
+  @override
   LineInfo get lineInfo => null;
 
   @override

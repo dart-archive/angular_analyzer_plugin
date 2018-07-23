@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/ast/ast.dart' hide Directive;
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/src/dart/resolver/scope.dart';
 import 'package:analyzer/src/generated/engine.dart' show AnalysisContext;
 import 'package:analyzer/src/generated/java_engine.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -60,6 +61,12 @@ class ExportsImportElementFacade implements ImportElement {
 
   @override
   bool get isJS => false;
+
+  @override
+  bool get hasIsTest => _wrappedImport.hasIsTest;
+
+  @override
+  bool get hasIsTestGroup => _wrappedImport.hasIsTestGroup;
 
   @override
   bool get isOverride => hasOverride;
@@ -123,6 +130,9 @@ class ExportsImportElementFacade implements ImportElement {
 
   @override
   CompilationUnit get unit => _wrappedImport.unit;
+
+  @override
+  Namespace get namespace => _wrappedImport.namespace;
 
   @override
   String computeDocumentationComment() => _wrappedImport

@@ -85,6 +85,12 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   bool get hasJS => false;
 
   @override
+  bool get hasIsTest => _wrappedUnit.hasIsTest;
+
+  @override
+  bool get hasIsTestGroup => _wrappedUnit.hasIsTestGroup;
+
+  @override
   bool get hasOverride => _wrappedUnit.hasOverride;
 
   @override
