@@ -1,5 +1,5 @@
 name: angular_analyzer_plugin
-version: 0.0.16
+version: 0.0.17
 description: Dart analyzer plugin for Angular 2+
 authors:
   - Konstantin Scheglov <scheglov@google.com>
@@ -7,7 +7,7 @@ authors:
   - Max Kim <maxkim@google.com>
 homepage: https://github.com/dart-lang/angular_analyzer_plugin
 environment:
-  sdk: '>=1.24.0-dev.1.0 <3.0.0'
+  sdk: '>=2.0.0-dev.0.0 <3.0.0'
 dependencies:
   analyzer: '0.32.4'
   plugin: '^0.2.0'

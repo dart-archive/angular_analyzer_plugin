@@ -1,3 +1,8 @@
+## 0.0.17
+
+- More dart 2 runtime support.
+- Upgrade package:analyzer to support newest dart semantics.
+
 ## 0.0.16
 
 - Fixed an issue where you couldn't reference a static member of the component
