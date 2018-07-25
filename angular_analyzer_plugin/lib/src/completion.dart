@@ -472,7 +472,7 @@ class NgInheritedReferenceContributor extends CompletionContributor {
       ..parameterTypes =
           element.parameters.map((param) => param.type.toString()).toList()
       ..requiredParameterCount =
-          element.parameters.where((param) => param.isRequired).length
+          element.parameters.where((param) => param.hasRequired).length
       ..hasNamedParameters =
           element.parameters.any((param) => param.name != null);
   }
