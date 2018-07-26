@@ -158,7 +158,7 @@ class AbstractAngularTest {
         new FileContentOverlay(),
         contextRoot,
         sf,
-        new AnalysisOptionsImpl()..strongMode = true);
+        new AnalysisOptionsImpl());
     angularDriver = new AngularDriver(
         resourceProvider,
         new MockNotificationManager(),

@@ -19,6 +19,8 @@ import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 
+// ignore_for_file: deprecated_member_use
+
 void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AngularParseHtmlTest);

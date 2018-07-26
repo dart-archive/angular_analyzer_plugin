@@ -358,18 +358,17 @@ class TextInfo extends NodeInfo {
   void accept(AngularAstVisitor visitor) => visitor.visitTextInfo(this);
 }
 
-/// A wrapper for a given HTML document or
-/// dart-angular inline HTML template.
+/// A wrapper for a given HTML document or dart-angular inline HTML template.
 class DocumentInfo extends ElementInfo {
   factory DocumentInfo() = DocumentInfo._;
 
   DocumentInfo._()
       : super(
           '',
-          new SourceRange(0, 0),
-          new SourceRange(0, 0),
-          new SourceRange(0, 0),
-          new SourceRange(0, 0),
+          const SourceRange(0, 0),
+          const SourceRange(0, 0),
+          const SourceRange(0, 0),
+          const SourceRange(0, 0),
           [],
           null,
           null,

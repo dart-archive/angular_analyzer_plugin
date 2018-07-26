@@ -5,6 +5,8 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:test/test.dart';
 
+// ignore_for_file: deprecated_member_use
+
 class AngularElementAssert extends _AbstractElementAssert {
   final AngularElement element;
 
