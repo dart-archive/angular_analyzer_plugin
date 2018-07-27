@@ -1,3 +1,8 @@
+## Unpublished
+
+- Fixed an issue where standard HTML events weren't recognized due to changes
+  made to dart:html sources on newer SDKs.
+
 ## 0.0.17
 
 - More dart 2 runtime support.

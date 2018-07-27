@@ -312,14 +312,13 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   List<OutputElement> _buildOutputs(bool globalOutputs) =>
       _captureAspects((outputMap, accessor) {
-        final domName = _getDomName(accessor);
+        final domName = accessor.name.toLowerCase();
         if (domName == null) {
           return;
         }
 
-        // Event domnames start with Element.on or Document.on
-        final offset = domName.indexOf(".") + ".on".length;
-        final name = domName.substring(offset);
+        // Event domnames start with on
+        final name = domName.substring("on".length);
 
         if (!outputMap.containsKey(name)) {
           if (accessor.isGetter) {
@@ -344,20 +343,6 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
           }
         }
       }, globalOutputs); // Either grabbing HtmlElement events or skipping them
-
-  String _getDomName(Element element) {
-    for (final annotation in element.metadata) {
-      // this has caching built in, so we can compute every time
-      final value = annotation.computeConstantValue();
-      if (value != null && value.type is InterfaceType) {
-        if (value.type.element.name == 'DomName') {
-          return value.getField("name").toStringValue();
-        }
-      }
-    }
-
-    return null;
-  }
 
   List<T> _captureAspects<T>(CaptureAspectFn<T> addAspect, bool globalAspects) {
     final aspectMap = <String, T>{};
