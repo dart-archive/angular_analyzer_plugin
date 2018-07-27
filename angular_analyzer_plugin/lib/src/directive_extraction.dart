@@ -9,8 +9,9 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
+// TODO(mfairhurst) use package:tuple once it support Dart 2
+import 'package:angular_analyzer_plugin/src/tuple.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
-import 'package:tuple/tuple.dart';
 
 class DirectiveExtractor extends AnnotationProcessorMixin {
   final TypeProvider _typeProvider;
