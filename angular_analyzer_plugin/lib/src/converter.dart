@@ -12,10 +12,11 @@ import 'package:angular_ast/angular_ast.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/ng_expr_parser.dart';
 import 'package:angular_analyzer_plugin/src/ignoring_error_listener.dart';
+// TODO(mfairhurst) use package:tuple once it support Dart 2
+import 'package:angular_analyzer_plugin/src/tuple.dart';
 import 'package:angular_analyzer_plugin/src/strings.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:meta/meta.dart';
-import 'package:tuple/tuple.dart';
 
 class HtmlTreeConverter {
   final EmbeddedDartParser dartParser;

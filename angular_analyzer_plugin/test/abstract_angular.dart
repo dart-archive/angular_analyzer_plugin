@@ -11,8 +11,9 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
+// TODO(mfairhurst) use package:tuple once it support Dart 2
+import 'package:angular_analyzer_plugin/src/tuple.dart';
 import 'package:mockito/mockito.dart';
-import 'package:tuple/tuple.dart';
 import 'package:test/test.dart';
 
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
