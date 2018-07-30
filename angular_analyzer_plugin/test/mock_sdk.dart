@@ -336,49 +336,31 @@ class MouseEvent extends Event {}
 class FocusEvent extends Event {}
 class KeyEvent extends Event {}
 
-class DomName {
-  final String name;
-  const DomName(this.name);
-}
-
 abstract class ElementStream<T extends Event> implements Stream<T> {}
 
 abstract class Element {
   /// Stream of `cut` events handled by this [Element].
-  @DomName('Element.oncut')
   ElementStream<Event> get onCut => null;
   
-  @DomName('Element.id')
   String get id => null;
   
-  @DomName('Element.id')
   set id(String value) => null;
 }
 
 class HtmlElement extends Element {
   int tabIndex;
-  @DomName('Element.onchange')
   ElementStream<Event> get onChange => null;
-  @DomName('Element.onclick')
   ElementStream<MouseEvent> get onClick => null;
-  @DomName('Element.onkeyup')
   ElementStream<KeyEvent> get onKeyUp => null;
-  @DomName('Element.onkeydown')
   ElementStream<KeyEvent> get onKeyDown => null;
   
-  @DomName('HTMLElement.hidden')
   bool get hidden => null;
-  @DomName('HTMLElement.hidden')
   set hidden(bool value) => null;
   
-  @DomName('HTMLElement.className')
   void set className(String s){}
-  @DomName('HTMLElement.readOnly')
   void set readOnly(bool b){}
-  @DomName('HTMLElement.tabIndex')
   void set tabIndex(int i){}
 
-  @DomName('HTMLElement.innerHTML')
   String _innerHtml;
   String get innerHtml {
     throw 'not the real implementation';
@@ -402,11 +384,9 @@ class AnchorElement extends HtmlElement {
   String _privateField;
 }
 
-@DomName('HTMLBodyElement')
 class BodyElement extends HtmlElement {
   factory BodyElement() => document.createElement("body");
 
-  @DomName('HTMLBodyElement.onunload')
   ElementStream<Event> get onUnload => null;
 }
 
@@ -437,7 +417,6 @@ class IFrameElement extends HtmlElement {
       '#.createElement(#)',
       document,
       "iframe");
-  @DomName('HTMLIFrameElement.src')
   String src;
 }
 
@@ -445,15 +424,12 @@ class OptionElement extends HtmlElement {
   factory OptionElement({String data: '', String value : '', bool selected: false}) {
   }                                                                              
                                                                                  
-  @DomName('HTMLOptionElement.HTMLOptionElement')                                
-  @DocsEditable()                                                                
   factory OptionElement._([String data, String value, bool defaultSelected, bool selected]) {
   }    
 }
 
 class TableSectionElement extends HtmlElement {
 
-  @DomName('HTMLTableSectionElement.rows')
   List<TableRowElement> get rows => null;
 
   TableRowElement addRow() {
