@@ -1,5 +1,7 @@
 ## Unpublished
 
+## 0.0.17+1
+
 - Fixed an issue where standard HTML events weren't recognized due to changes
   made to dart:html sources on newer SDKs.
 
