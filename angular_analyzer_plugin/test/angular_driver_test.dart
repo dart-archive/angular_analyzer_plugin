@@ -1245,6 +1245,25 @@ class PipeA extends PipeTransform{
   }
 
   // ignore: non_constant_identifier_names
+  @soloTest
+  Future test_Pipe_dynamic() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+  dynamic transform(dynamic x, [dynamic more]) {}
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_exportAs_Component() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
