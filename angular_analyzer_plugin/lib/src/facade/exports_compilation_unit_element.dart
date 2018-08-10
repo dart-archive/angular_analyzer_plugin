@@ -40,6 +40,9 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   LibraryElement get enclosingElement => libraryFacade;
 
   @override
+  bool get hasVisibleForTemplate => _wrappedUnit.hasVisibleForTemplate;
+
+  @override
   int get id => _wrappedUnit.id;
 
   @override
