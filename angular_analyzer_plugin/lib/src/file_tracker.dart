@@ -88,7 +88,8 @@ class FileTracker {
   List<String> getHtmlPathsAffectingDartContext(String dartPath) => _dartToDart
       .getFilesReferencedBy(dartPath)
       .map(_dartToHtml.getFilesReferencedBy)
-      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc)).toList();
+      .fold<List<String>>(
+          <String>[], (list, acc) => list..addAll(acc)).toList();
 
   ApiSignature getDartSignature(String dartPath) {
     final signature = new ApiSignature()

@@ -87,7 +87,8 @@ class _OptionsBuilder {
       final name = nameNode.value as String;
       final offset = nameNode.span.start.offset;
       customEvents[name] = props is YamlMap
-          ? new CustomEvent(name, props['type'] as String, props['path'] as String, offset)
+          ? new CustomEvent(
+              name, props['type'] as String, props['path'] as String, offset)
           // Handle `event:` with no value, a shortcut for dynamic.
           : new CustomEvent(name, null, null, offset);
     });

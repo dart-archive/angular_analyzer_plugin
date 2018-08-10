@@ -359,7 +359,8 @@ class AngularDriver
           standardEvents,
           customEvents,
           result.libraryElement.exportNamespace.get('Element') as ClassElement,
-          result.libraryElement.exportNamespace.get('HtmlElement') as ClassElement);
+          result.libraryElement.exportNamespace.get('HtmlElement')
+              as ClassElement);
     }
 
     return standardHtml;

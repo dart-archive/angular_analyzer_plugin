@@ -937,8 +937,9 @@ class TemplateCompleter {
           .where((b) => b.attribute != currentAttr)
           .map((b) => b.boundOutput)).toSet();
 
-      final availableInputs = new HashSet<InputElement>.from(directive.boundDirective.inputs)
-          .difference(usedInputs);
+      final availableInputs =
+          new HashSet<InputElement>.from(directive.boundDirective.inputs)
+              .difference(usedInputs);
       final availableOutputs =
           new HashSet<OutputElement>.from(directive.boundDirective.outputs)
               .difference(usedOutputs);
