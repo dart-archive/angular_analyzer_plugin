@@ -1,5 +1,8 @@
 ## Unpublished
 
+- Fixed an issue where pipes with a dynamic type optional parameter would crash
+  the plugin.
+
 ## 0.0.17+1
 
 - Fixed an issue where standard HTML events weren't recognized due to changes

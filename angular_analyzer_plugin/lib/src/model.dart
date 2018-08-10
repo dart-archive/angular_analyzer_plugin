@@ -512,7 +512,7 @@ class Pipe {
 
   dart.DartType requiredArgumentType;
   dart.DartType transformReturnType;
-  List<dart.InterfaceType> optionalArgumentTypes = <dart.InterfaceType>[];
+  List<dart.DartType> optionalArgumentTypes = <dart.DartType>[];
 
   Pipe(this.pipeName, this.pipeNameOffset, this.classElement,
       {this.isPure: true});
