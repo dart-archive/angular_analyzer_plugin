@@ -42,6 +42,9 @@ class ExportsImportElementFacade implements ImportElement {
   LibraryElement get enclosingElement => libraryFacade;
 
   @override
+  bool get hasVisibleForTemplate => _wrappedImport.hasVisibleForTemplate;
+
+  @override
   int get id => _wrappedImport.id;
 
   @override
