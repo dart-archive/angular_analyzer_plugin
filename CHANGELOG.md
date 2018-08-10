@@ -1,5 +1,7 @@
 ## Unpublished
 
+## 0.0.17+2
+
 - Fixed an issue where pipes with a dynamic type optional parameter would crash
   the plugin.
 

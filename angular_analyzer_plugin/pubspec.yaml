@@ -1,5 +1,5 @@
 name: angular_analyzer_plugin
-version: 0.0.17+1
+version: 0.0.17+2
 description: Dart analyzer plugin for Angular 2+
 authors:
   - Konstantin Scheglov <scheglov@google.com>
