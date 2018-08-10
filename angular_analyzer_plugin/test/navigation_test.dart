@@ -1,17 +1,17 @@
 import 'dart:async';
 
-import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
-import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:test_reflective_loader/test_reflective_loader.dart';
+import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
+import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/navigation.dart';
 import 'package:angular_analyzer_plugin/src/navigation_request.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
+import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'abstract_angular.dart';
 
@@ -28,6 +28,18 @@ void main() {
 class AngularNavigationTest extends AbstractAngularTest {
   String code;
 
+  List<_RecordedNavigationRegion> regions = <_RecordedNavigationRegion>[];
+
+  NavigationCollector collector = new NavigationCollectorMock();
+
+  _RecordedNavigationRegion region;
+  protocol.Location targetLocation;
+
+  /// Compute all the views declared in the given [dartSource], and return its
+  /// result
+  Future<DirectivesResult> resolveDart(Source dartSource) async =>
+      await angularDriver.requestDartResult(dartSource.fullName);
+
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of all the views.
   Future<DirectivesResult> resolveLinkedHtml(Source dartSource) async {
@@ -41,17 +53,6 @@ class AngularNavigationTest extends AbstractAngularTest {
 
     return null;
   }
-
-  /// Compute all the views declared in the given [dartSource], and return its
-  /// result
-  Future<DirectivesResult> resolveDart(Source dartSource) async =>
-      await angularDriver.requestDartResult(dartSource.fullName);
-
-  List<_RecordedNavigationRegion> regions = <_RecordedNavigationRegion>[];
-  NavigationCollector collector = new NavigationCollectorMock();
-
-  _RecordedNavigationRegion region;
-  protocol.Location targetLocation;
 
   @override
   void setUp() {
@@ -211,7 +212,28 @@ class TextPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_searchRange_perfectMatch() async {
+  Future test_navigateOnfocusin() async {
+    code = r'''
+import 'package:angular/src/core/metadata.dart';
+
+@Component(selector: 'test-comp', template: '<div (focusin)=""></div>')
+class TestComponent {
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
+        new AngularNavigationRequest(
+            null, 'focusin'.length, code.indexOf('focusin'), result),
+        collector,
+        templatesOnly: false);
+
+    expect(regions, hasLength(0));
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_searchRange_fitPerfectlyLeftAndRight() async {
     code = r'''
 import 'package:angular/src/core/metadata.dart';
 
@@ -226,16 +248,24 @@ class TestComponent {
     // compute navigation regions
     final result = await resolveDart(source);
     new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
-        new AngularNavigationRequest(
-            null, 'fieldOne'.length, code.indexOf('fieldOne}}'), result),
+        new AngularNavigationRequest(null, 'fieldOne}}{{fieldTwo'.length,
+            code.indexOf('fieldOne}}{{fieldTwo'), result),
         collector,
         templatesOnly: false);
-    _findRegionString('fieldOne', '}}');
-    expect(region.targetKind, protocol.ElementKind.UNKNOWN);
-    expect(targetLocation.file, '/test.dart');
-    expect(targetLocation.offset, code.indexOf('fieldOne;'));
+    {
+      _findRegionString('fieldOne', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldOne;'));
+    }
+    {
+      _findRegionString('fieldTwo', '}}');
+      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('fieldTwo;'));
+    }
 
-    expect(regions, hasLength(1));
+    expect(regions, hasLength(2));
   }
 
   // ignore: non_constant_identifier_names
@@ -298,42 +328,6 @@ class TestComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_searchRange_fitPerfectlyLeftAndRight() async {
-    code = r'''
-import 'package:angular/src/core/metadata.dart';
-
-@Component(
-    selector: 'test-comp', template: '{{fieldOne}}{{fieldTwo}}', directives: [])
-class TestComponent {
-  String fieldOne;
-  String fieldTwo;
-}
-''';
-    final source = newSource('/test.dart', code);
-    // compute navigation regions
-    final result = await resolveDart(source);
-    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
-        new AngularNavigationRequest(null, 'fieldOne}}{{fieldTwo'.length,
-            code.indexOf('fieldOne}}{{fieldTwo'), result),
-        collector,
-        templatesOnly: false);
-    {
-      _findRegionString('fieldOne', '}}');
-      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
-      expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf('fieldOne;'));
-    }
-    {
-      _findRegionString('fieldTwo', '}}');
-      expect(region.targetKind, protocol.ElementKind.UNKNOWN);
-      expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf('fieldTwo;'));
-    }
-
-    expect(regions, hasLength(2));
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_searchRange_overlapsEntirely() async {
     code = r'''
 import 'package:angular/src/core/metadata.dart';
@@ -364,12 +358,15 @@ class TestComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_navigateOnfocusin() async {
+  Future test_searchRange_perfectMatch() async {
     code = r'''
 import 'package:angular/src/core/metadata.dart';
 
-@Component(selector: 'test-comp', template: '<div (focusin)=""></div>')
+@Component(
+    selector: 'test-comp', template: '{{fieldOne}}{{fieldTwo}}', directives: [])
 class TestComponent {
+  String fieldOne;
+  String fieldTwo;
 }
 ''';
     final source = newSource('/test.dart', code);
@@ -377,11 +374,15 @@ class TestComponent {
     final result = await resolveDart(source);
     new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(
-            null, 'focusin'.length, code.indexOf('focusin'), result),
+            null, 'fieldOne'.length, code.indexOf('fieldOne}}'), result),
         collector,
         templatesOnly: false);
+    _findRegionString('fieldOne', '}}');
+    expect(region.targetKind, protocol.ElementKind.UNKNOWN);
+    expect(targetLocation.file, '/test.dart');
+    expect(targetLocation.offset, code.indexOf('fieldOne;'));
 
-    expect(regions, hasLength(0));
+    expect(regions, hasLength(1));
   }
 
   void _findRegion(int offset, int length) {
@@ -412,15 +413,15 @@ class GatheringErrorListener implements AnalysisErrorListener {
   /// A list containing the errors that were collected.
   final _errors = <AnalysisError>[];
 
-  @override
-  void onError(AnalysisError error) {
-    _errors.add(error);
-  }
-
   void addAll(List<AnalysisError> errors) {
     for (final error in errors) {
       onError(error);
     }
+  }
+
+  @override
+  void onError(AnalysisError error) {
+    _errors.add(error);
   }
 }
 

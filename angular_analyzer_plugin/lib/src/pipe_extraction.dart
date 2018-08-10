@@ -1,12 +1,12 @@
 import 'package:analyzer/analyzer.dart' as analyzer;
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
+import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
-import 'package:angular_analyzer_plugin/errors.dart';
 
 class PipeExtractor extends AnnotationProcessorMixin {
   final ast.CompilationUnit _unit;

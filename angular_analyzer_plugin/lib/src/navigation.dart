@@ -1,12 +1,12 @@
+import 'package:analyzer/dart/element/element.dart' as engine;
+import 'package:analyzer/src/dart/analysis/file_state.dart';
+import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
 import 'package:analyzer_plugin/protocol/protocol_constants.dart' as protocol;
 import 'package:analyzer_plugin/utilities/analyzer_converter.dart' as protocol;
 import 'package:analyzer_plugin/utilities/navigation/navigation.dart';
-import 'package:analyzer/dart/element/element.dart' as engine;
-import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/navigation_request.dart';
-import 'package:analyzer/src/dart/analysis/file_state.dart';
 
 class AngularNavigation implements NavigationContributor {
   final FileContentOverlay _contentOverlay;
@@ -52,6 +52,11 @@ class AngularNavigation implements NavigationContributor {
       _addTemplateRegions(collector, template, span);
     }
   }
+
+  /// A null target range indicates everything is targeted. Otherwise, intersect
+  bool isTargeted(SourceRange toTest, {SourceRange targetRange}) =>
+      // <a><b></b></a> or <a><b></a></b>, but not <a></a><b></b>.
+      targetRange == null || targetRange.intersects(toTest);
 
   void _addDirectiveRegions(NavigationCollector collector,
       AbstractDirective directive, SourceRange targetRange) {
@@ -130,9 +135,4 @@ class AngularNavigation implements NavigationContributor {
           new protocol.Location(view.templateUriSource.fullName, 0, 0, 1, 1));
     }
   }
-
-  /// A null target range indicates everything is targeted. Otherwise, intersect
-  bool isTargeted(SourceRange toTest, {SourceRange targetRange}) =>
-      // <a><b></b></a> or <a><b></a></b>, but not <a></a><b></b>.
-      targetRange == null || targetRange.intersects(toTest);
 }

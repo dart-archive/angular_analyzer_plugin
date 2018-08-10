@@ -18,16 +18,7 @@ class ExportsImportElementFacade implements ImportElement {
       {this.libraryFacade});
 
   @override
-  String get uri => _wrappedImport.uri;
-
-  @override
-  int get uriEnd => _wrappedImport.uriEnd;
-
-  @override
-  int get uriOffset => _wrappedImport.uriOffset;
-
-  @override
-  Source get librarySource => _wrappedImport.librarySource;
+  List<NamespaceCombinator> get combinators => _wrappedImport.combinators;
 
   @override
   AnalysisContext get context => _wrappedImport.context;
@@ -42,40 +33,7 @@ class ExportsImportElementFacade implements ImportElement {
   LibraryElement get enclosingElement => libraryFacade;
 
   @override
-  int get id => _wrappedImport.id;
-
-  @override
-  bool get isPrivate => _wrappedImport.isPrivate;
-
-  @override
-  bool get isPublic => _wrappedImport.isPublic;
-
-  @override
-  bool get isSynthetic => _wrappedImport.isSynthetic;
-
-  @override
-  bool get isDeprecated => hasDeprecated;
-
-  @override
-  bool get isFactory => hasFactory;
-
-  @override
-  bool get isJS => false;
-
-  @override
-  bool get isOverride => hasOverride;
-
-  @override
-  bool get isProtected => hasProtected;
-
-  @override
-  bool get isRequired => hasRequired;
-
-  @override
-  bool get isAlwaysThrows => hasAlwaysThrows;
-
-  @override
-  bool get isVisibleForTesting => hasVisibleForTesting;
+  bool get hasAlwaysThrows => _wrappedImport.hasAlwaysThrows;
 
   @override
   bool get hasDeprecated => _wrappedImport.hasDeprecated;
@@ -102,13 +60,61 @@ class ExportsImportElementFacade implements ImportElement {
   bool get hasRequired => _wrappedImport.hasRequired;
 
   @override
-  bool get hasAlwaysThrows => _wrappedImport.hasAlwaysThrows;
-
-  @override
   bool get hasVisibleForTesting => _wrappedImport.hasVisibleForTesting;
 
   @override
+  int get id => _wrappedImport.id;
+
+  @override
+  LibraryElement get importedLibrary => _wrappedImport.importedLibrary == null
+      ? null
+      : new ExportsLibraryFacade(_wrappedImport.importedLibrary, _component,
+          prefix: prefix?.name);
+
+  @override
+  bool get isAlwaysThrows => hasAlwaysThrows;
+
+  @override
+  bool get isDeferred => _wrappedImport.isDeferred;
+
+  @override
+  bool get isDeprecated => hasDeprecated;
+
+  @override
+  bool get isFactory => hasFactory;
+
+  @override
+  bool get isJS => false;
+
+  @override
+  bool get isOverride => hasOverride;
+
+  @override
+  bool get isPrivate => _wrappedImport.isPrivate;
+
+  @override
+  bool get isProtected => hasProtected;
+
+  @override
+  bool get isPublic => _wrappedImport.isPublic;
+
+  @override
+  bool get isRequired => hasRequired;
+
+  @override
+  bool get isSynthetic => _wrappedImport.isSynthetic;
+
+  @override
+  bool get isVisibleForTesting => hasVisibleForTesting;
+
+  @override
+  ElementKind get kind => _wrappedImport.kind;
+
+  @override
   LibraryElement get library => libraryFacade;
+
+  @override
+  Source get librarySource => _wrappedImport.librarySource;
 
   @override
   ElementLocation get location => _wrappedImport.location;
@@ -126,14 +132,36 @@ class ExportsImportElementFacade implements ImportElement {
   int get nameOffset => _wrappedImport.nameOffset;
 
   @override
+  Namespace get namespace => _wrappedImport.namespace;
+
+  @override
+  PrefixElement get prefix =>
+      _wrappedImport.prefix; // ignore: deprecated_member_use
+
+  @override
+  int get prefixOffset => _wrappedImport.prefixOffset;
+
+  @override
   Source get source => _wrappedImport.source;
 
   @override
   CompilationUnit get unit => _wrappedImport.unit;
 
   @override
-  String computeDocumentationComment() => _wrappedImport
-      .computeDocumentationComment(); // ignore: deprecated_member_use
+  String get uri => _wrappedImport.uri;
+
+  @override
+  int get uriEnd => _wrappedImport.uriEnd;
+
+  @override
+  int get uriOffset => _wrappedImport.uriOffset;
+
+  @override
+  T accept<T>(ElementVisitor<T> visitor) => _wrappedImport.accept(visitor);
+
+  @override
+  String computeDocumentationComment() =>
+      _wrappedImport.computeDocumentationComment();
 
   @override
   AstNode computeNode() => _wrappedImport.computeNode();
@@ -153,31 +181,4 @@ class ExportsImportElementFacade implements ImportElement {
   @override
   void visitChildren(ElementVisitor visitor) =>
       _wrappedImport.visitChildren(visitor);
-
-  @override
-  ElementKind get kind => _wrappedImport.kind;
-
-  @override
-  T accept<T>(ElementVisitor<T> visitor) => _wrappedImport.accept(visitor);
-
-  @override
-  List<NamespaceCombinator> get combinators => _wrappedImport.combinators;
-
-  @override
-  LibraryElement get importedLibrary => _wrappedImport.importedLibrary == null
-      ? null
-      : new ExportsLibraryFacade(_wrappedImport.importedLibrary, _component,
-          prefix: prefix?.name);
-
-  @override
-  bool get isDeferred => _wrappedImport.isDeferred;
-
-  @override
-  PrefixElement get prefix => _wrappedImport.prefix;
-
-  @override
-  int get prefixOffset => _wrappedImport.prefixOffset;
-
-  @override
-  Namespace get namespace => _wrappedImport.namespace;
 }

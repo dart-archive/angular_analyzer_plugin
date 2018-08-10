@@ -17,14 +17,6 @@ String capitalize(String str) {
   return str.substring(0, 1).toUpperCase() + str.substring(1);
 }
 
-String decapitalize(String str) {
-  if (isEmpty(str)) {
-    return str;
-  }
-  // ignore: prefer_interpolation_to_compose_strings
-  return str.substring(0, 1).toLowerCase() + str.substring(1);
-}
-
 int compareStrings(String a, String b) {
   if (a == b) {
     return 0;
@@ -51,6 +43,14 @@ int countMatches(String str, String sub) {
     idx += sub.length;
   }
   return count;
+}
+
+String decapitalize(String str) {
+  if (isEmpty(str)) {
+    return str;
+  }
+  // ignore: prefer_interpolation_to_compose_strings
+  return str.substring(0, 1).toLowerCase() + str.substring(1);
 }
 
 /// Returns the number of characters common to the end of [a] and the start

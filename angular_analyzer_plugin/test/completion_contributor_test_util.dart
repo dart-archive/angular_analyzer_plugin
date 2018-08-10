@@ -4,17 +4,17 @@
 
 import 'dart:async';
 
+import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol
     show ElementKind;
 import 'package:analyzer_plugin/protocol/protocol_common.dart'
     hide Element, ElementKind;
+import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:analyzer_plugin/utilities/completion/relevance.dart';
-import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
-import 'package:analyzer/src/generated/source.dart';
-import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/completion_request.dart';
 import 'package:angular_analyzer_plugin/src/completion.dart';
+import 'package:angular_analyzer_plugin/src/completion_request.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
@@ -29,19 +29,6 @@ abstract class AbstractCompletionContributorTest
     extends BaseCompletionContributorTest {
   List<CompletionContributor> contributors;
   CompletionCollectorImpl collector;
-
-  @override
-  void setUp() {
-    super.setUp();
-    contributors = createContributors();
-  }
-
-  List<CompletionContributor> createContributors() => <CompletionContributor>[
-        new AngularCompletionContributor(),
-        new NgInheritedReferenceContributor(),
-        new NgTypeMemberContributor(),
-        new NgOffsetLengthContributor(),
-      ];
 
   @override
   Future computeSuggestions([int times = 200]) async {
@@ -66,6 +53,13 @@ abstract class AbstractCompletionContributorTest
     expect(suggestions, isNotNull, reason: 'expected suggestions');
   }
 
+  List<CompletionContributor> createContributors() => <CompletionContributor>[
+        new AngularCompletionContributor(),
+        new NgInheritedReferenceContributor(),
+        new NgTypeMemberContributor(),
+        new NgOffsetLengthContributor(),
+      ];
+
   /// Compute all the views declared in the given [dartSource], and resolve the
   /// external template of all the views.
   Future resolveSingleTemplate(Source dartSource) async {
@@ -76,6 +70,12 @@ abstract class AbstractCompletionContributorTest
         await angularDriver.requestHtmlResult(htmlPath);
       }
     }
+  }
+
+  @override
+  void setUp() {
+    super.setUp();
+    contributors = createContributors();
   }
 }
 
@@ -192,19 +192,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     if (paramType != null) {
       expect(cs.parameterType, paramType);
     }
-    return cs;
-  }
-
-  CompletionSuggestion assertSuggestLibrary(String name,
-      {int relevance: DART_RELEVANCE_DEFAULT}) {
-    final cs = assertSuggest(name,
-        csKind: CompletionSuggestionKind.IDENTIFIER, relevance: relevance);
-    final element = cs.element;
-    expect(element, isNotNull);
-    expect(element.kind, equals(protocol.ElementKind.LIBRARY));
-    expect(element.parameters, isNull);
-    expect(element.returnType, isNull);
-    assertHasNoParameterInfo(cs);
     return cs;
   }
 
@@ -417,6 +404,44 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestLibrary(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT}) {
+    final cs = assertSuggest(name,
+        csKind: CompletionSuggestionKind.IDENTIFIER, relevance: relevance);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LIBRARY));
+    expect(element.parameters, isNull);
+    expect(element.returnType, isNull);
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
+  CompletionSuggestion assertSuggestLocalVar(String name, String returnType,
+      {int relevance: DART_RELEVANCE_LOCAL_VARIABLE,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
+      String importUri}) {
+    final cs = assertSuggest(name,
+        csKind: kind, relevance: relevance, importUri: importUri);
+    if (returnType != null) {
+      expect(cs.returnType, returnType);
+    } else if (isNullExpectedReturnTypeConsideredDynamic) {
+      expect(cs.returnType, 'dynamic');
+    }
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.LOCAL_VARIABLE));
+    expect(element.name, equals(name));
+    expect(element.parameters, isNull);
+    if (returnType != null) {
+      expect(element.returnType, returnType);
+    } else if (isNullExpectedReturnTypeConsideredDynamic) {
+      expect(element.returnType, 'dynamic');
+    }
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   CompletionSuggestion assertSuggestMethod(
       String name, String declaringType, String returnType,
       {int relevance: DART_RELEVANCE_DEFAULT,
@@ -483,6 +508,20 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
+  CompletionSuggestion assertSuggestStar(String name,
+      {int relevance: DART_RELEVANCE_DEFAULT,
+      CompletionSuggestionKind kind: CompletionSuggestionKind.IDENTIFIER}) {
+    final cs = assertSuggest(name, csKind: kind, relevance: relevance);
+    final element = cs.element;
+    expect(element, isNotNull);
+    expect(element.kind, equals(protocol.ElementKind.CLASS));
+    expect(element.name, equals(name));
+    expect(element.parameters, isNull);
+    expect(element.returnType, isNull);
+    assertHasNoParameterInfo(cs);
+    return cs;
+  }
+
   CompletionSuggestion assertSuggestTemplateInput(String name,
       {String elementName,
       int relevance: DART_RELEVANCE_DEFAULT,
@@ -504,20 +543,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     return cs;
   }
 
-  CompletionSuggestion assertSuggestStar(String name,
-      {int relevance: DART_RELEVANCE_DEFAULT,
-      CompletionSuggestionKind kind: CompletionSuggestionKind.IDENTIFIER}) {
-    final cs = assertSuggest(name, csKind: kind, relevance: relevance);
-    final element = cs.element;
-    expect(element, isNotNull);
-    expect(element.kind, equals(protocol.ElementKind.CLASS));
-    expect(element.name, equals(name));
-    expect(element.parameters, isNull);
-    expect(element.returnType, isNull);
-    assertHasNoParameterInfo(cs);
-    return cs;
-  }
-
   CompletionSuggestion assertSuggestTopLevelVar(String name, String returnType,
       {int relevance: DART_RELEVANCE_DEFAULT,
       CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
@@ -532,31 +557,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     final element = cs.element;
     expect(element, isNotNull);
     expect(element.kind, equals(protocol.ElementKind.TOP_LEVEL_VARIABLE));
-    expect(element.name, equals(name));
-    expect(element.parameters, isNull);
-    if (returnType != null) {
-      expect(element.returnType, returnType);
-    } else if (isNullExpectedReturnTypeConsideredDynamic) {
-      expect(element.returnType, 'dynamic');
-    }
-    assertHasNoParameterInfo(cs);
-    return cs;
-  }
-
-  CompletionSuggestion assertSuggestLocalVar(String name, String returnType,
-      {int relevance: DART_RELEVANCE_LOCAL_VARIABLE,
-      CompletionSuggestionKind kind: CompletionSuggestionKind.INVOCATION,
-      String importUri}) {
-    final cs = assertSuggest(name,
-        csKind: kind, relevance: relevance, importUri: importUri);
-    if (returnType != null) {
-      expect(cs.returnType, returnType);
-    } else if (isNullExpectedReturnTypeConsideredDynamic) {
-      expect(cs.returnType, 'dynamic');
-    }
-    final element = cs.element;
-    expect(element, isNotNull);
-    expect(element.kind, equals(protocol.ElementKind.LOCAL_VARIABLE));
     expect(element.name, equals(name));
     expect(element.parameters, isNull);
     if (returnType != null) {

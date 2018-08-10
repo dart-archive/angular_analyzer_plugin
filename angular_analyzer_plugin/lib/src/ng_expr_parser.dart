@@ -1,10 +1,10 @@
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/src/generated/parser.dart';
-import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/dart/ast/token.dart';
-import 'package:analyzer/src/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
+import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/src/dart/ast/token.dart';
+import 'package:analyzer/src/generated/parser.dart';
+import 'package:analyzer/src/generated/source.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(Source source, AnalysisErrorListener errorListener)

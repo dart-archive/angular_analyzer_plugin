@@ -1,4 +1,5 @@
 import 'dart:collection';
+
 import 'package:analyzer/error/error.dart';
 import 'package:angular_ast/angular_ast.dart';
 
@@ -84,6 +85,28 @@ ErrorCode angularWarningCodeByUniqueName(String uniqueName) {
     }
   }
   return _uniqueNameToCodeMap[uniqueName];
+}
+
+class AngularHintCode extends AngularWarningCode {
+  /// When a user does for instance `template: 'foo$bar$baz`, we cannot analyze
+  /// the template because we cannot easily map errors to code offsets.
+  static const OFFSETS_CANNOT_BE_CREATED = const AngularHintCode(
+      'OFFSETS_CANNOT_BE_CREATED',
+      'Errors cannot be tracked for the constant expression because it is too'
+      ' complex for errors to be mapped to locations in the file');
+
+  /// Initialize a newly created error code to have the given [name].
+  /// The message associated with the error will be created from the given
+  /// [message] template. The correction associated with the error will be
+  /// created from the given [correction] template.
+  const AngularHintCode(String name, String message, [String correction])
+      : super(name, message, correction);
+
+  @override
+  ErrorSeverity get errorSeverity => ErrorSeverity.INFO;
+
+  @override
+  ErrorType get type => ErrorType.HINT;
 }
 
 /// The error codes used for Angular warnings. The convention for this
@@ -485,26 +508,4 @@ class AngularWarningCode extends ErrorCode {
 
   @override
   ErrorType get type => ErrorType.STATIC_WARNING;
-}
-
-class AngularHintCode extends AngularWarningCode {
-  /// When a user does for instance `template: 'foo$bar$baz`, we cannot analyze
-  /// the template because we cannot easily map errors to code offsets.
-  static const OFFSETS_CANNOT_BE_CREATED = const AngularHintCode(
-      'OFFSETS_CANNOT_BE_CREATED',
-      'Errors cannot be tracked for the constant expression because it is too'
-      ' complex for errors to be mapped to locations in the file');
-
-  /// Initialize a newly created error code to have the given [name].
-  /// The message associated with the error will be created from the given
-  /// [message] template. The correction associated with the error will be
-  /// created from the given [correction] template.
-  const AngularHintCode(String name, String message, [String correction])
-      : super(name, message, correction);
-
-  @override
-  ErrorSeverity get errorSeverity => ErrorSeverity.INFO;
-
-  @override
-  ErrorType get type => ErrorType.HINT;
 }
