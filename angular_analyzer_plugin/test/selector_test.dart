@@ -1469,8 +1469,8 @@ class _SelectorTest {
     // TODO(mfairhurst): remove `as dynamic`. See https://github.com/dart-lang/sdk/issues/33934
     when(template.addRange(typed(any), typed(any)) as dynamic)
         .thenAnswer((invocation) {
-      final range = invocation.positionalArguments[0];
-      final element = invocation.positionalArguments[1];
+      final range = invocation.positionalArguments[0] as SourceRange;
+      final element = invocation.positionalArguments[1] as AngularElement;
       resolvedRanges.add(new ResolvedRange(range, element));
     });
   }

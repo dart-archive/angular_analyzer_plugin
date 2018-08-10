@@ -128,7 +128,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
   /// Returns `null` if not an Angular annotation.
   FunctionalDirective _getFunctionalDirective(
       ast.FunctionDeclaration functionDeclaration) {
-    final functionElement = functionDeclaration.element;
+    final functionElement = functionDeclaration.element as FunctionElement;
     final annotationNode = functionDeclaration.metadata.firstWhere(
         (ann) => isAngularAnnotation(ann, 'Directive'),
         orElse: () => null);
@@ -234,7 +234,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     // ignore: omit_local_variable_types
     final Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
         _parseHeaderNameValueSourceRanges(expression);
-    if (nameValueAndRanges != null) {
+    if (nameValueAndRanges != null && expression is ast.SimpleStringLiteral) {
       final boundName = nameValueAndRanges.item1;
       final boundRange = nameValueAndRanges.item2;
       final name = nameValueAndRanges.item3;
@@ -263,7 +263,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     // ignore: omit_local_variable_types
     final Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
         _parseHeaderNameValueSourceRanges(expression);
-    if (nameValueAndRanges != null) {
+    if (nameValueAndRanges != null && expression is ast.SimpleStringLiteral) {
       final boundName = nameValueAndRanges.item1;
       final boundRange = nameValueAndRanges.item2;
       final name = nameValueAndRanges.item3;
@@ -343,9 +343,9 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
       property = isInput ? fieldElement.setter : fieldElement.getter;
     } else if (node is ast.MethodDeclaration) {
       if (isInput && node.isSetter) {
-        property = node.element;
+        property = node.element as PropertyAccessorElement;
       } else if (isOutput && node.isGetter) {
-        property = node.element;
+        property = node.element as PropertyAccessorElement;
       }
     }
 
@@ -506,7 +506,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
       return null;
     }
 
-    final selectorStr = constantEvaluation.value;
+    final selectorStr = constantEvaluation.value as String;
     final selectorOffset = expression.offset;
     // Parse the selector text.
     try {

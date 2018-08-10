@@ -3,6 +3,8 @@ analyzer:
     # TODO(devoncarew): We should remove this blanket exclusion as it could hide
     # other issues.
     - lib/src/summary/format.dart
+  strong-mode:
+    implicit-casts: false
 
 linter:
   rules:

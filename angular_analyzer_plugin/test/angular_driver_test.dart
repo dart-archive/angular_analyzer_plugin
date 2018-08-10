@@ -708,7 +708,7 @@ abstract class GatherAnnotationsTestMixin implements AbstractAngularTest {
   List<Pipe> pipes;
   List<AnalysisError> errors;
 
-  Future getDirectives(final source) async {
+  Future getDirectives(final Source source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
     final result = await angularDriver.getAngularTopLevels(source.fullName);
@@ -2366,7 +2366,7 @@ class BuildUnitViewsTest extends AbstractAngularTest {
   List<View> views;
   List<AnalysisError> errors;
 
-  Future getViews(final source) async {
+  Future getViews(final Source source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
     final result = await angularDriver.getAngularTopLevels(source.fullName);
@@ -4019,7 +4019,7 @@ class LinkDirectivesTest extends AbstractAngularTest {
   List<Template> templates;
   List<AnalysisError> errors;
 
-  Future getDirectives(final source) async {
+  Future getDirectives(final Source source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
     final ngResult = await angularDriver.requestDartResult(source.fullName);
@@ -4483,7 +4483,7 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
   List<Template> templates;
   List<AnalysisError> errors;
 
-  Future getDirectives(final source) async {
+  Future getDirectives(final Source source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
     final ngResult = await angularDriver.requestDartResult(source.fullName);

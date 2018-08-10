@@ -600,7 +600,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     final fileDirectives = await _fileDirectiveProvider
         .getUnlinkedAngularTopLevels(element.source.fullName);
     final options = fileDirectives
-        .where((d) => d is AbstractDirective && d.name == element.name);
+        .whereType<AbstractDirective>()
+        .where((d) => d.name == element.name);
 
     if (options.length == 1) {
       return options.first;

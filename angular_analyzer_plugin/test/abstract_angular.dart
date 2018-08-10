@@ -57,7 +57,7 @@ void assertPropertyReference(
 }
 
 Component getComponentByName(List<AbstractDirective> directives, String name) =>
-    getDirectiveByName(directives, name);
+    getDirectiveByName(directives, name) as Component;
 
 AbstractDirective getDirectiveByName(
         List<AbstractDirective> directives, String name) =>
@@ -410,7 +410,7 @@ abstract class SafeResourceUrl extends SafeValue {}
     List<Tuple4<String, int, ErrorCode, List<Object>>> expectedErrors,
   ) {
     final realErrors = errorListener.errors;
-    for (Tuple4 expectedError in expectedErrors) {
+    for (final expectedError in expectedErrors) {
       final offset = code.indexOf(expectedError.item1);
       assert(offset != -1);
       final currentExpectedError = new AnalysisError(

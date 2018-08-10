@@ -466,7 +466,7 @@ class InputElement extends AngularElementImpl {
   /// For example: source -> 'className', but prefer 'class'.
   /// In this case, name = 'class' and originalName = 'originalName'.
   /// This should be null if there is no alternative name.
-  final originalName;
+  final String originalName;
 
   /// Native inputs vulnerable to XSS (such as a.href and *.innerHTML) may have
   /// a security context. The secure type of that context should be assignable

@@ -62,8 +62,10 @@ class AngularNavigationTest extends AbstractAngularTest {
         .thenAnswer((invocation) {
       final offset = invocation.positionalArguments[0] as int;
       final length = invocation.positionalArguments[1] as int;
-      final targetKind = invocation.positionalArguments[2];
-      final targetLocation = invocation.positionalArguments[3];
+      final targetKind =
+          invocation.positionalArguments[2] as protocol.ElementKind;
+      final targetLocation =
+          invocation.positionalArguments[3] as protocol.Location;
       regions.add(new _RecordedNavigationRegion(
           offset, length, targetKind, targetLocation));
     });
@@ -391,7 +393,8 @@ class TestComponent {
     fail('Unable to find a region at ($offset, $length) in $regionsString');
   }
 
-  void _findRegionString(String str, String suffix, {final codeOverride}) {
+  void _findRegionString(String str, String suffix,
+      {final String codeOverride}) {
     final code = codeOverride != null ? codeOverride : this.code;
     final search = '$str$suffix';
     final offset = code.indexOf(search);

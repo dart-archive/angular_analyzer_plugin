@@ -336,7 +336,7 @@ class HtmlTreeConverter {
     String origName;
     int origNameOffset;
 
-    var virtualAttributes = [];
+    var virtualAttributes = <AttributeInfo>[];
 
     if (ast is ParsedStarAst) {
       value = ast.value;

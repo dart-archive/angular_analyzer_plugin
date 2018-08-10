@@ -65,15 +65,15 @@ class FileTracker {
   List<String> getHtmlPathsReferencingHtml(String htmlPath) => _dartToHtml
       .getFilesReferencingFile(htmlPath)
       .map(_dartToDart.getFilesReferencingFile)
-      .fold(<String>[], (list, acc) => list..addAll(acc))
+      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
       .map(_dartToHtml.getFilesReferencedBy)
-      .fold(<String>[], (list, acc) => list..addAll(acc))
+      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
       .toList();
 
   List<String> getDartPathsAffectedByHtml(String htmlPath) => _dartToHtml
       .getFilesReferencingFile(htmlPath)
       .map(_dartToDart.getFilesReferencingFile)
-      .fold(<String>[], (list, acc) => list..addAll(acc))
+      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
       .where(_dartFilesWithDartTemplates.contains)
       .toList();
 
@@ -88,7 +88,8 @@ class FileTracker {
   List<String> getHtmlPathsAffectingDartContext(String dartPath) => _dartToDart
       .getFilesReferencedBy(dartPath)
       .map(_dartToHtml.getFilesReferencedBy)
-      .fold(<String>[], (list, acc) => list..addAll(acc)).toList();
+      .fold<List<String>>(
+          <String>[], (list, acc) => list..addAll(acc)).toList();
 
   ApiSignature getDartSignature(String dartPath) {
     final signature = new ApiSignature()

@@ -16,7 +16,7 @@ class AngularNavigation implements NavigationContributor {
   @override
   void computeNavigation(
       NavigationRequest baseRequest, NavigationCollector collector,
-      {templatesOnly: false}) {
+      {bool templatesOnly: false}) {
     // cast this
     final AngularNavigationRequest request = baseRequest;
     final length = request.length;
