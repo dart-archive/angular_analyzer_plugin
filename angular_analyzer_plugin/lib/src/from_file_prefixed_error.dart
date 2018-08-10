@@ -30,34 +30,10 @@ class FromFilePrefixedError implements AnalysisError {
   }
 
   @override
-  ErrorCode get errorCode => originalError.errorCode;
-
-  @override
-  int get offset => originalError.offset;
-
-  @override
-  set offset(int v) => originalError.offset = v;
-
-  @override
-  int get length => originalError.length;
-
-  @override
-  set length(int v) => originalError.length = v;
-
-  @override
-  bool get isStaticOnly => originalError.isStaticOnly;
-
-  @override
-  set isStaticOnly(bool v) => originalError.isStaticOnly = v;
-
-  @override
   String get correction => originalError.correction;
 
   @override
-  Source get source => originalError.source;
-
-  @override
-  String get message => _message;
+  ErrorCode get errorCode => originalError.errorCode;
 
   @override
   int get hashCode {
@@ -66,4 +42,28 @@ class FromFilePrefixedError implements AnalysisError {
     hashCode ^= (source != null) ? source.hashCode : 0;
     return hashCode;
   }
+
+  @override
+  bool get isStaticOnly => originalError.isStaticOnly;
+
+  @override
+  set isStaticOnly(bool v) => originalError.isStaticOnly = v;
+
+  @override
+  int get length => originalError.length;
+
+  @override
+  set length(int v) => originalError.length = v;
+
+  @override
+  String get message => _message;
+
+  @override
+  int get offset => originalError.offset;
+
+  @override
+  set offset(int v) => originalError.offset = v;
+
+  @override
+  Source get source => originalError.source;
 }

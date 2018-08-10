@@ -1,6 +1,6 @@
 import 'package:angular_analyzer_plugin/ast.dart';
-import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:test/test.dart';
+import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 void main() {
   defineReflectiveSuite(() {
@@ -10,6 +10,22 @@ void main() {
 
 @reflectiveTest
 class StatementsBoundAttrTest {
+  // ignore: non_constant_identifier_names
+  void test_reductionOffsetMultipleReductions() {
+    final attr = new StatementsBoundAttribute(
+        'name',
+        '('.length, // nameOffset
+        'value',
+        '(name.reductions.here)="'.length, //valueOffset
+        '(name)',
+        0, // originalNameOffset
+        ['reductions', 'here'], // reductions
+        [] // statements
+        );
+    expect(attr.reductionsOffset, '(name'.length);
+    expect(attr.reductionsLength, '.reductions.here'.length);
+  }
+
   // ignore: non_constant_identifier_names
   void test_reductionOffsetNoReductions() {
     final attr = new StatementsBoundAttribute(
@@ -40,21 +56,5 @@ class StatementsBoundAttrTest {
         );
     expect(attr.reductionsOffset, '(name'.length);
     expect(attr.reductionsLength, '.reduction'.length);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_reductionOffsetMultipleReductions() {
-    final attr = new StatementsBoundAttribute(
-        'name',
-        '('.length, // nameOffset
-        'value',
-        '(name.reductions.here)="'.length, //valueOffset
-        '(name)',
-        0, // originalNameOffset
-        ['reductions', 'here'], // reductions
-        [] // statements
-        );
-    expect(attr.reductionsOffset, '(name'.length);
-    expect(attr.reductionsLength, '.reductions.here'.length);
   }
 }

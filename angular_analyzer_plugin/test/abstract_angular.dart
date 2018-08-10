@@ -1,31 +1,28 @@
 import 'package:analyzer/context/context_root.dart';
-import 'package:analyzer/source/package_map_resolver.dart';
-import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/file_system/file_system.dart';
+import 'package:analyzer/file_system/memory_file_system.dart';
+import 'package:analyzer/source/package_map_resolver.dart';
+import 'package:analyzer/src/dart/analysis/byte_store.dart';
+import 'package:analyzer/src/dart/analysis/driver.dart'
+    show AnalysisDriver, AnalysisDriverScheduler;
+import 'package:analyzer/src/dart/analysis/driver.dart';
+import 'package:analyzer/src/dart/analysis/file_state.dart';
+import 'package:analyzer/src/dart/analysis/performance_logger.dart';
+import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/sdk.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/generated/source_io.dart';
 import 'package:angular_analyzer_plugin/notification_manager.dart';
-import 'package:angular_analyzer_plugin/src/model.dart';
-import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
+import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
-// TODO(mfairhurst) use package:tuple once it support Dart 2
+import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tuple.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
-
-import 'package:analyzer/src/dart/analysis/byte_store.dart';
-import 'package:analyzer/src/dart/analysis/performance_logger.dart';
-import 'package:analyzer/src/dart/analysis/driver.dart'
-    show AnalysisDriver, AnalysisDriverScheduler;
-import 'package:analyzer/src/dart/analysis/file_state.dart';
-import 'package:analyzer/src/generated/engine.dart';
-
-import 'package:analyzer/file_system/file_system.dart';
-import 'package:analyzer/src/dart/analysis/driver.dart';
-import 'package:analyzer/src/generated/source_io.dart';
 
 import 'mock_sdk.dart';
 
@@ -119,6 +116,54 @@ class AbstractAngularTest {
   AbstractAngularTest() : includeQueryList = true;
   AbstractAngularTest.future() : includeQueryList = false;
 
+  /// Assert that the [errCode] is reported for [code], highlighting the [snippet].
+  void assertErrorInCodeAtPosition(
+      ErrorCode errCode, String code, String snippet) {
+    final snippetIndex = code.indexOf(snippet);
+    expect(snippetIndex, greaterThan(-1),
+        reason: 'Error in test: snippet $snippet not part of code $code');
+    errorListener.assertErrorsWithCodes(<ErrorCode>[errCode]);
+    final error = errorListener.errors.single;
+    expect(error.offset, snippetIndex);
+    expect(errorListener.errors.single.length, snippet.length);
+  }
+
+  /// For [expectedErrors], it is a List of Tuple4 (1 per error):
+  ///   code segment where offset begins,
+  ///   length of error highlight,
+  ///   errorCode,
+  ///   and optional error args - pass empty list if not needed.
+  void assertMultipleErrorsExplicit(
+    Source source,
+    String code,
+    List<Tuple4<String, int, ErrorCode, List<Object>>> expectedErrors,
+  ) {
+    final realErrors = errorListener.errors;
+    for (final expectedError in expectedErrors) {
+      final offset = code.indexOf(expectedError.item1);
+      assert(offset != -1);
+      final currentExpectedError = new AnalysisError(
+        source,
+        offset,
+        expectedError.item2,
+        expectedError.item3,
+        expectedError.item4,
+      );
+      expect(
+        realErrors.contains(currentExpectedError),
+        true,
+        reason: 'Expected error code ${expectedError.item3} never occurs at '
+            'location $offset of length ${expectedError.item2}.',
+      );
+      expect(realErrors.length, expectedErrors.length,
+          reason: 'Expected error counts do not  match.');
+    }
+  }
+
+  void fillErrorListener(List<AnalysisError> errors) {
+    errorListener.addAll(errors);
+  }
+
   Source newSource(String path, [String content = '']) {
     final file = resourceProvider.newFile(path, content);
     final source = file.createSource();
@@ -172,10 +217,6 @@ class AbstractAngularTest {
 
     errorListener = new GatheringErrorListener();
     _addAngularSources();
-  }
-
-  void fillErrorListener(List<AnalysisError> errors) {
-    errorListener.addAll(errors);
   }
 
   void _addAngularSources() {
@@ -385,50 +426,6 @@ abstract class SafeUrl extends SafeValue {}
 
 abstract class SafeResourceUrl extends SafeValue {}
 ''');
-  }
-
-  /// Assert that the [errCode] is reported for [code], highlighting the [snippet].
-  void assertErrorInCodeAtPosition(
-      ErrorCode errCode, String code, String snippet) {
-    final snippetIndex = code.indexOf(snippet);
-    expect(snippetIndex, greaterThan(-1),
-        reason: 'Error in test: snippet $snippet not part of code $code');
-    errorListener.assertErrorsWithCodes(<ErrorCode>[errCode]);
-    final error = errorListener.errors.single;
-    expect(error.offset, snippetIndex);
-    expect(errorListener.errors.single.length, snippet.length);
-  }
-
-  /// For [expectedErrors], it is a List of Tuple4 (1 per error):
-  ///   code segment where offset begins,
-  ///   length of error highlight,
-  ///   errorCode,
-  ///   and optional error args - pass empty list if not needed.
-  void assertMultipleErrorsExplicit(
-    Source source,
-    String code,
-    List<Tuple4<String, int, ErrorCode, List<Object>>> expectedErrors,
-  ) {
-    final realErrors = errorListener.errors;
-    for (final expectedError in expectedErrors) {
-      final offset = code.indexOf(expectedError.item1);
-      assert(offset != -1);
-      final currentExpectedError = new AnalysisError(
-        source,
-        offset,
-        expectedError.item2,
-        expectedError.item3,
-        expectedError.item4,
-      );
-      expect(
-        realErrors.contains(currentExpectedError),
-        true,
-        reason: 'Expected error code ${expectedError.item3} never occurs at '
-            'location $offset of length ${expectedError.item2}.',
-      );
-      expect(realErrors.length, expectedErrors.length,
-          reason: 'Expected error counts do not  match.');
-    }
   }
 }
 

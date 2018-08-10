@@ -1,17 +1,17 @@
-import 'package:analyzer/error/error.dart';
-import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/standard_ast_factory.dart';
+import 'package:analyzer/dart/ast/token.dart' show TokenType;
+import 'package:analyzer/error/error.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/file_system/file_system.dart';
-import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
+import 'package:analyzer/src/dart/ast/token.dart'
+    show SyntheticBeginToken, SyntheticToken;
 import 'package:analyzer_plugin/src/utilities/completion/completion_target.dart';
+import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
-import 'package:analyzer/dart/ast/token.dart' show TokenType;
-import 'package:analyzer/src/dart/ast/token.dart'
-    show SyntheticBeginToken, SyntheticToken;
 
 class AngularCompletionRequest extends CompletionRequest {
   final List<Template> templates;
@@ -31,6 +31,9 @@ class AngularCompletionRequest extends CompletionRequest {
   @override
   final ResourceProvider resourceProvider;
 
+  /// Flag indicating if completion has been aborted.
+  bool _aborted = false;
+
   AngularCompletionRequest(this.offset, this.path, this.resourceProvider,
       List<Template> templates, this.standardHtml)
       : templates = templates
@@ -43,8 +46,11 @@ class AngularCompletionRequest extends CompletionRequest {
     }
   }
 
-  /// Flag indicating if completion has been aborted.
-  bool _aborted = false;
+  AngularAstNode get angularTarget => _angularTarget;
+
+  CompletionTarget get completionTarget => _completionTarget;
+
+  AstNode get dartSnippet => _dartSnippet;
 
   /// Abort the current completion request.
   void abort() {
@@ -82,12 +88,11 @@ class AngularCompletionRequest extends CompletionRequest {
     }
     return _dartSnippet;
   }
+}
 
-  AstNode get dartSnippet => _dartSnippet;
-
-  AngularAstNode get angularTarget => _angularTarget;
-
-  CompletionTarget get completionTarget => _completionTarget;
+class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
+  @override
+  void onError(AnalysisError error) {}
 }
 
 class _CompletionTargetExtractor implements AngularAstVisitor {
@@ -132,16 +137,6 @@ class _CompletionTargetExtractor implements AngularAstVisitor {
   }
 
   @override
-  void visitTextAttr(TextAttribute attr) {
-    recurseToTarget(attr);
-  }
-
-  @override
-  void visitTextInfo(TextInfo textInfo) {
-    recurseToTarget(textInfo);
-  }
-
-  @override
   void visitEmptyStarBinding(EmptyStarBinding binding) {
     if (binding.isPrefix) {
       target = binding.parent;
@@ -161,22 +156,22 @@ class _CompletionTargetExtractor implements AngularAstVisitor {
   }
 
   @override
-  void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
-    target = attr;
-    for (final statement in attr.statements) {
-      if (_offsetContained(offset, statement.offset, statement.length)) {
-        dartSnippet = statement;
-      }
-    }
-  }
-
-  @override
   void visitMustache(Mustache mustache) {
     target = mustache;
 
     if (_offsetContained(
         offset, mustache.exprBegin, mustache.exprEnd - mustache.exprBegin)) {
       dartSnippet = mustache.expression;
+    }
+  }
+
+  @override
+  void visitStatementsBoundAttr(StatementsBoundAttribute attr) {
+    target = attr;
+    for (final statement in attr.statements) {
+      if (_offsetContained(offset, statement.offset, statement.length)) {
+        dartSnippet = statement;
+      }
     }
   }
 
@@ -204,11 +199,16 @@ class _CompletionTargetExtractor implements AngularAstVisitor {
     }
   }
 
+  @override
+  void visitTextAttr(TextAttribute attr) {
+    recurseToTarget(attr);
+  }
+
+  @override
+  void visitTextInfo(TextInfo textInfo) {
+    recurseToTarget(textInfo);
+  }
+
   bool _offsetContained(int offset, int start, int length) =>
       start <= offset && start + length >= offset;
-}
-
-class IgnoringAnalysisErrorListener implements AnalysisErrorListener {
-  @override
-  void onError(AnalysisError error) {}
 }

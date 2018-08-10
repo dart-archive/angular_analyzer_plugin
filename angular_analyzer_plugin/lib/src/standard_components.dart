@@ -7,153 +7,10 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 
-class StandardHtml {
-  final Map<String, Component> components;
-  final Map<String, InputElement> attributes;
-  final Map<String, OutputElement> standardEvents;
-  final Map<String, OutputElement> customEvents;
-
-  Map<String, OutputElement> get events =>
-      new Map<String, OutputElement>.from(standardEvents)..addAll(customEvents);
-
-  final ClassElement elementClass;
-  final ClassElement htmlElementClass;
-
-  /// In attributes, there can be multiple strings that point to the
-  /// same [InputElement] generated from [alternativeInputs] (below).
-  /// This will provide a static source of unique [InputElement]s.
-  final Set<InputElement> uniqueAttributeElements;
-
-  StandardHtml(this.components, this.attributes, this.standardEvents,
-      this.customEvents, this.elementClass, this.htmlElementClass)
-      : uniqueAttributeElements = new Set.from(attributes.values);
-}
-
-class StandardAngular {
-  final ClassElement templateRef;
-  final ClassElement elementRef;
-  final ClassElement queryList;
-  final ClassElement pipeTransform;
-  final ClassElement component;
-  final SecuritySchema securitySchema;
-
-  StandardAngular(
-      {this.templateRef,
-      this.elementRef,
-      this.queryList,
-      this.pipeTransform,
-      this.component,
-      this.securitySchema});
-
-  factory StandardAngular.fromAnalysis(
-      AnalysisResult ngResult, AnalysisResult securityResult) {
-    final ng = ngResult.unit.element.library.exportNamespace;
-    final security = securityResult.unit.element.library.exportNamespace;
-
-    SecurityContext makeSecurityContext(Element element,
-            {bool sanitizationAvailable: true}) =>
-        new SecurityContext((element as ClassElement)?.type,
-            sanitizationAvailable: sanitizationAvailable);
-
-    final securitySchema = new SecuritySchema(
-        htmlSecurityContext: makeSecurityContext(security.get('SafeHtml')),
-        urlSecurityContext: makeSecurityContext(security.get('SafeUrl')),
-        styleSecurityContext: makeSecurityContext(security.get('SafeStyle')),
-        scriptSecurityContext: makeSecurityContext(security.get('SafeScript'),
-            sanitizationAvailable: false),
-        resourceUrlSecurityContext: makeSecurityContext(
-            security.get('SafeResourceUrl'),
-            sanitizationAvailable: false));
-
-    return new StandardAngular(
-        queryList: ng.get("QueryList") as ClassElement,
-        elementRef: ng.get("ElementRef") as ClassElement,
-        templateRef: ng.get("TemplateRef") as ClassElement,
-        pipeTransform: ng.get("PipeTransform") as ClassElement,
-        component: ng.get("Component") as ClassElement,
-        securitySchema: securitySchema);
-  }
-}
-
-class SecuritySchema {
-  final Map<String, SecurityContext> schema = {};
-
-  void _registerSecuritySchema(SecurityContext context, List<String> specs) {
-    for (final spec in specs) {
-      schema[spec] = context;
-    }
-  }
-
-  SecuritySchema(
-      {SecurityContext htmlSecurityContext,
-      SecurityContext urlSecurityContext,
-      SecurityContext scriptSecurityContext,
-      SecurityContext styleSecurityContext,
-      SecurityContext resourceUrlSecurityContext}) {
-    // This is written to be easily synced to angular's security
-    _registerSecuritySchema(
-        htmlSecurityContext, ['iframe|srcdoc', '*|innerHTML', '*|outerHTML']);
-    _registerSecuritySchema(styleSecurityContext, ['*|style']);
-    _registerSecuritySchema(urlSecurityContext, [
-      '*|formAction',
-      'area|href',
-      'area|ping',
-      'audio|src',
-      'a|href',
-      'a|ping',
-      'blockquote|cite',
-      'body|background',
-      'del|cite',
-      'form|action',
-      'img|src',
-      'img|srcset',
-      'input|src',
-      'ins|cite',
-      'q|cite',
-      'source|src',
-      'source|srcset',
-      'video|poster',
-      'video|src'
-    ]);
-    _registerSecuritySchema(resourceUrlSecurityContext, [
-      'applet|code',
-      'applet|codebase',
-      'base|href',
-      'embed|src',
-      'frame|src',
-      'head|profile',
-      'html|manifest',
-      'iframe|src',
-      'link|href',
-      'media|src',
-      'object|codebase',
-      'object|data',
-      'script|src',
-      'track|src'
-    ]);
-    // TODO where's script security?
-  }
-
-  SecurityContext lookup(String elementName, String name) =>
-      schema['$elementName|$name'];
-
-  SecurityContext lookupGlobal(String name) => schema['*|$name'];
-}
-
-class SecurityContext {
-  final DartType safeType;
-  final bool sanitizationAvailable;
-
-  SecurityContext(this.safeType, {this.sanitizationAvailable = true});
-}
+typedef void CaptureAspectFn<T>(
+    Map<String, T> aspectMap, PropertyAccessorElement accessor);
 
 class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
-  final Map<String, Component> components;
-  final Map<String, OutputElement> events;
-  final Map<String, InputElement> attributes;
-  final Source source;
-  final SecuritySchema securitySchema;
-
   static const Map<String, String> specialElementClasses =
       const <String, String>{
     "AudioElement": 'audio',
@@ -164,36 +21,34 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     "ModElement": "mod",
     "PictureElement": "picture"
   };
-
-  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
   static const alternativeInputs = const {
     'className': 'class',
     'innerHTML': 'innerHtml',
     'readOnly': 'readonly',
     'tabIndex': 'tabindex',
   };
-
   static const missingOutputs = const {
     'focusin': 'FocusEvent',
     'focusout': 'FocusEvent',
   };
+  final Map<String, Component> components;
+  final Map<String, OutputElement> events;
+
+  final Map<String, InputElement> attributes;
+
+  // https://github.com/dart-lang/angular2/blob/8220ba3a693aff51eed33cd1ec9542bde9017423/lib/src/compiler/schema/dom_element_schema_registry.dart#L199
+  final Source source;
+
+  final SecuritySchema securitySchema;
 
   ClassElement classElement;
 
   BuildStandardHtmlComponentsVisitor(this.components, this.events,
       this.attributes, this.source, this.securitySchema);
 
-  @override
-  void visitCompilationUnit(ast.CompilationUnit unit) {
-    super.visitCompilationUnit(unit);
-
-    missingOutputs.forEach((name, type) {
-      final namespace = unit.element.library.publicNamespace;
-      final ClassElement eventClass = namespace.get(type);
-      events[name] = new OutputElement(
-          name, null, null, unit.element.source, null, null, eventClass.type);
-    });
-  }
+  /// dart:html is missing an annotation to fix this casing. Compensate.
+  /// TODO(mfairhurst) remove this fix once dart:html is fixed
+  String fixName(String name) => name == 'innerHtml' ? 'innerHTML' : name;
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
@@ -223,6 +78,18 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
       }
     }
     classElement = null;
+  }
+
+  @override
+  void visitCompilationUnit(ast.CompilationUnit unit) {
+    super.visitCompilationUnit(unit);
+
+    missingOutputs.forEach((name, type) {
+      final namespace = unit.element.library.publicNamespace;
+      final ClassElement eventClass = namespace.get(type);
+      events[name] = new OutputElement(
+          name, null, null, unit.element.source, null, null, eventClass.type);
+    });
   }
 
   @override
@@ -282,10 +149,6 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
             new SelectorName(tag, tagOffset, tag.length, source)),
         isHtml: true);
   }
-
-  /// dart:html is missing an annotation to fix this casing. Compensate.
-  /// TODO(mfairhurst) remove this fix once dart:html is fixed
-  String fixName(String name) => name == 'innerHtml' ? 'innerHTML' : name;
 
   List<InputElement> _buildInputs({String tagname}) =>
       _captureAspects((inputMap, accessor) {
@@ -369,5 +232,143 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
   }
 }
 
-typedef void CaptureAspectFn<T>(
-    Map<String, T> aspectMap, PropertyAccessorElement accessor);
+class SecurityContext {
+  final DartType safeType;
+  final bool sanitizationAvailable;
+
+  SecurityContext(this.safeType, {this.sanitizationAvailable = true});
+}
+
+class SecuritySchema {
+  final Map<String, SecurityContext> schema = {};
+
+  SecuritySchema(
+      {SecurityContext htmlSecurityContext,
+      SecurityContext urlSecurityContext,
+      SecurityContext scriptSecurityContext,
+      SecurityContext styleSecurityContext,
+      SecurityContext resourceUrlSecurityContext}) {
+    // This is written to be easily synced to angular's security
+    _registerSecuritySchema(
+        htmlSecurityContext, ['iframe|srcdoc', '*|innerHTML', '*|outerHTML']);
+    _registerSecuritySchema(styleSecurityContext, ['*|style']);
+    _registerSecuritySchema(urlSecurityContext, [
+      '*|formAction',
+      'area|href',
+      'area|ping',
+      'audio|src',
+      'a|href',
+      'a|ping',
+      'blockquote|cite',
+      'body|background',
+      'del|cite',
+      'form|action',
+      'img|src',
+      'img|srcset',
+      'input|src',
+      'ins|cite',
+      'q|cite',
+      'source|src',
+      'source|srcset',
+      'video|poster',
+      'video|src'
+    ]);
+    _registerSecuritySchema(resourceUrlSecurityContext, [
+      'applet|code',
+      'applet|codebase',
+      'base|href',
+      'embed|src',
+      'frame|src',
+      'head|profile',
+      'html|manifest',
+      'iframe|src',
+      'link|href',
+      'media|src',
+      'object|codebase',
+      'object|data',
+      'script|src',
+      'track|src'
+    ]);
+    // TODO where's script security?
+  }
+
+  SecurityContext lookup(String elementName, String name) =>
+      schema['$elementName|$name'];
+
+  SecurityContext lookupGlobal(String name) => schema['*|$name'];
+
+  void _registerSecuritySchema(SecurityContext context, List<String> specs) {
+    for (final spec in specs) {
+      schema[spec] = context;
+    }
+  }
+}
+
+class StandardAngular {
+  final ClassElement templateRef;
+  final ClassElement elementRef;
+  final ClassElement queryList;
+  final ClassElement pipeTransform;
+  final ClassElement component;
+  final SecuritySchema securitySchema;
+
+  StandardAngular(
+      {this.templateRef,
+      this.elementRef,
+      this.queryList,
+      this.pipeTransform,
+      this.component,
+      this.securitySchema});
+
+  factory StandardAngular.fromAnalysis(
+      AnalysisResult ngResult, AnalysisResult securityResult) {
+    final ng = ngResult.unit.element.library.exportNamespace;
+    final security = securityResult.unit.element.library.exportNamespace;
+
+    SecurityContext makeSecurityContext(Element element,
+            {bool sanitizationAvailable: true}) =>
+        new SecurityContext((element as ClassElement)?.type,
+            sanitizationAvailable: sanitizationAvailable);
+
+    final securitySchema = new SecuritySchema(
+        htmlSecurityContext: makeSecurityContext(security.get('SafeHtml')),
+        urlSecurityContext: makeSecurityContext(security.get('SafeUrl')),
+        styleSecurityContext: makeSecurityContext(security.get('SafeStyle')),
+        scriptSecurityContext: makeSecurityContext(security.get('SafeScript'),
+            sanitizationAvailable: false),
+        resourceUrlSecurityContext: makeSecurityContext(
+            security.get('SafeResourceUrl'),
+            sanitizationAvailable: false));
+
+    return new StandardAngular(
+        queryList: ng.get("QueryList") as ClassElement,
+        elementRef: ng.get("ElementRef") as ClassElement,
+        templateRef: ng.get("TemplateRef") as ClassElement,
+        pipeTransform: ng.get("PipeTransform") as ClassElement,
+        component: ng.get("Component") as ClassElement,
+        securitySchema: securitySchema);
+  }
+}
+
+class StandardHtml {
+  final Map<String, Component> components;
+  final Map<String, InputElement> attributes;
+  final Map<String, OutputElement> standardEvents;
+  final Map<String, OutputElement> customEvents;
+
+  final ClassElement elementClass;
+
+  final ClassElement htmlElementClass;
+
+  /// In attributes, there can be multiple strings that point to the
+  /// same [InputElement] generated from [alternativeInputs] (below).
+  /// This will provide a static source of unique [InputElement]s.
+  final Set<InputElement> uniqueAttributeElements;
+
+  StandardHtml(this.components, this.attributes, this.standardEvents,
+      this.customEvents, this.elementClass, this.htmlElementClass)
+      : uniqueAttributeElements = new Set.from(attributes.values);
+
+  Map<String, OutputElement> get events =>
+      new Map<String, OutputElement>.from(standardEvents)..addAll(customEvents);
+}

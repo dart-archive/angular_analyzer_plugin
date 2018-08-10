@@ -1,12 +1,12 @@
-import 'package:angular_analyzer_plugin/src/angular_driver.dart';
-import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
-import 'package:analyzer_plugin/protocol/protocol_generated.dart' as protocol;
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
+import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
+import 'package:analyzer_plugin/protocol/protocol_generated.dart' as protocol;
 import 'package:angular_analyzer_plugin/plugin.dart';
-import 'package:test_reflective_loader/test_reflective_loader.dart';
-import 'package:test/test.dart';
+import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:mockito/mockito.dart';
+import 'package:test/test.dart';
+import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'mock_sdk.dart';
 
@@ -16,6 +16,123 @@ void main() {
     defineReflectiveTests(AnalysisOptionsUtilsTest);
   });
 }
+
+/// Unfortunately, package:yaml doesn't support dumping to yaml. So this is
+/// what we are stuck with, for now. Put it in a base class so we can test it
+class AnalysisOptionsUtilsBase {
+  AngularAnalyzerPlugin plugin;
+  MemoryResourceProvider resourceProvider;
+  protocol.ContextRoot root;
+
+  String optionsHeader = '''
+analyzer:
+  plugins:
+''';
+
+  void enableAnalyzerPluginsAngular({List<String> extraOptions = const []}) =>
+      setOptionsFileContent(optionsHeader +
+          optionsSection('angular', extraOptions: extraOptions));
+
+  void enableAnalyzerPluginsAngularPlugin(
+          {List<String> extraOptions = const []}) =>
+      setOptionsFileContent(optionsHeader +
+          optionsSection('angular_analyzer_plugin',
+              extraOptions: extraOptions));
+
+  String optionsSection(String key, {List<String> extraOptions = const []}) =>
+      '''
+    $key:${extraOptions.map((option) => "\n      $option").join('')}\n
+''';
+
+  void setOptionsFileContent(String content) {
+    resourceProvider.newFile('/test/analysis_options.yaml', content);
+  }
+
+  void setUp() {
+    resourceProvider = new MemoryResourceProvider();
+    new MockSdk(resourceProvider: resourceProvider);
+    plugin = new AngularAnalyzerPlugin(resourceProvider);
+    final versionCheckParams = new protocol.PluginVersionCheckParams(
+        "~/.dartServer/.analysis-driver", "/sdk", "1.0.0");
+    plugin.handlePluginVersionCheck(versionCheckParams);
+    root = new protocol.ContextRoot("/test", [],
+        optionsFile: '/test/analysis_options.yaml');
+  }
+}
+
+/// Since our yaml generation is...not ideal, let's test it.
+@reflectiveTest
+class AnalysisOptionsUtilsTest extends AnalysisOptionsUtilsBase {
+  // ignore: non_constant_identifier_names
+  void test_enableAnalyzerPluginsAngular_extraOptions() {
+    enableAnalyzerPluginsAngular(extraOptions: ['foo: bar', 'baz:', '  - qux']);
+    final optionsText = resourceProvider
+        .getFile('/test/analysis_options.yaml')
+        .readAsStringSync();
+
+    expect(optionsText, '''
+analyzer:
+  plugins:
+    angular:
+      foo: bar
+      baz:
+        - qux
+
+''');
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_enableAnalyzerPluginsAngular_noExtraOptions() {
+    enableAnalyzerPluginsAngular();
+    final optionsText = resourceProvider
+        .getFile('/test/analysis_options.yaml')
+        .readAsStringSync();
+
+    expect(optionsText, '''
+analyzer:
+  plugins:
+    angular:
+
+''');
+  }
+
+  void test_enableAnalyzerPluginsAngularPlugin_extraOptions() {
+    enableAnalyzerPluginsAngularPlugin(
+        extraOptions: ['foo: bar', 'baz:', '  - qux']);
+    final optionsText = resourceProvider
+        .getFile('/test/analysis_options.yaml')
+        .readAsStringSync();
+
+    expect(optionsText, '''
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+      foo: bar
+      baz:
+        - qux
+
+''');
+  }
+
+  // ignore: non_constant_identifier_names
+  /// Since our yaml generation is...not ideal, let's test it.
+  // ignore: non_constant_identifier_names
+  void test_enableAnalyzerPluginsAngularPlugin_noExtraOptions() {
+    enableAnalyzerPluginsAngularPlugin();
+    final optionsText = resourceProvider
+        .getFile('/test/analysis_options.yaml')
+        .readAsStringSync();
+
+    expect(optionsText, '''
+analyzer:
+  plugins:
+    angular_analyzer_plugin:
+
+''');
+  }
+}
+
+class MockResourceProvider extends Mock implements ResourceProvider {}
 
 @reflectiveTest
 class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
@@ -40,17 +157,6 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
     expect(driver.dartDriver.name, equals("/test"));
     expect(driver.dartDriver.sourceFactory, isNotNull);
     expect(driver.dartDriver.contextRoot, isNotNull);
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_createAnalysisDriver_defaultOptions() {
-    enableAnalyzerPluginsAngular();
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
-
-    expect(driver, isNotNull);
-    expect(driver.options, isNotNull);
-    expect(driver.options.customTagNames, isNotNull);
-    expect(driver.options.customTagNames, isEmpty);
   }
 
   // ignore: non_constant_identifier_names
@@ -84,121 +190,15 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
     expect(driver.options.customTagNames, isNotNull);
     expect(driver.options.customTagNames, equals(['foo', 'bar', 'baz']));
   }
-}
 
-/// Unfortunately, package:yaml doesn't support dumping to yaml. So this is
-/// what we are stuck with, for now. Put it in a base class so we can test it
-class AnalysisOptionsUtilsBase {
-  AngularAnalyzerPlugin plugin;
-  MemoryResourceProvider resourceProvider;
-  protocol.ContextRoot root;
-
-  void setUp() {
-    resourceProvider = new MemoryResourceProvider();
-    new MockSdk(resourceProvider: resourceProvider);
-    plugin = new AngularAnalyzerPlugin(resourceProvider);
-    final versionCheckParams = new protocol.PluginVersionCheckParams(
-        "~/.dartServer/.analysis-driver", "/sdk", "1.0.0");
-    plugin.handlePluginVersionCheck(versionCheckParams);
-    root = new protocol.ContextRoot("/test", [],
-        optionsFile: '/test/analysis_options.yaml');
-  }
-
-  void enableAnalyzerPluginsAngular({List<String> extraOptions = const []}) =>
-      setOptionsFileContent(optionsHeader +
-          optionsSection('angular', extraOptions: extraOptions));
-
-  void enableAnalyzerPluginsAngularPlugin(
-          {List<String> extraOptions = const []}) =>
-      setOptionsFileContent(optionsHeader +
-          optionsSection('angular_analyzer_plugin',
-              extraOptions: extraOptions));
-
-  String optionsHeader = '''
-analyzer:
-  plugins:
-''';
-
-  String optionsSection(String key, {List<String> extraOptions = const []}) =>
-      '''
-    $key:${extraOptions.map((option) => "\n      $option").join('')}\n
-''';
-
-  void setOptionsFileContent(String content) {
-    resourceProvider.newFile('/test/analysis_options.yaml', content);
-  }
-}
-
-/// Since our yaml generation is...not ideal, let's test it.
-@reflectiveTest
-class AnalysisOptionsUtilsTest extends AnalysisOptionsUtilsBase {
   // ignore: non_constant_identifier_names
-  void test_enableAnalyzerPluginsAngular_noExtraOptions() {
+  void test_createAnalysisDriver_defaultOptions() {
     enableAnalyzerPluginsAngular();
-    final optionsText = resourceProvider
-        .getFile('/test/analysis_options.yaml')
-        .readAsStringSync();
+    final AngularDriver driver = plugin.createAnalysisDriver(root);
 
-    expect(optionsText, '''
-analyzer:
-  plugins:
-    angular:
-
-''');
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_enableAnalyzerPluginsAngular_extraOptions() {
-    enableAnalyzerPluginsAngular(extraOptions: ['foo: bar', 'baz:', '  - qux']);
-    final optionsText = resourceProvider
-        .getFile('/test/analysis_options.yaml')
-        .readAsStringSync();
-
-    expect(optionsText, '''
-analyzer:
-  plugins:
-    angular:
-      foo: bar
-      baz:
-        - qux
-
-''');
-  }
-
-  /// Since our yaml generation is...not ideal, let's test it.
-  // ignore: non_constant_identifier_names
-  void test_enableAnalyzerPluginsAngularPlugin_noExtraOptions() {
-    enableAnalyzerPluginsAngularPlugin();
-    final optionsText = resourceProvider
-        .getFile('/test/analysis_options.yaml')
-        .readAsStringSync();
-
-    expect(optionsText, '''
-analyzer:
-  plugins:
-    angular_analyzer_plugin:
-
-''');
-  }
-
-  // ignore: non_constant_identifier_names
-  void test_enableAnalyzerPluginsAngularPlugin_extraOptions() {
-    enableAnalyzerPluginsAngularPlugin(
-        extraOptions: ['foo: bar', 'baz:', '  - qux']);
-    final optionsText = resourceProvider
-        .getFile('/test/analysis_options.yaml')
-        .readAsStringSync();
-
-    expect(optionsText, '''
-analyzer:
-  plugins:
-    angular_analyzer_plugin:
-      foo: bar
-      baz:
-        - qux
-
-''');
+    expect(driver, isNotNull);
+    expect(driver.options, isNotNull);
+    expect(driver.options.customTagNames, isNotNull);
+    expect(driver.options.customTagNames, isEmpty);
   }
 }
-
-class MockResourceProvider extends Mock implements ResourceProvider {}

@@ -14,62 +14,42 @@ class FileTracker {
   final FileHasher _fileHasher;
   final AngularOptions _options;
 
-  FileTracker(this._fileHasher, this._options);
-
   final _dartToDart = new _RelationshipTracker();
-  final _dartToHtml = new _RelationshipTracker();
 
+  final _dartToHtml = new _RelationshipTracker();
   final _dartFilesWithDartTemplates = new HashSet<String>();
 
   final contentHashes = <String, _FileHash>{};
 
-  void rehashContents(String path) {
-    final signature = _fileHasher.getContentHash(path);
-    final bytes = signature.toByteList();
-    contentHashes[path] = new _FileHash(
-        bytes,
-        new ApiSignature()
-          ..addInt(salt)
-          ..addBytes(bytes));
+  FileTracker(this._fileHasher, this._options);
+
+  /// Add tag names to the signature. Note: in the future when there are more
+  /// lists of strings in options to add, we must be careful that they are
+  /// properly delimited/differentiated!
+  void addCustomEvents(ApiSignature signature) {
+    final hashString = _options.customEventsHashString;
+    if (hashString != null && hashString.isNotEmpty) {
+      signature.addString(hashString);
+    }
   }
 
-  List<int> _getContentHash(String path) {
+  /// Add tag names to the signature. Note: in the future when there are more
+  /// lists of strings in options to add, we must be careful that they are
+  /// properly delimited/differentiated!
+  void addTags(ApiSignature signature) {
+    for (final tagname in _options.customTagNames) {
+      signature.addString('t:$tagname');
+    }
+  }
+
+  ApiSignature getContentSignature(String path) {
     if (contentHashes[path] == null) {
       rehashContents(path);
     }
-    return contentHashes[path].unsaltedBytes;
+    return contentHashes[path].saltedSignature;
   }
-
-  void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) =>
-      _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
 
   // ignore: avoid_positional_boolean_parameters
-  void setDartHasTemplate(String dartPath, bool hasTemplate) {
-    if (hasTemplate) {
-      _dartFilesWithDartTemplates.add(dartPath);
-    } else {
-      _dartFilesWithDartTemplates.remove(dartPath);
-    }
-  }
-
-  List<String> getHtmlPathsReferencedByDart(String dartPath) =>
-      _dartToHtml.getFilesReferencedBy(dartPath);
-
-  List<String> getDartPathsReferencingHtml(String htmlPath) =>
-      _dartToHtml.getFilesReferencingFile(htmlPath);
-
-  void setDartImports(String dartPath, List<String> imports) {
-    _dartToDart.setFileReferencesFiles(dartPath, imports);
-  }
-
-  List<String> getHtmlPathsReferencingHtml(String htmlPath) => _dartToHtml
-      .getFilesReferencingFile(htmlPath)
-      .map(_dartToDart.getFilesReferencingFile)
-      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
-      .map(_dartToHtml.getFilesReferencedBy)
-      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
-      .toList();
-
   List<String> getDartPathsAffectedByHtml(String htmlPath) => _dartToHtml
       .getFilesReferencingFile(htmlPath)
       .map(_dartToDart.getFilesReferencingFile)
@@ -77,19 +57,8 @@ class FileTracker {
       .where(_dartFilesWithDartTemplates.contains)
       .toList();
 
-  List<String> getHtmlPathsAffectingDart(String dartPath) {
-    if (_dartFilesWithDartTemplates.contains(dartPath)) {
-      return getHtmlPathsAffectingDartContext(dartPath);
-    }
-
-    return [];
-  }
-
-  List<String> getHtmlPathsAffectingDartContext(String dartPath) => _dartToDart
-      .getFilesReferencedBy(dartPath)
-      .map(_dartToHtml.getFilesReferencedBy)
-      .fold<List<String>>(
-          <String>[], (list, acc) => list..addAll(acc)).toList();
+  List<String> getDartPathsReferencingHtml(String htmlPath) =>
+      _dartToHtml.getFilesReferencingFile(htmlPath);
 
   ApiSignature getDartSignature(String dartPath) {
     final signature = new ApiSignature()
@@ -106,6 +75,31 @@ class FileTracker {
 
     return signature;
   }
+
+  List<String> getHtmlPathsAffectingDart(String dartPath) {
+    if (_dartFilesWithDartTemplates.contains(dartPath)) {
+      return getHtmlPathsAffectingDartContext(dartPath);
+    }
+
+    return [];
+  }
+
+  List<String> getHtmlPathsAffectingDartContext(String dartPath) => _dartToDart
+      .getFilesReferencedBy(dartPath)
+      .map(_dartToHtml.getFilesReferencedBy)
+      .fold<List<String>>(
+          <String>[], (list, acc) => list..addAll(acc)).toList();
+
+  List<String> getHtmlPathsReferencedByDart(String dartPath) =>
+      _dartToHtml.getFilesReferencedBy(dartPath);
+
+  List<String> getHtmlPathsReferencingHtml(String htmlPath) => _dartToHtml
+      .getFilesReferencingFile(htmlPath)
+      .map(_dartToDart.getFilesReferencingFile)
+      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
+      .map(_dartToHtml.getFilesReferencedBy)
+      .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
+      .toList();
 
   ApiSignature getHtmlSignature(String htmlPath) {
     final signature = new ApiSignature()
@@ -126,35 +120,41 @@ class FileTracker {
     return signature;
   }
 
-  /// Add tag names to the signature. Note: in the future when there are more
-  /// lists of strings in options to add, we must be careful that they are
-  /// properly delimited/differentiated!
-  void addTags(ApiSignature signature) {
-    for (final tagname in _options.customTagNames) {
-      signature.addString('t:$tagname');
-    }
-  }
-
-  /// Add tag names to the signature. Note: in the future when there are more
-  /// lists of strings in options to add, we must be careful that they are
-  /// properly delimited/differentiated!
-  void addCustomEvents(ApiSignature signature) {
-    final hashString = _options.customEventsHashString;
-    if (hashString != null && hashString.isNotEmpty) {
-      signature.addString(hashString);
-    }
-  }
-
-  ApiSignature getContentSignature(String path) {
-    if (contentHashes[path] == null) {
-      rehashContents(path);
-    }
-    return contentHashes[path].saltedSignature;
-  }
-
   ApiSignature getUnitElementSignature(String path) => new ApiSignature()
     ..addInt(salt)
     ..addBytes(_fileHasher.getUnitElementHash(path).toByteList());
+
+  void rehashContents(String path) {
+    final signature = _fileHasher.getContentHash(path);
+    final bytes = signature.toByteList();
+    contentHashes[path] = new _FileHash(
+        bytes,
+        new ApiSignature()
+          ..addInt(salt)
+          ..addBytes(bytes));
+  }
+
+  void setDartHasTemplate(String dartPath, bool hasTemplate) {
+    if (hasTemplate) {
+      _dartFilesWithDartTemplates.add(dartPath);
+    } else {
+      _dartFilesWithDartTemplates.remove(dartPath);
+    }
+  }
+
+  void setDartHtmlTemplates(String dartPath, List<String> htmlPaths) =>
+      _dartToHtml.setFileReferencesFiles(dartPath, htmlPaths);
+
+  void setDartImports(String dartPath, List<String> imports) {
+    _dartToDart.setFileReferencesFiles(dartPath, imports);
+  }
+
+  List<int> _getContentHash(String path) {
+    if (contentHashes[path] == null) {
+      rehashContents(path);
+    }
+    return contentHashes[path].unsaltedBytes;
+  }
 }
 
 class _FileHash {
@@ -167,6 +167,12 @@ class _FileHash {
 class _RelationshipTracker {
   final _filesReferencedByFile = <String, List<String>>{};
   final _filesReferencingFile = <String, List<String>>{};
+
+  List<String> getFilesReferencedBy(String filePath) =>
+      _filesReferencedByFile[filePath] ?? [];
+
+  List<String> getFilesReferencingFile(String usesPath) =>
+      _filesReferencingFile[usesPath] ?? [];
 
   void setFileReferencesFiles(String filePath, List<String> referencesPaths) {
     final priorRelationships = new HashSet<String>();
@@ -194,10 +200,4 @@ class _RelationshipTracker {
       }
     }
   }
-
-  List<String> getFilesReferencedBy(String filePath) =>
-      _filesReferencedByFile[filePath] ?? [];
-
-  List<String> getFilesReferencingFile(String usesPath) =>
-      _filesReferencingFile[usesPath] ?? [];
 }

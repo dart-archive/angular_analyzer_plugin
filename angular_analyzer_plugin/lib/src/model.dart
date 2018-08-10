@@ -1,121 +1,18 @@
 library angular2.src.analysis.analyzer_plugin.src.model;
 
 import 'dart:collection';
+
+import 'package:analyzer/dart/ast/ast.dart' as dart;
 import 'package:analyzer/dart/element/element.dart' as dart;
 import 'package:analyzer/dart/element/type.dart' as dart;
-import 'package:analyzer/dart/ast/ast.dart' as dart;
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
-import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
-
-/// Might be a directive, or a component, or neither. It might simply have
-/// annotated @Inputs, @Outputs() intended to be inherited.
-class AngularAnnotatedClass extends AngularTopLevel {
-  /// The [ClassElement] this annotation is associated with.
-  final dart.ClassElement classElement;
-
-  AngularAnnotatedClass(this.classElement,
-      {List<InputElement> inputs,
-      List<OutputElement> outputs,
-      this.contentChildFields,
-      this.contentChildrenFields})
-      : super(inputs: inputs, outputs: outputs);
-
-  /// The source that contains this directive.
-  @override
-  Source get source => classElement.source;
-
-  @override
-  String toString() => '$runtimeType(${classElement.displayName} '
-      'inputs=$inputs '
-      'outputs=$outputs '
-      'attributes=$attributes)';
-
-  @override
-  bool operator ==(Object other) =>
-      other is AngularAnnotatedClass && other.classElement == classElement;
-
-  @override
-  int get hashCode => classElement.hashCode;
-
-  @override
-  bool get isHtml => false;
-
-  // See [contentChildrenFields]. These are the linked versions.
-  @override
-  final contentChilds = <ContentChild>[];
-  @override
-  final contentChildren = <ContentChild>[];
-
-  /// Which fields have been marked `@ContentChild`, and the range of the type
-  /// argument. The element model contains the rest. This should be stored in the
-  /// summary, so that at link time we can report errors discovered in the model
-  /// against the range we saw it the AST.
-  @override
-  List<ContentChildField> contentChildrenFields;
-  @override
-  List<ContentChildField> contentChildFields;
-}
-
-/// A functional directive is applied when the directive is linked, but does
-/// nothing later in the program. Thus it cannot have inputs, outputs, etc. But
-/// for the sake of clean code, those methods are implemented to return null,
-/// empty list, etc.
-class FunctionalDirective implements AbstractDirective {
-  final dart.FunctionElement functionElement;
-  @override
-  final Selector selector;
-  @override
-  final List<ElementNameSelector> elementTags;
-
-  FunctionalDirective(this.functionElement, this.selector, this.elementTags);
-
-  /// @See [AbstractSelectable.looksLikeTemplate]
-  @override
-  bool looksLikeTemplate = false;
-
-  @override
-  AngularElement get exportAs => null;
-  @override
-  List<AngularElement> get attributes => const [];
-  @override
-  List<ContentChild> get contentChilds => const [];
-  @override
-  List<ContentChild> get contentChildren => const [];
-  @override
-  bool get isHtml => false;
-  @override
-  List<InputElement> get inputs => const [];
-  @override
-  List<OutputElement> get outputs => const [];
-  @override
-  List<ContentChildField> get contentChildFields => const [];
-  @override
-  List<ContentChildField> get contentChildrenFields => const [];
-
-  /// The source that contains this directive.
-  @override
-  Source get source => functionElement.source;
-
-  @override
-  String toString() => 'FunctionalDirective(${functionElement.displayName} '
-      'selector=$selector ';
-
-  @override
-  bool operator ==(Object other) =>
-      other is FunctionalDirective && other.functionElement == functionElement;
-
-  @override
-  int get hashCode => functionElement.hashCode;
-
-  @override
-  String get name => functionElement.name;
-}
+import 'package:angular_analyzer_plugin/src/selector.dart';
+import 'package:angular_analyzer_plugin/src/standard_components.dart';
 
 abstract class AbstractClassDirective extends AngularAnnotatedClass
     implements AbstractDirective {
@@ -127,9 +24,6 @@ abstract class AbstractClassDirective extends AngularAnnotatedClass
 
   @override
   final List<ElementNameSelector> elementTags;
-
-  @override
-  String get name => classElement.name;
 
   AbstractClassDirective(dart.ClassElement classElement,
       {this.exportAs,
@@ -144,54 +38,80 @@ abstract class AbstractClassDirective extends AngularAnnotatedClass
             outputs: outputs,
             contentChildFields: contentChildFields,
             contentChildrenFields: contentChildrenFields);
+
+  @override
+  String get name => classElement.name;
 }
 
 abstract class AbstractDirective extends AngularTopLevel {
-  Selector get selector;
+  List<ElementNameSelector> get elementTags;
 
   AngularElement get exportAs;
 
   String get name;
 
-  List<ElementNameSelector> get elementTags;
+  Selector get selector;
 }
 
-/// An abstract model of an Angular top level construct.
-///
-/// This may be a functional directive, component, or normal directive...or even
-/// an [AngularAnnotatedClass] which is a class that defines component/directive
-/// behavior for the sake of being inherited.
-abstract class AngularTopLevel {
-  final attributes = <AngularElement>[];
+abstract class AbstractQueriedChildType {
+  bool match(ElementInfo element, StandardAngular angular,
+      StandardHtml standardHtml, ErrorReporter reporter);
+}
 
-  bool get isHtml;
-  Source get source;
+/// Might be a directive, or a component, or neither. It might simply have
+/// annotated @Inputs, @Outputs() intended to be inherited.
+class AngularAnnotatedClass extends AngularTopLevel {
+  /// The [ClassElement] this annotation is associated with.
+  final dart.ClassElement classElement;
 
-  /// Its very hard to tell which directives are meant to be used with a *star.
-  /// However, any directives which have a `TemplateRef` as a constructor
-  /// parameter are almost certainly meant to be used with one. We use this for
-  /// whatever validation we can, and autocomplete suggestions.
-  bool looksLikeTemplate = false;
+  @override
+  final contentChilds = <ContentChild>[];
 
-  final List<InputElement> inputs;
-  final List<OutputElement> outputs;
+  @override
+  final contentChildren = <ContentChild>[];
 
-  /// See [AngularAnnotatedClassMembers.contentChildren]
-  List<ContentChild> get contentChilds;
-  List<ContentChild> get contentChildren;
+  /// Which fields have been marked `@ContentChild`, and the range of the type
+  /// argument. The element model contains the rest. This should be stored in the
+  /// summary, so that at link time we can report errors discovered in the model
+  /// against the range we saw it the AST.
+  @override
+  List<ContentChildField> contentChildrenFields;
 
-  /// See [AngularAnnotatedClassMembers.contentChildrenFields]
-  List<ContentChildField> get contentChildrenFields;
-  List<ContentChildField> get contentChildFields;
+  @override
+  List<ContentChildField> contentChildFields;
 
-  AngularTopLevel({
-    this.inputs,
-    this.outputs,
-  });
+  AngularAnnotatedClass(this.classElement,
+      {List<InputElement> inputs,
+      List<OutputElement> outputs,
+      this.contentChildFields,
+      this.contentChildrenFields})
+      : super(inputs: inputs, outputs: outputs);
+
+  @override
+  int get hashCode => classElement.hashCode;
+
+  // See [contentChildrenFields]. These are the linked versions.
+  @override
+  bool get isHtml => false;
+
+  /// The source that contains this directive.
+  @override
+  Source get source => classElement.source;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AngularAnnotatedClass && other.classElement == classElement;
+  @override
+  String toString() => '$runtimeType(${classElement.displayName} '
+      'inputs=$inputs '
+      'outputs=$outputs '
+      'attributes=$attributes)';
 }
 
 /// The base class for all Angular elements.
 abstract class AngularElement {
+  dart.CompilationUnitElement get compilationElement;
+
   /// Return the name of this element, not `null`.
   String get name;
 
@@ -205,8 +125,6 @@ abstract class AngularElement {
 
   /// Return the [Source] of this element.
   Source get source;
-
-  dart.CompilationUnitElement get compilationElement;
 }
 
 /// The base class for concrete implementations of an [AngularElement].
@@ -223,10 +141,10 @@ class AngularElementImpl implements AngularElement {
   @override
   final Source source;
 
+  AngularElementImpl(this.name, this.nameOffset, this.nameLength, this.source);
+
   @override
   dart.CompilationUnitElement get compilationElement => null;
-
-  AngularElementImpl(this.name, this.nameOffset, this.nameLength, this.source);
 
   @override
   int get hashCode => JenkinsSmiHash.hash4(
@@ -245,21 +163,168 @@ class AngularElementImpl implements AngularElement {
   String toString() => name;
 }
 
-abstract class AbstractQueriedChildType {
-  bool match(ElementInfo element, StandardAngular angular,
-      StandardHtml standardHtml, ErrorReporter reporter);
+/// An abstract model of an Angular top level construct.
+///
+/// This may be a functional directive, component, or normal directive...or even
+/// an [AngularAnnotatedClass] which is a class that defines component/directive
+/// behavior for the sake of being inherited.
+abstract class AngularTopLevel {
+  final attributes = <AngularElement>[];
+
+  /// Its very hard to tell which directives are meant to be used with a *star.
+  /// However, any directives which have a `TemplateRef` as a constructor
+  /// parameter are almost certainly meant to be used with one. We use this for
+  /// whatever validation we can, and autocomplete suggestions.
+  bool looksLikeTemplate = false;
+  final List<InputElement> inputs;
+
+  final List<OutputElement> outputs;
+
+  AngularTopLevel({
+    this.inputs,
+    this.outputs,
+  });
+  List<ContentChildField> get contentChildFields;
+
+  List<ContentChild> get contentChildren;
+
+  /// See [AngularAnnotatedClassMembers.contentChildrenFields]
+  List<ContentChildField> get contentChildrenFields;
+
+  /// See [AngularAnnotatedClassMembers.contentChildren]
+  List<ContentChild> get contentChilds;
+  bool get isHtml;
+
+  Source get source;
 }
 
-class TemplateRefQueriedChildType extends AbstractQueriedChildType {
+class ArrayOfDirectiveReferencesStrategy implements DirectivesStrategy {
+  final List<DirectiveReference> directiveReferences;
+
+  ArrayOfDirectiveReferencesStrategy(this.directiveReferences);
+
   @override
-  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
-          ErrorReporter ___) =>
-      element is ElementInfo && element.localName == 'template';
+  T resolve<T>(T Function(List<DirectiveReference>) arrayStrategyHandler,
+          T Function(Null, Null) _) =>
+      arrayStrategyHandler(directiveReferences);
+}
+
+/// The model of an Angular component.
+class Component extends AbstractClassDirective {
+  View view;
+  @override
+  final bool isHtml;
+
+  /// List of <ng-content> selectors in this component's view
+  final ngContents = <NgContent>[];
+
+  Component(dart.ClassElement classElement,
+      {AngularElement exportAs,
+      List<InputElement> inputs,
+      List<OutputElement> outputs,
+      Selector selector,
+      List<ElementNameSelector> elementTags,
+      this.isHtml,
+      List<NgContent> ngContents,
+      List<Pipe> pipes,
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
+      : super(classElement,
+            exportAs: exportAs,
+            inputs: inputs,
+            outputs: outputs,
+            selector: selector,
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields) {
+    this.ngContents.addAll(ngContents ?? []);
+  }
+
+  List<ExportedIdentifier> get exports => view?.exports ?? [];
 }
 
 // Represents both Element and HtmlElement, since the difference between them
 // is SVG which we don't yet analyze. Also represent ElementRef which will soon
 // be deprecated/removed.
+class ContentChild {
+  final ContentChildField field;
+  final AbstractQueriedChildType query;
+
+  /// Look up a symbol from the injector. We don't track the injector yet.
+  final dart.DartType read;
+
+  ContentChild(this.field, this.query, {this.read});
+}
+
+class ContentChildField {
+  final String fieldName;
+  final SourceRange nameRange;
+  final SourceRange typeRange;
+
+  ContentChildField(this.fieldName, {this.nameRange, this.typeRange});
+}
+
+/// An [AngularElement] representing a [dart.Element].
+class DartElement extends AngularElementImpl {
+  final dart.Element element;
+
+  DartElement(dart.Element element)
+      : element = element,
+        super(element.name, element.nameOffset, element.nameLength,
+            element.source);
+
+  @override
+  dart.CompilationUnitElement get compilationElement =>
+      element.getAncestor((e) => e is dart.CompilationUnitElement);
+}
+
+/// The model of an Angular directive.
+class Directive extends AbstractClassDirective {
+  Directive(dart.ClassElement classElement,
+      {AngularElement exportAs,
+      List<InputElement> inputs,
+      List<OutputElement> outputs,
+      Selector selector,
+      List<ElementNameSelector> elementTags,
+      List<ContentChildField> contentChildFields,
+      List<ContentChildField> contentChildrenFields})
+      : super(classElement,
+            exportAs: exportAs,
+            inputs: inputs,
+            outputs: outputs,
+            selector: selector,
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
+
+  @override
+  bool get isHtml => false;
+}
+
+class DirectiveQueriedChildType extends AbstractQueriedChildType {
+  final AbstractDirective directive;
+  DirectiveQueriedChildType(this.directive);
+  @override
+  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
+          ErrorReporter ___) =>
+      element is ElementInfo &&
+      element.directives.any((boundDirective) => boundDirective == directive);
+}
+
+class DirectiveReference {
+  String name;
+  String prefix;
+  SourceRange range;
+
+  DirectiveReference(this.name, this.prefix, this.range);
+}
+
+abstract class DirectivesStrategy {
+  // A low-level sort of visitor strategy.
+  T resolve<T>(T Function(List<DirectiveReference>) arrayStrategyHandler,
+      T Function(DartObject, SourceRange) constStrategyHandler);
+}
+
 class ElementQueriedChildType extends AbstractQueriedChildType {
   @override
   bool match(NodeInfo element, StandardAngular _, StandardHtml __,
@@ -268,6 +333,113 @@ class ElementQueriedChildType extends AbstractQueriedChildType {
       element.localName != 'template' &&
       !element.directives.any((boundDirective) =>
           boundDirective is Component && !boundDirective.isHtml);
+}
+
+class ExportedIdentifier {
+  final String prefix;
+  final String identifier;
+  final SourceRange span;
+  dart.Element element;
+
+  ExportedIdentifier(this.identifier, this.span,
+      {this.element, this.prefix: ''});
+}
+
+/// A functional directive is applied when the directive is linked, but does
+/// nothing later in the program. Thus it cannot have inputs, outputs, etc. But
+/// for the sake of clean code, those methods are implemented to return null,
+/// empty list, etc.
+class FunctionalDirective implements AbstractDirective {
+  final dart.FunctionElement functionElement;
+  @override
+  final Selector selector;
+  @override
+  final List<ElementNameSelector> elementTags;
+
+  /// @See [AbstractSelectable.looksLikeTemplate]
+  @override
+  bool looksLikeTemplate = false;
+
+  FunctionalDirective(this.functionElement, this.selector, this.elementTags);
+
+  @override
+  List<AngularElement> get attributes => const [];
+  @override
+  List<ContentChildField> get contentChildFields => const [];
+  @override
+  List<ContentChild> get contentChildren => const [];
+  @override
+  List<ContentChildField> get contentChildrenFields => const [];
+  @override
+  List<ContentChild> get contentChilds => const [];
+  @override
+  AngularElement get exportAs => null;
+  @override
+  int get hashCode => functionElement.hashCode;
+  @override
+  List<InputElement> get inputs => const [];
+  @override
+  bool get isHtml => false;
+
+  @override
+  String get name => functionElement.name;
+
+  @override
+  List<OutputElement> get outputs => const [];
+
+  /// The source that contains this directive.
+  @override
+  Source get source => functionElement.source;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FunctionalDirective && other.functionElement == functionElement;
+
+  @override
+  String toString() => 'FunctionalDirective(${functionElement.displayName} '
+      'selector=$selector ';
+}
+
+/// An Angular template in an HTML file.
+class HtmlTemplate extends Template {
+  /// The [Source] of the template.
+  final Source source;
+
+  HtmlTemplate(View view, this.source) : super(view);
+}
+
+/// The model for an Angular input.
+class InputElement extends AngularElementImpl {
+  final dart.PropertyAccessorElement setter;
+
+  final dart.DartType setterType;
+
+  /// The [SourceRange] where [setter] is referenced in the input declaration.
+  /// May be the same as this element offset/length in shorthand variants where
+  /// names of a input and the setter are the same.
+  final SourceRange setterRange;
+
+  /// A given input can have an alternative name, or more 'conventional' name
+  /// that differs from the name provided by dart:html source.
+  /// For example: source -> 'className', but prefer 'class'.
+  /// In this case, name = 'class' and originalName = 'originalName'.
+  /// This should be null if there is no alternative name.
+  final String originalName;
+
+  /// Native inputs vulnerable to XSS (such as a.href and *.innerHTML) may have
+  /// a security context. The secure type of that context should be assignable
+  /// to this input, and if the security context does not allow sanitization
+  /// then it will always throw otherwise and thus should be treated as an
+  /// assignment error.
+  final SecurityContext securityContext;
+
+  InputElement(String name, int nameOffset, int nameLength, Source source,
+      this.setter, this.setterRange, this.setterType,
+      {this.originalName, this.securityContext})
+      : super(name, nameOffset, nameLength, source);
+
+  @override
+  String toString() => 'InputElement($name, $nameOffset, $nameLength, $setter)';
 }
 
 class LetBoundQueriedChildType extends AbstractQueriedChildType {
@@ -343,145 +515,24 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
   }
 }
 
-class DirectiveQueriedChildType extends AbstractQueriedChildType {
-  final AbstractDirective directive;
-  DirectiveQueriedChildType(this.directive);
-  @override
-  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
-          ErrorReporter ___) =>
-      element is ElementInfo &&
-      element.directives.any((boundDirective) => boundDirective == directive);
-}
+class NgContent {
+  final int offset;
+  final int length;
 
-class ContentChildField {
-  final String fieldName;
-  final SourceRange nameRange;
-  final SourceRange typeRange;
+  /// NOTE: May contain Null. Null in this case means no selector (all content).
+  final Selector selector;
+  final int selectorOffset;
+  final int selectorLength;
 
-  ContentChildField(this.fieldName, {this.nameRange, this.typeRange});
-}
+  NgContent(this.offset, this.length)
+      : selector = null,
+        selectorOffset = null,
+        selectorLength = null;
 
-class ContentChild {
-  final ContentChildField field;
-  final AbstractQueriedChildType query;
+  NgContent.withSelector(this.offset, this.length, this.selector,
+      this.selectorOffset, this.selectorLength);
 
-  /// Look up a symbol from the injector. We don't track the injector yet.
-  final dart.DartType read;
-
-  ContentChild(this.field, this.query, {this.read});
-}
-
-/// The model of an Angular component.
-class Component extends AbstractClassDirective {
-  View view;
-  @override
-  final bool isHtml;
-
-  /// List of <ng-content> selectors in this component's view
-  final ngContents = <NgContent>[];
-
-  Component(dart.ClassElement classElement,
-      {AngularElement exportAs,
-      List<InputElement> inputs,
-      List<OutputElement> outputs,
-      Selector selector,
-      List<ElementNameSelector> elementTags,
-      this.isHtml,
-      List<NgContent> ngContents,
-      List<Pipe> pipes,
-      List<ContentChildField> contentChildFields,
-      List<ContentChildField> contentChildrenFields})
-      : super(classElement,
-            exportAs: exportAs,
-            inputs: inputs,
-            outputs: outputs,
-            selector: selector,
-            elementTags: elementTags,
-            contentChildFields: contentChildFields,
-            contentChildrenFields: contentChildrenFields) {
-    this.ngContents.addAll(ngContents ?? []);
-  }
-
-  List<ExportedIdentifier> get exports => view?.exports ?? [];
-}
-
-/// An [AngularElement] representing a [dart.Element].
-class DartElement extends AngularElementImpl {
-  final dart.Element element;
-
-  @override
-  dart.CompilationUnitElement get compilationElement =>
-      element.getAncestor((e) => e is dart.CompilationUnitElement);
-
-  DartElement(dart.Element element)
-      : element = element,
-        super(element.name, element.nameOffset, element.nameLength,
-            element.source);
-}
-
-/// The model of an Angular directive.
-class Directive extends AbstractClassDirective {
-  @override
-  bool get isHtml => false;
-
-  Directive(dart.ClassElement classElement,
-      {AngularElement exportAs,
-      List<InputElement> inputs,
-      List<OutputElement> outputs,
-      Selector selector,
-      List<ElementNameSelector> elementTags,
-      List<ContentChildField> contentChildFields,
-      List<ContentChildField> contentChildrenFields})
-      : super(classElement,
-            exportAs: exportAs,
-            inputs: inputs,
-            outputs: outputs,
-            selector: selector,
-            elementTags: elementTags,
-            contentChildFields: contentChildFields,
-            contentChildrenFields: contentChildrenFields);
-}
-
-/// An Angular template in an HTML file.
-class HtmlTemplate extends Template {
-  /// The [Source] of the template.
-  final Source source;
-
-  HtmlTemplate(View view, this.source) : super(view);
-}
-
-/// The model for an Angular input.
-class InputElement extends AngularElementImpl {
-  final dart.PropertyAccessorElement setter;
-
-  final dart.DartType setterType;
-
-  /// The [SourceRange] where [setter] is referenced in the input declaration.
-  /// May be the same as this element offset/length in shorthand variants where
-  /// names of a input and the setter are the same.
-  final SourceRange setterRange;
-
-  /// A given input can have an alternative name, or more 'conventional' name
-  /// that differs from the name provided by dart:html source.
-  /// For example: source -> 'className', but prefer 'class'.
-  /// In this case, name = 'class' and originalName = 'originalName'.
-  /// This should be null if there is no alternative name.
-  final String originalName;
-
-  /// Native inputs vulnerable to XSS (such as a.href and *.innerHTML) may have
-  /// a security context. The secure type of that context should be assignable
-  /// to this input, and if the security context does not allow sanitization
-  /// then it will always throw otherwise and thus should be treated as an
-  /// assignment error.
-  final SecurityContext securityContext;
-
-  InputElement(String name, int nameOffset, int nameLength, Source source,
-      this.setter, this.setterRange, this.setterType,
-      {this.originalName, this.securityContext})
-      : super(name, nameOffset, nameLength, source);
-
-  @override
-  String toString() => 'InputElement($name, $nameOffset, $nameLength, $setter)';
+  bool get matchesAll => selector == null;
 }
 
 /// The model for an Angular output.
@@ -518,6 +569,14 @@ class Pipe {
       {this.isPure: true});
 }
 
+class PipeReference {
+  final String prefix;
+  final String identifier;
+  final SourceRange span;
+
+  PipeReference(this.identifier, this.span, {this.prefix: ''});
+}
+
 /// A pair of an [SourceRange] and the referenced [AngularElement].
 class ResolvedRange {
   /// The [SourceRange] where [element] is referenced.
@@ -533,26 +592,6 @@ class ResolvedRange {
       'nameOffset=${element.nameOffset}, '
       'nameLength=${element.nameLength}, '
       'source=${element.source}]';
-}
-
-class NgContent {
-  final int offset;
-  final int length;
-
-  /// NOTE: May contain Null. Null in this case means no selector (all content).
-  final Selector selector;
-  final int selectorOffset;
-  final int selectorLength;
-
-  NgContent(this.offset, this.length)
-      : selector = null,
-        selectorOffset = null,
-        selectorLength = null;
-
-  NgContent.withSelector(this.offset, this.length, this.selector,
-      this.selectorOffset, this.selectorLength);
-
-  bool get matchesAll => selector == null;
 }
 
 /// An Angular template.
@@ -572,6 +611,16 @@ class Template {
 
   Template(this.view);
 
+  ElementInfo get ast => _ast;
+
+  set ast(ElementInfo ast) {
+    if (_ast != null) {
+      throw new StateError("AST is already set, shouldn't be set again");
+    }
+
+    _ast = ast;
+  }
+
   /// Records that the given [element] is referenced at the given [range].
   void addRange(SourceRange range, AngularElement element) {
     assert(range != null);
@@ -582,50 +631,13 @@ class Template {
 
   @override
   String toString() => 'Template(ranges=$ranges)';
-
-  ElementInfo get ast => _ast;
-  set ast(ElementInfo ast) {
-    if (_ast != null) {
-      throw new StateError("AST is already set, shouldn't be set again");
-    }
-
-    _ast = ast;
-  }
 }
 
-class ExportedIdentifier {
-  final String prefix;
-  final String identifier;
-  final SourceRange span;
-  dart.Element element;
-
-  ExportedIdentifier(this.identifier, this.span,
-      {this.element, this.prefix: ''});
-}
-
-class PipeReference {
-  final String prefix;
-  final String identifier;
-  final SourceRange span;
-
-  PipeReference(this.identifier, this.span, {this.prefix: ''});
-}
-
-abstract class DirectivesStrategy {
-  // A low-level sort of visitor strategy.
-  T resolve<T>(T Function(List<DirectiveReference>) arrayStrategyHandler,
-      T Function(DartObject, SourceRange) constStrategyHandler);
-}
-
-class ArrayOfDirectiveReferencesStrategy implements DirectivesStrategy {
-  final List<DirectiveReference> directiveReferences;
-
-  ArrayOfDirectiveReferencesStrategy(this.directiveReferences);
-
+class TemplateRefQueriedChildType extends AbstractQueriedChildType {
   @override
-  T resolve<T>(T Function(List<DirectiveReference>) arrayStrategyHandler,
-          T Function(Null, Null) _) =>
-      arrayStrategyHandler(directiveReferences);
+  bool match(NodeInfo element, StandardAngular _, StandardHtml __,
+          ErrorReporter ___) =>
+      element is ElementInfo && element.localName == 'template';
 }
 
 class UseConstValueStrategy implements DirectivesStrategy {
@@ -650,11 +662,6 @@ class UseConstValueStrategy implements DirectivesStrategy {
                   orElse: () => null),
           sourceRange);
 
-  /// Check if an element is a Component
-  bool _isComponent(dart.Element element) =>
-      element is dart.ClassElement &&
-      element.type.isSubtypeOf(standardAngular.component.type);
-
   /// Traverse the inheritance hierarchy in the constant value, looking for the
   /// 'directives' field at the highest level it occurs.
   DartObject _getDirectives(DartObject value) {
@@ -669,6 +676,11 @@ class UseConstValueStrategy implements DirectivesStrategy {
 
     return null;
   }
+
+  /// Check if an element is a Component
+  bool _isComponent(dart.Element element) =>
+      element is dart.ClassElement &&
+      element.type.isSubtypeOf(standardAngular.component.type);
 }
 
 /// The model of an Angular view.
@@ -691,7 +703,21 @@ class View {
 
   Map<String, List<AbstractDirective>> _elementTagsInfo;
 
-  int get end => templateOffset + templateText.length;
+  /// The [Template] of this view, `null` until built.
+  Template template;
+
+  View(this.classElement, this.component, this.directives, this.pipes,
+      {this.templateText,
+      this.templateOffset: 0,
+      this.templateUriSource,
+      this.templateUrlRange,
+      this.annotation,
+      this.directivesStrategy,
+      this.exports,
+      this.pipeReferences}) {
+    // stability/error-recovery: @Component can be missing
+    component?.view = this;
+  }
 
   Map<String, List<AbstractDirective>> get elementTagsInfo {
     if (_elementTagsInfo == null) {
@@ -709,21 +735,7 @@ class View {
     return _elementTagsInfo;
   }
 
-  /// The [Template] of this view, `null` until built.
-  Template template;
-
-  View(this.classElement, this.component, this.directives, this.pipes,
-      {this.templateText,
-      this.templateOffset: 0,
-      this.templateUriSource,
-      this.templateUrlRange,
-      this.annotation,
-      this.directivesStrategy,
-      this.exports,
-      this.pipeReferences}) {
-    // stability/error-recovery: @Component can be missing
-    component?.view = this;
-  }
+  int get end => templateOffset + templateText.length;
 
   /// The source that contains this view.
   Source get source => classElement.source;
@@ -736,12 +748,4 @@ class View {
       'classElement=$classElement, '
       'component=$component, '
       'directives=$directives)';
-}
-
-class DirectiveReference {
-  String name;
-  String prefix;
-  SourceRange range;
-
-  DirectiveReference(this.name, this.prefix, this.range);
 }

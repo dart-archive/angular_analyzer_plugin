@@ -5,17 +5,17 @@ import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular_ast/angular_ast.dart';
+import 'package:angular_analyzer_plugin/ast.dart';
+import 'package:angular_analyzer_plugin/errors.dart';
+import 'package:angular_analyzer_plugin/src/directive_linking.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
-import 'package:angular_analyzer_plugin/errors.dart';
-import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
-import 'package:angular_analyzer_plugin/src/directive_linking.dart';
-import 'package:test_reflective_loader/test_reflective_loader.dart';
+import 'package:angular_ast/angular_ast.dart';
 import 'package:test/test.dart';
+import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'abstract_angular.dart';
 
@@ -109,8 +109,160 @@ class AngularParseHtmlTest extends AbstractAngularTest {
 }
 
 @reflectiveTest
+class BuildStandardAngularTest extends AbstractAngularTest {
+  // ignore: non_constant_identifier_names
+  Future test_perform() async {
+    final ng = await angularDriver.getStandardAngular();
+    // validate
+    expect(ng, isNotNull);
+    expect(ng.templateRef, isNotNull);
+    expect(ng.elementRef, isNotNull);
+    expect(ng.queryList, isNotNull);
+    expect(ng.pipeTransform, isNotNull);
+    expect(ng.component, isNotNull);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_securitySchema() async {
+    final ng = await angularDriver.getStandardAngular();
+    // validate
+    expect(ng, isNotNull);
+    expect(ng.securitySchema, isNotNull);
+
+    final imgSrcSecurity = ng.securitySchema.lookup('img', 'src');
+    expect(imgSrcSecurity, isNotNull);
+    expect(imgSrcSecurity.safeType.toString(), 'SafeUrl');
+    expect(imgSrcSecurity.sanitizationAvailable, true);
+
+    final aHrefSecurity = ng.securitySchema.lookup('a', 'href');
+    expect(aHrefSecurity, isNotNull);
+    expect(aHrefSecurity.safeType.toString(), 'SafeUrl');
+    expect(aHrefSecurity.sanitizationAvailable, true);
+
+    final innerHtmlSecurity = ng.securitySchema.lookupGlobal('innerHTML');
+    expect(innerHtmlSecurity, isNotNull);
+    expect(innerHtmlSecurity.safeType.toString(), 'SafeHtml');
+    expect(innerHtmlSecurity.sanitizationAvailable, true);
+
+    final iframeSrcdocSecurity = ng.securitySchema.lookup('iframe', 'srcdoc');
+    expect(iframeSrcdocSecurity, isNotNull);
+    expect(iframeSrcdocSecurity.safeType.toString(), 'SafeHtml');
+    expect(iframeSrcdocSecurity.sanitizationAvailable, true);
+
+    final styleSecurity = ng.securitySchema.lookupGlobal('style');
+    expect(styleSecurity, isNotNull);
+    expect(styleSecurity.safeType.toString(), 'SafeStyle');
+    expect(styleSecurity.sanitizationAvailable, true);
+
+    final iframeSrcSecurity = ng.securitySchema.lookup('iframe', 'src');
+    expect(iframeSrcSecurity, isNotNull);
+    expect(iframeSrcSecurity.safeType.toString(), 'SafeResourceUrl');
+    expect(iframeSrcSecurity.sanitizationAvailable, false);
+
+    final scriptSrcSecurity = ng.securitySchema.lookup('script', 'src');
+    expect(scriptSrcSecurity, isNotNull);
+    expect(scriptSrcSecurity.safeType.toString(), 'SafeResourceUrl');
+    expect(scriptSrcSecurity.sanitizationAvailable, false);
+  }
+}
+
+@reflectiveTest
 class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
   // ignore: non_constant_identifier_names
+  // ignore: non_constant_identifier_names
+  Future test_buildStandardHtmlAttributes() async {
+    final stdhtml = await angularDriver.getStandardHtml();
+    final inputElements = stdhtml.attributes;
+    {
+      final input = inputElements['tabIndex'];
+      expect(input, isNotNull);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals("int"));
+    }
+    {
+      final input = inputElements['hidden'];
+      expect(input, isNotNull);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals("bool"));
+    }
+    {
+      final input = inputElements['innerHtml'];
+      expect(input, isNotNull);
+      expect(identical(input, inputElements['innerHTML']), true);
+      expect(input.setter, isNotNull);
+      expect(input.setterType.toString(), equals('String'));
+      expect(input.securityContext, isNotNull);
+      expect(input.securityContext.safeType.toString(), equals('SafeHtml'));
+      expect(input.securityContext.sanitizationAvailable, equals(true));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_buildStandardHtmlClasses() async {
+    final stdhtml = await angularDriver.getStandardHtml();
+    expect(stdhtml.elementClass, isNotNull);
+    expect(stdhtml.elementClass.name, 'Element');
+    expect(stdhtml.htmlElementClass, isNotNull);
+    expect(stdhtml.htmlElementClass.name, 'HtmlElement');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_buildStandardHtmlEvents() async {
+    final stdhtml = await angularDriver.getStandardHtml();
+    final outputElements = stdhtml.events;
+    {
+      // This one is important because it proves we're using @DomAttribute
+      // to generate the output name and not the method in the sdk.
+      final outputElement = outputElements['keyup'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+    }
+    {
+      final outputElement = outputElements['cut'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+    }
+    {
+      final outputElement = outputElements['click'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), 'MouseEvent');
+    }
+    {
+      final outputElement = outputElements['change'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.getter, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+    }
+    {
+      // used to happen from "id" which got truncated by 'on'.length
+      final outputElement = outputElements[''];
+      expect(outputElement, isNull);
+    }
+    {
+      // used to happen from "hidden" which got truncated by 'on'.length
+      final outputElement = outputElements['dden'];
+      expect(outputElement, isNull);
+    }
+    {
+      // missing from dart:html, and supplied manually (with no getter)
+      final outputElement = outputElements['focusin'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), 'FocusEvent');
+    }
+    {
+      // missing from dart:html, and supplied manually (with no getter)
+      final outputElement = outputElements['focusout'];
+      expect(outputElement, isNotNull);
+      expect(outputElement.eventType, isNotNull);
+      expect(outputElement.eventType.toString(), 'FocusEvent');
+    }
+  }
+
   // ignore: non_constant_identifier_names
   Future test_perform() async {
     final stdhtml = await angularDriver.getStandardHtml();
@@ -207,100 +359,6 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
     // <audio> is a "specialElementClass", its ctor isn't analyzable.
     expect(map['audio'], isNotNull);
   }
-
-  // ignore: non_constant_identifier_names
-  Future test_buildStandardHtmlEvents() async {
-    final stdhtml = await angularDriver.getStandardHtml();
-    final outputElements = stdhtml.events;
-    {
-      // This one is important because it proves we're using @DomAttribute
-      // to generate the output name and not the method in the sdk.
-      final outputElement = outputElements['keyup'];
-      expect(outputElement, isNotNull);
-      expect(outputElement.getter, isNotNull);
-      expect(outputElement.eventType, isNotNull);
-    }
-    {
-      final outputElement = outputElements['cut'];
-      expect(outputElement, isNotNull);
-      expect(outputElement.getter, isNotNull);
-      expect(outputElement.eventType, isNotNull);
-    }
-    {
-      final outputElement = outputElements['click'];
-      expect(outputElement, isNotNull);
-      expect(outputElement.getter, isNotNull);
-      expect(outputElement.eventType, isNotNull);
-      expect(outputElement.eventType.toString(), 'MouseEvent');
-    }
-    {
-      final outputElement = outputElements['change'];
-      expect(outputElement, isNotNull);
-      expect(outputElement.getter, isNotNull);
-      expect(outputElement.eventType, isNotNull);
-    }
-    {
-      // used to happen from "id" which got truncated by 'on'.length
-      final outputElement = outputElements[''];
-      expect(outputElement, isNull);
-    }
-    {
-      // used to happen from "hidden" which got truncated by 'on'.length
-      final outputElement = outputElements['dden'];
-      expect(outputElement, isNull);
-    }
-    {
-      // missing from dart:html, and supplied manually (with no getter)
-      final outputElement = outputElements['focusin'];
-      expect(outputElement, isNotNull);
-      expect(outputElement.eventType, isNotNull);
-      expect(outputElement.eventType.toString(), 'FocusEvent');
-    }
-    {
-      // missing from dart:html, and supplied manually (with no getter)
-      final outputElement = outputElements['focusout'];
-      expect(outputElement, isNotNull);
-      expect(outputElement.eventType, isNotNull);
-      expect(outputElement.eventType.toString(), 'FocusEvent');
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_buildStandardHtmlAttributes() async {
-    final stdhtml = await angularDriver.getStandardHtml();
-    final inputElements = stdhtml.attributes;
-    {
-      final input = inputElements['tabIndex'];
-      expect(input, isNotNull);
-      expect(input.setter, isNotNull);
-      expect(input.setterType.toString(), equals("int"));
-    }
-    {
-      final input = inputElements['hidden'];
-      expect(input, isNotNull);
-      expect(input.setter, isNotNull);
-      expect(input.setterType.toString(), equals("bool"));
-    }
-    {
-      final input = inputElements['innerHtml'];
-      expect(input, isNotNull);
-      expect(identical(input, inputElements['innerHTML']), true);
-      expect(input.setter, isNotNull);
-      expect(input.setterType.toString(), equals('String'));
-      expect(input.securityContext, isNotNull);
-      expect(input.securityContext.safeType.toString(), equals('SafeHtml'));
-      expect(input.securityContext.sanitizationAvailable, equals(true));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_buildStandardHtmlClasses() async {
-    final stdhtml = await angularDriver.getStandardHtml();
-    expect(stdhtml.elementClass, isNotNull);
-    expect(stdhtml.elementClass.name, 'Element');
-    expect(stdhtml.htmlElementClass, isNotNull);
-    expect(stdhtml.htmlElementClass.name, 'HtmlElement');
-  }
 }
 
 @reflectiveTest
@@ -308,51 +366,6 @@ class BuildStandardHtmlTest extends AbstractAngularTest {
   @override
   void setUp() {
     // Don't perform setup before tests. Tests will run `super.setUp()`.
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_perform() async {
-    super.setUp();
-    final html = await angularDriver.getStandardHtml();
-    // validate
-    expect(html, isNotNull);
-    expect(html.events, isNotNull);
-    expect(html.standardEvents, isNotNull);
-    expect(html.customEvents, isNotNull);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_customEvents_untyped() async {
-    ngOptions = new AngularOptions.fromString(r'''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-      custom_events:
-        foo:
-        bar:
-''', null);
-
-    super.setUp();
-    final html = await angularDriver.getStandardHtml();
-    // validate
-    expect(html, isNotNull);
-    expect(html.customEvents, isNotNull);
-    expect(html.customEvents, hasLength(2));
-    {
-      final event = html.customEvents['foo'];
-      expect(event, isNotNull);
-      expect(event.getter, isNull);
-      expect(event.eventType, isNotNull);
-      expect(event.eventType.toString(), 'dynamic');
-    }
-    {
-      final event = html.customEvents['bar'];
-      expect(event, isNotNull);
-      expect(event.getter, isNull);
-      expect(event.eventType, isNotNull);
-      expect(event.eventType.toString(), 'dynamic');
-    }
   }
 
   // ignore: non_constant_identifier_names
@@ -421,6 +434,72 @@ analyzer:
   }
 
   // ignore: non_constant_identifier_names
+  Future test_customEvents_enum() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        enumType:
+          type: EnumType
+          path: 'package:test_package/enum.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/enum.dart', r'''
+enum EnumType {}
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['enumType'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'EnumType');
+      expect(event.eventType.element.source.fullName, '/enum.dart');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_generic() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        generic:
+          type: Generic
+          path: 'package:test_package/generic.dart'
+''', null);
+
+    super.setUp();
+
+    newSource('/generic.dart', r'''
+class Generic<T> {}
+''');
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(1));
+    {
+      final event = html.customEvents['generic'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'Generic<dynamic>');
+      expect(event.eventType.element.source.fullName, '/generic.dart');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_customEvents_noSource_dynamic() async {
     ngOptions = new AngularOptions.fromString(r'''
 analyzer:
@@ -481,38 +560,6 @@ class NotTheCorrectEvent {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_customEvents_typeIsNotAType_dynamic() async {
-    ngOptions = new AngularOptions.fromString(r'''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-      custom_events:
-        notAType:
-          type: foo
-          path: 'package:test_package/customevent.dart'
-''', null);
-
-    super.setUp();
-
-    newSource('/customevent.dart', r'''
-int foo;
-''');
-    final html = await angularDriver.getStandardHtml();
-    // validate
-    expect(html, isNotNull);
-    expect(html.customEvents, isNotNull);
-    expect(html.customEvents, hasLength(1));
-    {
-      final event = html.customEvents['notAType'];
-      expect(event, isNotNull);
-      expect(event.getter, isNull);
-      expect(event.eventType, isNotNull);
-      expect(event.eventType.toString(), 'dynamic');
-    }
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_customEvents_resolved() async {
     ngOptions = new AngularOptions.fromString(r'''
 analyzer:
@@ -542,39 +589,6 @@ class BarEvent {}
       expect(event.eventType, isNotNull);
       expect(event.eventType.toString(), 'BarEvent');
       expect(event.eventType.element.source.fullName, '/bar.dart');
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_customEvents_enum() async {
-    ngOptions = new AngularOptions.fromString(r'''
-analyzer:
-  plugins:
-    angular:
-      enabled: true
-      custom_events:
-        enumType:
-          type: EnumType
-          path: 'package:test_package/enum.dart'
-''', null);
-
-    super.setUp();
-
-    newSource('/enum.dart', r'''
-enum EnumType {}
-''');
-    final html = await angularDriver.getStandardHtml();
-    // validate
-    expect(html, isNotNull);
-    expect(html.customEvents, isNotNull);
-    expect(html.customEvents, hasLength(1));
-    {
-      final event = html.customEvents['enumType'];
-      expect(event, isNotNull);
-      expect(event.getter, isNull);
-      expect(event.eventType, isNotNull);
-      expect(event.eventType.toString(), 'EnumType');
-      expect(event.eventType.element.source.fullName, '/enum.dart');
     }
   }
 
@@ -612,22 +626,22 @@ typedef TypeDef = int Function<T>();
   }
 
   // ignore: non_constant_identifier_names
-  Future test_customEvents_generic() async {
+  Future test_customEvents_typeIsNotAType_dynamic() async {
     ngOptions = new AngularOptions.fromString(r'''
 analyzer:
   plugins:
     angular:
       enabled: true
       custom_events:
-        generic:
-          type: Generic
-          path: 'package:test_package/generic.dart'
+        notAType:
+          type: foo
+          path: 'package:test_package/customevent.dart'
 ''', null);
 
     super.setUp();
 
-    newSource('/generic.dart', r'''
-class Generic<T> {}
+    newSource('/customevent.dart', r'''
+int foo;
 ''');
     final html = await angularDriver.getStandardHtml();
     // validate
@@ -635,87 +649,1748 @@ class Generic<T> {}
     expect(html.customEvents, isNotNull);
     expect(html.customEvents, hasLength(1));
     {
-      final event = html.customEvents['generic'];
+      final event = html.customEvents['notAType'];
       expect(event, isNotNull);
       expect(event.getter, isNull);
       expect(event.eventType, isNotNull);
-      expect(event.eventType.toString(), 'Generic<dynamic>');
-      expect(event.eventType.element.source.fullName, '/generic.dart');
+      expect(event.eventType.toString(), 'dynamic');
     }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_customEvents_untyped() async {
+    ngOptions = new AngularOptions.fromString(r'''
+analyzer:
+  plugins:
+    angular:
+      enabled: true
+      custom_events:
+        foo:
+        bar:
+''', null);
+
+    super.setUp();
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.customEvents, isNotNull);
+    expect(html.customEvents, hasLength(2));
+    {
+      final event = html.customEvents['foo'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+    {
+      final event = html.customEvents['bar'];
+      expect(event, isNotNull);
+      expect(event.getter, isNull);
+      expect(event.eventType, isNotNull);
+      expect(event.eventType.toString(), 'dynamic');
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_perform() async {
+    super.setUp();
+    final html = await angularDriver.getStandardHtml();
+    // validate
+    expect(html, isNotNull);
+    expect(html.events, isNotNull);
+    expect(html.standardEvents, isNotNull);
+    expect(html.customEvents, isNotNull);
   }
 }
 
 @reflectiveTest
-class BuildStandardAngularTest extends AbstractAngularTest {
-  // ignore: non_constant_identifier_names
-  Future test_perform() async {
-    final ng = await angularDriver.getStandardAngular();
-    // validate
-    expect(ng, isNotNull);
-    expect(ng.templateRef, isNotNull);
-    expect(ng.elementRef, isNotNull);
-    expect(ng.queryList, isNotNull);
-    expect(ng.pipeTransform, isNotNull);
-    expect(ng.component, isNotNull);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_securitySchema() async {
-    final ng = await angularDriver.getStandardAngular();
-    // validate
-    expect(ng, isNotNull);
-    expect(ng.securitySchema, isNotNull);
-
-    final imgSrcSecurity = ng.securitySchema.lookup('img', 'src');
-    expect(imgSrcSecurity, isNotNull);
-    expect(imgSrcSecurity.safeType.toString(), 'SafeUrl');
-    expect(imgSrcSecurity.sanitizationAvailable, true);
-
-    final aHrefSecurity = ng.securitySchema.lookup('a', 'href');
-    expect(aHrefSecurity, isNotNull);
-    expect(aHrefSecurity.safeType.toString(), 'SafeUrl');
-    expect(aHrefSecurity.sanitizationAvailable, true);
-
-    final innerHtmlSecurity = ng.securitySchema.lookupGlobal('innerHTML');
-    expect(innerHtmlSecurity, isNotNull);
-    expect(innerHtmlSecurity.safeType.toString(), 'SafeHtml');
-    expect(innerHtmlSecurity.sanitizationAvailable, true);
-
-    final iframeSrcdocSecurity = ng.securitySchema.lookup('iframe', 'srcdoc');
-    expect(iframeSrcdocSecurity, isNotNull);
-    expect(iframeSrcdocSecurity.safeType.toString(), 'SafeHtml');
-    expect(iframeSrcdocSecurity.sanitizationAvailable, true);
-
-    final styleSecurity = ng.securitySchema.lookupGlobal('style');
-    expect(styleSecurity, isNotNull);
-    expect(styleSecurity.safeType.toString(), 'SafeStyle');
-    expect(styleSecurity.sanitizationAvailable, true);
-
-    final iframeSrcSecurity = ng.securitySchema.lookup('iframe', 'src');
-    expect(iframeSrcSecurity, isNotNull);
-    expect(iframeSrcSecurity.safeType.toString(), 'SafeResourceUrl');
-    expect(iframeSrcSecurity.sanitizationAvailable, false);
-
-    final scriptSrcSecurity = ng.securitySchema.lookup('script', 'src');
-    expect(scriptSrcSecurity, isNotNull);
-    expect(scriptSrcSecurity.safeType.toString(), 'SafeResourceUrl');
-    expect(scriptSrcSecurity.sanitizationAvailable, false);
-  }
-}
-
-abstract class GatherAnnotationsTestMixin implements AbstractAngularTest {
+class BuildUnitViewsTest extends AbstractAngularTest {
   List<AbstractDirective> directives;
   List<Pipe> pipes;
+  List<View> views;
   List<AnalysisError> errors;
 
-  Future getDirectives(final Source source) async {
+  Future getViews(final Source source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
     final result = await angularDriver.getAngularTopLevels(source.fullName);
     directives = result.directives;
     pipes = result.pipes;
+
+    final linker = new ChildDirectiveLinker(
+        angularDriver,
+        angularDriver,
+        await angularDriver.getStandardAngular(),
+        await angularDriver.getStandardHtml(),
+        new ErrorReporter(errorListener, source));
+    await linker.linkDirectivesAndPipes(
+        directives, pipes, dartResult.unit.element.library);
+    views = directives
+        .map((d) => d is Component ? d.view : null)
+        .where((d) => d != null)
+        .toList();
     errors = result.errors;
     fillErrorListener(errors);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_buildViewsDoesntGetDependentDirectives() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'other_file.dart';
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [OtherComponent])
+class MyComponent {}
+''';
+    final otherCode = r'''
+import 'package:angular2/angular2.dart';
+@Component(selector: 'other-component', template: 'My template',
+    directives: const [NgFor])
+class OtherComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    newSource('/other_file.dart', otherCode);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(1));
+      }
+
+      // shouldn't be run yet
+      for (final directive in view.directives) {
+        if (directive is Component) {
+          expect(directive.view.directives, hasLength(0));
+        }
+      }
+    }
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_constantExpressionTemplateComplexIsOnlyError() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+const String tooComplex = 'bcd';
+
+@Component(selector: 'aaa', template: 'abc' + tooComplex + "{{invalid {{stuff")
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularHintCode.OFFSETS_CANNOT_BE_CREATED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_constantExpressionTemplateOk() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'abc' + 'bcd')
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+@Directive(selector: '[ccc]')
+class DirectiveC {}
+
+const DIR_AB = const [DirectiveA, DirectiveB];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB, DirectiveC])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(3));
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveClassNames,
+            unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
+      }
+    }
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives_hasError_notListVariable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const NOT_DIRECTIVE_LIST = 42;
+
+@Component(selector: 'my-component', template: 'My template',
+   directives: const [NOT_DIRECTIVE_LIST])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives_not_list_syntax() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+const VARIABLE = const [DirectiveA, DirectiveB];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: VARIABLE)
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(
+        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
+    final directiveClassNames =
+        view.directives.map((directive) => directive.name).toList();
+    expect(directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directives_not_list_syntax_errorWithinVariable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: VARIABLE)
+class MyComponent {}
+
+// A non-array is a type error in the analyzer; a non-component in an array is
+// not so we must test it. Define below usage for asserting position.
+const VARIABLE = const [Object];
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(
+        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE, code, 'VARIABLE');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_directivesList_invalidDirectiveEntries() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+void directiveB() {}
+
+void notADirective() {}
+class NotADirectiveEither {}
+
+const DIR_AB_DEEP = const [ const [ const [
+    DirectiveA, directiveB, notADirective, NotADirectiveEither]]];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB_DEEP])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(2));
+        final directiveNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveNames, unorderedEquals(['DirectiveA', 'directiveB']));
+      }
+    }
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
+      AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildChildrenSetter() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp) // 1
+  void set contentChild(ContentChildComp contentChild) => null;
+  @ContentChildren(ContentChildComp) // 2
+  void set contentChildren(List<ContentChildComp> contentChildren) => null;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+
+    expect(children.directive, equals(directives[1]));
+
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType child = childs.first.query;
+
+    expect(child.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildComponent() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType child = childs.first.query;
+
+    expect(child.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective_dynamicOk() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  dynamic contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType child = childs.first.query;
+
+    expect(child.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective_htmlNotAllowed() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'dart:html';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(AnchorElement)
+  AnchorElement contentChild;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(0));
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE, code, 'AnchorElement');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective_notAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  String contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType child = childs.first.query;
+    expect(child.directive, equals(directives[1]));
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective_notRecognizedType() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(String)
+  ElementRef contentChild;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(0));
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE, code, 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective_notTypeOrString() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(const [])
+  ElementRef contentChild;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(0));
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE, code, 'const []');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective_subTypeNotAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  ContentChildCompSub contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+
+class ContentChildCompSub extends ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType child = childs.first.query;
+    expect(child.directive, equals(directives[1]));
+
+    // validate
+    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+        code, 'ContentChildCompSub');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildElementRef() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ElementRef)
+  ElementRef contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(childs.first.query, const isInstanceOf<ElementQueriedChildType>());
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildElementRef_notAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ElementRef)
+  String contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildLetBound() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('foo')
+  ContentChildComp contentChildDirective;
+  @ContentChild('fooTpl')
+  TemplateRef contentChildTpl;
+  @ContentChild('fooElemRef')
+  ElementRef contentChildElemRef;
+  @ContentChild('fooElem', read: Element)
+  Element contentChildElem;
+  @ContentChild('fooHtmlElem', read: HtmlElement)
+  HtmlElement contentChildHtmlElem;
+  @ContentChild('fooDynamic')
+  dynamic contentChildDynamic;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(6));
+
+    final LetBoundQueriedChildType childDirective = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildDirective")
+        .query;
+    expect(childDirective, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childDirective.letBoundName, equals("foo"));
+    expect(childDirective.containerType.toString(), equals("ContentChildComp"));
+
+    final LetBoundQueriedChildType childTemplate =
+        childs.singleWhere((c) => c.field.fieldName == "contentChildTpl").query;
+    expect(childTemplate, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childTemplate.letBoundName, equals("fooTpl"));
+    expect(childTemplate.containerType.toString(), equals("TemplateRef"));
+
+    final LetBoundQueriedChildType childElement = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildElem")
+        .query;
+    expect(childElement, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childElement.letBoundName, equals("fooElem"));
+    expect(childElement.containerType.toString(), equals("Element"));
+
+    final LetBoundQueriedChildType childHtmlElement = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
+        .query;
+    expect(childHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childHtmlElement.letBoundName, equals("fooHtmlElem"));
+    expect(childHtmlElement.containerType.toString(), equals("HtmlElement"));
+
+    final LetBoundQueriedChildType childElementRef = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
+        .query;
+    expect(childElementRef, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childElementRef.letBoundName, equals("fooElemRef"));
+    expect(childElementRef.containerType.toString(), equals("ElementRef"));
+
+    final LetBoundQueriedChildType childDynamic = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
+        .query;
+    expect(childDynamic, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childDynamic.letBoundName, equals("fooDynamic"));
+    expect(childDynamic.containerType.toString(), equals("dynamic"));
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+
+    expect(children.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_dynamicIterableOk() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  Iterable contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+
+    expect(children.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_dynamicListOk() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+
+    expect(children.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_dynamicOk() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  dynamic contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+
+    expect(children.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_iterableNotAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  Iterable<String> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    // validate
+    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+        code, 'Iterable<String>');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_iterableOk() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  Iterable<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+
+    expect(children.directive, equals(directives[1]));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_notAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List<String> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_notList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  String contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+    expect(children.directive, equals(directives[1]));
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
+        code,
+        'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_subtypingListNotOk() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  // this is not allowed. Angular makes a List, regardless of your subtype
+  CannotSubtypeList contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+
+abstract class CannotSubtypeList extends List {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
+    final DirectiveQueriedChildType children = childrens.first.query;
+    expect(children.directive, equals(directives[1]));
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
+        code,
+        'CannotSubtypeList');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_withReadSet() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp, read: ViewContainerRef)
+  ViewContainerRef contentChild;
+  @ContentChildren(ContentChildComp, read: ViewContainerRef)
+  List<ViewContainerRef> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(childrens.first.read.toString(), equals('ViewContainerRef'));
+    final childs = component.contentChildren;
+    expect(childs, hasLength(1));
+    expect(childs.first.read.toString(), equals('ViewContainerRef'));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenElementRef() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ElementRef)
+  List<ElementRef> contentChildren;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(
+        childrens.first.query, const isInstanceOf<ElementQueriedChildType>());
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenElementRef_notAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ElementRef)
+  List<String> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenLetBound() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren('foo')
+  List<ContentChildComp> contentChildDirective;
+  @ContentChildren('fooTpl')
+  List<TemplateRef> contentChildTpl;
+  @ContentChildren('fooElem', read: Element)
+  List<Element> contentChildElem;
+  @ContentChildren('fooHtmlElem', read: HtmlElement)
+  List<HtmlElement> contentChildHtmlElem;
+  @ContentChildren('fooElemRef')
+  List<ElementRef> contentChildElemRef;
+  @ContentChildren('fooDynamic')
+  List contentChildDynamic;
+  @ContentChildren('fooQueryList')
+  QueryList<ContentChildComp> contentChildQueryList;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(7));
+
+    final LetBoundQueriedChildType childrenDirective = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildDirective")
+        .query;
+    expect(childrenDirective, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenDirective.letBoundName, equals("foo"));
+    expect(
+        childrenDirective.containerType.toString(), equals("ContentChildComp"));
+
+    final LetBoundQueriedChildType childrenTemplate = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildTpl")
+        .query;
+    expect(childrenTemplate, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenTemplate.letBoundName, equals("fooTpl"));
+    expect(childrenTemplate.containerType.toString(), equals("TemplateRef"));
+
+    final LetBoundQueriedChildType childrenElement = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildElem")
+        .query;
+    expect(childrenElement, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenElement.letBoundName, equals("fooElem"));
+    expect(childrenElement.containerType.toString(), equals("Element"));
+
+    final LetBoundQueriedChildType childrenHtmlElement = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
+        .query;
+    expect(childrenHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenHtmlElement.letBoundName, equals("fooHtmlElem"));
+    expect(childrenHtmlElement.containerType.toString(), equals("HtmlElement"));
+
+    final LetBoundQueriedChildType childrenElementRef = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
+        .query;
+    expect(childrenElementRef, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenElementRef.letBoundName, equals("fooElemRef"));
+    expect(childrenElementRef.containerType.toString(), equals("ElementRef"));
+
+    final LetBoundQueriedChildType childrenDynamic = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
+        .query;
+    expect(childrenDynamic, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenDynamic.letBoundName, equals("fooDynamic"));
+    expect(childrenDynamic.containerType.toString(), equals("dynamic"));
+
+    final LetBoundQueriedChildType childrenQueryList = childrens
+        .singleWhere((c) => c.field.fieldName == "contentChildQueryList")
+        .query;
+    expect(childrenQueryList, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(childrenQueryList.letBoundName, equals("fooQueryList"));
+    expect(
+        childrenQueryList.containerType.toString(), equals("ContentChildComp"));
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenLetBound_elementReadDoesntMatchType() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('el', read: Element)
+  ElementRef elemRefNotElem;
+  @ContentChild('el', read: HtmlElement)
+  ElementRef elemRefNotHtmlElem;
+  @ContentChild('el', read: Element)
+  HtmlElement htmlElemNotElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenLetBound_elementWithoutReadError() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren('el') // missing read: Element
+  List<Element> contentChildrenElem;
+  @ContentChild('el') // missing read: Element
+  Element contentChildElem;
+  @ContentChild('el') // missing read: HtmlElement
+  HtmlElement contentChildHtmlElem;
+  @ContentChildren('el') // missing read: HtmlElement
+  List<HtmlElement> contentChildrenHtmlElem;
+  @ContentChildren('el', read: Element) // not HtmlElement
+  List<HtmlElement> contentChildrenNotHtmlElem;
+  @ContentChild('el', read: Element) // not HtmlElement
+  HtmlElement contentChildNotHtmlElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    errorListener.assertErrorsWithCodes([
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenLetBound_readSubtypeOfAttribute() async {
+    final code = r'''
+import 'dart:html';
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild('el', read: Element)
+  Object objectNotElem;
+  @ContentChild('el', read: HtmlElement)
+  Element elemNotHtmlElem;
+  @ContentChild('el', read: HtmlElement)
+  Object objectNotHtmlElem;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final children = component.contentChilds;
+    expect(children, hasLength(3));
+
+    final LetBoundQueriedChildType objectNotElem =
+        children.singleWhere((c) => c.field.fieldName == 'objectNotElem').query;
+    expect(objectNotElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(objectNotElem.letBoundName, equals('el'));
+    expect(objectNotElem.containerType.toString(), equals('Element'));
+
+    final LetBoundQueriedChildType elemNotHtmlElem = children
+        .singleWhere((c) => c.field.fieldName == 'elemNotHtmlElem')
+        .query;
+    expect(elemNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(elemNotHtmlElem.letBoundName, equals('el'));
+    expect(elemNotHtmlElem.containerType.toString(), equals('HtmlElement'));
+
+    final LetBoundQueriedChildType objectNotHtmlElem = children
+        .singleWhere((c) => c.field.fieldName == 'objectNotHtmlElem')
+        .query;
+    expect(objectNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
+    expect(objectNotHtmlElem.letBoundName, equals('el'));
+    expect(objectNotHtmlElem.containerType.toString(), equals('HtmlElement'));
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenTemplateRef() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(TemplateRef)
+  List<TemplateRef> contentChildren;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childrens = component.contentChildren;
+    expect(childrens, hasLength(1));
+    expect(childrens.first.query,
+        const isInstanceOf<TemplateRefQueriedChildType>());
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenTemplateRef_notAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(TemplateRef)
+  List<String> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildTemplateRef() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(TemplateRef)
+  TemplateRef contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    final component = directives.first;
+    final childs = component.contentChilds;
+    expect(childs, hasLength(1));
+    expect(
+        childs.first.query, const isInstanceOf<TemplateRefQueriedChildType>());
+
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildTemplateRef_notAssignable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(TemplateRef)
+  String contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'String');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasError_missingHtmlFile() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', templateUrl: 'missing-template.html')
+class MyComponent {}
+''';
+    final dartSource = newSource('/test.dart', code);
+    await getViews(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
+        code,
+        "'missing-template.html'");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasError_NeitherTemplateNorTemplateUrlDefined() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa')
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasError_StringValueExpected() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 55)
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(<ErrorCode>[
+      AngularWarningCode.STRING_VALUE_EXPECTED,
+      StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasError_TemplateAndTemplateUrlDefined() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', templateUrl: 'a.html')
+class ComponentA {
+}
+''');
+    newSource('/a.html', '');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasError_TypeLiteralExpected() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', directives: const [42])
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipe_hasError_TypeLiteralExpected() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', pipes: const [42])
+class ComponentA {
+}
+''');
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [PipeA, PipeB])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(2));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(pipeNames, unorderedEquals(['PipeA', 'PipeB']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_hasError_notListVariable() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const NOT_PIPES_LIST = 42;
+
+@Component(selector: 'my-component', template: 'My template',
+    pipes: const [NOT_PIPES_LIST])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_PIPE]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_list_recursive() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeC')
+class PipeC extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeD')
+class PipeD extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+const PIPELIST_ONE = const [ const [PipeA, PipeB]];
+const PIPELIST_TWO = const [ const [ const [PipeC, PipeD]]];
+const BIGPIPELIST = const [PIPELIST_ONE, PIPELIST_TWO];
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [BIGPIPELIST])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(4));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(
+            pipeNames, unorderedEquals(['PipeA', 'PipeB', 'PipeC', 'PipeD']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipes_selective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeC')
+class PipeC extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Component(selector: 'my-component', template: 'MyTemplate',
+    pipes: const [PipeC, PipeB])
+class MyComponent {}
+    ''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.pipes, hasLength(2));
+        final pipeNames =
+            view.pipes.map((pipe) => pipe.classElement.name).toList();
+        expect(pipeNames, unorderedEquals(['PipeC', 'PipeB']));
+      }
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_prefixedDirectives() async {
+    final otherCode = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+@Directive(selector: '[ccc]')
+class DirectiveC {}
+
+const DIR_AB = const [DirectiveA, DirectiveB];
+''';
+
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'other.dart' as other;
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [other.DIR_AB, other.DirectiveC])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    newSource('/other.dart', otherCode);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(3));
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveClassNames,
+            unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
+      }
+    }
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_recursiveDirectivesList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+class DirectiveA {}
+
+@Directive(selector: '[bbb]')
+class DirectiveB {}
+
+const DIR_AB_DEEP = const [ const [ const [DirectiveA, DirectiveB]]];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB_DEEP])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(2));
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(
+            directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
+      }
+    }
+    // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_template_relativeToLibForParts() async {
+    final libCode = r'''
+import 'package:angular2/angular2.dart';
+part 'parts/part.dart';
+    ''';
+    final partCode = r'''
+part of '../lib.dart';
+@Component(selector: 'my-component', templateUrl: 'parts/my-template.html')
+class MyComponent {}
+''';
+    final dartLibSource = newSource('/lib.dart', libCode);
+    final dartPartSource = newSource('/parts/part.dart', partCode);
+    final htmlSource = newSource('/parts/my-template.html', '');
+    await getViews(dartPartSource);
+    errorListener.assertNoErrors();
+    expect(views, hasLength(1));
+    // MyComponent
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(view.component, getComponentByName(directives, 'MyComponent'));
+    expect(view.templateText, isNull);
+    expect(view.templateUriSource, isNotNull);
+    expect(view.templateUriSource, htmlSource);
+    expect(view.templateSource, htmlSource);
+    {
+      final url = "'parts/my-template.html'";
+      expect(view.templateUrlRange,
+          new SourceRange(partCode.indexOf(url), url.length));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_templateExternal() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', templateUrl: 'my-template.html')
+class MyComponent {}
+''';
+    final dartSource = newSource('/test.dart', code);
+    final htmlSource = newSource('/my-template.html', '');
+    await getViews(dartSource);
+    expect(views, hasLength(1));
+    // MyComponent
+    final view = getViewByClassName(views, 'MyComponent');
+    expect(view.component, getComponentByName(directives, 'MyComponent'));
+    expect(view.templateText, isNull);
+    expect(view.templateUriSource, isNotNull);
+    expect(view.templateUriSource, htmlSource);
+    expect(view.templateSource, htmlSource);
+    {
+      final url = "'my-template.html'";
+      expect(view.templateUrlRange,
+          new SourceRange(code.indexOf(url), url.length));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_templateInline() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: 'my-directive')
+class MyDirective {}
+
+@Component(selector: 'other-component', template: 'Other template')
+class OtherComponent {}
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [MyDirective, OtherComponent])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    expect(views, hasLength(2));
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      expect(view.component, getComponentByName(directives, 'MyComponent'));
+      expect(view.templateText, ' My template '); // spaces preserve offsets
+      expect(view.templateOffset, code.indexOf('My template') - 1);
+      expect(view.templateUriSource, isNull);
+      expect(view.templateSource, source);
+      {
+        expect(view.directives, hasLength(2));
+        final directiveClassNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveClassNames,
+            unorderedEquals(['OtherComponent', 'MyDirective']));
+      }
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_useFunctionalDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: 'my-directive')
+void myDirective() {}
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [myDirective])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertNoErrors();
+    expect(views, hasLength(1));
+    final view = views.single;
+    expect(view.component.name, 'MyComponent');
+    expect(view.directives, hasLength(1));
+    final directive = view.directives.single;
+    expect(directive.name, 'myDirective');
+    expect(directive, const isInstanceOf<FunctionalDirective>());
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_useFunctionNotFunctionalDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [notDirective])
+class MyComponent {}
+
+// put this after component, so indexOf works in assertErrorInCodeAtPosition
+void notDirective() {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE, code, 'notDirective');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_validFunctionalDirectivesList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: '[aaa]')
+void directiveA() {}
+
+@Directive(selector: '[bbb]')
+void directiveB() {}
+
+const DIR_AB_DEEP = const [ const [ const [directiveA, directiveB]]];
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [DIR_AB_DEEP])
+class MyComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    await getViews(source);
+    errorListener.assertNoErrors();
+    {
+      final view = getViewByClassName(views, 'MyComponent');
+      {
+        expect(view.directives, hasLength(2));
+        final directiveNames =
+            view.directives.map((directive) => directive.name).toList();
+        expect(directiveNames, unorderedEquals(['directiveA', 'directiveB']));
+      }
+    }
+  }
+}
+
+@reflectiveTest
+class GatherAnnotationsOnFutureAngularTest extends AbstractAngularTest
+    with GatherAnnotationsTestMixin {
+  GatherAnnotationsOnFutureAngularTest() : super.future();
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_worksInFuture() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
+    // validate
+    errorListener.assertNoErrors();
   }
 }
 
@@ -812,62 +2487,6 @@ class DirectiveB {
         final selector = directive.elementTags[0];
         expect(selector, const isInstanceOf<ElementNameSelector>());
         expect(selector.toString(), 'dir-b');
-      }
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Directive_elementTags_OrSelector() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: 'dir-a1, dir-a2, dir-a3')
-class DirectiveA {
-}
-
-@Directive(selector: 'dir-b1, dir-b2')
-class DirectiveB {
-}
-''');
-    await getDirectives(source);
-    expect(directives, hasLength(2));
-    {
-      final directive = directives[0];
-      expect(directive, const isInstanceOf<Directive>());
-      {
-        final selector = directive.selector;
-        expect(selector, const isInstanceOf<OrSelector>());
-        expect((selector as OrSelector).selectors, hasLength(3));
-      }
-      {
-        expect(directive.elementTags, hasLength(3));
-        expect(directive.elementTags[0],
-            const isInstanceOf<ElementNameSelector>());
-        expect(directive.elementTags[0].toString(), 'dir-a1');
-        expect(directive.elementTags[1],
-            const isInstanceOf<ElementNameSelector>());
-        expect(directive.elementTags[1].toString(), 'dir-a2');
-        expect(directive.elementTags[2],
-            const isInstanceOf<ElementNameSelector>());
-        expect(directive.elementTags[2].toString(), 'dir-a3');
-      }
-    }
-    {
-      final directive = directives[1];
-      expect(directive, const isInstanceOf<Directive>());
-      {
-        final selector = directive.selector;
-        expect(selector, const isInstanceOf<OrSelector>());
-        expect((selector as OrSelector).selectors, hasLength(2));
-      }
-      {
-        expect(directive.elementTags, hasLength(2));
-        expect(directive.elementTags[0],
-            const isInstanceOf<ElementNameSelector>());
-        expect(directive.elementTags[0].toString(), 'dir-b1');
-        expect(directive.elementTags[1],
-            const isInstanceOf<ElementNameSelector>());
-        expect(directive.elementTags[1].toString(), 'dir-b2');
       }
     }
   }
@@ -973,293 +2592,59 @@ class DirectiveB {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_FunctionalDirective() async {
+  Future test_Directive_elementTags_OrSelector() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
 
-@Directive(selector: 'dir-a.myClass[myAttr]')
-void directiveA() {
+@Directive(selector: 'dir-a1, dir-a2, dir-a3')
+class DirectiveA {
+}
+
+@Directive(selector: 'dir-b1, dir-b2')
+class DirectiveB {
 }
 ''');
     await getDirectives(source);
-    expect(directives, hasLength(1));
-    final directive = directives.single;
-    expect(directive, const isInstanceOf<FunctionalDirective>());
-    expect(directive.name, "directiveA");
-    final selector = directive.selector;
-    expect(selector, const isInstanceOf<AndSelector>());
-    expect((selector as AndSelector).selectors, hasLength(3));
-    expect(directive.elementTags, hasLength(1));
-    expect(directive.elementTags[0], const isInstanceOf<ElementNameSelector>());
-    expect(directive.elementTags[0].toString(), 'dir-a');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_FunctionalDirective_notAllowedValues() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: 'dir-a.myClass[myAttr]',
-  exportAs: 'foo')
-void directiveA() {
-}
-''');
-    await getDirectives(source);
-    errorListener.assertErrorsWithCodes(
-        [AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {
-  String transform(int a1, String a2, bool a3) => 'someString';
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(2));
+    expect(directives, hasLength(2));
     {
-      final pipe = pipes[0];
-      expect(pipe, const isInstanceOf<Pipe>());
-      final pipeName = pipe.pipeName;
-      final pure = pipe.isPure;
-      expect(pipeName, const isInstanceOf<String>());
-      expect(pipeName, 'pipeA');
-      expect(pure, true);
-
-      expect(pipe.requiredArgumentType.toString(), 'int');
-      expect(pipe.transformReturnType.toString(), 'int');
-      expect(pipe.optionalArgumentTypes, hasLength(0));
+      final directive = directives[0];
+      expect(directive, const isInstanceOf<Directive>());
+      {
+        final selector = directive.selector;
+        expect(selector, const isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(3));
+      }
+      {
+        expect(directive.elementTags, hasLength(3));
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-a1');
+        expect(directive.elementTags[1],
+            const isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-a2');
+        expect(directive.elementTags[2],
+            const isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[2].toString(), 'dir-a3');
+      }
     }
     {
-      final pipe = pipes[1];
-      expect(pipe, const isInstanceOf<Pipe>());
-      final pipeName = pipe.pipeName;
-      final pure = pipe.isPure;
-      expect(pipeName, const isInstanceOf<String>());
-      expect(pipeName, 'pipeB');
-      expect(pure, false);
-
-      expect(pipe.requiredArgumentType.toString(), 'int');
-      expect(pipe.transformReturnType.toString(), 'String');
-
-      final opArgs = pipe.optionalArgumentTypes;
-      expect(opArgs, hasLength(2));
-      expect(opArgs[0].toString(), 'String');
-      expect(opArgs[1].toString(), 'bool');
+      final directive = directives[1];
+      expect(directive, const isInstanceOf<Directive>());
+      {
+        final selector = directive.selector;
+        expect(selector, const isInstanceOf<OrSelector>());
+        expect((selector as OrSelector).selectors, hasLength(2));
+      }
+      {
+        expect(directive.elementTags, hasLength(2));
+        expect(directive.elementTags[0],
+            const isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[0].toString(), 'dir-b1');
+        expect(directive.elementTags[1],
+            const isInstanceOf<ElementNameSelector>());
+        expect(directive.elementTags[1].toString(), 'dir-b2');
+      }
     }
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_pipeInheritance() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-class BasePipe extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipe', pure: false)
-class MyPipe extends BasePipe {
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    {
-      final pipe = pipes[0];
-      expect(pipe, const isInstanceOf<Pipe>());
-      final pipeName = pipe.pipeName;
-      final pure = pipe.isPure;
-      expect(pipeName, const isInstanceOf<String>());
-      expect(pipeName, 'pipe');
-      expect(pure, false);
-
-      expect(pipe.requiredArgumentType.toString(), 'int');
-      expect(pipe.transformReturnType.toString(), 'int');
-      expect(pipe.optionalArgumentTypes, hasLength(0));
-    }
-
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_error_no_pipeTransform() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA {
-  int transform(int blah) => blah;
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-    final pipeName = pipe.pipeName;
-    final pure = pipe.isPure;
-    expect(pipeName, const isInstanceOf<String>());
-    expect(pipeName, 'pipeA');
-    expect(pure, true);
-
-    expect(pipe.transformReturnType.toString(), 'int');
-    expect(pipe.requiredArgumentType.toString(), 'int');
-    expect(pipe.optionalArgumentTypes, hasLength(0));
-
-    errorListener.assertErrorsWithCodes(
-        [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_error_bad_extends() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-class Trouble {}
-
-@Pipe('pipeA')
-class PipeA extends Trouble{
-  int transform(int blah) => blah;
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-    final pipeName = pipe.pipeName;
-    final pure = pipe.isPure;
-    expect(pipeName, const isInstanceOf<String>());
-    expect(pipeName, 'pipeA');
-    expect(pure, true);
-
-    expect(pipe.transformReturnType.toString(), 'int');
-    expect(pipe.requiredArgumentType.toString(), 'int');
-    expect(pipe.optionalArgumentTypes, hasLength(0));
-
-    errorListener.assertErrorsWithCodes(
-        [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_is_abstract() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-class Trouble {}
-
-@Pipe('pipeA')
-abstract class PipeA extends PipeTransform{
-  int transform(int blah) => blah;
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-    final pipeName = pipe.pipeName;
-    final pure = pipe.isPure;
-    expect(pipeName, const isInstanceOf<String>());
-    expect(pipeName, 'pipeA');
-    expect(pure, true);
-
-    expect(pipe.transformReturnType.toString(), 'int');
-    expect(pipe.requiredArgumentType.toString(), 'int');
-    expect(pipe.optionalArgumentTypes, hasLength(0));
-
-    errorListener
-        .assertErrorsWithCodes([AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_error_no_transform() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-class Trouble {}
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform{}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-    final pipeName = pipe.pipeName;
-    final pure = pipe.isPure;
-    expect(pipeName, const isInstanceOf<String>());
-    expect(pipeName, 'pipeA');
-    expect(pure, true);
-
-    expect(pipe.requiredArgumentType, null);
-    expect(pipe.transformReturnType, null);
-    expect(pipe.optionalArgumentTypes, hasLength(0));
-
-    errorListener.assertErrorsWithCodes(
-        [AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_error_named_args() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform{
-  transform({named}) {}
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-
-    errorListener.assertErrorsWithCodes(
-        [AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_allowedOptionalArgs() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform{
-  transform([named]) {}
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_Pipe_dynamic() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform{
-  dynamic transform(dynamic x, [dynamic more]) {}
-}
-''');
-    await getDirectives(source);
-    expect(pipes, hasLength(1));
-    final pipe = pipes[0];
-    expect(pipe, const isInstanceOf<Pipe>());
-
-    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
@@ -1294,6 +2679,21 @@ class ComponentB {
       }
     }
     // no errors
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_exportAs_constantStringExpressionOk() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', exportAs: 'a' + 'b', template:'')
+class ComponentA {
+}
+''');
+    await getDirectives(source);
+    expect(directives, hasLength(1));
+    // has no errors
     errorListener.assertNoErrors();
   }
 
@@ -1351,17 +2751,259 @@ class ComponentA {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_exportAs_constantStringExpressionOk() async {
+  Future test_finalPropertyInputError() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<p></p>')
+class MyComponent {
+  @Input() final int immutable = 1;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "@Input()");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_finalPropertyInputErrorNonDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+class MyNonDirective {
+  @Input() final int immutable = 1;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "@Input()");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_finalPropertyInputStringError() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '<p></p>', inputs: const ['immutable'])
+class MyComponent {
+  final int immutable = 1;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate. Can't easily assert position though because its all 'immutable'
+    errorListener
+        .assertErrorsWithCodes([StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_FunctionalDirective() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'aaa', exportAs: 'a' + 'b', template:'')
-class ComponentA {
+@Directive(selector: 'dir-a.myClass[myAttr]')
+void directiveA() {
 }
 ''');
     await getDirectives(source);
     expect(directives, hasLength(1));
-    // has no errors
+    final directive = directives.single;
+    expect(directive, const isInstanceOf<FunctionalDirective>());
+    expect(directive.name, "directiveA");
+    final selector = directive.selector;
+    expect(selector, const isInstanceOf<AndSelector>());
+    expect((selector as AndSelector).selectors, hasLength(3));
+    expect(directive.elementTags, hasLength(1));
+    expect(directive.elementTags[0], const isInstanceOf<ElementNameSelector>());
+    expect(directive.elementTags[0].toString(), 'dir-a');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_FunctionalDirective_notAllowedValues() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Directive(selector: 'dir-a.myClass[myAttr]',
+  exportAs: 'foo')
+void directiveA() {
+}
+''');
+    await getDirectives(source);
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildChildrenNoRangeNotRecorded() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren()
+  List<ContentChildComp> contentChildren;
+  @ContentChild()
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(0));
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(0));
+    // validate
+    errorListener.assertErrorsWithCodes([
+      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS,
+      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildChildrenSetter() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp) // 1
+  void set contentChild(ContentChildComp contentChild) => null;
+  @ContentChildren(ContentChildComp) // 2
+  void set contentChildren(List<ContentChildComp> contentChildren) => null;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(1));
+    final child = childFields.first;
+    expect(child.fieldName, equals("contentChild"));
+    expect(
+        child.nameRange.offset, equals(code.indexOf("ContentChildComp) // 1")));
+    expect(child.nameRange.length, equals("ContentChildComp".length));
+    expect(child.typeRange.offset, equals(code.indexOf("ContentChildComp ")));
+    expect(child.typeRange.length, equals("ContentChildComp".length));
+
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(children.nameRange.offset,
+        equals(code.indexOf("ContentChildComp) // 2")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChild(ContentChildComp)
+  ContentChildComp contentChild;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childFields = component.contentChildFields;
+    expect(childFields, hasLength(1));
+    final child = childFields.first;
+    expect(child.fieldName, equals("contentChild"));
+    expect(child.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(child.nameRange.length, equals("ContentChildComp".length));
+    expect(child.typeRange.offset, equals(code.indexOf("ContentChildComp ")));
+    expect(child.typeRange.length, equals("ContentChildComp".length));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  List<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("List<ContentChildComp>")));
+    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasContentChildrenDirective_QueryList() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class ComponentA {
+  @ContentChildren(ContentChildComp)
+  QueryList<ContentChildComp> contentChildren;
+}
+
+@Component(selector: 'foo', template: '')
+class ContentChildComp {}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.first;
+    final childrenFields = component.contentChildrenFields;
+    expect(childrenFields, hasLength(1));
+    final children = childrenFields.first;
+    expect(children.fieldName, equals("contentChildren"));
+    expect(
+        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
+    expect(children.nameRange.length, equals("ContentChildComp".length));
+    expect(children.typeRange.offset,
+        equals(code.indexOf("QueryList<ContentChildComp>")));
+    expect(children.typeRange.length,
+        equals("QueryList<ContentChildComp>".length));
+    // validate
     errorListener.assertNoErrors();
   }
 
@@ -1410,20 +3052,6 @@ class ComponentA {
       AngularWarningCode.STRING_VALUE_EXPECTED,
       StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE
     ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_selector_constantExpressionOk() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'a' + '[b]', template: '')
-class ComponentA {
-}
-''');
-    await getDirectives(source);
-    // validate
-    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
@@ -1477,6 +3105,105 @@ class ComponentA {
     // validate
     errorListener.assertErrorsWithCodes(
         <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasExports() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const foo = null;
+void bar() {}
+class MyClass {}
+
+@Component(selector: 'my-component', template: '',
+    exports: const [foo, bar, MyClass])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(3));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo,')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('bar'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('bar,')));
+      expect(export.span.length, equals('bar'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    {
+      final export = component.view.exports[2];
+      expect(export.identifier, equals('MyClass'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('MyClass]')));
+      expect(export.span.length, equals('MyClass'.length));
+      expect(export.element, isNull); // not yet linked
+    }
+    // validate
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasNonIdentifierExport() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '', exports: const [1])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS, code, '1');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasRepeatedExports() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+const foo = null;
+
+@Component(selector: 'my-component', template: '', exports: const [foo, foo])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate. Can't validate position because foo occurs so many times
+    errorListener.assertErrorsWithCodes([AngularWarningCode.DUPLICATE_EXPORT]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_inputOnGetterIsError() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  @Input()
+  String get someGetter => null;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "@Input()");
   }
 
   // ignore: non_constant_identifier_names
@@ -1607,6 +3334,35 @@ class MyComponent {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_noDirectives() async {
+    final source = newSource('/test.dart', r'''
+class A {}
+class B {}
+''');
+    await getDirectives(source);
+    expect(directives, isEmpty);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_outputOnSetterIsError() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  @Output()
+  set someSetter(x) { }
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
+        code,
+        "@Output()");
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_outputs() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -1698,32 +3454,6 @@ class MyComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_outputs_streamIsOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'dart:async';
-
-@Component(
-    selector: 'my-component',
-    template: '<p></p>')
-class MyComponent {
-  @Output()
-  Stream<int> myOutput;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.single;
-    final compOutputs = component.outputs;
-    expect(compOutputs, hasLength(1));
-    {
-      final output = compOutputs[0];
-      expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("int"));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_outputs_extendStreamIsOk() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -1747,6 +3477,32 @@ class MyComponent {
     {
       final output = compOutputs[0];
       expect(output.eventType, isNotNull);
+    }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_outputs_extendStreamNotStreamHasDynamicEventType() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(
+    selector: 'my-component',
+    template: '<p></p>')
+class MyComponent {
+  @Output()
+  int badOutput;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    final component = directives.single;
+    final compOutputs = component.outputs;
+    expect(compOutputs, hasLength(1));
+    {
+      final output = compOutputs[0];
+      expect(output.eventType, isNotNull);
+      expect(output.eventType.toString(), equals("dynamic"));
     }
   }
 
@@ -1826,28 +3582,28 @@ class MyComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_outputs_extendStreamNotStreamHasDynamicEventType() async {
+  Future test_outputs_streamIsOk() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
+import 'dart:async';
 
 @Component(
     selector: 'my-component',
     template: '<p></p>')
 class MyComponent {
   @Output()
-  int badOutput;
+  Stream<int> myOutput;
 }
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    // validate
     final component = directives.single;
     final compOutputs = component.outputs;
     expect(compOutputs, hasLength(1));
     {
       final output = compOutputs[0];
       expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("dynamic"));
+      expect(output.eventType.toString(), equals("int"));
     }
   }
 
@@ -1934,317 +3690,255 @@ class MyComponent<T, A extends String, B extends A> {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_finalPropertyInputError() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '<p></p>')
-class MyComponent {
-  @Input() final int immutable = 1;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
-        code,
-        "@Input()");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_finalPropertyInputErrorNonDirective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-class MyNonDirective {
-  @Input() final int immutable = 1;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
-        code,
-        "@Input()");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_finalPropertyInputStringError() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '<p></p>', inputs: const ['immutable'])
-class MyComponent {
-  final int immutable = 1;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate. Can't easily assert position though because its all 'immutable'
-    errorListener
-        .assertErrorsWithCodes([StaticTypeWarningCode.UNDEFINED_SETTER]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_noDirectives() async {
+  Future test_Pipe() async {
     final source = newSource('/test.dart', r'''
-class A {}
-class B {}
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipeB', pure: false)
+class PipeB extends PipeTransform {
+  String transform(int a1, String a2, bool a3) => 'someString';
+}
 ''');
     await getDirectives(source);
-    expect(directives, isEmpty);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_inputOnGetterIsError() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class MyComponent {
-  @Input()
-  String get someGetter => null;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
-        code,
-        "@Input()");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_outputOnSetterIsError() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class MyComponent {
-  @Output()
-  set someSetter(x) { }
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.OUTPUT_ANNOTATION_PLACEMENT_INVALID,
-        code,
-        "@Output()");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp)
-  ContentChildComp contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.first;
-    final childFields = component.contentChildFields;
-    expect(childFields, hasLength(1));
-    final child = childFields.first;
-    expect(child.fieldName, equals("contentChild"));
-    expect(child.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
-    expect(child.nameRange.length, equals("ContentChildComp".length));
-    expect(child.typeRange.offset, equals(code.indexOf("ContentChildComp ")));
-    expect(child.typeRange.length, equals("ContentChildComp".length));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  List<ContentChildComp> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.first;
-    final childrenFields = component.contentChildrenFields;
-    expect(childrenFields, hasLength(1));
-    final children = childrenFields.first;
-    expect(children.fieldName, equals("contentChildren"));
-    expect(
-        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
-    expect(children.nameRange.length, equals("ContentChildComp".length));
-    expect(children.typeRange.offset,
-        equals(code.indexOf("List<ContentChildComp>")));
-    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_QueryList() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  QueryList<ContentChildComp> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.first;
-    final childrenFields = component.contentChildrenFields;
-    expect(childrenFields, hasLength(1));
-    final children = childrenFields.first;
-    expect(children.fieldName, equals("contentChildren"));
-    expect(
-        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
-    expect(children.nameRange.length, equals("ContentChildComp".length));
-    expect(children.typeRange.offset,
-        equals(code.indexOf("QueryList<ContentChildComp>")));
-    expect(children.typeRange.length,
-        equals("QueryList<ContentChildComp>".length));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildChildrenNoRangeNotRecorded() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren()
-  List<ContentChildComp> contentChildren;
-  @ContentChild()
-  ContentChildComp contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.first;
-    final childrenFields = component.contentChildrenFields;
-    expect(childrenFields, hasLength(0));
-    final childFields = component.contentChildFields;
-    expect(childFields, hasLength(0));
-    // validate
-    errorListener.assertErrorsWithCodes([
-      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS,
-      CompileTimeErrorCode.NOT_ENOUGH_REQUIRED_ARGUMENTS
-    ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildChildrenSetter() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp) // 1
-  void set contentChild(ContentChildComp contentChild) => null;
-  @ContentChildren(ContentChildComp) // 2
-  void set contentChildren(List<ContentChildComp> contentChildren) => null;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.first;
-
-    final childFields = component.contentChildFields;
-    expect(childFields, hasLength(1));
-    final child = childFields.first;
-    expect(child.fieldName, equals("contentChild"));
-    expect(
-        child.nameRange.offset, equals(code.indexOf("ContentChildComp) // 1")));
-    expect(child.nameRange.length, equals("ContentChildComp".length));
-    expect(child.typeRange.offset, equals(code.indexOf("ContentChildComp ")));
-    expect(child.typeRange.length, equals("ContentChildComp".length));
-
-    final childrenFields = component.contentChildrenFields;
-    expect(childrenFields, hasLength(1));
-    final children = childrenFields.first;
-    expect(children.fieldName, equals("contentChildren"));
-    expect(children.nameRange.offset,
-        equals(code.indexOf("ContentChildComp) // 2")));
-    expect(children.nameRange.length, equals("ContentChildComp".length));
-    expect(children.typeRange.offset,
-        equals(code.indexOf("List<ContentChildComp>")));
-    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
-
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasExports() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-const foo = null;
-void bar() {}
-class MyClass {}
-
-@Component(selector: 'my-component', template: '',
-    exports: const [foo, bar, MyClass])
-class ComponentA {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final Component component = directives.first;
-    expect(component.view, isNotNull);
-    expect(component.view.exports, hasLength(3));
+    expect(pipes, hasLength(2));
     {
-      final export = component.view.exports[0];
-      expect(export.identifier, equals('foo'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('foo,')));
-      expect(export.span.length, equals('foo'.length));
-      expect(export.element, isNull); // not yet linked
+      final pipe = pipes[0];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipeA');
+      expect(pure, true);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'int');
+      expect(pipe.optionalArgumentTypes, hasLength(0));
     }
     {
-      final export = component.view.exports[1];
-      expect(export.identifier, equals('bar'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('bar,')));
-      expect(export.span.length, equals('bar'.length));
-      expect(export.element, isNull); // not yet linked
+      final pipe = pipes[1];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipeB');
+      expect(pure, false);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'String');
+
+      final opArgs = pipe.optionalArgumentTypes;
+      expect(opArgs, hasLength(2));
+      expect(opArgs[0].toString(), 'String');
+      expect(opArgs[1].toString(), 'bool');
     }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_allowedOptionalArgs() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+  transform([named]) {}
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_dynamic() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+  dynamic transform(dynamic x, [dynamic more]) {}
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_bad_extends() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+class PipeA extends Trouble{
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_named_args() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{
+  transform({named}) {}
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_no_pipeTransform() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Pipe('pipeA')
+class PipeA {
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_error_no_transform() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+class PipeA extends PipeTransform{}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.requiredArgumentType, null);
+    expect(pipe.transformReturnType, null);
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener.assertErrorsWithCodes(
+        [AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_Pipe_is_abstract() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class Trouble {}
+
+@Pipe('pipeA')
+abstract class PipeA extends PipeTransform{
+  int transform(int blah) => blah;
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
+    final pipe = pipes[0];
+    expect(pipe, const isInstanceOf<Pipe>());
+    final pipeName = pipe.pipeName;
+    final pure = pipe.isPure;
+    expect(pipeName, const isInstanceOf<String>());
+    expect(pipeName, 'pipeA');
+    expect(pure, true);
+
+    expect(pipe.transformReturnType.toString(), 'int');
+    expect(pipe.requiredArgumentType.toString(), 'int');
+    expect(pipe.optionalArgumentTypes, hasLength(0));
+
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.PIPE_CANNOT_BE_ABSTRACT]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_pipeInheritance() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+class BasePipe extends PipeTransform {
+  int transform(int blah) => blah;
+}
+
+@Pipe('pipe', pure: false)
+class MyPipe extends BasePipe {
+}
+''');
+    await getDirectives(source);
+    expect(pipes, hasLength(1));
     {
-      final export = component.view.exports[2];
-      expect(export.identifier, equals('MyClass'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('MyClass]')));
-      expect(export.span.length, equals('MyClass'.length));
-      expect(export.element, isNull); // not yet linked
+      final pipe = pipes[0];
+      expect(pipe, const isInstanceOf<Pipe>());
+      final pipeName = pipe.pipeName;
+      final pure = pipe.isPure;
+      expect(pipeName, const isInstanceOf<String>());
+      expect(pipeName, 'pipe');
+      expect(pure, false);
+
+      expect(pipe.requiredArgumentType.toString(), 'int');
+      expect(pipe.transformReturnType.toString(), 'int');
+      expect(pipe.optionalArgumentTypes, hasLength(0));
     }
-    // validate
+
     errorListener.assertNoErrors();
   }
 
@@ -2289,1727 +3983,33 @@ class ComponentA {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_hasNonIdentifierExport() async {
-    final code = r'''
+  Future test_selector_constantExpressionOk() async {
+    final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'my-component', template: '', exports: const [1])
+@Component(selector: 'a' + '[b]', template: '')
 class ComponentA {
 }
-''';
-    final source = newSource('/test.dart', code);
+''');
     await getDirectives(source);
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS, code, '1');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasRepeatedExports() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-const foo = null;
-
-@Component(selector: 'my-component', template: '', exports: const [foo, foo])
-class ComponentA {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate. Can't validate position because foo occurs so many times
-    errorListener.assertErrorsWithCodes([AngularWarningCode.DUPLICATE_EXPORT]);
-  }
-}
-
-@reflectiveTest
-class GatherAnnotationsOnFutureAngularTest extends AbstractAngularTest
-    with GatherAnnotationsTestMixin {
-  GatherAnnotationsOnFutureAngularTest() : super.future();
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_worksInFuture() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  List<ContentChildComp> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.first;
-    final childrenFields = component.contentChildrenFields;
-    expect(childrenFields, hasLength(1));
-    final children = childrenFields.first;
-    expect(children.fieldName, equals("contentChildren"));
-    expect(
-        children.nameRange.offset, equals(code.indexOf("ContentChildComp)")));
-    expect(children.nameRange.length, equals("ContentChildComp".length));
-    expect(children.typeRange.offset,
-        equals(code.indexOf("List<ContentChildComp>")));
-    expect(children.typeRange.length, equals("List<ContentChildComp>".length));
     // validate
     errorListener.assertNoErrors();
   }
 }
 
-@reflectiveTest
-class BuildUnitViewsTest extends AbstractAngularTest {
+abstract class GatherAnnotationsTestMixin implements AbstractAngularTest {
   List<AbstractDirective> directives;
   List<Pipe> pipes;
-  List<View> views;
   List<AnalysisError> errors;
 
-  Future getViews(final Source source) async {
+  Future getDirectives(final Source source) async {
     final dartResult = await dartDriver.getResult(source.fullName);
     fillErrorListener(dartResult.errors);
     final result = await angularDriver.getAngularTopLevels(source.fullName);
     directives = result.directives;
     pipes = result.pipes;
-
-    final linker = new ChildDirectiveLinker(
-        angularDriver,
-        angularDriver,
-        await angularDriver.getStandardAngular(),
-        await angularDriver.getStandardHtml(),
-        new ErrorReporter(errorListener, source));
-    await linker.linkDirectivesAndPipes(
-        directives, pipes, dartResult.unit.element.library);
-    views = directives
-        .map((d) => d is Component ? d.view : null)
-        .where((d) => d != null)
-        .toList();
     errors = result.errors;
     fillErrorListener(errors);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_buildViewsDoesntGetDependentDirectives() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'other_file.dart';
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [OtherComponent])
-class MyComponent {}
-''';
-    final otherCode = r'''
-import 'package:angular2/angular2.dart';
-@Component(selector: 'other-component', template: 'My template',
-    directives: const [NgFor])
-class OtherComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    newSource('/other_file.dart', otherCode);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.directives, hasLength(1));
-      }
-
-      // shouldn't be run yet
-      for (final directive in view.directives) {
-        if (directive is Component) {
-          expect(directive.view.directives, hasLength(0));
-        }
-      }
-    }
-    // no errors
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_directives() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-class DirectiveA {}
-
-@Directive(selector: '[bbb]')
-class DirectiveB {}
-
-@Directive(selector: '[ccc]')
-class DirectiveC {}
-
-const DIR_AB = const [DirectiveA, DirectiveB];
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [DIR_AB, DirectiveC])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.directives, hasLength(3));
-        final directiveClassNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(directiveClassNames,
-            unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
-      }
-    }
-    // no errors
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_directives_not_list_syntax() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-class DirectiveA {}
-
-@Directive(selector: '[bbb]')
-class DirectiveB {}
-
-const VARIABLE = const [DirectiveA, DirectiveB];
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: VARIABLE)
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final view = getViewByClassName(views, 'MyComponent');
-    expect(
-        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
-    final directiveClassNames =
-        view.directives.map((directive) => directive.name).toList();
-    expect(directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
-    // no errors
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_directives_not_list_syntax_errorWithinVariable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: VARIABLE)
-class MyComponent {}
-
-// A non-array is a type error in the analyzer; a non-component in an array is
-// not so we must test it. Define below usage for asserting position.
-const VARIABLE = const [Object];
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final view = getViewByClassName(views, 'MyComponent');
-    expect(
-        view.directivesStrategy, const isInstanceOf<UseConstValueStrategy>());
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE, code, 'VARIABLE');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_prefixedDirectives() async {
-    final otherCode = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-class DirectiveA {}
-
-@Directive(selector: '[bbb]')
-class DirectiveB {}
-
-@Directive(selector: '[ccc]')
-class DirectiveC {}
-
-const DIR_AB = const [DirectiveA, DirectiveB];
-''';
-
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'other.dart' as other;
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [other.DIR_AB, other.DirectiveC])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    newSource('/other.dart', otherCode);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.directives, hasLength(3));
-        final directiveClassNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(directiveClassNames,
-            unorderedEquals(['DirectiveA', 'DirectiveB', 'DirectiveC']));
-      }
-    }
-    // no errors
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_recursiveDirectivesList() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-class DirectiveA {}
-
-@Directive(selector: '[bbb]')
-class DirectiveB {}
-
-const DIR_AB_DEEP = const [ const [ const [DirectiveA, DirectiveB]]];
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [DIR_AB_DEEP])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.directives, hasLength(2));
-        final directiveClassNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(
-            directiveClassNames, unorderedEquals(['DirectiveA', 'DirectiveB']));
-      }
-    }
-    // no errors
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_validFunctionalDirectivesList() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-void directiveA() {}
-
-@Directive(selector: '[bbb]')
-void directiveB() {}
-
-const DIR_AB_DEEP = const [ const [ const [directiveA, directiveB]]];
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [DIR_AB_DEEP])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    errorListener.assertNoErrors();
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.directives, hasLength(2));
-        final directiveNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(directiveNames, unorderedEquals(['directiveA', 'directiveB']));
-      }
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_directivesList_invalidDirectiveEntries() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: '[aaa]')
-class DirectiveA {}
-
-@Directive(selector: '[bbb]')
-void directiveB() {}
-
-void notADirective() {}
-class NotADirectiveEither {}
-
-const DIR_AB_DEEP = const [ const [ const [
-    DirectiveA, directiveB, notADirective, NotADirectiveEither]]];
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [DIR_AB_DEEP])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.directives, hasLength(2));
-        final directiveNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(directiveNames, unorderedEquals(['DirectiveA', 'directiveB']));
-      }
-    }
-
-    errorListener.assertErrorsWithCodes([
-      AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE,
-      AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE
-    ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_directives_hasError_notListVariable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-const NOT_DIRECTIVE_LIST = 42;
-
-@Component(selector: 'my-component', template: 'My template',
-   directives: const [NOT_DIRECTIVE_LIST])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_StringValueExpected() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 55)
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(<ErrorCode>[
-      AngularWarningCode.STRING_VALUE_EXPECTED,
-      StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE
-    ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_constantExpressionTemplateOk() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 'abc' + 'bcd')
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_constantExpressionTemplateComplexIsOnlyError() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-const String tooComplex = 'bcd';
-
-@Component(selector: 'aaa', template: 'abc' + tooComplex + "{{invalid {{stuff")
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularHintCode.OFFSETS_CANNOT_BE_CREATED]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_TypeLiteralExpected() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 'AAA', directives: const [42])
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_TemplateAndTemplateUrlDefined() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 'AAA', templateUrl: 'a.html')
-class ComponentA {
-}
-''');
-    newSource('/a.html', '');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TEMPLATE_URL_AND_TEMPLATE_DEFINED]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_NeitherTemplateNorTemplateUrlDefined() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa')
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.NO_TEMPLATE_URL_OR_TEMPLATE_DEFINED]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_missingHtmlFile() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', templateUrl: 'missing-template.html')
-class MyComponent {}
-''';
-    final dartSource = newSource('/test.dart', code);
-    await getViews(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
-        code,
-        "'missing-template.html'");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_templateExternal() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', templateUrl: 'my-template.html')
-class MyComponent {}
-''';
-    final dartSource = newSource('/test.dart', code);
-    final htmlSource = newSource('/my-template.html', '');
-    await getViews(dartSource);
-    expect(views, hasLength(1));
-    // MyComponent
-    final view = getViewByClassName(views, 'MyComponent');
-    expect(view.component, getComponentByName(directives, 'MyComponent'));
-    expect(view.templateText, isNull);
-    expect(view.templateUriSource, isNotNull);
-    expect(view.templateUriSource, htmlSource);
-    expect(view.templateSource, htmlSource);
-    {
-      final url = "'my-template.html'";
-      expect(view.templateUrlRange,
-          new SourceRange(code.indexOf(url), url.length));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_templateInline() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: 'my-directive')
-class MyDirective {}
-
-@Component(selector: 'other-component', template: 'Other template')
-class OtherComponent {}
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [MyDirective, OtherComponent])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    expect(views, hasLength(2));
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      expect(view.component, getComponentByName(directives, 'MyComponent'));
-      expect(view.templateText, ' My template '); // spaces preserve offsets
-      expect(view.templateOffset, code.indexOf('My template') - 1);
-      expect(view.templateUriSource, isNull);
-      expect(view.templateSource, source);
-      {
-        expect(view.directives, hasLength(2));
-        final directiveClassNames =
-            view.directives.map((directive) => directive.name).toList();
-        expect(directiveClassNames,
-            unorderedEquals(['OtherComponent', 'MyDirective']));
-      }
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_template_relativeToLibForParts() async {
-    final libCode = r'''
-import 'package:angular2/angular2.dart';
-part 'parts/part.dart';
-    ''';
-    final partCode = r'''
-part of '../lib.dart';
-@Component(selector: 'my-component', templateUrl: 'parts/my-template.html')
-class MyComponent {}
-''';
-    final dartLibSource = newSource('/lib.dart', libCode);
-    final dartPartSource = newSource('/parts/part.dart', partCode);
-    final htmlSource = newSource('/parts/my-template.html', '');
-    await getViews(dartPartSource);
-    errorListener.assertNoErrors();
-    expect(views, hasLength(1));
-    // MyComponent
-    final view = getViewByClassName(views, 'MyComponent');
-    expect(view.component, getComponentByName(directives, 'MyComponent'));
-    expect(view.templateText, isNull);
-    expect(view.templateUriSource, isNotNull);
-    expect(view.templateUriSource, htmlSource);
-    expect(view.templateSource, htmlSource);
-    {
-      final url = "'parts/my-template.html'";
-      expect(view.templateUrlRange,
-          new SourceRange(partCode.indexOf(url), url.length));
-    }
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_useFunctionalDirective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Directive(selector: 'my-directive')
-void myDirective() {}
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [myDirective])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    errorListener.assertNoErrors();
-    expect(views, hasLength(1));
-    final view = views.single;
-    expect(view.component.name, 'MyComponent');
-    expect(view.directives, hasLength(1));
-    final directive = view.directives.single;
-    expect(directive.name, 'myDirective');
-    expect(directive, const isInstanceOf<FunctionalDirective>());
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_useFunctionNotFunctionalDirective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [notDirective])
-class MyComponent {}
-
-// put this after component, so indexOf works in assertErrorInCodeAtPosition
-void notDirective() {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.FUNCTION_IS_NOT_A_DIRECTIVE, code, 'notDirective');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildComponent() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp)
-  ContentChildComp contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
-
-    expect(child.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  List<ContentChildComp> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-
-    expect(children.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildChildrenSetter() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp) // 1
-  void set contentChild(ContentChildComp contentChild) => null;
-  @ContentChildren(ContentChildComp) // 2
-  void set contentChildren(List<ContentChildComp> contentChildren) => null;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-
-    expect(children.directive, equals(directives[1]));
-
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
-
-    expect(child.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildLetBound() async {
-    final code = r'''
-import 'dart:html';
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild('foo')
-  ContentChildComp contentChildDirective;
-  @ContentChild('fooTpl')
-  TemplateRef contentChildTpl;
-  @ContentChild('fooElemRef')
-  ElementRef contentChildElemRef;
-  @ContentChild('fooElem', read: Element)
-  Element contentChildElem;
-  @ContentChild('fooHtmlElem', read: HtmlElement)
-  HtmlElement contentChildHtmlElem;
-  @ContentChild('fooDynamic')
-  dynamic contentChildDynamic;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(6));
-
-    final LetBoundQueriedChildType childDirective = childs
-        .singleWhere((c) => c.field.fieldName == "contentChildDirective")
-        .query;
-    expect(childDirective, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childDirective.letBoundName, equals("foo"));
-    expect(childDirective.containerType.toString(), equals("ContentChildComp"));
-
-    final LetBoundQueriedChildType childTemplate =
-        childs.singleWhere((c) => c.field.fieldName == "contentChildTpl").query;
-    expect(childTemplate, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childTemplate.letBoundName, equals("fooTpl"));
-    expect(childTemplate.containerType.toString(), equals("TemplateRef"));
-
-    final LetBoundQueriedChildType childElement = childs
-        .singleWhere((c) => c.field.fieldName == "contentChildElem")
-        .query;
-    expect(childElement, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childElement.letBoundName, equals("fooElem"));
-    expect(childElement.containerType.toString(), equals("Element"));
-
-    final LetBoundQueriedChildType childHtmlElement = childs
-        .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
-        .query;
-    expect(childHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childHtmlElement.letBoundName, equals("fooHtmlElem"));
-    expect(childHtmlElement.containerType.toString(), equals("HtmlElement"));
-
-    final LetBoundQueriedChildType childElementRef = childs
-        .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
-        .query;
-    expect(childElementRef, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childElementRef.letBoundName, equals("fooElemRef"));
-    expect(childElementRef.containerType.toString(), equals("ElementRef"));
-
-    final LetBoundQueriedChildType childDynamic = childs
-        .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
-        .query;
-    expect(childDynamic, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childDynamic.letBoundName, equals("fooDynamic"));
-    expect(childDynamic.containerType.toString(), equals("dynamic"));
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenLetBound() async {
-    final code = r'''
-import 'dart:html';
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren('foo')
-  List<ContentChildComp> contentChildDirective;
-  @ContentChildren('fooTpl')
-  List<TemplateRef> contentChildTpl;
-  @ContentChildren('fooElem', read: Element)
-  List<Element> contentChildElem;
-  @ContentChildren('fooHtmlElem', read: HtmlElement)
-  List<HtmlElement> contentChildHtmlElem;
-  @ContentChildren('fooElemRef')
-  List<ElementRef> contentChildElemRef;
-  @ContentChildren('fooDynamic')
-  List contentChildDynamic;
-  @ContentChildren('fooQueryList')
-  QueryList<ContentChildComp> contentChildQueryList;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(7));
-
-    final LetBoundQueriedChildType childrenDirective = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildDirective")
-        .query;
-    expect(childrenDirective, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenDirective.letBoundName, equals("foo"));
-    expect(
-        childrenDirective.containerType.toString(), equals("ContentChildComp"));
-
-    final LetBoundQueriedChildType childrenTemplate = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildTpl")
-        .query;
-    expect(childrenTemplate, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenTemplate.letBoundName, equals("fooTpl"));
-    expect(childrenTemplate.containerType.toString(), equals("TemplateRef"));
-
-    final LetBoundQueriedChildType childrenElement = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildElem")
-        .query;
-    expect(childrenElement, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenElement.letBoundName, equals("fooElem"));
-    expect(childrenElement.containerType.toString(), equals("Element"));
-
-    final LetBoundQueriedChildType childrenHtmlElement = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
-        .query;
-    expect(childrenHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenHtmlElement.letBoundName, equals("fooHtmlElem"));
-    expect(childrenHtmlElement.containerType.toString(), equals("HtmlElement"));
-
-    final LetBoundQueriedChildType childrenElementRef = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
-        .query;
-    expect(childrenElementRef, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenElementRef.letBoundName, equals("fooElemRef"));
-    expect(childrenElementRef.containerType.toString(), equals("ElementRef"));
-
-    final LetBoundQueriedChildType childrenDynamic = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
-        .query;
-    expect(childrenDynamic, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenDynamic.letBoundName, equals("fooDynamic"));
-    expect(childrenDynamic.containerType.toString(), equals("dynamic"));
-
-    final LetBoundQueriedChildType childrenQueryList = childrens
-        .singleWhere((c) => c.field.fieldName == "contentChildQueryList")
-        .query;
-    expect(childrenQueryList, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(childrenQueryList.letBoundName, equals("fooQueryList"));
-    expect(
-        childrenQueryList.containerType.toString(), equals("ContentChildComp"));
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenLetBound_elementWithoutReadError() async {
-    final code = r'''
-import 'dart:html';
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren('el') // missing read: Element
-  List<Element> contentChildrenElem;
-  @ContentChild('el') // missing read: Element
-  Element contentChildElem;
-  @ContentChild('el') // missing read: HtmlElement
-  HtmlElement contentChildHtmlElem;
-  @ContentChildren('el') // missing read: HtmlElement
-  List<HtmlElement> contentChildrenHtmlElem;
-  @ContentChildren('el', read: Element) // not HtmlElement
-  List<HtmlElement> contentChildrenNotHtmlElem;
-  @ContentChild('el', read: Element) // not HtmlElement
-  HtmlElement contentChildNotHtmlElem;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    errorListener.assertErrorsWithCodes([
-      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
-      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
-      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
-      AngularWarningCode.CHILD_QUERY_TYPE_REQUIRES_READ,
-      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-    ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenLetBound_elementReadDoesntMatchType() async {
-    final code = r'''
-import 'dart:html';
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild('el', read: Element)
-  ElementRef elemRefNotElem;
-  @ContentChild('el', read: HtmlElement)
-  ElementRef elemRefNotHtmlElem;
-  @ContentChild('el', read: Element)
-  HtmlElement htmlElemNotElem;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    errorListener.assertErrorsWithCodes([
-      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-      AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-    ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenLetBound_readSubtypeOfAttribute() async {
-    final code = r'''
-import 'dart:html';
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild('el', read: Element)
-  Object objectNotElem;
-  @ContentChild('el', read: HtmlElement)
-  Element elemNotHtmlElem;
-  @ContentChild('el', read: HtmlElement)
-  Object objectNotHtmlElem;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final children = component.contentChilds;
-    expect(children, hasLength(3));
-
-    final LetBoundQueriedChildType objectNotElem =
-        children.singleWhere((c) => c.field.fieldName == 'objectNotElem').query;
-    expect(objectNotElem, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(objectNotElem.letBoundName, equals('el'));
-    expect(objectNotElem.containerType.toString(), equals('Element'));
-
-    final LetBoundQueriedChildType elemNotHtmlElem = children
-        .singleWhere((c) => c.field.fieldName == 'elemNotHtmlElem')
-        .query;
-    expect(elemNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(elemNotHtmlElem.letBoundName, equals('el'));
-    expect(elemNotHtmlElem.containerType.toString(), equals('HtmlElement'));
-
-    final LetBoundQueriedChildType objectNotHtmlElem = children
-        .singleWhere((c) => c.field.fieldName == 'objectNotHtmlElem')
-        .query;
-    expect(objectNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
-    expect(objectNotHtmlElem.letBoundName, equals('el'));
-    expect(objectNotHtmlElem.containerType.toString(), equals('HtmlElement'));
-
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildElementRef() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ElementRef)
-  ElementRef contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(childs.first.query, const isInstanceOf<ElementQueriedChildType>());
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenElementRef() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ElementRef)
-  List<ElementRef> contentChildren;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<ElementQueriedChildType>());
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenTemplateRef() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(TemplateRef)
-  List<TemplateRef> contentChildren;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(childrens.first.query,
-        const isInstanceOf<TemplateRefQueriedChildType>());
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildTemplateRef() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(TemplateRef)
-  TemplateRef contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(
-        childs.first.query, const isInstanceOf<TemplateRefQueriedChildType>());
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective_notRecognizedType() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(String)
-  ElementRef contentChild;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(0));
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE, code, 'String');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective_htmlNotAllowed() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'dart:html';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(AnchorElement)
-  AnchorElement contentChild;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(0));
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE, code, 'AnchorElement');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective_notTypeOrString() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(const [])
-  ElementRef contentChild;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(0));
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.UNKNOWN_CHILD_QUERY_TYPE, code, 'const []');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective_notAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp)
-  String contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
-    expect(child.directive, equals(directives[1]));
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'String');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective_dynamicOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp)
-  dynamic contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
-
-    expect(child.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildDirective_subTypeNotAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp)
-  ContentChildCompSub contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-
-class ContentChildCompSub extends ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childs = component.contentChilds;
-    expect(childs, hasLength(1));
-    expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
-    expect(child.directive, equals(directives[1]));
-
-    // validate
-    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-        code, 'ContentChildCompSub');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_notList() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  String contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-    expect(children.directive, equals(directives[1]));
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
-        code,
-        'String');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_dynamicOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  dynamic contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-
-    expect(children.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_notAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  List<String> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_dynamicListOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  List contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-
-    expect(children.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_iterableOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  Iterable<ContentChildComp> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-
-    expect(children.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_iterableNotAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  Iterable<String> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    // validate
-    assertErrorInCodeAtPosition(AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-        code, 'Iterable<String>');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_dynamicIterableOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  Iterable contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-
-    expect(children.directive, equals(directives[1]));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_subtypingListNotOk() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ContentChildComp)
-  // this is not allowed. Angular makes a List, regardless of your subtype
-  CannotSubtypeList contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-
-abstract class CannotSubtypeList extends List {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(
-        childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
-    expect(children.directive, equals(directives[1]));
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST,
-        code,
-        'CannotSubtypeList');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildTemplateRef_notAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(TemplateRef)
-  String contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'String');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenTemplateRef_notAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(TemplateRef)
-  List<String> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildElementRef_notAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ElementRef)
-  String contentChild;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'String');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenElementRef_notAssignable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChildren(ElementRef)
-  List<String> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY, code, 'List<String>');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasContentChildrenDirective_withReadSet() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class ComponentA {
-  @ContentChild(ContentChildComp, read: ViewContainerRef)
-  ViewContainerRef contentChild;
-  @ContentChildren(ContentChildComp, read: ViewContainerRef)
-  List<ViewContainerRef> contentChildren;
-}
-
-@Component(selector: 'foo', template: '')
-class ContentChildComp {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    final component = directives.first;
-    final childrens = component.contentChildren;
-    expect(childrens, hasLength(1));
-    expect(childrens.first.read.toString(), equals('ViewContainerRef'));
-    final childs = component.contentChildren;
-    expect(childs, hasLength(1));
-    expect(childs.first.read.toString(), equals('ViewContainerRef'));
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_pipes() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Component(selector: 'my-component', template: 'MyTemplate',
-    pipes: const [PipeA, PipeB])
-class MyComponent {}
-    ''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.pipes, hasLength(2));
-        final pipeNames =
-            view.pipes.map((pipe) => pipe.classElement.name).toList();
-        expect(pipeNames, unorderedEquals(['PipeA', 'PipeB']));
-      }
-    }
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_pipes_selective() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeC')
-class PipeC extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Component(selector: 'my-component', template: 'MyTemplate',
-    pipes: const [PipeC, PipeB])
-class MyComponent {}
-    ''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.pipes, hasLength(2));
-        final pipeNames =
-            view.pipes.map((pipe) => pipe.classElement.name).toList();
-        expect(pipeNames, unorderedEquals(['PipeC', 'PipeB']));
-      }
-    }
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_pipes_list_recursive() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Pipe('pipeA')
-class PipeA extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeB', pure: false)
-class PipeB extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeC')
-class PipeC extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-@Pipe('pipeD')
-class PipeD extends PipeTransform {
-  int transform(int blah) => blah;
-}
-
-const PIPELIST_ONE = const [ const [PipeA, PipeB]];
-const PIPELIST_TWO = const [ const [ const [PipeC, PipeD]]];
-const BIGPIPELIST = const [PIPELIST_ONE, PIPELIST_TWO];
-
-@Component(selector: 'my-component', template: 'MyTemplate',
-    pipes: const [BIGPIPELIST])
-class MyComponent {}
-    ''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    {
-      final view = getViewByClassName(views, 'MyComponent');
-      {
-        expect(view.pipes, hasLength(4));
-        final pipeNames =
-            view.pipes.map((pipe) => pipe.classElement.name).toList();
-        expect(
-            pipeNames, unorderedEquals(['PipeA', 'PipeB', 'PipeC', 'PipeD']));
-      }
-    }
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_pipes_hasError_notListVariable() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-const NOT_PIPES_LIST = 42;
-
-@Component(selector: 'my-component', template: 'My template',
-    pipes: const [NOT_PIPES_LIST])
-class MyComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_PIPE]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_pipe_hasError_TypeLiteralExpected() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 'AAA', pipes: const [42])
-class ComponentA {
-}
-''');
-    await getViews(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TYPE_LITERAL_EXPECTED]);
   }
 }
 
@@ -4030,6 +4030,20 @@ class LinkDirectivesTest extends AbstractAngularTest {
         .map((d) => d is Component ? d.view?.template : null)
         .where((d) => d != null)
         .toList();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_hasError_DirectiveTypeLiteralExpected() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'aaa', template: 'AAA', directives: const [int])
+class ComponentA {
+}
+''');
+    await getDirectives(source);
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
   }
 
   // ignore: non_constant_identifier_names
@@ -4096,6 +4110,92 @@ class MyComponent extends BaseComponent {
     }
 
     // TODO asert viewchild is inherited once that's supported
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_inheritMetadata_notReimplemented_stillSurfacesAPI() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'dart:async';
+
+abstract class BaseComponent {
+  @Input()
+  set someInput(int x);
+
+  @Output()
+  Stream<int> get someOutput;
+}
+
+@Component(selector: 'my-component', template: '<p></p>')
+class ImproperlyDefinedComponent extends BaseComponent {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component =
+        directives.firstWhere((d) => d.name == 'ImproperlyDefinedComponent');
+    final compInputs = component.inputs;
+    final compOutputs = component.outputs;
+    expect(compInputs, hasLength(1));
+    {
+      final input = compInputs[0];
+      expect(input.name, 'someInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("int"));
+    }
+    expect(compOutputs, hasLength(1));
+    {
+      final input = compOutputs[0];
+      expect(input.name, 'someOutput');
+      expect(input.eventType, isNotNull);
+      expect(input.eventType.toString(), equals("int"));
+    }
+    errorListener.assertErrorsWithCodes(
+        [StaticWarningCode.NON_ABSTRACT_CLASS_INHERITS_ABSTRACT_MEMBER_TWO]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_inheritMetadata_overriddenWithVariance() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'dart:async';
+
+abstract class BaseComponent {
+  @Input()
+  set someInput(int x);
+
+  @Output()
+  Stream<Object> get someOutput;
+}
+
+@Component(selector: 'my-component', template: '<p></p>')
+class VarianceComponent extends BaseComponent {
+  set someInput(Object x) => null; // contravariance -- allowed on params
+
+  Stream<int> someOutput; // covariance -- allowed on returns
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component =
+        directives.firstWhere((d) => d.name == 'VarianceComponent');
+    final compInputs = component.inputs;
+    final compOutputs = component.outputs;
+    expect(compInputs, hasLength(1));
+    {
+      final input = compInputs[0];
+      expect(input.name, 'someInput');
+      expect(input.setterType, isNotNull);
+      expect(input.setterType.toString(), equals("Object"));
+    }
+    expect(compOutputs, hasLength(1));
+    {
+      final input = compOutputs[0];
+      expect(input.name, 'someOutput');
+      expect(input.eventType, isNotNull);
+      expect(input.eventType.toString(), equals("int"));
+    }
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
@@ -4257,106 +4357,6 @@ class FinalComponent
   }
 
   // ignore: non_constant_identifier_names
-  Future test_inheritMetadata_overriddenWithVariance() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'dart:async';
-
-abstract class BaseComponent {
-  @Input()
-  set someInput(int x);
-
-  @Output()
-  Stream<Object> get someOutput;
-}
-
-@Component(selector: 'my-component', template: '<p></p>')
-class VarianceComponent extends BaseComponent {
-  set someInput(Object x) => null; // contravariance -- allowed on params
-
-  Stream<int> someOutput; // covariance -- allowed on returns
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component =
-        directives.firstWhere((d) => d.name == 'VarianceComponent');
-    final compInputs = component.inputs;
-    final compOutputs = component.outputs;
-    expect(compInputs, hasLength(1));
-    {
-      final input = compInputs[0];
-      expect(input.name, 'someInput');
-      expect(input.setterType, isNotNull);
-      expect(input.setterType.toString(), equals("Object"));
-    }
-    expect(compOutputs, hasLength(1));
-    {
-      final input = compOutputs[0];
-      expect(input.name, 'someOutput');
-      expect(input.eventType, isNotNull);
-      expect(input.eventType.toString(), equals("int"));
-    }
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_inheritMetadata_notReimplemented_stillSurfacesAPI() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'dart:async';
-
-abstract class BaseComponent {
-  @Input()
-  set someInput(int x);
-
-  @Output()
-  Stream<int> get someOutput;
-}
-
-@Component(selector: 'my-component', template: '<p></p>')
-class ImproperlyDefinedComponent extends BaseComponent {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component =
-        directives.firstWhere((d) => d.name == 'ImproperlyDefinedComponent');
-    final compInputs = component.inputs;
-    final compOutputs = component.outputs;
-    expect(compInputs, hasLength(1));
-    {
-      final input = compInputs[0];
-      expect(input.name, 'someInput');
-      expect(input.setterType, isNotNull);
-      expect(input.setterType.toString(), equals("int"));
-    }
-    expect(compOutputs, hasLength(1));
-    {
-      final input = compOutputs[0];
-      expect(input.name, 'someOutput');
-      expect(input.eventType, isNotNull);
-      expect(input.eventType.toString(), equals("int"));
-    }
-    errorListener.assertErrorsWithCodes(
-        [StaticWarningCode.NON_ABSTRACT_CLASS_INHERITS_ABSTRACT_MEMBER_TWO]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_DirectiveTypeLiteralExpected() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'aaa', template: 'AAA', directives: const [int])
-class ComponentA {
-}
-''');
-    await getDirectives(source);
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularWarningCode.TYPE_IS_NOT_A_DIRECTIVE]);
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_parameterizedInheritedInputsOutputs() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -4497,6 +4497,75 @@ class ResolveDartTemplatesTest extends AbstractAngularTest {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_attributeNotString() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  MyComponent(@Attribute("my-attr") int foo);
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.single;
+    final attributes = component.attributes;
+    expect(attributes, hasLength(1));
+    {
+      final attribute = attributes[0];
+      expect(attribute.name, 'my-attr');
+      // TODO better offsets here. But its really not that critical
+      expect(attribute.nameOffset, code.indexOf("foo"));
+      expect(attribute.nameLength, "foo".length);
+    }
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING, code, 'foo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_attributes() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '')
+class MyComponent {
+  MyComponent(@Attribute("my-attr") String foo);
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    final component = directives.single;
+    final attributes = component.attributes;
+    expect(attributes, hasLength(1));
+    {
+      final attribute = attributes[0];
+      expect(attribute.name, 'my-attr');
+      // TODO better offsets here. But its really not that critical
+      expect(attribute.nameOffset, code.indexOf("foo"));
+      expect(attribute.nameLength, "foo".length);
+    }
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_cannotExportComponentClassItself() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '',
+    exports: const [ComponentA])
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+        code,
+        'ComponentA');
+  }
+
   Future test_componentReference() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -4562,6 +4631,23 @@ class ComponentC {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_constantExpressionTemplateVarDoesntCrash() async {
+    final source = newSource('/test.dart', r'''
+import 'package:angular2/angular2.dart';
+
+const String tplText = "we don't analyze this";
+
+@Component(selector: 'aaa', template: tplText)
+class ComponentA {
+}
+''');
+    await getDirectives(source);
+    expect(templates, hasLength(0));
+    errorListener.assertErrorsWithCodes(
+        <ErrorCode>[AngularHintCode.OFFSETS_CANNOT_BE_CREATED]);
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_hasError_expression_ArgumentTypeNotAssignable() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -4603,6 +4689,7 @@ class UserPanel {
         .assertErrorsWithCodes([StaticWarningCode.UNDEFINED_IDENTIFIER]);
   }
 
+  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_hasError_expression_UndefinedIdentifier_OutsideFirstHtmlTag() async {
@@ -4637,55 +4724,70 @@ class ComponentA {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_suppressError_UnresolvedTag() async {
+  Future test_hasExports() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'my-aaa',
-    template: """
-<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
-<unresolved-tag attr='value'></unresolved-tag>""")
+const String foo = 'foo';
+int bar() { return 2; }
+class MyClass {}
+
+@Component(selector: 'my-component', template: '',
+    exports: const [foo, bar, MyClass])
 class ComponentA {
 }
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(3));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo,')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element.toString(), equals('get foo → String'));
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('bar'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('bar,')));
+      expect(export.span.length, equals('bar'.length));
+      expect(export.element.toString(), equals('bar() → int'));
+    }
+    {
+      final export = component.view.exports[2];
+      expect(export.identifier, equals('MyClass'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('MyClass]')));
+      expect(export.span.length, equals('MyClass'.length));
+      expect(export.element.toString(), equals('class MyClass'));
+    }
+    // validate
     errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
-  Future test_suppressError_NotCaseSensitive() async {
+  Future test_hasWrongTypeOfPrefixedIdentifierExport() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'my-aaa',
-    template: """
-<!-- @ngIgnoreErrors: UnReSoLvEd_tAg -->
-<unresolved-tag attr='value'></unresolved-tag>""")
+@Component(selector: 'my-component', template: '',
+    exports: const [ComponentA.foo])
 class ComponentA {
+  static void foo(){}
 }
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_suppressError_UnresolvedTagAndInput() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-aaa',
-    template: """
-<!-- @ngIgnoreErrors: UNRESOLVED_TAG, NONEXIST_INPUT_BOUND -->
-<unresolved-tag [attr]='value'></unresolved-tag>""")
-class ComponentA {
-  Object value;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    errorListener.assertNoErrors();
+    // validate
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
+        code,
+        'ComponentA.foo');
   }
 
   // ignore: non_constant_identifier_names
@@ -4865,6 +4967,27 @@ class ComponentB {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_misspelledPrefixSuppressesWrongPrefixTypeError() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-component', template: '',
+    exports: const [garbage.garbage])
+class ComponentA {
+  static void foo(){}
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // validate
+    errorListener.assertErrorsWithCodes(<ErrorCode>[
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      CompileTimeErrorCode.CONST_WITH_NON_CONSTANT_ARGUMENT,
+      CompileTimeErrorCode.NON_CONSTANT_LIST_ELEMENT
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_noRootElement() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -4899,36 +5022,132 @@ class TextPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_textExpression_hasError_UnterminatedMustache() async {
+  Future test_prefixedExport() async {
+    newSource('/prefixed.dart', 'const double foo = 2.0;');
     final code = r'''
 import 'package:angular2/angular2.dart';
+import '/prefixed.dart' as prefixed;
 
-@Component(selector: 'text-panel', template: r"{{text")
-class TextPanel {
-  String text = "text";
+const int foo = 2;
+
+@Component(selector: 'my-component', template: '',
+    exports: const [prefixed.foo, foo])
+class ComponentA {
 }
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    // has errors
-    errorListener
-        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
+    final Component component = directives.first;
+    expect(component.view, isNotNull);
+    expect(component.view.exports, hasLength(2));
+    {
+      final export = component.view.exports[0];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals('prefixed'));
+      expect(export.span.offset, equals(code.indexOf('prefixed.foo')));
+      expect(export.span.length, equals('prefixed.foo'.length));
+      expect(export.element.toString(), equals('get foo → double'));
+    }
+    {
+      final export = component.view.exports[1];
+      expect(export.identifier, equals('foo'));
+      expect(export.prefix, equals(''));
+      expect(export.span.offset, equals(code.indexOf('foo]')));
+      expect(export.span.length, equals('foo'.length));
+      expect(export.element.toString(), equals('get foo → int'));
+    }
+
+    // validate
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
-  Future test_textExpression_hasError_UnopenedMustache() async {
+  Future test_resolveGetChildDirectivesNgContentSelectors() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+import 'child_file.dart';
+
+@Component(selector: 'my-component', template: 'My template',
+    directives: const [ChildComponent])
+class MyComponent {}
+''';
+    final childCode = r'''
+import 'package:angular2/angular2.dart';
+@Component(selector: 'child-component',
+    template: 'My template <ng-content></ng-content>',
+    directives: const [])
+class ChildComponent {}
+''';
+    final source = newSource('/test.dart', code);
+    newSource('/child_file.dart', childCode);
+    await getDirectives(source);
+    expect(templates, hasLength(1));
+    // no errors
+    errorListener.assertNoErrors();
+
+    final childDirectives = templates.first.view.directives;
+    expect(childDirectives, hasLength(1));
+
+    final childViews = childDirectives
+        .map((d) => d is Component ? d.view : null)
+        .where((v) => v != null)
+        .toList();
+    expect(childViews, hasLength(1));
+    final childView = childViews.first;
+    expect(childView.component, isNotNull);
+    expect(childView.component.ngContents, hasLength(1));
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_suppressError_NotCaseSensitive() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'text-panel', template: r"<div> text}} </div>")
-class TextPanel {
-  String text;
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UnReSoLvEd_tAg -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
 }
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    // has errors
-    errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_suppressError_UnresolvedTag() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+class ComponentA {
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_suppressError_UnresolvedTagAndInput() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'my-aaa',
+    template: """
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG, NONEXIST_INPUT_BOUND -->
+<unresolved-tag [attr]='value'></unresolved-tag>""")
+class ComponentA {
+  Object value;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
@@ -4968,6 +5187,39 @@ class TextPanel {
       AngularWarningCode.UNOPENED_MUSTACHE,
       AngularWarningCode.UNOPENED_MUSTACHE,
     ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_textExpression_hasError_UnopenedMustache() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"<div> text}} </div>")
+class TextPanel {
+  String text;
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // has errors
+    errorListener.assertErrorsWithCodes([AngularWarningCode.UNOPENED_MUSTACHE]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_textExpression_hasError_UnterminatedMustache() async {
+    final code = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'text-panel', template: r"{{text")
+class TextPanel {
+  String text = "text";
+}
+''';
+    final source = newSource('/test.dart', code);
+    await getDirectives(source);
+    // has errors
+    errorListener
+        .assertErrorsWithCodes([AngularWarningCode.UNTERMINATED_MUSTACHE]);
   }
 
   // ignore: non_constant_identifier_names
@@ -5014,258 +5266,6 @@ class TextPanel {
     }
     // no errors
     errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_resolveGetChildDirectivesNgContentSelectors() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import 'child_file.dart';
-
-@Component(selector: 'my-component', template: 'My template',
-    directives: const [ChildComponent])
-class MyComponent {}
-''';
-    final childCode = r'''
-import 'package:angular2/angular2.dart';
-@Component(selector: 'child-component',
-    template: 'My template <ng-content></ng-content>',
-    directives: const [])
-class ChildComponent {}
-''';
-    final source = newSource('/test.dart', code);
-    newSource('/child_file.dart', childCode);
-    await getDirectives(source);
-    expect(templates, hasLength(1));
-    // no errors
-    errorListener.assertNoErrors();
-
-    final childDirectives = templates.first.view.directives;
-    expect(childDirectives, hasLength(1));
-
-    final childViews = childDirectives
-        .map((d) => d is Component ? d.view : null)
-        .where((v) => v != null)
-        .toList();
-    expect(childViews, hasLength(1));
-    final childView = childViews.first;
-    expect(childView.component, isNotNull);
-    expect(childView.component.ngContents, hasLength(1));
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_attributes() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class MyComponent {
-  MyComponent(@Attribute("my-attr") String foo);
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.single;
-    final attributes = component.attributes;
-    expect(attributes, hasLength(1));
-    {
-      final attribute = attributes[0];
-      expect(attribute.name, 'my-attr');
-      // TODO better offsets here. But its really not that critical
-      expect(attribute.nameOffset, code.indexOf("foo"));
-      expect(attribute.nameLength, "foo".length);
-    }
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_attributeNotString() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '')
-class MyComponent {
-  MyComponent(@Attribute("my-attr") int foo);
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.single;
-    final attributes = component.attributes;
-    expect(attributes, hasLength(1));
-    {
-      final attribute = attributes[0];
-      expect(attribute.name, 'my-attr');
-      // TODO better offsets here. But its really not that critical
-      expect(attribute.nameOffset, code.indexOf("foo"));
-      expect(attribute.nameLength, "foo".length);
-    }
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING, code, 'foo');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_constantExpressionTemplateVarDoesntCrash() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-const String tplText = "we don't analyze this";
-
-@Component(selector: 'aaa', template: tplText)
-class ComponentA {
-}
-''');
-    await getDirectives(source);
-    expect(templates, hasLength(0));
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[AngularHintCode.OFFSETS_CANNOT_BE_CREATED]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasExports() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-const String foo = 'foo';
-int bar() { return 2; }
-class MyClass {}
-
-@Component(selector: 'my-component', template: '',
-    exports: const [foo, bar, MyClass])
-class ComponentA {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final Component component = directives.first;
-    expect(component.view, isNotNull);
-    expect(component.view.exports, hasLength(3));
-    {
-      final export = component.view.exports[0];
-      expect(export.identifier, equals('foo'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('foo,')));
-      expect(export.span.length, equals('foo'.length));
-      expect(export.element.toString(), equals('get foo → String'));
-    }
-    {
-      final export = component.view.exports[1];
-      expect(export.identifier, equals('bar'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('bar,')));
-      expect(export.span.length, equals('bar'.length));
-      expect(export.element.toString(), equals('bar() → int'));
-    }
-    {
-      final export = component.view.exports[2];
-      expect(export.identifier, equals('MyClass'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('MyClass]')));
-      expect(export.span.length, equals('MyClass'.length));
-      expect(export.element.toString(), equals('class MyClass'));
-    }
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_prefixedExport() async {
-    newSource('/prefixed.dart', 'const double foo = 2.0;');
-    final code = r'''
-import 'package:angular2/angular2.dart';
-import '/prefixed.dart' as prefixed;
-
-const int foo = 2;
-
-@Component(selector: 'my-component', template: '',
-    exports: const [prefixed.foo, foo])
-class ComponentA {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final Component component = directives.first;
-    expect(component.view, isNotNull);
-    expect(component.view.exports, hasLength(2));
-    {
-      final export = component.view.exports[0];
-      expect(export.identifier, equals('foo'));
-      expect(export.prefix, equals('prefixed'));
-      expect(export.span.offset, equals(code.indexOf('prefixed.foo')));
-      expect(export.span.length, equals('prefixed.foo'.length));
-      expect(export.element.toString(), equals('get foo → double'));
-    }
-    {
-      final export = component.view.exports[1];
-      expect(export.identifier, equals('foo'));
-      expect(export.prefix, equals(''));
-      expect(export.span.offset, equals(code.indexOf('foo]')));
-      expect(export.span.length, equals('foo'.length));
-      expect(export.element.toString(), equals('get foo → int'));
-    }
-
-    // validate
-    errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasWrongTypeOfPrefixedIdentifierExport() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '',
-    exports: const [ComponentA.foo])
-class ComponentA {
-  static void foo(){}
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
-        code,
-        'ComponentA.foo');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_cannotExportComponentClassItself() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '',
-    exports: const [ComponentA])
-class ComponentA {
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
-        code,
-        'ComponentA');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_misspelledPrefixSuppressesWrongPrefixTypeError() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '',
-    exports: const [garbage.garbage])
-class ComponentA {
-  static void foo(){}
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate
-    errorListener.assertErrorsWithCodes(<ErrorCode>[
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      CompileTimeErrorCode.CONST_WITH_NON_CONSTANT_ARGUMENT,
-      CompileTimeErrorCode.NON_CONSTANT_LIST_ELEMENT
-    ]);
   }
 
   static Template _getDartTemplateByClassName(
@@ -5365,20 +5365,23 @@ class ResolveHtmlTemplateTest extends AbstractAngularTest {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_suppressError_UnresolvedTagHtmlTemplate() async {
-    final dartSource = newSource('/test.dart', r'''
+  Future test_contentChildAnnotatedConstructor() async {
+    final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'my-aaa', templateUrl: 'test.html')
-class ComponentA {
+@Component(selector: 'a', templateUrl: 'test.html')
+class A {
+  @ContentChild(X)
+  A(){}
 }
-''');
-    final htmlSource = newSource('/test.html', '''
-<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
-<unresolved-tag attr='value'></unresolved-tag>""")
-''');
+''';
+    final dartSource = newSource('/test.dart', code);
+    final htmlSource = newSource('/test.html', '');
     await getDirectives(htmlSource, dartSource);
-    errorListener.assertNoErrors();
+
+    final component = views.first.component;
+
+    expect(component.contentChilds, hasLength(0));
   }
 
   // ignore: non_constant_identifier_names
@@ -5401,44 +5404,6 @@ class WeirdComponent {
         errors.first.message,
         equals('In WeirdComponent:'
             ' Unresolved tag "unresolved-tag" (from /weird.dart)'));
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasViewWithTemplate() async {
-    final dartCode = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
-class TextPanel {
-  String text; // 1
-}
-''';
-    final htmlCode = r"""
-<div>
-  {{text}}
-</div>
-""";
-    final dartSource = newSource('/test.dart', dartCode);
-    final htmlSource = newSource('/text_panel.html', htmlCode);
-    // compute
-    await getDirectives(htmlSource, dartSource);
-    expect(views, hasLength(1));
-    {
-      final view = getViewByClassName(views, 'TextPanel');
-      expect(view.templateUriSource, isNotNull);
-      // resolve this View
-      final template = view.template;
-      expect(template, isNotNull);
-      expect(template.view, view);
-      expect(template.ranges, hasLength(1));
-      {
-        final resolvedRange =
-            getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
-        final element = assertGetter(resolvedRange);
-        expect(element.name, 'text');
-        expect(element.nameOffset, dartCode.indexOf('text; // 1'));
-      }
-    }
   }
 
   // ignore: non_constant_identifier_names
@@ -5484,6 +5449,44 @@ class MyComponent {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_hasViewWithTemplate() async {
+    final dartCode = r'''
+import 'package:angular2/angular2.dart';
+
+@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
+class TextPanel {
+  String text; // 1
+}
+''';
+    final htmlCode = r"""
+<div>
+  {{text}}
+</div>
+""";
+    final dartSource = newSource('/test.dart', dartCode);
+    final htmlSource = newSource('/text_panel.html', htmlCode);
+    // compute
+    await getDirectives(htmlSource, dartSource);
+    expect(views, hasLength(1));
+    {
+      final view = getViewByClassName(views, 'TextPanel');
+      expect(view.templateUriSource, isNotNull);
+      // resolve this View
+      final template = view.template;
+      expect(template, isNotNull);
+      expect(template.view, view);
+      expect(template.ranges, hasLength(1));
+      {
+        final resolvedRange =
+            getResolvedRangeAtString(htmlCode, template.ranges, 'text}}');
+        final element = assertGetter(resolvedRange);
+        expect(element.name, 'text');
+        expect(element.nameOffset, dartCode.indexOf('text; // 1'));
+      }
+    }
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_resolveGetChildDirectivesNgContentSelectors() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -5515,22 +5518,19 @@ class ChildComponent {}
   }
 
   // ignore: non_constant_identifier_names
-  Future test_contentChildAnnotatedConstructor() async {
-    final code = r'''
+  Future test_suppressError_UnresolvedTagHtmlTemplate() async {
+    final dartSource = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'a', templateUrl: 'test.html')
-class A {
-  @ContentChild(X)
-  A(){}
+@Component(selector: 'my-aaa', templateUrl: 'test.html')
+class ComponentA {
 }
-''';
-    final dartSource = newSource('/test.dart', code);
-    final htmlSource = newSource('/test.html', '');
+''');
+    final htmlSource = newSource('/test.html', '''
+<!-- @ngIgnoreErrors: UNRESOLVED_TAG -->
+<unresolved-tag attr='value'></unresolved-tag>""")
+''');
     await getDirectives(htmlSource, dartSource);
-
-    final component = views.first.component;
-
-    expect(component.contentChilds, hasLength(0));
+    errorListener.assertNoErrors();
   }
 }

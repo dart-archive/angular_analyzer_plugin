@@ -1,17 +1,126 @@
-import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/error/codes.dart';
-import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
-// TODO(mfairhurst) use package:tuple once it support Dart 2
 import 'package:angular_analyzer_plugin/src/tuple.dart';
-import 'package:angular_analyzer_plugin/errors.dart';
+
+class AttributeAnnotationValidator {
+  final ErrorReporter errorReporter;
+
+  AttributeAnnotationValidator(this.errorReporter);
+
+  void validate(AbstractClassDirective directive) {
+    final classElement = directive.classElement;
+    for (final constructor in classElement.constructors) {
+      for (final parameter in constructor.parameters) {
+        for (final annotation in parameter.metadata) {
+          if (annotation.element?.enclosingElement?.name != "Attribute") {
+            continue;
+          }
+
+          final attributeName = annotation
+              .computeConstantValue()
+              ?.getField("attributeName")
+              ?.toStringValue();
+          if (attributeName == null) {
+            continue;
+            // TODO do we ever need to report an error here, or will DAS?
+          }
+
+          if (parameter.type.name != "String") {
+            errorReporter.reportErrorForOffset(
+                AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
+                parameter.nameOffset,
+                parameter.name.length);
+          }
+
+          directive.attributes.add(new AngularElementImpl(attributeName,
+              parameter.nameOffset, parameter.nameLength, parameter.source));
+        }
+      }
+    }
+  }
+}
+
+class BindingTypeSynthesizer {
+  final InterfaceType _instantiatedClassType;
+  final TypeProvider _typeProvider;
+  final AnalysisContext _context;
+  final ErrorReporter _errorReporter;
+
+  BindingTypeSynthesizer(ClassElement classElem, TypeProvider typeProvider,
+      this._context, this._errorReporter)
+      : _instantiatedClassType = _instantiateClass(classElem, typeProvider),
+        _typeProvider = typeProvider;
+
+  DartType getEventType(PropertyAccessorElement getter, String name) {
+    if (getter != null) {
+      // ignore: parameter_assignments
+      getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
+          thisType: true);
+    }
+
+    if (getter != null && getter.type != null) {
+      final returnType = getter.type.returnType;
+      if (returnType != null && returnType is InterfaceType) {
+        final streamType = _typeProvider.streamType;
+        final streamedType = _context.typeSystem
+            .mostSpecificTypeArgument(returnType, streamType);
+        if (streamedType != null) {
+          return streamedType;
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.OUTPUT_MUST_BE_STREAM,
+              getter.nameOffset,
+              getter.name.length,
+              [name]);
+        }
+      } else {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.OUTPUT_MUST_BE_STREAM,
+            getter.nameOffset,
+            getter.name.length,
+            [name]);
+      }
+    }
+
+    return _typeProvider.dynamicType;
+  }
+
+  DartType getSetterType(PropertyAccessorElement setter) {
+    if (setter != null) {
+      // ignore: parameter_assignments
+      setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
+          thisType: true);
+    }
+
+    if (setter != null && setter.type.parameters.length == 1) {
+      return setter.type.parameters[0].type;
+    }
+
+    return null;
+  }
+
+  static InterfaceType _instantiateClass(
+      ClassElement classElement, TypeProvider typeProvider) {
+    // TODO use `insantiateToBounds` for better all around support
+    // See #91 for discussion about bugs related to bounds
+    DartType getBound(TypeParameterElement p) => p.bound == null
+        ? typeProvider.dynamicType
+        : p.bound.resolveToBound(typeProvider.dynamicType);
+
+    final bounds = classElement.typeParameters.map(getBound).toList();
+    return classElement.type.instantiate(bounds);
+  }
+}
 
 class DirectiveExtractor extends AnnotationProcessorMixin {
   final TypeProvider _typeProvider;
@@ -165,6 +274,72 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     return null;
   }
 
+  /// Find all fields labeled with @ContentChild and the ranges of the type
+  /// argument. We will use this to create an unlinked summary which can, at link
+  /// time, check for errors and highlight the correct range. This is all we need
+  /// from the AST itself, so all we should do here.
+  void _parseContentChilds(
+      ast.ClassDeclaration node,
+      List<ContentChildField> contentChilds,
+      List<ContentChildField> contentChildrens) {
+    for (final member in node.members) {
+      for (final annotation in member.metadata) {
+        List<ContentChildField> targetList;
+        if (isAngularAnnotation(annotation, 'ContentChild')) {
+          targetList = contentChilds;
+        } else if (isAngularAnnotation(annotation, 'ContentChildren')) {
+          targetList = contentChildrens;
+        } else {
+          continue;
+        }
+
+        final annotationArgs = annotation?.arguments?.arguments;
+        if (annotationArgs == null) {
+          // This happens for invalid dart code. Ignore
+          continue;
+        }
+
+        if (annotationArgs.isEmpty) {
+          // No need to report an error, dart does that already.
+          continue;
+        }
+
+        final offset = annotationArgs[0].offset;
+        final length = annotationArgs[0].length;
+        var setterTypeOffset = member.offset; // fallback option
+        var setterTypeLength = member.length; // fallback option
+
+        String name;
+        if (member is ast.FieldDeclaration) {
+          name = member.fields.variables[0].name.toString();
+
+          if (member.fields.type != null) {
+            setterTypeOffset = member.fields.type.offset;
+            setterTypeLength = member.fields.type.length;
+          }
+        } else if (member is ast.MethodDeclaration) {
+          name = member.name.toString();
+
+          final parameters = member.parameters?.parameters;
+          if (parameters != null && parameters.isNotEmpty) {
+            final parameter = parameters[0];
+            if (parameter is ast.SimpleFormalParameter &&
+                parameter.type != null) {
+              setterTypeOffset = parameter.type.offset;
+              setterTypeLength = parameter.type.length;
+            }
+          }
+        }
+
+        if (name != null) {
+          targetList.add(new ContentChildField(name,
+              nameRange: new SourceRange(offset, length),
+              typeRange: new SourceRange(setterTypeOffset, setterTypeLength)));
+        }
+      }
+    }
+  }
+
   AngularElement _parseExportAs(ast.Annotation node) {
     // Find the "exportAs" argument.
     // ignore: omit_local_variable_types
@@ -187,6 +362,53 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     }
     // Create a new element.
     return new AngularElementImpl(name, offset, name.length, _source);
+  }
+
+  InputElement _parseHeaderInput(ast.Expression expression) {
+    // ignore: omit_local_variable_types
+    final Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
+        _parseHeaderNameValueSourceRanges(expression);
+    if (nameValueAndRanges != null && expression is ast.SimpleStringLiteral) {
+      final boundName = nameValueAndRanges.item1;
+      final boundRange = nameValueAndRanges.item2;
+      final name = nameValueAndRanges.item3;
+      final nameRange = nameValueAndRanges.item4;
+
+      final setter = _resolveSetter(expression, name);
+      if (setter == null) {
+        return null;
+      }
+
+      return new InputElement(
+          boundName,
+          boundRange.offset,
+          boundRange.length,
+          _source,
+          setter,
+          nameRange,
+          _bindingTypeSynthesizer.getSetterType(setter));
+    } else {
+      // TODO(mfairhurst) report a warning
+      return null;
+    }
+  }
+
+  List<InputElement> _parseHeaderInputs(ast.Annotation node) {
+    final descList = _getListLiteralNamedArgument(
+        node, const <String>['inputs', 'properties']);
+    if (descList == null) {
+      return const <InputElement>[];
+    }
+    // Create an input for each element.
+    final inputElements = <InputElement>[];
+    // ignore: omit_local_variable_types
+    for (ast.Expression element in descList.elements) {
+      final inputElement = _parseHeaderInput(element);
+      if (inputElement != null) {
+        inputElements.add(inputElement);
+      }
+    }
+    return inputElements;
   }
 
   Tuple4<String, SourceRange, String, SourceRange>
@@ -230,35 +452,6 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     }
   }
 
-  InputElement _parseHeaderInput(ast.Expression expression) {
-    // ignore: omit_local_variable_types
-    final Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
-        _parseHeaderNameValueSourceRanges(expression);
-    if (nameValueAndRanges != null && expression is ast.SimpleStringLiteral) {
-      final boundName = nameValueAndRanges.item1;
-      final boundRange = nameValueAndRanges.item2;
-      final name = nameValueAndRanges.item3;
-      final nameRange = nameValueAndRanges.item4;
-
-      final setter = _resolveSetter(expression, name);
-      if (setter == null) {
-        return null;
-      }
-
-      return new InputElement(
-          boundName,
-          boundRange.offset,
-          boundRange.length,
-          _source,
-          setter,
-          nameRange,
-          _bindingTypeSynthesizer.getSetterType(setter));
-    } else {
-      // TODO(mfairhurst) report a warning
-      return null;
-    }
-  }
-
   OutputElement _parseHeaderOutput(ast.Expression expression) {
     // ignore: omit_local_variable_types
     final Tuple4<String, SourceRange, String, SourceRange> nameValueAndRanges =
@@ -282,24 +475,6 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
       // TODO(mfairhurst) report a warning
       return null;
     }
-  }
-
-  List<InputElement> _parseHeaderInputs(ast.Annotation node) {
-    final descList = _getListLiteralNamedArgument(
-        node, const <String>['inputs', 'properties']);
-    if (descList == null) {
-      return const <InputElement>[];
-    }
-    // Create an input for each element.
-    final inputElements = <InputElement>[];
-    // ignore: omit_local_variable_types
-    for (ast.Expression element in descList.elements) {
-      final inputElement = _parseHeaderInput(element);
-      if (inputElement != null) {
-        inputElements.add(inputElement);
-      }
-    }
-    return inputElements;
   }
 
   List<OutputElement> _parseHeaderOutputs(ast.Annotation node) {
@@ -422,72 +597,6 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     }
   }
 
-  /// Find all fields labeled with @ContentChild and the ranges of the type
-  /// argument. We will use this to create an unlinked summary which can, at link
-  /// time, check for errors and highlight the correct range. This is all we need
-  /// from the AST itself, so all we should do here.
-  void _parseContentChilds(
-      ast.ClassDeclaration node,
-      List<ContentChildField> contentChilds,
-      List<ContentChildField> contentChildrens) {
-    for (final member in node.members) {
-      for (final annotation in member.metadata) {
-        List<ContentChildField> targetList;
-        if (isAngularAnnotation(annotation, 'ContentChild')) {
-          targetList = contentChilds;
-        } else if (isAngularAnnotation(annotation, 'ContentChildren')) {
-          targetList = contentChildrens;
-        } else {
-          continue;
-        }
-
-        final annotationArgs = annotation?.arguments?.arguments;
-        if (annotationArgs == null) {
-          // This happens for invalid dart code. Ignore
-          continue;
-        }
-
-        if (annotationArgs.isEmpty) {
-          // No need to report an error, dart does that already.
-          continue;
-        }
-
-        final offset = annotationArgs[0].offset;
-        final length = annotationArgs[0].length;
-        var setterTypeOffset = member.offset; // fallback option
-        var setterTypeLength = member.length; // fallback option
-
-        String name;
-        if (member is ast.FieldDeclaration) {
-          name = member.fields.variables[0].name.toString();
-
-          if (member.fields.type != null) {
-            setterTypeOffset = member.fields.type.offset;
-            setterTypeLength = member.fields.type.length;
-          }
-        } else if (member is ast.MethodDeclaration) {
-          name = member.name.toString();
-
-          final parameters = member.parameters?.parameters;
-          if (parameters != null && parameters.isNotEmpty) {
-            final parameter = parameters[0];
-            if (parameter is ast.SimpleFormalParameter &&
-                parameter.type != null) {
-              setterTypeOffset = parameter.type.offset;
-              setterTypeLength = parameter.type.length;
-            }
-          }
-        }
-
-        if (name != null) {
-          targetList.add(new ContentChildField(name,
-              nameRange: new SourceRange(offset, length),
-              typeRange: new SourceRange(setterTypeOffset, setterTypeLength)));
-        }
-      }
-    }
-  }
-
   Selector _parseSelector(ast.Annotation node) {
     // Find the "selector" argument.
     // ignore: omit_local_variable_types
@@ -530,19 +639,6 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     return null;
   }
 
-  /// Resolve the input setter with the given [name] in [_currentClassElement].
-  /// If undefined, report a warning and return `null`.
-  PropertyAccessorElement _resolveSetter(
-      ast.SimpleStringLiteral literal, String name) {
-    final setter =
-        _currentClassElement.lookUpSetter(name, _currentClassElement.library);
-    if (setter == null) {
-      errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_SETTER,
-          literal, [name, _currentClassElement.displayName]);
-    }
-    return setter;
-  }
-
   /// Resolve the output getter with the given [name] in [_currentClassElement].
   /// If undefined, report a warning and return `null`.
   PropertyAccessorElement _resolveGetter(
@@ -555,114 +651,17 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     }
     return getter;
   }
-}
 
-class AttributeAnnotationValidator {
-  final ErrorReporter errorReporter;
-
-  AttributeAnnotationValidator(this.errorReporter);
-
-  void validate(AbstractClassDirective directive) {
-    final classElement = directive.classElement;
-    for (final constructor in classElement.constructors) {
-      for (final parameter in constructor.parameters) {
-        for (final annotation in parameter.metadata) {
-          if (annotation.element?.enclosingElement?.name != "Attribute") {
-            continue;
-          }
-
-          final attributeName = annotation
-              .computeConstantValue()
-              ?.getField("attributeName")
-              ?.toStringValue();
-          if (attributeName == null) {
-            continue;
-            // TODO do we ever need to report an error here, or will DAS?
-          }
-
-          if (parameter.type.name != "String") {
-            errorReporter.reportErrorForOffset(
-                AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
-                parameter.nameOffset,
-                parameter.name.length);
-          }
-
-          directive.attributes.add(new AngularElementImpl(attributeName,
-              parameter.nameOffset, parameter.nameLength, parameter.source));
-        }
-      }
+  /// Resolve the input setter with the given [name] in [_currentClassElement].
+  /// If undefined, report a warning and return `null`.
+  PropertyAccessorElement _resolveSetter(
+      ast.SimpleStringLiteral literal, String name) {
+    final setter =
+        _currentClassElement.lookUpSetter(name, _currentClassElement.library);
+    if (setter == null) {
+      errorReporter.reportErrorForNode(StaticTypeWarningCode.UNDEFINED_SETTER,
+          literal, [name, _currentClassElement.displayName]);
     }
-  }
-}
-
-class BindingTypeSynthesizer {
-  final InterfaceType _instantiatedClassType;
-  final TypeProvider _typeProvider;
-  final AnalysisContext _context;
-  final ErrorReporter _errorReporter;
-
-  BindingTypeSynthesizer(ClassElement classElem, TypeProvider typeProvider,
-      this._context, this._errorReporter)
-      : _instantiatedClassType = _instantiateClass(classElem, typeProvider),
-        _typeProvider = typeProvider;
-
-  DartType getSetterType(PropertyAccessorElement setter) {
-    if (setter != null) {
-      // ignore: parameter_assignments
-      setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
-          thisType: true);
-    }
-
-    if (setter != null && setter.type.parameters.length == 1) {
-      return setter.type.parameters[0].type;
-    }
-
-    return null;
-  }
-
-  DartType getEventType(PropertyAccessorElement getter, String name) {
-    if (getter != null) {
-      // ignore: parameter_assignments
-      getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
-          thisType: true);
-    }
-
-    if (getter != null && getter.type != null) {
-      final returnType = getter.type.returnType;
-      if (returnType != null && returnType is InterfaceType) {
-        final streamType = _typeProvider.streamType;
-        final streamedType = _context.typeSystem
-            .mostSpecificTypeArgument(returnType, streamType);
-        if (streamedType != null) {
-          return streamedType;
-        } else {
-          _errorReporter.reportErrorForOffset(
-              AngularWarningCode.OUTPUT_MUST_BE_STREAM,
-              getter.nameOffset,
-              getter.name.length,
-              [name]);
-        }
-      } else {
-        _errorReporter.reportErrorForOffset(
-            AngularWarningCode.OUTPUT_MUST_BE_STREAM,
-            getter.nameOffset,
-            getter.name.length,
-            [name]);
-      }
-    }
-
-    return _typeProvider.dynamicType;
-  }
-
-  static InterfaceType _instantiateClass(
-      ClassElement classElement, TypeProvider typeProvider) {
-    // TODO use `insantiateToBounds` for better all around support
-    // See #91 for discussion about bugs related to bounds
-    DartType getBound(TypeParameterElement p) => p.bound == null
-        ? typeProvider.dynamicType
-        : p.bound.resolveToBound(typeProvider.dynamicType);
-
-    final bounds = classElement.typeParameters.map(getBound).toList();
-    return classElement.type.instantiate(bounds);
+    return setter;
   }
 }

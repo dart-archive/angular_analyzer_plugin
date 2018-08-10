@@ -9,10 +9,10 @@ class AngularNavigationRequest extends NavigationRequest {
   final int length;
   @override
   final int offset;
-  @override
-  ResourceProvider get resourceProvider => null;
-
   final DirectivesResult result;
 
   AngularNavigationRequest(this.path, this.length, this.offset, this.result);
+
+  @override
+  ResourceProvider get resourceProvider => null;
 }

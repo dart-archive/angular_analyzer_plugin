@@ -46,18 +46,8 @@ class DartElementAssert extends _AbstractElementAssert {
     return this;
   }
 
-  DartElementAssert get prefix {
-    expect(element.kind, ElementKind.PREFIX);
-    return this;
-  }
-
   DartElementAssert get inCoreHtml {
     _inCoreHtml(element.source);
-    return this;
-  }
-
-  DartElementAssert inFile(String path) {
-    _inFile(element.source, path);
     return this;
   }
 
@@ -66,8 +56,18 @@ class DartElementAssert extends _AbstractElementAssert {
     return this;
   }
 
+  DartElementAssert get prefix {
+    expect(element.kind, ElementKind.PREFIX);
+    return this;
+  }
+
   DartElementAssert at(String search) {
     _at(element.nameOffset, search);
+    return this;
+  }
+
+  DartElementAssert inFile(String path) {
+    _inFile(element.source, path);
     return this;
   }
 }
@@ -99,15 +99,15 @@ class ElementAssert {
     return new AngularElementAssert(element, _dartSource);
   }
 
-  AngularElementAssert get output {
-    expect(element, const isInstanceOf<OutputElement>());
-    return new AngularElementAssert(element, _dartSource);
-  }
-
   LocalVariableAssert get local {
     expect(element, const isInstanceOf<LocalVariable>());
     return new LocalVariableAssert(
         element as LocalVariable, _referenceOffset, _htmlSource, _htmlCode);
+  }
+
+  AngularElementAssert get output {
+    expect(element, const isInstanceOf<OutputElement>());
+    return new AngularElementAssert(element, _dartSource);
   }
 
   AngularElementAssert get selector {

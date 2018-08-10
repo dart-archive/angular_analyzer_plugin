@@ -1,13 +1,19 @@
-import 'package:meta/meta.dart';
-import 'package:yaml/yaml.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:meta/meta.dart';
+import 'package:yaml/yaml.dart';
 
 class AngularOptions {
+  final List<String> customTagNames;
+  final Map<String, CustomEvent> customEvents;
+  final Source source;
+
+  String _customEventsHashString;
+
   AngularOptions({this.customTagNames, this.customEvents, this.source});
+  factory AngularOptions.defaults() => new _OptionsBuilder.empty().build();
   factory AngularOptions.from(Source source) =>
       new _OptionsBuilder(null, source).build();
-  factory AngularOptions.defaults() => new _OptionsBuilder.empty().build();
 
   /// For tests, its easier to pass the Source's contents directly rather than
   /// creating mocks that returned mocked data that mocked contents.
@@ -15,15 +21,10 @@ class AngularOptions {
   factory AngularOptions.fromString(String content, Source source) =>
       new _OptionsBuilder(content, source).build();
 
-  final List<String> customTagNames;
-  final Map<String, CustomEvent> customEvents;
-  final Source source;
-
   /// A unique signature based on the events for hashing the settings into the
   /// resolution hashes.
   String get customEventsHashString =>
       _customEventsHashString ??= _computeCustomEventsHashString();
-  String _customEventsHashString;
 
   /// When events are present, generate a string in the form of
   /// 'e:name,type,path,name,type,path'. Take care we sort before emitting. And
@@ -57,9 +58,9 @@ class CustomEvent {
   final String typePath;
   final int nameOffset;
 
-  CustomEvent(this.name, this.typeName, this.typePath, this.nameOffset);
-
   DartType resolvedType;
+
+  CustomEvent(this.name, this.typeName, this.typePath, this.nameOffset);
 }
 
 class _OptionsBuilder {
@@ -70,32 +71,29 @@ class _OptionsBuilder {
   Map<String, CustomEvent> customEvents = {};
   final Source source;
 
-  _OptionsBuilder.empty() : source = null;
   _OptionsBuilder(String content, Source source)
       : source = source,
         analysisOptions = loadYaml(content ?? source.contents.data) {
     load();
   }
-
-  void resolve() {
-    customTagNames = new List<String>.from(
-        getOption<List>('custom_tag_names', isListOfStrings) ?? []);
-    getOption<YamlMap>('custom_events', isMapOfObjects)
-        ?.nodes
-        ?.forEach((nameNodeKey, props) {
-      final nameNode = nameNodeKey as YamlScalar;
-      final name = nameNode.value as String;
-      final offset = nameNode.span.start.offset;
-      customEvents[name] = props is YamlMap
-          ? new CustomEvent(
-              name, props['type'] as String, props['path'] as String, offset)
-          // Handle `event:` with no value, a shortcut for dynamic.
-          : new CustomEvent(name, null, null, offset);
-    });
-  }
+  _OptionsBuilder.empty() : source = null;
 
   AngularOptions build() => new AngularOptions(
       customTagNames: customTagNames, customEvents: customEvents);
+
+  T getOption<T>(String key, bool validator(input)) {
+    if (angularOptions != null && validator(angularOptions[key])) {
+      return angularOptions[key] as T;
+    }
+    return null;
+  }
+
+  bool isListOfStrings(values) =>
+      values is List && values.every((value) => value is String);
+
+  bool isMapOfObjects(values) =>
+      values is YamlMap &&
+      values.values.every((value) => value is YamlMap || value == null);
 
   void load() {
     if (analysisOptions['analyzer'] == null ||
@@ -108,17 +106,6 @@ class _OptionsBuilder {
         loadPluginSection('angular_analyzer_plugin')) {
       resolve();
     }
-  }
-
-  /// Attempt to load the top level `angular` config section into
-  /// [angularOptions]. If the section exists and is a map, return true. This is
-  /// the going-forward default case.
-  bool loadTopLevelSection() {
-    if (analysisOptions['angular'] is Map) {
-      angularOptions = analysisOptions['angular'];
-      return true;
-    }
-    return false;
   }
 
   /// Look for a plugin enabled by name [key], which for historical purposes is
@@ -146,17 +133,31 @@ class _OptionsBuilder {
     return specified;
   }
 
-  T getOption<T>(String key, bool validator(input)) {
-    if (angularOptions != null && validator(angularOptions[key])) {
-      return angularOptions[key] as T;
+  /// Attempt to load the top level `angular` config section into
+  /// [angularOptions]. If the section exists and is a map, return true. This is
+  /// the going-forward default case.
+  bool loadTopLevelSection() {
+    if (analysisOptions['angular'] is Map) {
+      angularOptions = analysisOptions['angular'];
+      return true;
     }
-    return null;
+    return false;
   }
 
-  bool isListOfStrings(values) =>
-      values is List && values.every((value) => value is String);
-
-  bool isMapOfObjects(values) =>
-      values is YamlMap &&
-      values.values.every((value) => value is YamlMap || value == null);
+  void resolve() {
+    customTagNames = new List<String>.from(
+        getOption<List>('custom_tag_names', isListOfStrings) ?? []);
+    getOption<YamlMap>('custom_events', isMapOfObjects)
+        ?.nodes
+        ?.forEach((nameNodeKey, props) {
+      final nameNode = nameNodeKey as YamlScalar;
+      final name = nameNode.value as String;
+      final offset = nameNode.span.start.offset;
+      customEvents[name] = props is YamlMap
+          ? new CustomEvent(
+              name, props['type'] as String, props['path'] as String, offset)
+          // Handle `event:` with no value, a shortcut for dynamic.
+          : new CustomEvent(name, null, null, offset);
+    });
+  }
 }

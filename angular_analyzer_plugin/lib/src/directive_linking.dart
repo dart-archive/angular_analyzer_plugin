@@ -1,9 +1,16 @@
 import 'dart:async';
-import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/dart/element/element.dart';
+
 import 'package:analyzer/dart/ast/ast.dart'
     show SimpleIdentifier, PrefixedIdentifier, Identifier;
+import 'package:analyzer/dart/ast/standard_ast_factory.dart';
+import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/dart/constant/value.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/src/dart/ast/token.dart';
+import 'package:analyzer/src/dart/resolver/scope.dart';
+import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/engine.dart';
 import 'package:analyzer/src/generated/source.dart' show SourceRange, Source;
 import 'package:angular_analyzer_plugin/errors.dart';
@@ -11,403 +18,11 @@ import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
-import 'package:analyzer/src/dart/resolver/scope.dart';
-import 'package:analyzer/dart/ast/standard_ast_factory.dart';
-import 'package:analyzer/src/generated/constant.dart';
-import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/ast/token.dart';
-import 'package:analyzer/src/dart/ast/token.dart';
+
 import 'summary/idl.dart';
 
-abstract class FileDirectiveProvider {
-  Future<List<AngularTopLevel>> getUnlinkedAngularTopLevels(String path);
-  Future<List<NgContent>> getHtmlNgContent(String path);
-}
-
-abstract class FilePipeProvider {
-  Future<List<Pipe>> getUnlinkedPipes(String path);
-}
-
-abstract class DirectiveLinkerEnablement {
-  Future<CompilationUnitElement> getUnit(String path);
-  Source getSource(String path);
-}
-
-class IgnoringErrorListener implements AnalysisErrorListener {
-  @override
-  void onError(Object o) {}
-}
-
-class DirectiveLinker {
-  final DirectiveLinkerEnablement _directiveLinkerEnablement;
-  final StandardAngular standardAngular;
-
-  DirectiveLinker(this._directiveLinkerEnablement, this.standardAngular);
-
-  Future<List<AngularTopLevel>> resynthesizeDirectives(
-      UnlinkedDartSummary unlinked, String path) async {
-    if (unlinked == null) {
-      return [];
-    }
-
-    final unit = await _directiveLinkerEnablement.getUnit(path);
-
-    final source = unit.source;
-
-    final annotatedClasses = <AngularTopLevel>[];
-
-    for (final dirSum in unlinked.directiveSummaries) {
-      final selector =
-          new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
-              .parse();
-      final elementTags = <ElementNameSelector>[];
-      selector.recordElementNameSelectors(elementTags);
-      if (dirSum.functionName != "") {
-        assert(dirSum.classAnnotations == null);
-        assert(dirSum.exportAs == "");
-        assert(dirSum.isComponent == false);
-        final functionElem =
-            unit.functions.singleWhere((f) => f.name == dirSum.functionName);
-        annotatedClasses
-            .add(new FunctionalDirective(functionElem, selector, elementTags));
-        continue;
-      }
-      final classElem = unit.getType(dirSum.classAnnotations.className);
-      final bindingSynthesizer = new BindingTypeSynthesizer(
-          classElem,
-          unit.context.typeProvider,
-          unit.context,
-          new ErrorReporter(new IgnoringErrorListener(), unit.source));
-      final exportAs = dirSum.exportAs == ""
-          ? null
-          : new AngularElementImpl(dirSum.exportAs, dirSum.exportAsOffset,
-              dirSum.exportAs.length, source);
-      final inputs = deserializeInputs(
-          dirSum.classAnnotations, classElem, source, bindingSynthesizer);
-      final outputs = deserializeOutputs(
-          dirSum.classAnnotations, classElem, source, bindingSynthesizer);
-      final contentChildFields = deserializeContentChildFields(
-          dirSum.classAnnotations.contentChildFields);
-      final contentChildrenFields = deserializeContentChildFields(
-          dirSum.classAnnotations.contentChildrenFields);
-      if (dirSum.isComponent) {
-        final ngContents = deserializeNgContents(dirSum.ngContents, source);
-        final exports = deserializeExports(dirSum.exports);
-        final pipeRefs = deserializePipes(dirSum.pipesUse);
-        final component = new Component(classElem,
-            exportAs: exportAs,
-            selector: selector,
-            inputs: inputs,
-            outputs: outputs,
-            isHtml: false,
-            ngContents: ngContents,
-            elementTags: elementTags,
-            contentChildFields: contentChildFields,
-            contentChildrenFields: contentChildrenFields);
-        annotatedClasses.add(component);
-        final subDirectives = <DirectiveReference>[];
-        for (final useSum in dirSum.subdirectives) {
-          subDirectives.add(new DirectiveReference(useSum.name, useSum.prefix,
-              new SourceRange(useSum.offset, useSum.length)));
-        }
-        Source templateUriSource;
-        SourceRange templateUrlRange;
-        if (dirSum.templateUrl != '') {
-          templateUriSource =
-              _directiveLinkerEnablement.getSource(dirSum.templateUrl);
-          templateUrlRange = new SourceRange(
-              dirSum.templateUrlOffset, dirSum.templateUrlLength);
-        }
-        component.view = new View(classElem, component, [], [],
-            templateText: dirSum.templateText,
-            templateOffset: dirSum.templateOffset,
-            templateUriSource: templateUriSource,
-            templateUrlRange: templateUrlRange,
-            directivesStrategy: dirSum.usesArrayOfDirectiveReferencesStrategy
-                ? new ArrayOfDirectiveReferencesStrategy(subDirectives)
-                : new UseConstValueStrategy(
-                    classElem,
-                    standardAngular,
-                    new SourceRange(dirSum.constDirectiveStrategyOffset,
-                        dirSum.constDirectiveStrategyLength)),
-            exports: exports,
-            pipeReferences: pipeRefs);
-      } else {
-        annotatedClasses.add(new Directive(classElem,
-            exportAs: exportAs,
-            selector: selector,
-            inputs: inputs,
-            outputs: outputs,
-            elementTags: elementTags,
-            contentChildFields: contentChildFields,
-            contentChildrenFields: contentChildrenFields));
-      }
-    }
-
-    for (final annotations in unlinked.annotatedClasses) {
-      final classElem = unit.getType(annotations.className);
-      final bindingSynthesizer = new BindingTypeSynthesizer(
-          classElem,
-          unit.context.typeProvider,
-          unit.context,
-          new ErrorReporter(new IgnoringErrorListener(), unit.source));
-      final inputs =
-          deserializeInputs(annotations, classElem, source, bindingSynthesizer);
-      final outputs = deserializeOutputs(
-          annotations, classElem, source, bindingSynthesizer);
-      final contentChildFields =
-          deserializeContentChildFields(annotations.contentChildFields);
-      final contentChildrenFields =
-          deserializeContentChildFields(annotations.contentChildrenFields);
-      annotatedClasses.add(new AngularAnnotatedClass(classElem,
-          inputs: inputs,
-          outputs: outputs,
-          contentChildFields: contentChildFields,
-          contentChildrenFields: contentChildrenFields));
-    }
-
-    return annotatedClasses;
-  }
-
-  List<InputElement> deserializeInputs(
-      SummarizedClassAnnotations annotations,
-      ClassElement classElem,
-      Source source,
-      BindingTypeSynthesizer bindingSynthesizer) {
-    final inputs = <InputElement>[];
-    for (final inputSum in annotations.inputs) {
-      // is this correct lookup?
-      final setter =
-          classElem.lookUpSetter(inputSum.propName, classElem.library);
-      if (setter == null) {
-        continue;
-      }
-      inputs.add(new InputElement(
-          inputSum.name,
-          inputSum.nameOffset,
-          inputSum.name.length,
-          source,
-          setter,
-          new SourceRange(inputSum.propNameOffset, inputSum.propName.length),
-          bindingSynthesizer
-              .getSetterType(setter))); // Don't think type is correct
-    }
-
-    return inputs;
-  }
-
-  List<OutputElement> deserializeOutputs(
-      SummarizedClassAnnotations annotations,
-      ClassElement classElem,
-      Source source,
-      BindingTypeSynthesizer bindingSynthesizer) {
-    final outputs = <OutputElement>[];
-    for (final outputSum in annotations.outputs) {
-      // is this correct lookup?
-      final getter =
-          classElem.lookUpGetter(outputSum.propName, classElem.library);
-      if (getter == null) {
-        continue;
-      }
-      outputs.add(new OutputElement(
-          outputSum.name,
-          outputSum.nameOffset,
-          outputSum.name.length,
-          source,
-          getter,
-          new SourceRange(outputSum.propNameOffset, outputSum.propName.length),
-          bindingSynthesizer.getEventType(getter, getter.name)));
-    }
-
-    return outputs;
-  }
-
-  List<NgContent> deserializeNgContents(
-          List<SummarizedNgContent> ngContentSums, Source source) =>
-      ngContentSums.map((ngContentSum) {
-        final selector = ngContentSum.selectorStr == ""
-            ? null
-            : new SelectorParser(source, ngContentSum.selectorOffset,
-                    ngContentSum.selectorStr)
-                .parse();
-        return new NgContent.withSelector(
-            ngContentSum.offset,
-            ngContentSum.length,
-            selector,
-            selector?.offset,
-            ngContentSum.selectorStr.length);
-      }).toList();
-
-  List<PipeReference> deserializePipes(List<SummarizedPipesUse> pipesUse) =>
-      pipesUse
-          .map((pipeUse) => new PipeReference(
-              pipeUse.name, new SourceRange(pipeUse.offset, pipeUse.length),
-              prefix: pipeUse.prefix))
-          .toList();
-
-  List<ExportedIdentifier> deserializeExports(
-          List<SummarizedExportedIdentifier> exports) =>
-      exports
-          .map((export) => new ExportedIdentifier(
-              export.name, new SourceRange(export.offset, export.length),
-              prefix: export.prefix))
-          .toList();
-
-  List<ContentChildField> deserializeContentChildFields(
-          List<SummarizedContentChildField> fieldSums) =>
-      fieldSums
-          .map((fieldSum) => new ContentChildField(fieldSum.fieldName,
-              nameRange:
-                  new SourceRange(fieldSum.nameOffset, fieldSum.nameLength),
-              typeRange:
-                  new SourceRange(fieldSum.typeOffset, fieldSum.typeLength)))
-          .toList();
-}
-
-class ExportLinker {
-  final LibraryScope _scope;
-  final ErrorReporter _errorReporter;
-
-  ExportLinker(this._scope, this._errorReporter);
-
-  void linkExportsFor(AbstractDirective directive) {
-    if (directive is! Component) {
-      return;
-    }
-
-    final Component component = directive;
-
-    if (component?.view?.exports == null) {
-      return;
-    }
-
-    for (final export in component.view.exports) {
-      if (hasWrongTypeOfPrefix(export)) {
-        _errorReporter.reportErrorForOffset(
-            AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
-            export.span.offset,
-            export.span.length);
-        continue;
-      }
-
-      final element = _scope.lookup(getIdentifier(export), null);
-      if (element == component.classElement) {
-        _errorReporter.reportErrorForOffset(
-            AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
-            export.span.offset,
-            export.span.length);
-        continue;
-      }
-
-      export.element = element;
-    }
-  }
-
-  /// Only report false for known non-import-prefix prefixes, the rest get
-  /// flagged by the dart analyzer already.
-  bool hasWrongTypeOfPrefix(ExportedIdentifier export) {
-    if (export.prefix == '') {
-      return false;
-    }
-
-    final prefixElement =
-        _scope.lookup(getPrefixAsSimpleIdentifier(export), null);
-
-    return prefixElement != null && prefixElement is! PrefixElement;
-  }
-
-  Identifier getIdentifier(ExportedIdentifier export) => export.prefix == ''
-      ? getSimpleIdentifier(export)
-      : getPrefixedIdentifier(export);
-
-  PrefixedIdentifier getPrefixedIdentifier(ExportedIdentifier export) =>
-      astFactory.prefixedIdentifier(
-          getPrefixAsSimpleIdentifier(export),
-          new SimpleToken(
-              TokenType.PERIOD, export.span.offset + export.prefix.length),
-          getSimpleIdentifier(export, offset: export.prefix.length + 1));
-
-  SimpleIdentifier getPrefixAsSimpleIdentifier(ExportedIdentifier export) =>
-      astFactory.simpleIdentifier(new StringToken(
-          TokenType.IDENTIFIER, export.prefix, export.span.offset));
-
-  SimpleIdentifier getSimpleIdentifier(ExportedIdentifier export,
-          {int offset: 0}) =>
-      astFactory.simpleIdentifier(new StringToken(TokenType.IDENTIFIER,
-          export.identifier, export.span.offset + offset));
-}
-
-class InheritedMetadataLinker {
-  AbstractClassDirective directive;
-  FileDirectiveProvider _fileDirectiveProvider;
-  BindingTypeSynthesizer bindingSynthesizer;
-
-  InheritedMetadataLinker(this.directive, this._fileDirectiveProvider)
-      : bindingSynthesizer = new BindingTypeSynthesizer(
-            directive.classElement,
-            directive.classElement.library.definingCompilationUnit.context
-                .typeProvider,
-            directive.classElement.library.definingCompilationUnit.context,
-            new ErrorReporter(new IgnoringErrorListener(), directive.source));
-
-  Future link() async {
-    for (final supertype in directive.classElement.allSupertypes) {
-      final result = await _fileDirectiveProvider
-          .getUnlinkedAngularTopLevels(supertype.element.source.fullName);
-      final match = result.firstWhere(
-          (c) =>
-              c is AngularAnnotatedClass && c.classElement == supertype.element,
-          orElse: () => null);
-
-      if (match == null) {
-        continue;
-      }
-
-      directive.inputs.addAll(match.inputs.map(reresolveInput));
-      directive.outputs.addAll(match.outputs.map(reresolveOutput));
-      directive.contentChildFields.addAll(match.contentChildFields);
-      directive.contentChildrenFields.addAll(match.contentChildrenFields);
-    }
-  }
-
-  InputElement reresolveInput(InputElement input) {
-    final setter = directive.classElement
-        .lookUpSetter(input.setter.displayName, directive.classElement.library);
-    if (setter == null) {
-      // Happens when an interface with an input isn't implemented correctly.
-      // This will be accompanied by a dart error, so we can just return the
-      // original without transformation to prevent cascading errors.
-      return input;
-    }
-    return new InputElement(
-        input.name,
-        input.nameOffset,
-        input.nameLength,
-        input.source,
-        setter,
-        new SourceRange(setter.nameOffset, setter.nameLength),
-        bindingSynthesizer.getSetterType(setter));
-  }
-
-  OutputElement reresolveOutput(OutputElement output) {
-    final getter = directive.classElement
-        .lookUpGetter(output.getter.name, directive.classElement.library);
-    if (getter == null) {
-      // Happens when an interface with an output isn't implemented correctly.
-      // This will be accompanied by a dart error, so we can just return the
-      // original without transformation to prevent cascading errors.
-      return output;
-    }
-    return new OutputElement(
-        output.name,
-        output.nameOffset,
-        output.nameLength,
-        output.source,
-        getter,
-        new SourceRange(getter.nameOffset, getter.nameLength),
-        bindingSynthesizer.getEventType(getter, output.name));
-  }
-}
+typedef DartType TransformSetterTypeFn(
+    DartType setterType, ContentChildField field, String annotationName);
 
 class ChildDirectiveLinker implements DirectiveMatcher {
   final FileDirectiveProvider _fileDirectiveProvider;
@@ -479,24 +94,45 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     }
   }
 
+  Future<AbstractDirective> linkedAsChild(AbstractDirective directive) async {
+    if (directive is Component && directive?.view?.templateUriSource != null) {
+      final source = directive.view.templateUriSource;
+      directive.ngContents.addAll(
+          await _fileDirectiveProvider.getHtmlNgContent(source.fullName));
+    }
+
+    // NOTE: Require the Exact type TemplateRef because that's what the
+    // injector does.
+    directive.looksLikeTemplate = directive is FunctionalDirective
+        ? directive.functionElement.parameters
+            .any((param) => param.type == _standardAngular.templateRef.type)
+        : (directive as AbstractClassDirective).classElement.constructors.any(
+            (constructor) => constructor.parameters.any(
+                (param) => param.type == _standardAngular.templateRef.type));
+
+    if (directive is AbstractClassDirective) {
+      // Important: Link inherited metadata before content child fields, as
+      // the directive may import unlinked content childs
+      await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
+          .link();
+
+      // ignore errors from linking subcomponents content childs
+      final errorIgnorer =
+          new ErrorReporter(new IgnoringErrorListener(), directive.source);
+      await new ContentChildLinker(
+              directive, this, _standardAngular, _standardHtml, errorIgnorer)
+          .linkContentChildren();
+    }
+
+    return directive;
+  }
+
   AbstractDirective lookupDirectiveByName(
       DirectiveReference reference, List<AbstractDirective> directivesToLink) {
     if (reference.prefix != "") {
       return null;
     }
     final options = directivesToLink.where((d) => d.name == reference.name);
-    if (options.length == 1) {
-      return options.first;
-    }
-    return null;
-  }
-
-  Pipe lookupPipeByName(PipeReference reference, List<Pipe> pipesToLink) {
-    if (reference.prefix != '') {
-      return null;
-    }
-    final options =
-        pipesToLink.where((p) => p.classElement.name == reference.identifier);
     if (options.length == 1) {
       return options.first;
     }
@@ -549,6 +185,18 @@ class ChildDirectiveLinker implements DirectiveMatcher {
         AngularWarningCode.TYPE_LITERAL_EXPECTED,
         reference.range.offset,
         reference.range.length);
+  }
+
+  Pipe lookupPipeByName(PipeReference reference, List<Pipe> pipesToLink) {
+    if (reference.prefix != '') {
+      return null;
+    }
+    final options =
+        pipesToLink.where((p) => p.classElement.name == reference.identifier);
+    if (options.length == 1) {
+      return options.first;
+    }
+    return null;
   }
 
   Future lookupPipeFromLibrary(
@@ -706,44 +354,6 @@ class ChildDirectiveLinker implements DirectiveMatcher {
       }
     }
   }
-
-  Future<AbstractDirective> linkedAsChild(AbstractDirective directive) async {
-    if (directive is Component && directive?.view?.templateUriSource != null) {
-      final source = directive.view.templateUriSource;
-      directive.ngContents.addAll(
-          await _fileDirectiveProvider.getHtmlNgContent(source.fullName));
-    }
-
-    // NOTE: Require the Exact type TemplateRef because that's what the
-    // injector does.
-    directive.looksLikeTemplate = directive is FunctionalDirective
-        ? directive.functionElement.parameters
-            .any((param) => param.type == _standardAngular.templateRef.type)
-        : (directive as AbstractClassDirective).classElement.constructors.any(
-            (constructor) => constructor.parameters.any(
-                (param) => param.type == _standardAngular.templateRef.type));
-
-    if (directive is AbstractClassDirective) {
-      // Important: Link inherited metadata before content child fields, as
-      // the directive may import unlinked content childs
-      await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
-          .link();
-
-      // ignore errors from linking subcomponents content childs
-      final errorIgnorer =
-          new ErrorReporter(new IgnoringErrorListener(), directive.source);
-      await new ContentChildLinker(
-              directive, this, _standardAngular, _standardHtml, errorIgnorer)
-          .linkContentChildren();
-    }
-
-    return directive;
-  }
-}
-
-abstract class DirectiveMatcher {
-  Future<AbstractDirective> matchDirectiveByElement(Element element);
-  Future<Pipe> matchPipe(ClassElement clazz);
 }
 
 class ContentChildLinker {
@@ -761,6 +371,48 @@ class ContentChildLinker {
       : _context =
             directive.classElement.enclosingElement.enclosingElement.context,
         _directive = directive;
+
+  void checkQueriedTypeAssignableTo(DartType setterType, DartType annotatedType,
+      ContentChildField field, String annotationName) {
+    if (setterType != null && !setterType.isSupertypeOf(annotatedType)) {
+      _errorReporter.reportErrorForOffset(
+          AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
+          field.typeRange.offset,
+          field.typeRange.length,
+          [field.fieldName, annotationName, annotatedType, setterType]);
+    }
+  }
+
+  /// ConstantValue.getField() doesn't look up the inheritance tree. Rather than
+  /// hardcoding the inheritance tree in our code, look up the inheritance tree
+  /// until either it ends, or we find a "selector" field.
+  DartObject getFieldWithInheritance(DartObject value, String field) {
+    final selector = value.getField(field);
+    if (selector != null) {
+      return selector;
+    }
+
+    final _super = value.getField('(super)');
+    if (_super != null) {
+      return getFieldWithInheritance(_super, field);
+    }
+
+    return null;
+  }
+
+  /// See [getFieldWithInheritance]
+  DartType getReadWithInheritance(DartObject value) {
+    final constantVal = getFieldWithInheritance(value, 'read');
+    if (constantVal.isNull) {
+      return null;
+    }
+
+    return constantVal.toTypeValue();
+  }
+
+  /// See [getFieldWithInheritance]
+  DartObject getSelectorWithInheritance(DartObject value) =>
+      getFieldWithInheritance(value, 'selector');
 
   Future linkContentChildren() async {
     final unit = _directive.classElement.enclosingElement.enclosingElement;
@@ -782,37 +434,6 @@ class ContentChildLinker {
           annotationName: "ContentChildren",
           destinationArray: _directive.contentChildren);
     }
-  }
-
-  /// See [getFieldWithInheritance]
-  DartObject getSelectorWithInheritance(DartObject value) =>
-      getFieldWithInheritance(value, 'selector');
-
-  /// See [getFieldWithInheritance]
-  DartType getReadWithInheritance(DartObject value) {
-    final constantVal = getFieldWithInheritance(value, 'read');
-    if (constantVal.isNull) {
-      return null;
-    }
-
-    return constantVal.toTypeValue();
-  }
-
-  /// ConstantValue.getField() doesn't look up the inheritance tree. Rather than
-  /// hardcoding the inheritance tree in our code, look up the inheritance tree
-  /// until either it ends, or we find a "selector" field.
-  DartObject getFieldWithInheritance(DartObject value, String field) {
-    final selector = value.getField(field);
-    if (selector != null) {
-      return selector;
-    }
-
-    final _super = value.getField('(super)');
-    if (_super != null) {
-      return getFieldWithInheritance(_super, field);
-    }
-
-    return null;
   }
 
   Future recordContentChildOrChildren(
@@ -911,21 +532,6 @@ class ContentChildLinker {
     }
   }
 
-  void checkQueriedTypeAssignableTo(DartType setterType, DartType annotatedType,
-      ContentChildField field, String annotationName) {
-    if (setterType != null && !setterType.isSupertypeOf(annotatedType)) {
-      _errorReporter.reportErrorForOffset(
-          AngularWarningCode.INVALID_TYPE_FOR_CHILD_QUERY,
-          field.typeRange.offset,
-          field.typeRange.length,
-          [field.fieldName, annotationName, annotatedType, setterType]);
-    }
-  }
-
-  DartType transformSetterTypeSingular(DartType setterType,
-          ContentChildField field, String annotationName) =>
-      setterType;
-
   DartType transformSetterTypeMultiple(
       DartType setterType, ContentChildField field, String annotationName) {
     // construct List<Bottom>, which is a supertype of all List<T>
@@ -957,7 +563,403 @@ class ContentChildLinker {
     return _context.typeSystem
         .mostSpecificTypeArgument(setterType, iterableType);
   }
+
+  DartType transformSetterTypeSingular(DartType setterType,
+          ContentChildField field, String annotationName) =>
+      setterType;
 }
 
-typedef DartType TransformSetterTypeFn(
-    DartType setterType, ContentChildField field, String annotationName);
+class DirectiveLinker {
+  final DirectiveLinkerEnablement _directiveLinkerEnablement;
+  final StandardAngular standardAngular;
+
+  DirectiveLinker(this._directiveLinkerEnablement, this.standardAngular);
+
+  List<ContentChildField> deserializeContentChildFields(
+          List<SummarizedContentChildField> fieldSums) =>
+      fieldSums
+          .map((fieldSum) => new ContentChildField(fieldSum.fieldName,
+              nameRange:
+                  new SourceRange(fieldSum.nameOffset, fieldSum.nameLength),
+              typeRange:
+                  new SourceRange(fieldSum.typeOffset, fieldSum.typeLength)))
+          .toList();
+
+  List<ExportedIdentifier> deserializeExports(
+          List<SummarizedExportedIdentifier> exports) =>
+      exports
+          .map((export) => new ExportedIdentifier(
+              export.name, new SourceRange(export.offset, export.length),
+              prefix: export.prefix))
+          .toList();
+
+  List<InputElement> deserializeInputs(
+      SummarizedClassAnnotations annotations,
+      ClassElement classElem,
+      Source source,
+      BindingTypeSynthesizer bindingSynthesizer) {
+    final inputs = <InputElement>[];
+    for (final inputSum in annotations.inputs) {
+      // is this correct lookup?
+      final setter =
+          classElem.lookUpSetter(inputSum.propName, classElem.library);
+      if (setter == null) {
+        continue;
+      }
+      inputs.add(new InputElement(
+          inputSum.name,
+          inputSum.nameOffset,
+          inputSum.name.length,
+          source,
+          setter,
+          new SourceRange(inputSum.propNameOffset, inputSum.propName.length),
+          bindingSynthesizer
+              .getSetterType(setter))); // Don't think type is correct
+    }
+
+    return inputs;
+  }
+
+  List<NgContent> deserializeNgContents(
+          List<SummarizedNgContent> ngContentSums, Source source) =>
+      ngContentSums.map((ngContentSum) {
+        final selector = ngContentSum.selectorStr == ""
+            ? null
+            : new SelectorParser(source, ngContentSum.selectorOffset,
+                    ngContentSum.selectorStr)
+                .parse();
+        return new NgContent.withSelector(
+            ngContentSum.offset,
+            ngContentSum.length,
+            selector,
+            selector?.offset,
+            ngContentSum.selectorStr.length);
+      }).toList();
+
+  List<OutputElement> deserializeOutputs(
+      SummarizedClassAnnotations annotations,
+      ClassElement classElem,
+      Source source,
+      BindingTypeSynthesizer bindingSynthesizer) {
+    final outputs = <OutputElement>[];
+    for (final outputSum in annotations.outputs) {
+      // is this correct lookup?
+      final getter =
+          classElem.lookUpGetter(outputSum.propName, classElem.library);
+      if (getter == null) {
+        continue;
+      }
+      outputs.add(new OutputElement(
+          outputSum.name,
+          outputSum.nameOffset,
+          outputSum.name.length,
+          source,
+          getter,
+          new SourceRange(outputSum.propNameOffset, outputSum.propName.length),
+          bindingSynthesizer.getEventType(getter, getter.name)));
+    }
+
+    return outputs;
+  }
+
+  List<PipeReference> deserializePipes(List<SummarizedPipesUse> pipesUse) =>
+      pipesUse
+          .map((pipeUse) => new PipeReference(
+              pipeUse.name, new SourceRange(pipeUse.offset, pipeUse.length),
+              prefix: pipeUse.prefix))
+          .toList();
+
+  Future<List<AngularTopLevel>> resynthesizeDirectives(
+      UnlinkedDartSummary unlinked, String path) async {
+    if (unlinked == null) {
+      return [];
+    }
+
+    final unit = await _directiveLinkerEnablement.getUnit(path);
+
+    final source = unit.source;
+
+    final annotatedClasses = <AngularTopLevel>[];
+
+    for (final dirSum in unlinked.directiveSummaries) {
+      final selector =
+          new SelectorParser(source, dirSum.selectorOffset, dirSum.selectorStr)
+              .parse();
+      final elementTags = <ElementNameSelector>[];
+      selector.recordElementNameSelectors(elementTags);
+      if (dirSum.functionName != "") {
+        assert(dirSum.classAnnotations == null);
+        assert(dirSum.exportAs == "");
+        assert(dirSum.isComponent == false);
+        final functionElem =
+            unit.functions.singleWhere((f) => f.name == dirSum.functionName);
+        annotatedClasses
+            .add(new FunctionalDirective(functionElem, selector, elementTags));
+        continue;
+      }
+      final classElem = unit.getType(dirSum.classAnnotations.className);
+      final bindingSynthesizer = new BindingTypeSynthesizer(
+          classElem,
+          unit.context.typeProvider,
+          unit.context,
+          new ErrorReporter(new IgnoringErrorListener(), unit.source));
+      final exportAs = dirSum.exportAs == ""
+          ? null
+          : new AngularElementImpl(dirSum.exportAs, dirSum.exportAsOffset,
+              dirSum.exportAs.length, source);
+      final inputs = deserializeInputs(
+          dirSum.classAnnotations, classElem, source, bindingSynthesizer);
+      final outputs = deserializeOutputs(
+          dirSum.classAnnotations, classElem, source, bindingSynthesizer);
+      final contentChildFields = deserializeContentChildFields(
+          dirSum.classAnnotations.contentChildFields);
+      final contentChildrenFields = deserializeContentChildFields(
+          dirSum.classAnnotations.contentChildrenFields);
+      if (dirSum.isComponent) {
+        final ngContents = deserializeNgContents(dirSum.ngContents, source);
+        final exports = deserializeExports(dirSum.exports);
+        final pipeRefs = deserializePipes(dirSum.pipesUse);
+        final component = new Component(classElem,
+            exportAs: exportAs,
+            selector: selector,
+            inputs: inputs,
+            outputs: outputs,
+            isHtml: false,
+            ngContents: ngContents,
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
+        annotatedClasses.add(component);
+        final subDirectives = <DirectiveReference>[];
+        for (final useSum in dirSum.subdirectives) {
+          subDirectives.add(new DirectiveReference(useSum.name, useSum.prefix,
+              new SourceRange(useSum.offset, useSum.length)));
+        }
+        Source templateUriSource;
+        SourceRange templateUrlRange;
+        if (dirSum.templateUrl != '') {
+          templateUriSource =
+              _directiveLinkerEnablement.getSource(dirSum.templateUrl);
+          templateUrlRange = new SourceRange(
+              dirSum.templateUrlOffset, dirSum.templateUrlLength);
+        }
+        component.view = new View(classElem, component, [], [],
+            templateText: dirSum.templateText,
+            templateOffset: dirSum.templateOffset,
+            templateUriSource: templateUriSource,
+            templateUrlRange: templateUrlRange,
+            directivesStrategy: dirSum.usesArrayOfDirectiveReferencesStrategy
+                ? new ArrayOfDirectiveReferencesStrategy(subDirectives)
+                : new UseConstValueStrategy(
+                    classElem,
+                    standardAngular,
+                    new SourceRange(dirSum.constDirectiveStrategyOffset,
+                        dirSum.constDirectiveStrategyLength)),
+            exports: exports,
+            pipeReferences: pipeRefs);
+      } else {
+        annotatedClasses.add(new Directive(classElem,
+            exportAs: exportAs,
+            selector: selector,
+            inputs: inputs,
+            outputs: outputs,
+            elementTags: elementTags,
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields));
+      }
+    }
+
+    for (final annotations in unlinked.annotatedClasses) {
+      final classElem = unit.getType(annotations.className);
+      final bindingSynthesizer = new BindingTypeSynthesizer(
+          classElem,
+          unit.context.typeProvider,
+          unit.context,
+          new ErrorReporter(new IgnoringErrorListener(), unit.source));
+      final inputs =
+          deserializeInputs(annotations, classElem, source, bindingSynthesizer);
+      final outputs = deserializeOutputs(
+          annotations, classElem, source, bindingSynthesizer);
+      final contentChildFields =
+          deserializeContentChildFields(annotations.contentChildFields);
+      final contentChildrenFields =
+          deserializeContentChildFields(annotations.contentChildrenFields);
+      annotatedClasses.add(new AngularAnnotatedClass(classElem,
+          inputs: inputs,
+          outputs: outputs,
+          contentChildFields: contentChildFields,
+          contentChildrenFields: contentChildrenFields));
+    }
+
+    return annotatedClasses;
+  }
+}
+
+abstract class DirectiveLinkerEnablement {
+  Source getSource(String path);
+  Future<CompilationUnitElement> getUnit(String path);
+}
+
+abstract class DirectiveMatcher {
+  Future<AbstractDirective> matchDirectiveByElement(Element element);
+  Future<Pipe> matchPipe(ClassElement clazz);
+}
+
+class ExportLinker {
+  final LibraryScope _scope;
+  final ErrorReporter _errorReporter;
+
+  ExportLinker(this._scope, this._errorReporter);
+
+  Identifier getIdentifier(ExportedIdentifier export) => export.prefix == ''
+      ? getSimpleIdentifier(export)
+      : getPrefixedIdentifier(export);
+
+  SimpleIdentifier getPrefixAsSimpleIdentifier(ExportedIdentifier export) =>
+      astFactory.simpleIdentifier(new StringToken(
+          TokenType.IDENTIFIER, export.prefix, export.span.offset));
+
+  PrefixedIdentifier getPrefixedIdentifier(ExportedIdentifier export) =>
+      astFactory.prefixedIdentifier(
+          getPrefixAsSimpleIdentifier(export),
+          new SimpleToken(
+              TokenType.PERIOD, export.span.offset + export.prefix.length),
+          getSimpleIdentifier(export, offset: export.prefix.length + 1));
+
+  SimpleIdentifier getSimpleIdentifier(ExportedIdentifier export,
+          {int offset: 0}) =>
+      astFactory.simpleIdentifier(new StringToken(TokenType.IDENTIFIER,
+          export.identifier, export.span.offset + offset));
+
+  /// Only report false for known non-import-prefix prefixes, the rest get
+  /// flagged by the dart analyzer already.
+  bool hasWrongTypeOfPrefix(ExportedIdentifier export) {
+    if (export.prefix == '') {
+      return false;
+    }
+
+    final prefixElement =
+        _scope.lookup(getPrefixAsSimpleIdentifier(export), null);
+
+    return prefixElement != null && prefixElement is! PrefixElement;
+  }
+
+  void linkExportsFor(AbstractDirective directive) {
+    if (directive is! Component) {
+      return;
+    }
+
+    final Component component = directive;
+
+    if (component?.view?.exports == null) {
+      return;
+    }
+
+    for (final export in component.view.exports) {
+      if (hasWrongTypeOfPrefix(export)) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
+            export.span.offset,
+            export.span.length);
+        continue;
+      }
+
+      final element = _scope.lookup(getIdentifier(export), null);
+      if (element == component.classElement) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
+            export.span.offset,
+            export.span.length);
+        continue;
+      }
+
+      export.element = element;
+    }
+  }
+}
+
+abstract class FileDirectiveProvider {
+  Future<List<NgContent>> getHtmlNgContent(String path);
+  Future<List<AngularTopLevel>> getUnlinkedAngularTopLevels(String path);
+}
+
+abstract class FilePipeProvider {
+  Future<List<Pipe>> getUnlinkedPipes(String path);
+}
+
+class IgnoringErrorListener implements AnalysisErrorListener {
+  @override
+  void onError(Object o) {}
+}
+
+class InheritedMetadataLinker {
+  AbstractClassDirective directive;
+  FileDirectiveProvider _fileDirectiveProvider;
+  BindingTypeSynthesizer bindingSynthesizer;
+
+  InheritedMetadataLinker(this.directive, this._fileDirectiveProvider)
+      : bindingSynthesizer = new BindingTypeSynthesizer(
+            directive.classElement,
+            directive.classElement.library.definingCompilationUnit.context
+                .typeProvider,
+            directive.classElement.library.definingCompilationUnit.context,
+            new ErrorReporter(new IgnoringErrorListener(), directive.source));
+
+  Future link() async {
+    for (final supertype in directive.classElement.allSupertypes) {
+      final result = await _fileDirectiveProvider
+          .getUnlinkedAngularTopLevels(supertype.element.source.fullName);
+      final match = result.firstWhere(
+          (c) =>
+              c is AngularAnnotatedClass && c.classElement == supertype.element,
+          orElse: () => null);
+
+      if (match == null) {
+        continue;
+      }
+
+      directive.inputs.addAll(match.inputs.map(reresolveInput));
+      directive.outputs.addAll(match.outputs.map(reresolveOutput));
+      directive.contentChildFields.addAll(match.contentChildFields);
+      directive.contentChildrenFields.addAll(match.contentChildrenFields);
+    }
+  }
+
+  InputElement reresolveInput(InputElement input) {
+    final setter = directive.classElement
+        .lookUpSetter(input.setter.displayName, directive.classElement.library);
+    if (setter == null) {
+      // Happens when an interface with an input isn't implemented correctly.
+      // This will be accompanied by a dart error, so we can just return the
+      // original without transformation to prevent cascading errors.
+      return input;
+    }
+    return new InputElement(
+        input.name,
+        input.nameOffset,
+        input.nameLength,
+        input.source,
+        setter,
+        new SourceRange(setter.nameOffset, setter.nameLength),
+        bindingSynthesizer.getSetterType(setter));
+  }
+
+  OutputElement reresolveOutput(OutputElement output) {
+    final getter = directive.classElement
+        .lookUpGetter(output.getter.name, directive.classElement.library);
+    if (getter == null) {
+      // Happens when an interface with an output isn't implemented correctly.
+      // This will be accompanied by a dart error, so we can just return the
+      // original without transformation to prevent cascading errors.
+      return output;
+    }
+    return new OutputElement(
+        output.name,
+        output.nameOffset,
+        output.nameLength,
+        output.source,
+        getter,
+        new SourceRange(getter.nameOffset, getter.nameLength),
+        bindingSynthesizer.getEventType(getter, output.name));
+  }
+}
