@@ -15,6 +15,9 @@ import 'package:test/test.dart';
 
 import 'abstract_angular.dart';
 
+// 'typed' is deprecated and shouldn't be used.
+// ignore_for_file: deprecated_member_use
+
 void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AngularNavigationTest);

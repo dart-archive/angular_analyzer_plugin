@@ -134,7 +134,7 @@ class TestPanel {
   }
 }
 ''');
-    var code = r'''
+    final code = r'''
 <div (click.whatever)='handle($event)'></div>
 ''';
     _addHtmlSource(code);
