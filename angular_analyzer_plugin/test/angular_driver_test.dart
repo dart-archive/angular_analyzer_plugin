@@ -1245,7 +1245,6 @@ class PipeA extends PipeTransform{
   }
 
   // ignore: non_constant_identifier_names
-  @soloTest
   Future test_Pipe_dynamic() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
