@@ -60,6 +60,9 @@ class ExportsImportElementFacade implements ImportElement {
   bool get hasRequired => _wrappedImport.hasRequired;
 
   @override
+  bool get hasVisibleForTemplate => _wrappedImport.hasVisibleForTemplate;
+
+  @override
   bool get hasVisibleForTesting => _wrappedImport.hasVisibleForTesting;
 
   @override

@@ -81,6 +81,9 @@ class ExportsLimitedCompilationUnitFacade implements CompilationUnitElement {
   bool get hasRequired => _wrappedUnit.hasRequired;
 
   @override
+  bool get hasVisibleForTemplate => _wrappedUnit.hasVisibleForTemplate;
+
+  @override
   bool get hasVisibleForTesting => _wrappedUnit.hasVisibleForTesting;
 
   @override
