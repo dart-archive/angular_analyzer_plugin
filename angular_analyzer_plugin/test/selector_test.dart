@@ -5,6 +5,9 @@ import 'package:test_reflective_loader/test_reflective_loader.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 
+// 'typed' is deprecated and shouldn't be used.
+// ignore_for_file: deprecated_member_use
+
 void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(AndSelectorTest);
