@@ -105,7 +105,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
             constantEvaluation.value is! String) {
           templateText = '';
         } else {
-          templateText = constantEvaluation.value;
+          templateText = constantEvaluation.value as String;
         }
       }
     }
@@ -281,7 +281,7 @@ class TemplateParser {
         AngularWarningCode.UNOPENED_MUSTACHE,
   };
 
-  List<ng_ast.TemplateAst> rawAst;
+  List<ng_ast.StandaloneTemplateAst> rawAst;
   final parseErrors = <AnalysisError>[];
 
   void parse(String content, Source source, {int offset = 0}) {
@@ -296,7 +296,7 @@ class TemplateParser {
       desugar: false,
       parseExpressions: false,
       exceptionHandler: exceptionHandler,
-    );
+    ) as List<ng_ast.StandaloneTemplateAst>;
 
     for (final e in exceptionHandler.exceptions) {
       if (e.errorCode is ng_ast.NgParserWarningCode) {

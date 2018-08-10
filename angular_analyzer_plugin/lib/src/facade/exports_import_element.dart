@@ -136,7 +136,7 @@ class ExportsImportElementFacade implements ImportElement {
       .computeDocumentationComment(); // ignore: deprecated_member_use
 
   @override
-  CompilationUnit computeNode() => _wrappedImport.computeNode();
+  AstNode computeNode() => _wrappedImport.computeNode();
 
   @override
   E getAncestor<E extends Element>(Predicate<Element> predicate) =>

@@ -358,8 +358,8 @@ class AngularDriver
           attributes,
           standardEvents,
           customEvents,
-          result.libraryElement.exportNamespace.get('Element'),
-          result.libraryElement.exportNamespace.get('HtmlElement'));
+          result.libraryElement.exportNamespace.get('Element') as ClassElement,
+          result.libraryElement.exportNamespace.get('HtmlElement') as ClassElement);
     }
 
     return standardHtml;
@@ -442,7 +442,7 @@ class AngularDriver
 
   String getFileContent(String path) =>
       contentOverlay[path] ??
-      ((source) =>
+      ((Source source) => // ignore: avoid_types_on_closure_parameters
           source.exists() ? source.contents.data : "")(getSource(path));
 
   Future<DirectivesResult> _resolveHtml(
@@ -779,7 +779,7 @@ class AngularDriver
           htmlViews.add(view.templateUriSource.fullName);
         }
 
-        for (final subDirective in (view?.directives ?? [])) {
+        for (final subDirective in (view?.directives ?? <Null>[])) {
           usesDart.add(subDirective.source.fullName);
         }
       }
@@ -949,7 +949,7 @@ class AngularDriver
       final exportAsOffset = directive?.exportAs?.nameOffset;
       final exports = <SummarizedExportedIdentifierBuilder>[];
       if (directive is Component) {
-        for (final export in directive?.view?.exports ?? []) {
+        for (final export in directive?.view?.exports ?? <Null>[]) {
           exports.add(new SummarizedExportedIdentifierBuilder()
             ..name = export.identifier
             ..prefix = export.prefix

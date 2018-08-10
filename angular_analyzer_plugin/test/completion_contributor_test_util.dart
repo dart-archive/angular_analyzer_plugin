@@ -588,7 +588,7 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
       {String completion,
       CompletionSuggestionKind csKind,
       protocol.ElementKind elemKind}) {
-    var cs;
+    CompletionSuggestion cs;
     if (suggestions != null) {
       suggestions.forEach((s) {
         if (completion != null && completion != s.completion) {

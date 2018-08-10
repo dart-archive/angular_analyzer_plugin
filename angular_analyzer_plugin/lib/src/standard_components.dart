@@ -66,11 +66,11 @@ class StandardAngular {
             sanitizationAvailable: false));
 
     return new StandardAngular(
-        queryList: ng.get("QueryList"),
-        elementRef: ng.get("ElementRef"),
-        templateRef: ng.get("TemplateRef"),
-        pipeTransform: ng.get("PipeTransform"),
-        component: ng.get("Component"),
+        queryList: ng.get("QueryList") as ClassElement,
+        elementRef: ng.get("ElementRef") as ClassElement,
+        templateRef: ng.get("TemplateRef") as ClassElement,
+        pipeTransform: ng.get("PipeTransform") as ClassElement,
+        component: ng.get("Component") as ClassElement,
         securitySchema: securitySchema);
   }
 }

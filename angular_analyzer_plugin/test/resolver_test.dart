@@ -5377,7 +5377,7 @@ $code
     dartSource = newSource('/test_panel.dart', dartCode);
   }
 
-  void _addHtmlSource(final code) {
+  void _addHtmlSource(final String code) {
     htmlCode = code;
     htmlSource = newSource('/test_panel.html', htmlCode);
   }

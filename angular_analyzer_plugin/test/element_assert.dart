@@ -107,7 +107,7 @@ class ElementAssert {
   LocalVariableAssert get local {
     expect(element, const isInstanceOf<LocalVariable>());
     return new LocalVariableAssert(
-        element, _referenceOffset, _htmlSource, _htmlCode);
+        element as LocalVariable, _referenceOffset, _htmlSource, _htmlCode);
   }
 
   AngularElementAssert get selector {

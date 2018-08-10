@@ -73,7 +73,7 @@ class AngularCompletionRequest extends CompletionRequest {
           _dartSnippet = astFactory.parenthesizedExpression(
               new SyntheticBeginToken(TokenType.OPEN_PAREN, _dartSnippet.offset)
                 ..next = _dartSnippet.beginToken,
-              _dartSnippet,
+              _dartSnippet as Expression, // requires cast because reassigned
               new SyntheticToken(TokenType.CLOSE_PAREN, _dartSnippet.end));
         }
         _completionTarget = new CompletionTarget.forOffset(null, offset,

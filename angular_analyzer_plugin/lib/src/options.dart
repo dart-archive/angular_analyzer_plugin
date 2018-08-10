@@ -79,14 +79,15 @@ class _OptionsBuilder {
 
   void resolve() {
     customTagNames = new List<String>.from(
-        getOption('custom_tag_names', isListOfStrings) ?? []);
-    getOption('custom_events', isMapOfObjects)
+        getOption<List>('custom_tag_names', isListOfStrings) ?? []);
+    getOption<YamlMap>('custom_events', isMapOfObjects)
         ?.nodes
-        ?.forEach((nameNode, props) {
-      final name = (nameNode as YamlScalar).value as String;
+        ?.forEach((nameNodeKey, props) {
+      final nameNode = nameNodeKey as YamlScalar;
+      final name = nameNode.value as String;
       final offset = nameNode.span.start.offset;
-      customEvents[nameNode.value] = props is YamlMap
-          ? new CustomEvent(name, props['type'], props['path'], offset)
+      customEvents[name] = props is YamlMap
+          ? new CustomEvent(name, props['type'] as String, props['path'] as String, offset)
           // Handle `event:` with no value, a shortcut for dynamic.
           : new CustomEvent(name, null, null, offset);
     });
@@ -137,16 +138,16 @@ class _OptionsBuilder {
     }
 
     // Outdated edge case, support a map of options under `plugins: x: ...`.
-    final specified = pluginsSection.containsKey(key);
+    final specified = (pluginsSection as Map).containsKey(key);
     if (specified) {
       angularOptions = pluginsSection[key];
     }
     return specified;
   }
 
-  dynamic getOption(String key, bool validator(input)) {
+  T getOption<T>(String key, bool validator(input)) {
     if (angularOptions != null && validator(angularOptions[key])) {
-      return angularOptions[key];
+      return angularOptions[key] as T;
     }
     return null;
   }

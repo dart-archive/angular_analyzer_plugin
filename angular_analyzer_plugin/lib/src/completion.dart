@@ -464,7 +464,7 @@ class NgInheritedReferenceContributor extends CompletionContributor {
         export,
         relevance,
         typeName,
-        _createExportFunctionElement(export.element, elemKind, typeName)
+        _createExportFunctionElement(element, elemKind, typeName)
           ..returnType = typeName.toString(),
         withPrefix: withPrefix)
       ..returnType = element.returnType.toString()
@@ -636,6 +636,7 @@ class TemplateCompleter {
         }
       }
     } else if (target is AttributeInfo && target.parent is TemplateAttribute) {
+      final templateAttr = target.parent as TemplateAttribute;
       // `let foo`. Nothing to suggest.
       if (target is TextAttribute && target.name.startsWith("let-")) {
         return;
@@ -643,9 +644,9 @@ class TemplateCompleter {
 
       if (offsetContained(request.offset, target.originalNameOffset,
           target.originalName.length)) {
-        suggestInputsInTemplate(target.parent, collector, currentAttr: target);
+        suggestInputsInTemplate(templateAttr, collector, currentAttr: target);
       } else {
-        suggestInputsInTemplate(target.parent, collector);
+        suggestInputsInTemplate(templateAttr, collector);
       }
     } else if (target is ExpressionBoundAttribute &&
         offsetContained(request.offset, target.originalNameOffset,
@@ -936,10 +937,10 @@ class TemplateCompleter {
           .where((b) => b.attribute != currentAttr)
           .map((b) => b.boundOutput)).toSet();
 
-      final availableInputs = new HashSet.from(directive.boundDirective.inputs)
+      final availableInputs = new HashSet<InputElement>.from(directive.boundDirective.inputs)
           .difference(usedInputs);
       final availableOutputs =
-          new HashSet.from(directive.boundDirective.outputs)
+          new HashSet<OutputElement>.from(directive.boundDirective.outputs)
               .difference(usedOutputs);
       for (final input in availableInputs) {
         final inputName = input.name;
