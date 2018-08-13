@@ -237,24 +237,26 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
   /// Returns `null` if not an Angular annotation.
   FunctionalDirective _getFunctionalDirective(
       ast.FunctionDeclaration functionDeclaration) {
-    final functionElement = functionDeclaration.element as FunctionElement;
-    final annotationNode = functionDeclaration.metadata.firstWhere(
-        (ann) => isAngularAnnotation(ann, 'Directive'),
-        orElse: () => null);
+    var functionElement = functionDeclaration.element;
+    if (functionElement is FunctionElement) {
+      final annotationNode = functionDeclaration.metadata.firstWhere(
+          (ann) => isAngularAnnotation(ann, 'Directive'),
+          orElse: () => null);
 
-    if (annotationNode != null) {
-      // Don't fail to create a directive just because of a broken or missing
-      // selector, that results in cascading errors.
-      final selector = _parseSelector(annotationNode) ?? new AndSelector([]);
-      final elementTags = <ElementNameSelector>[];
-      final exportAs = getNamedArgument(annotationNode, 'exportAs');
-      if (exportAs != null) {
-        errorReporter.reportErrorForNode(
-            AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED,
-            exportAs);
+      if (annotationNode != null) {
+        // Don't fail to create a directive just because of a broken or missing
+        // selector, that results in cascading errors.
+        final selector = _parseSelector(annotationNode) ?? new AndSelector([]);
+        final elementTags = <ElementNameSelector>[];
+        final exportAs = getNamedArgument(annotationNode, 'exportAs');
+        if (exportAs != null) {
+          errorReporter.reportErrorForNode(
+              AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED,
+              exportAs);
+        }
+        selector.recordElementNameSelectors(elementTags);
+        return new FunctionalDirective(functionElement, selector, elementTags);
       }
-      selector.recordElementNameSelectors(elementTags);
-      return new FunctionalDirective(functionElement, selector, elementTags);
     }
 
     return null;
