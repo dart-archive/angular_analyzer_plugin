@@ -337,7 +337,7 @@ class EmbeddedDartParser {
 
   /// Parse the Dart statement starting at the given [token].
   List<Statement> _parseDartStatementsAtToken(Token token) {
-    final parser = new Parser(templateSource, errorListener);
+    final parser = new Parser.withoutFasta(templateSource, errorListener);
     return parser.parseStatements(token);
   }
 
