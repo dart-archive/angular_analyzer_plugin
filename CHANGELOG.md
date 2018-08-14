@@ -1,5 +1,10 @@
 ## Unpublished
 
+## 0.0.17+3
+
+- Fixed an issue where a cast error from certain top-level getters would crash
+  the plugin.
+
 ## 0.0.17+2
 
 - Fixed an issue where pipes with a dynamic type optional parameter would crash
