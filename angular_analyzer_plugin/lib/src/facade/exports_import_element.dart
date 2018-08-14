@@ -10,7 +10,8 @@ class ExportsImportElementFacade extends WrappedImportElement {
   LibraryElement libraryFacade;
 
   ExportsImportElementFacade(ImportElement wrappedImport, this._component,
-                             {this.libraryFacade}) : super(wrappedImport);
+      {this.libraryFacade})
+      : super(wrappedImport);
 
   @override
   LibraryElement get enclosingElement => libraryFacade;

@@ -4,12 +4,15 @@ import 'package:angular_analyzer_plugin/src/model.dart';
 
 /// A facade for a [CompilationUnitElement] which consists only of a component's
 /// exports, and the component itself.
-class ExportsLimitedCompilationUnitFacade extends WrappedCompilationUnitElement {
+class ExportsLimitedCompilationUnitFacade
+    extends WrappedCompilationUnitElement {
   final Component _component;
   LibraryElement libraryFacade;
 
-  ExportsLimitedCompilationUnitFacade(CompilationUnitElement wrappedUnit, this._component,
-                                      {this.libraryFacade}) : super(wrappedUnit);
+  ExportsLimitedCompilationUnitFacade(
+      CompilationUnitElement wrappedUnit, this._component,
+      {this.libraryFacade})
+      : super(wrappedUnit);
 
   @override
   List<PropertyAccessorElement> get accessors =>
