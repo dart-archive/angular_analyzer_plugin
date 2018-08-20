@@ -119,7 +119,7 @@ Template syntax | Validation | Auto-Complete | Navigation | Refactoring
 `<video directiveWithExportAs #moviePlayer="exportAsValue">` | :white_check_mark: existence of exportAs value checked within bound directives | :white_check_mark: | :white_check_mark: | :x:
 `<video ref-movieplayer ...></video><button (click)="movieplayer.play()">` | :white_check_mark: |:white_check_mark: | :white_check_mark: | :x:
 `<p *myUnless="myExpression">...</p>` | :white_check_mark: desugared to `<template [myUnless]="myExpression"><p>...` and checked from there | :white_check_mark: | :white_check_mark: some bugs ,mostly works | :x:
-`<p>Card No.: {{cardNumber \| myCardNumberFormatter}}</p>` | :x: Pipes are not typechecked yet | :x: | :x: | :x:
+`<p>Card No.: {{cardNumber \| myCardNumberFormatter}}</p>` | :first_quarter_moon: Pipe name & return type checked, argument types not yet checked| :x: | :x: | :x:
 `<my-component @deferred>` | :x: | :x: | :x: | :x:
 
 Built-in directives | Validation | Auto-Complete | Navigation | Refactoring

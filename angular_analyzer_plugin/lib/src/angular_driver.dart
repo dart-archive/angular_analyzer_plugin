@@ -632,6 +632,9 @@ class AngularDriver
       pipes.add(new Pipe(dirSum.pipeName, dirSum.pipeNameOffset, classElem,
           isPure: dirSum.isPure));
     }
+
+    final pipeExtractor = new PipeExtractor(null, unit.source, null);
+    pipes.forEach(pipeExtractor.loadTransformInformation);
     return pipes;
   }
 
@@ -722,6 +725,7 @@ class AngularDriver
         }
       }
       List<SummarizedDirectiveUseBuilder> dirUseSums;
+      List<SummarizedPipesUseBuilder> pipeUseSums;
       final ngContents = <SummarizedNgContentBuilder>[];
       String templateUrl;
       int templateUrlOffset;
@@ -745,6 +749,12 @@ class AngularDriver
                   ..length = reference.range.length)
                 .toList(),
             (constValue, _) => null);
+
+        pipeUseSums = directive.view.pipeReferences
+            .map((pipe) => new SummarizedPipesUseBuilder()
+              ..name = pipe.identifier
+              ..prefix = pipe.prefix)
+            .toList();
 
         constDirectivesSourceRange = directive.view.directivesStrategy.resolve(
             (references) => null, (constValue, sourceRange) => sourceRange);
@@ -774,6 +784,7 @@ class AngularDriver
         ..exports = exports
         ..usesArrayOfDirectiveReferencesStrategy = dirUseSums != null
         ..subdirectives = dirUseSums
+        ..pipesUse = pipeUseSums
         ..constDirectiveStrategyOffset = constDirectivesSourceRange?.offset
         ..constDirectiveStrategyLength = constDirectivesSourceRange?.length);
     }
