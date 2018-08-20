@@ -1,7 +1,7 @@
 ## Unpublished
 
-- Typecheck the results of pipe expressions and the existence of a matching
-  pipe. Arguments are not yet typechecked.
+- Typecheck the results and input of pipe expressions and the existence of a
+  matching pipe. Optional arguments are not yet typechecked.
 
 ## 0.0.17+3
 

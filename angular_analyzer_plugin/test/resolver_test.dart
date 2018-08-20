@@ -1565,7 +1565,7 @@ class TestPanel {
 }
 @Pipe('pipe1')
 class Pipe1 extends PipeTransform {
-  String transform(String x) => "";
+  String transform(int x) => "";
 }
 ''');
     final code = r"""
@@ -1635,10 +1635,9 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  @failingTest
   Future test_expression_pipe_in_moustache_typeErrorInput() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
 class TestPanel {
 }
 @Pipe('stringPipe')
@@ -1652,14 +1651,14 @@ class StringPipe extends PipeTransform {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        StaticWarningCode.UNDEFINED_IDENTIFIER, code, '1');
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '1');
   }
 
   // ignore: non_constant_identifier_names
   @failingTest
   Future test_expression_pipe_in_moustache_typeErrorOptionalArg() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
 class TestPanel {
 }
 @Pipe('stringPipe')
@@ -1679,7 +1678,7 @@ class StringPipe extends PipeTransform {
   // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache_typeErrorResult() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: const [StringPipe])
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
 class TestPanel {
   String takeInt(int x) => "";
 }
@@ -1706,7 +1705,7 @@ class TestPanel {
 }
 @Pipe('pipe1')
 class Pipe1 extends PipeTransform {
-  String transform(String x) => "";
+  int transform(int x) => "";
 }
 ''');
     final code = r"""
@@ -1749,7 +1748,7 @@ class TestPanel {
 }
 @Pipe('pipe1')
 class Pipe1 extends PipeTransform {
-  String transform(String x) => "";
+  List<String> transform(List<String> x) => [];
 }
 ''');
     _addHtmlSource(r"""

@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/element/element.dart';
+import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -126,6 +127,14 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
       } else {
         final matchingPipe = matchingPipes.single;
         exp.staticType = matchingPipe.transformReturnType;
+
+        if (!typeSystem.isAssignableTo(
+            exp.expression.staticType, matchingPipe.requiredArgumentType)) {
+          errorReporter.reportErrorForNode(
+              StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE,
+              exp.expression,
+              [exp.expression.staticType, matchingPipe.requiredArgumentType]);
+        }
       }
     } else {
       _reportUnacceptableNode(exp, "As expression");
