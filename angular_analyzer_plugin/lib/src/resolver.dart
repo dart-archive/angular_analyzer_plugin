@@ -1,5 +1,3 @@
-library angular2.src.analysis.analyzer_plugin.src.resolver;
-
 import 'dart:collection';
 
 import 'package:analyzer/dart/ast/ast.dart' hide Directive;
@@ -10,6 +8,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/element/element.dart';
+import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
@@ -107,10 +106,11 @@ class AngularErrorVerifier extends _IntermediateErrorVerifier
 class AngularResolverVisitor extends _IntermediateResolverVisitor
     with ReportUnacceptableNodesMixin {
   final bool acceptAssignment;
+  final List<Pipe> pipes;
 
   AngularResolverVisitor(LibraryElement library, Source source,
       TypeProvider typeProvider, AnalysisErrorListener errorListener,
-      {@required this.acceptAssignment})
+      {@required this.acceptAssignment, @required this.pipes})
       : super(library, source, typeProvider, errorListener);
 
   @override
@@ -118,6 +118,24 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
     // This means we generated this in a pipe, and its OK.
     if (exp.asOperator.offset == 0) {
       super.visitAsExpression(exp);
+      final pipeName = exp.getProperty<SimpleIdentifier>('_ng_pipeName');
+      final matchingPipes =
+          pipes.where((pipe) => pipe.pipeName == pipeName.name);
+      if (matchingPipes.length != 1) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.PIPE_NOT_FOUND, pipeName, [pipeName]);
+      } else {
+        final matchingPipe = matchingPipes.single;
+        exp.staticType = matchingPipe.transformReturnType;
+
+        if (!typeSystem.isAssignableTo(
+            exp.expression.staticType, matchingPipe.requiredArgumentType)) {
+          errorReporter.reportErrorForNode(
+              StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE,
+              exp.expression,
+              [exp.expression.staticType, matchingPipe.requiredArgumentType]);
+        }
+      }
     } else {
       _reportUnacceptableNode(exp, "As expression");
     }
@@ -1207,6 +1225,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   static final RegExp _cssIdentifierRegexp =
       new RegExp(r"^(-?[a-zA-Z_]|\\.)([a-zA-Z0-9\-_]|\\.)*$");
   final Map<String, InputElement> standardHtmlAttributes;
+  final List<Pipe> pipes;
   List<AbstractDirective> directives;
   View view;
   Template template;
@@ -1223,6 +1242,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
 
   SingleScopeResolver(
       this.standardHtmlAttributes,
+      this.pipes,
       this.view,
       this.template,
       this.templateSource,
@@ -1466,7 +1486,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
     }
     final resolver = new AngularResolverVisitor(
         library, templateSource, typeProvider, errorListener,
-        acceptAssignment: acceptAssignment);
+        acceptAssignment: acceptAssignment, pipes: pipes);
     // fill the name scope
     final classScope = new ClassScope(resolver.nameScope, classElement);
     final localScope = new EnclosedScope(classScope);
@@ -1787,6 +1807,7 @@ class TemplateResolver {
         // Resolve the scopes
         ..accept(new SingleScopeResolver(
             standardHtmlAttributes,
+            view.pipes,
             view,
             template,
             templateSource,

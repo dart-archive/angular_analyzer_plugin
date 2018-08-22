@@ -1,5 +1,8 @@
 ## Unpublished
 
+- Typecheck the results and input of pipe expressions and the existence of a
+  matching pipe. Optional arguments are not yet typechecked.
+
 ## 0.0.17+3
 
 - Fixed an issue where a cast error from certain top-level getters would crash
