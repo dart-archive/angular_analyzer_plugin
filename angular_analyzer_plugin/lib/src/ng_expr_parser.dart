@@ -5,6 +5,7 @@ import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/ast/token.dart';
 import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/src/tuple.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(Source source, AnalysisErrorListener errorListener)
@@ -25,21 +26,23 @@ class NgExprParser extends Parser {
     while (_currentToken.type == TokenType.BAR) {
       beforePipeToken ??= _currentToken.previous;
       getAndAdvance();
-      parsePipeExpression();
-    }
-    if (beforePipeToken != null) {
-      final asToken = new KeywordToken(Keyword.AS, 0);
-      final dynamicIdToken =
-          new StringToken(TokenType.IDENTIFIER, "dynamic", 0);
+      final pipeData = parsePipeExpression();
+      if (beforePipeToken != null) {
+        final asToken = new KeywordToken(Keyword.AS, 0);
+        final dynamicIdToken = new SyntheticStringToken(TokenType.IDENTIFIER,
+            "dynamic", _currentToken.offset - "dynamic".length);
 
-      beforePipeToken.setNext(asToken);
-      asToken.setNext(dynamicIdToken);
-      dynamicIdToken.setNext(_currentToken);
+        beforePipeToken.setNext(asToken);
+        asToken.setNext(dynamicIdToken);
+        dynamicIdToken.setNext(_currentToken);
 
-      final dynamicIdentifier = astFactory.simpleIdentifier(dynamicIdToken);
+        final dynamicIdentifier = astFactory.simpleIdentifier(dynamicIdToken);
 
-      expression = astFactory.asExpression(
-          expression, asToken, astFactory.typeName(dynamicIdentifier, null));
+        expression = astFactory.asExpression(
+            expression, asToken, astFactory.typeName(dynamicIdentifier, null))
+          ..setProperty('_ng_pipeName', pipeData.item1)
+          ..setProperty('_ng_pipeArgs', pipeData.item2);
+      }
     }
     return expression;
   }
@@ -48,11 +51,15 @@ class NgExprParser extends Parser {
   /// Return the resolved left-hand expression as a dynamic type.
   ///
   ///     pipeExpression ::= identifier[':' expression]*
-  void parsePipeExpression() {
-    parseIdentifierList();
+  Tuple2<SimpleIdentifier, List<Expression>> parsePipeExpression() {
+    final identifiers = parseIdentifierList();
+    final expressions = <Expression>[];
     while (_currentToken.type == TokenType.COLON) {
       getAndAdvance();
-      parseExpression2();
+      expressions.add(parseExpression2());
     }
+
+    return Tuple2<SimpleIdentifier, List<Expression>>(
+        identifiers.first, expressions);
   }
 }

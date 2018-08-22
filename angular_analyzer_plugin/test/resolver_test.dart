@@ -1541,9 +1541,13 @@ class NamePanel {
   @Input() int value;
 }
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
-    directives: const [NamePanel])
+    directives: const [NamePanel], pipes: [Pipe1])
 class TestPanel {
   int value;
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  int transform(int x) => "";
 }
 ''');
     _addHtmlSource(r"""
@@ -1556,13 +1560,16 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
 class TestPanel {
-  String name = "TestPanel";
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  String transform(int x) => "";
 }
 ''');
     final code = r"""
-<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (2 | pipe3:4:2))}}</p>
+<p>{{((1 | pipe1:(2+2):(5 | pipe1:1:2)) + (2 | pipe1:4:2))}}</p>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -1570,15 +1577,160 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_pipe_in_moustache_with_error() async {
+  @failingTest
+  Future test_expression_pipe_in_moustache_extraArg() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
-  String name = "TestPanel";
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x) => "";
 }
 ''');
     final code = r"""
-<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (error1 | pipe3:4:2))}}</p>
+{{"" | stringPipe: "extra"}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.EXTRA_POSITIONAL_ARGUMENTS, code, '"extra"');
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_extraExtraArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x, [String y]) => "";
+}
+''');
+    final code = r"""
+{{"" | stringPipe: "": "extra"}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.EXTRA_POSITIONAL_ARGUMENTS, code, '"extra"');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_noSuchPipe() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    final code = r"""
+{{1 | noSuchPipe}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.PIPE_NOT_FOUND, code, 'noSuchPipe');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_typeErrorInput() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+{{1 | stringPipe}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '1');
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_typeErrorOptionalArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x, [String y]) => "";
+}
+''');
+    final code = r"""
+{{"" | stringPipe: 1}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '1');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_typeErrorResult() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
+class TestPanel {
+  String takeInt(int x) => "";
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+{{takeInt("" | stringPipe)}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE,
+        code, '"" | stringPipe');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_with_error() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
+class TestPanel {
+  String name = "TestPanel";
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  int transform(int x) => "";
+}
+''');
+    final code = r"""
+<p>{{((1 | pipe1:(2+2):(5 | pipe1:1:2)) + (error1 | pipe1:4:2))}}</p>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, "error1");
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_with_error_inArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
+class TestPanel {
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+<p>{{1 | pipe1:error1}}
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -1590,9 +1742,13 @@ class TestPanel {
   Future test_expression_pipe_in_ngFor() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
-    directives: const [NgFor])
+    directives: const [NgFor], pipes: [Pipe1])
 class TestPanel {
   List<String> operators = [];
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  List<String> transform(List<String> x) => [];
 }
 ''');
     _addHtmlSource(r"""
