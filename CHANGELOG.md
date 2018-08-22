@@ -2,6 +2,8 @@
 
 - Typecheck the results and input of pipe expressions and the existence of a
   matching pipe. Optional arguments are not yet typechecked.
+- Add typechecking support for `[attr.foo.if]`, and ensure that a corresponding
+  `[attr.foo]` binding exists.
 
 ## 0.0.17+3
 
