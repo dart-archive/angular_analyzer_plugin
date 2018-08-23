@@ -1300,6 +1300,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       _resolveStyleAttribute(attribute);
     } else if (attribute.bound == ExpressionBoundType.attr) {
       _resolveAttributeBoundAttribute(attribute);
+    } else if (attribute.bound == ExpressionBoundType.attrIf) {
+      _resolveAttributeBoundAttributeIf(attribute);
     }
   }
 
@@ -1446,6 +1448,55 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // note that the attribute name is valid by definition as it was discovered
     // within an attribute! (took me a while to realize why I couldn't make any
     // failing tests for this)
+  }
+
+  /// Resolve attributes of type [attribute.some-attribute]="someExpr"
+  void _resolveAttributeBoundAttributeIf(ExpressionBoundAttribute attribute) {
+    if (attribute.parent is! ElementInfo) {
+      assert(false, 'Got an attr-if bound attribute on non element! Aborting!');
+      return;
+    }
+
+    final parent = attribute.parent as ElementInfo;
+
+    // For the [attr.foo.if] attribute, find the matching [attr.foo] attribute.
+    final matchingAttr = parent.attributes
+        .where((attr) =>
+            attr is ExpressionBoundAttribute &&
+            attr.bound == ExpressionBoundType.attr)
+        .firstWhere((attrAttr) => attrAttr.name == attribute.name,
+            orElse: () => null);
+
+    // Error: no matching attribute to make conditional via this attr-if.
+    if (matchingAttr == null) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.nameOffset,
+          attribute.name.length,
+          AngularWarningCode.UNMATCHED_ATTR_IF_BINDING,
+          [attribute.name]));
+      return;
+    }
+
+    // Add navigation from [attribute] (`[attr.foo.if]`) to [matchingAttr]
+    // (`[attr.foo]`).
+    final range = new SourceRange(attribute.nameOffset, attribute.name.length);
+    template.addRange(
+        range,
+        new AngularElementImpl('attr.${attribute.name}',
+            matchingAttr.nameOffset, matchingAttr.name.length, templateSource));
+
+    // Ensure the if condition was a boolean.
+    if (attribute.expression != null &&
+        !typeSystem.isAssignableTo(
+            attribute.expression.staticType, typeProvider.boolType)) {
+      errorListener.onError(new AnalysisError(
+          templateSource,
+          attribute.valueOffset,
+          attribute.value.length,
+          AngularWarningCode.ATTR_IF_BINDING_TYPE_ERROR,
+          [attribute.name]));
+    }
   }
 
   /// Resolve attributes of type [class.some-class]="someBoolExpr", ensuring

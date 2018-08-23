@@ -732,23 +732,40 @@ class HtmlTreeConverter {
     var propNameOffset = nameToken.offset;
 
     if (ast is ParsedPropertyAst) {
-      final name = ast.name;
+      // For some inputs, like `[class.foo]`, the [ast.name] here is actually
+      // not a name, but a prefix. If so, use the [ast.postfix] as the [name] of
+      // the [ExpressionBoundAttribute] we're creating here, by changing
+      // [propName].
+      final nameOrPrefix = ast.name;
+
       if (ast.postfix != null) {
-        var replacePropName = false;
-        if (name == 'class') {
+        var usePostfixForName = false;
+        var preserveUnitInName = false;
+
+        if (nameOrPrefix == 'class') {
           bound = ExpressionBoundType.clazz;
-          replacePropName = true;
-        } else if (name == 'attr') {
-          bound = ExpressionBoundType.attr;
-          replacePropName = true;
-        } else if (name == 'style') {
+          usePostfixForName = true;
+          preserveUnitInName = true;
+        } else if (nameOrPrefix == 'attr') {
+          if (ast.unit == 'if') {
+            bound = ExpressionBoundType.attrIf;
+          } else {
+            bound = ExpressionBoundType.attr;
+          }
+          usePostfixForName = true;
+        } else if (nameOrPrefix == 'style') {
           bound = ExpressionBoundType.style;
-          replacePropName = true;
+          usePostfixForName = true;
+          preserveUnitInName = ast.unit != null;
         }
-        if (replacePropName) {
-          final _unitName = ast.unit == null ? '' : '.${ast.unit}';
+
+        if (usePostfixForName) {
+          final _unitName =
+              preserveUnitInName && ast.unit != null ? '.${ast.unit}' : '';
           propName = '${ast.postfix}$_unitName';
-          propNameOffset = nameToken.offset + name.length + '.'.length;
+          propNameOffset = nameToken.offset + ast.name.length + '.'.length;
+        } else {
+          assert(!preserveUnitInName);
         }
       }
     } else {

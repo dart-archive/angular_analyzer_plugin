@@ -351,6 +351,92 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_attrNotBound() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  bool cond;
+}
+''');
+    final code = r"""
+<span [attr.foo.if]='cond'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNMATCHED_ATTR_IF_BINDING, code, 'foo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_empty() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text1;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text1' [attr.foo.if]></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, '[attr.foo.if]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_emptyWithQuotes() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text1;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text1' [attr.foo.if]=''></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, '[attr.foo.if]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_typeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text1;
+  String text2;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text1' [attr.foo.if]='text2'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.ATTR_IF_BINDING_TYPE_ERROR, code, 'text2');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_valid() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text;
+  bool cond;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text' [attr.foo.if]='cond'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_await_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')

@@ -26,6 +26,8 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND,
   AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
   AngularWarningCode.INPUT_BINDING_TYPE_ERROR,
+  AngularWarningCode.ATTR_IF_BINDING_TYPE_ERROR,
+  AngularWarningCode.UNMATCHED_ATTR_IF_BINDING,
   AngularWarningCode.TRAILING_EXPRESSION,
   AngularWarningCode.OUTPUT_MUST_BE_STREAM,
   AngularWarningCode.TWO_WAY_BINDING_NOT_ASSIGNABLE,
@@ -228,6 +230,19 @@ class AngularWarningCode extends ErrorCode {
       'INPUT_BINDING_TYPE_ERROR',
       'Attribute value expression (of type {0}) is not assignable to component'
       ' input (of type {1})');
+
+  /// An error code indicating that an [attr.foo.if] binding was bound to an
+  /// expression that was not of type bool
+  static const ATTR_IF_BINDING_TYPE_ERROR = const AngularWarningCode(
+      'ATTR_IF_BINDING_TYPE_ERROR',
+      'Attribute value expression (of type {0}) must be of type bool');
+
+  /// An error code indicating that an [attr.foo.if] binding was used, but no
+  /// [attr.foo] binding simultaneously occured.
+  static const UNMATCHED_ATTR_IF_BINDING = const AngularWarningCode(
+      'UNMATCHED_ATTR_IF_BINDING',
+      'attr-if binding for attr {0} does not have a corresponding'
+      ' [attr.{0}] binding for it to affect');
 
   /// An error code indicating that an expression did not correctly
   /// end with an EOF token.
