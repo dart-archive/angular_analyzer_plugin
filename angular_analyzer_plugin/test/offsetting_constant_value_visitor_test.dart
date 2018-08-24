@@ -1,10 +1,13 @@
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
 import 'package:analyzer/src/dart/scanner/reader.dart';
 import 'package:analyzer/src/dart/scanner/scanner.dart';
 import 'package:analyzer/src/generated/parser.dart';
+import 'package:analyzer/src/source/source_resource.dart' show FileSource;
 import 'package:angular_analyzer_plugin/src/tasks.dart';
+import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
@@ -150,7 +153,7 @@ class OffsettingConstantValueVisitorTest {
 
   Expression _parseDartExpression(String code) {
     final token = _scanDartCode(code);
-    final parser = new Parser(null, null);
+    final parser = new Parser(new _MockSource(), new BooleanErrorListener());
     return parser.parseExpression(token);
   }
 
@@ -160,3 +163,5 @@ class OffsettingConstantValueVisitorTest {
     return scanner.tokenize();
   }
 }
+
+class _MockSource extends Mock implements FileSource {}
