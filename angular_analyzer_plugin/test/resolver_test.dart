@@ -2651,6 +2651,21 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_ngContainer_withStar() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    final htmlCode = r"""
+<ng-container *foo></ng-container>>
+""";
+    _addHtmlSource(htmlCode);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TEMPLATE_ATTR_NOT_USED, htmlCode, '*foo');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_ngContent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')

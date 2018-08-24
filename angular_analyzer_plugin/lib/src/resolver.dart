@@ -370,7 +370,9 @@ class ComponentContentResolver extends AngularAstVisitor {
   bool _isStandardTagName(String name) {
     // ignore: parameter_assignments
     name = name.toLowerCase();
-    return !name.contains('-') || name == 'ng-content';
+    return !name.contains('-') ||
+        name == 'ng-content' ||
+        name == 'ng-container';
   }
 
   void _reportErrorForRange(SourceRange range, ErrorCode errorCode,
