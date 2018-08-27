@@ -388,7 +388,6 @@ class HtmlTreeConverter {
     @required ElementInfo parent,
   }) {
     if (node is ElementAst) {
-      final localName = node.name;
       final attributes = _convertAttributes(
         attributes: node.attributes,
         bananas: node.bananas,
@@ -397,21 +396,13 @@ class HtmlTreeConverter {
         references: node.references,
         stars: node.stars,
       )..sort((a, b) => a.offset.compareTo(b.offset));
-      SourceRange openingNameSpan;
-
-      if (!node.isSynthetic) {
-        openingNameSpan = new SourceRange(
-            (node as ParsedElementAst).identifierToken.offset,
-            (node as ParsedElementAst).identifierToken.lexeme.length);
-      }
 
       return _elementInfoFromNodeAndCloseComplement(
         node,
-        localName,
+        node.name,
         attributes,
         node.closeComplement,
         parent,
-        openingNameSpanOverride: openingNameSpan,
       );
     } else if (node is ContainerAst) {
       final attributes = _convertAttributes(
@@ -427,17 +418,13 @@ class HtmlTreeConverter {
       );
     } else if (node is EmbeddedContentAst) {
       final attributes = <AttributeInfo>[];
-      SourceRange openingNameSpan;
 
-      if (!node.isSynthetic) {
-        openingNameSpan = new SourceRange(
-            node.beginToken.offset + '<'.length, 'ng-content'.length);
-        final pnode = node as ParsedEmbeddedContentAst;
-        final valueToken = pnode.selectorValueToken;
-        if (pnode.selectToken != null) {
+      if (node is ParsedEmbeddedContentAst) {
+        final valueToken = node.selectorValueToken;
+        if (node.selectToken != null) {
           attributes.add(new TextAttribute(
             'select',
-            pnode.selectToken.offset,
+            node.selectToken.offset,
             valueToken?.innerValue?.lexeme,
             valueToken?.innerValue?.offset,
             [],
@@ -451,7 +438,6 @@ class HtmlTreeConverter {
         attributes,
         node.closeComplement,
         parent,
-        openingNameSpanOverride: openingNameSpan,
       );
     } else if (node is EmbeddedTemplateAst) {
       final attributes = _convertAttributes(
@@ -797,22 +783,26 @@ class HtmlTreeConverter {
     return templateAttribute;
   }
 
+  /// There are four types of "tags" in angular_ast which don't implement a
+  /// common interface. But we need to generate source spans for all of them.
+  /// We can do this if we have the [node] (we can use its [beginToken]) and its
+  /// [closeComplement]. So this takes that info, plus a few other structural
+  /// things ([attributes], [parent], [tagName]), to handle all four cases.
   ElementInfo _elementInfoFromNodeAndCloseComplement(
       StandaloneTemplateAst node,
       String tagName,
       List<AttributeInfo> attributes,
       CloseElementAst closeComplement,
-      ElementInfo parent,
-      {SourceRange openingNameSpanOverride}) {
+      ElementInfo parent) {
     final isTemplate = tagName == 'template';
     SourceRange openingSpan;
     SourceRange openingNameSpan;
     SourceRange closingSpan;
     SourceRange closingNameSpan;
 
-    openingNameSpan = openingNameSpanOverride;
-
-    if (node.isSynthetic) {
+    if (node.isSynthetic && closeComplement != null) {
+      // This code assumes that a synthetic node is a close tag with no open
+      // tag, ie, a dangling `</div>`.
       openingSpan = _toSourceRange(closeComplement.beginToken.offset, 0);
       openingNameSpan ??= openingSpan;
     } else {
@@ -828,10 +818,9 @@ class HtmlTreeConverter {
             closeComplement.endToken.end - closeComplement.beginToken.offset);
         closingNameSpan =
             new SourceRange(closingSpan.offset + '</'.length, tagName.length);
-      } else if (isTemplate) {
-        // Close range for <template /> tags
-        closingSpan = _toSourceRange(node.endToken.end, 0);
-        closingNameSpan = closingSpan;
+      } else {
+        // TODO(mfairhurst): generate a closingSpan for synthetic tags too. This
+        // can mess up autocomplete if we do it wrong.
       }
     }
 
@@ -854,6 +843,8 @@ class HtmlTreeConverter {
     final children = _convertChildren(node, element);
     element.childNodes.addAll(children);
 
+    // For empty tags, ie, `<div></div>`, generate a synthetic text entry
+    // between the two tags. This simplifies later autocomplete code.
     if (!element.isSynthetic &&
         element.openingSpanIsClosed &&
         closingSpan != null &&
