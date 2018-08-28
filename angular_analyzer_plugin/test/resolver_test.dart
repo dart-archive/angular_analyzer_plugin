@@ -1663,6 +1663,33 @@ class Pipe1 extends PipeTransform {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_ambiguous() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    pipes: [AmbiguousPipe1, AmbiguousPipe2])
+class TestPanel {
+}
+
+@Pipe('ambiguous')
+class AmbiguousPipe1 extends PipeTransform {
+  String transform(String x => "";
+}
+
+@Pipe('ambiguous')
+class AmbiguousPipe2 extends PipeTransform {
+  String transform(String x => "";
+}
+''');
+    final code = r"""
+{{"" | ambiguous}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.AMBIGUOUS_PIPE, code, 'ambiguous');
+  }
+
+  // ignore: non_constant_identifier_names
   @failingTest
   Future test_expression_pipe_in_moustache_extraArg() async {
     _addDartSource(r'''

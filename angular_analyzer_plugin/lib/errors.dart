@@ -65,6 +65,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS,
   AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG,
   AngularWarningCode.PIPE_NOT_FOUND,
+  AngularWarningCode.AMBIGUOUS_PIPE,
   AngularWarningCode.UNSAFE_BINDING,
   AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED,
   AngularWarningCode.FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED,
@@ -497,6 +498,13 @@ class AngularWarningCode extends ErrorCode {
       'PIPE_NOT_FOUND',
       "Pipe by name of {0} not found. Did you reference it in your @Component"
       " configuration?");
+
+  /// An error indicating that pipe syntax was used in an angular template, but
+  /// the name of the pipe doesn't match one defined in the component
+  static const AMBIGUOUS_PIPE = const AngularWarningCode(
+      'AMBIGUOUS_PIPE',
+      "Multiple pipes by name of {0} found. Check the `pipes` field of your "
+      "@Component annotation for duplicates and/or conflicts.");
 
   /// An error indicating that a security exception will be thrown by this input
   /// binding
