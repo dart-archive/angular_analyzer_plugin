@@ -121,9 +121,12 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
       final pipeName = exp.getProperty<SimpleIdentifier>('_ng_pipeName');
       final matchingPipes =
           pipes.where((pipe) => pipe.pipeName == pipeName.name);
-      if (matchingPipes.length != 1) {
+      if (matchingPipes.isEmpty) {
         errorReporter.reportErrorForNode(
             AngularWarningCode.PIPE_NOT_FOUND, pipeName, [pipeName]);
+      } else if (matchingPipes.length > 1) {
+        errorReporter.reportErrorForNode(
+            AngularWarningCode.AMBIGUOUS_PIPE, pipeName, [pipeName]);
       } else {
         final matchingPipe = matchingPipes.single;
         exp.staticType = matchingPipe.transformReturnType;
