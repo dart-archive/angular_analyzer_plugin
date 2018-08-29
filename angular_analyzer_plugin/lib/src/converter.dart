@@ -388,7 +388,6 @@ class HtmlTreeConverter {
     @required ElementInfo parent,
   }) {
     if (node is ElementAst) {
-      final localName = node.name;
       final attributes = _convertAttributes(
         attributes: node.attributes,
         bananas: node.bananas,
@@ -397,84 +396,35 @@ class HtmlTreeConverter {
         references: node.references,
         stars: node.stars,
       )..sort((a, b) => a.offset.compareTo(b.offset));
-      final closeComponent = node.closeComplement;
-      SourceRange openingSpan;
-      SourceRange openingNameSpan;
-      SourceRange closingSpan;
-      SourceRange closingNameSpan;
 
-      if (node.isSynthetic) {
-        openingSpan = _toSourceRange(closeComponent.beginToken.offset, 0);
-        openingNameSpan = openingSpan;
-      } else {
-        openingSpan = _toSourceRange(
-            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
-        openingNameSpan = new SourceRange(
-            (node as ParsedElementAst).identifierToken.offset,
-            (node as ParsedElementAst).identifierToken.lexeme.length);
-      }
-      // Check for void element cases (has closing complement)
-      // If closeComponent is synthetic, handle it after child nodes are found.
-      if (closeComponent != null && !closeComponent.isSynthetic) {
-        closingSpan = _toSourceRange(closeComponent.beginToken.offset,
-            closeComponent.endToken.end - closeComponent.beginToken.offset);
-        closingNameSpan =
-            new SourceRange(closingSpan.offset + '</'.length, localName.length);
-      }
-
-      final element = new ElementInfo(
-        localName,
-        openingSpan,
-        closingSpan,
-        openingNameSpan,
-        closingNameSpan,
+      return _elementInfoFromNodeAndCloseComplement(
+        node,
+        node.name,
         attributes,
-        findTemplateAttribute(attributes),
+        node.closeComplement,
         parent,
-        isTemplate: false,
       );
+    } else if (node is ContainerAst) {
+      final attributes = _convertAttributes(
+        stars: node.stars,
+      )..sort((a, b) => a.offset.compareTo(b.offset));
 
-      for (final attribute in attributes) {
-        attribute.parent = element;
-      }
-
-      final children = _convertChildren(node, element);
-      element.childNodes.addAll(children);
-
-      if (!element.isSynthetic &&
-          element.openingSpanIsClosed &&
-          closingSpan != null &&
-          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
-        element.childNodes.add(new TextInfo(
-            openingSpan.offset + openingSpan.length, '', element, [],
-            synthetic: true));
-      }
-
-      return element;
-    }
-    if (node is EmbeddedContentAst) {
-      final localName = 'ng-content';
+      return _elementInfoFromNodeAndCloseComplement(
+        node,
+        'ng-container',
+        attributes,
+        node.closeComplement,
+        parent,
+      );
+    } else if (node is EmbeddedContentAst) {
       final attributes = <AttributeInfo>[];
-      final closeComplement = node.closeComplement;
-      SourceRange openingSpan;
-      SourceRange openingNameSpan;
-      SourceRange closingSpan;
-      SourceRange closingNameSpan;
 
-      if (node.isSynthetic) {
-        openingSpan = _toSourceRange(closeComplement.beginToken.offset, 0);
-        openingNameSpan = openingSpan;
-      } else {
-        openingSpan = _toSourceRange(
-            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
-        openingNameSpan =
-            new SourceRange(openingSpan.offset + '<'.length, localName.length);
-        final pnode = node as ParsedEmbeddedContentAst;
-        final valueToken = pnode.selectorValueToken;
-        if (pnode.selectToken != null) {
+      if (node is ParsedEmbeddedContentAst) {
+        final valueToken = node.selectorValueToken;
+        if (node.selectToken != null) {
           attributes.add(new TextAttribute(
             'select',
-            pnode.selectToken.offset,
+            node.selectToken.offset,
             valueToken?.innerValue?.lexeme,
             valueToken?.innerValue?.offset,
             [],
@@ -482,36 +432,14 @@ class HtmlTreeConverter {
         }
       }
 
-      if (closeComplement.isSynthetic) {
-        closingSpan = _toSourceRange(node.endToken.end, 0);
-        closingNameSpan = closingSpan;
-      } else {
-        closingSpan = _toSourceRange(closeComplement.beginToken.offset,
-            closeComplement.endToken.end - closeComplement.beginToken.offset);
-        closingNameSpan =
-            new SourceRange(closingSpan.offset + '</'.length, localName.length);
-      }
-
-      final ngContent = new ElementInfo(
-        localName,
-        openingSpan,
-        closingSpan,
-        openingNameSpan,
-        closingNameSpan,
+      return _elementInfoFromNodeAndCloseComplement(
+        node,
+        'ng-content',
         attributes,
-        null,
+        node.closeComplement,
         parent,
-        isTemplate: false,
       );
-
-      for (final attribute in attributes) {
-        attribute.parent = ngContent;
-      }
-
-      return ngContent;
-    }
-    if (node is EmbeddedTemplateAst) {
-      final localName = 'template';
+    } else if (node is EmbeddedTemplateAst) {
       final attributes = _convertAttributes(
         attributes: node.attributes,
         events: node.events,
@@ -519,75 +447,27 @@ class HtmlTreeConverter {
         references: node.references,
         letBindings: node.letBindings,
       );
-      final closeComponent = node.closeComplement;
-      SourceRange openingSpan;
-      SourceRange openingNameSpan;
-      SourceRange closingSpan;
-      SourceRange closingNameSpan;
 
-      if (node.isSynthetic) {
-        openingSpan = _toSourceRange(closeComponent.beginToken.offset, 0);
-        openingNameSpan = openingSpan;
-      } else {
-        openingSpan = _toSourceRange(
-            node.beginToken.offset, node.endToken.end - node.beginToken.offset);
-        openingNameSpan =
-            new SourceRange(openingSpan.offset + '<'.length, localName.length);
-      }
-      // Check for void element cases (has closing complement)
-      if (closeComponent != null) {
-        if (closeComponent.isSynthetic) {
-          closingSpan = _toSourceRange(node.endToken.end, 0);
-          closingNameSpan = closingSpan;
-        } else {
-          closingSpan = _toSourceRange(closeComponent.beginToken.offset,
-              closeComponent.endToken.end - closeComponent.beginToken.offset);
-          closingNameSpan = new SourceRange(
-              closingSpan.offset + '</'.length, localName.length);
-        }
-      }
-
-      final element = new ElementInfo(
-        localName,
-        openingSpan,
-        closingSpan,
-        openingNameSpan,
-        closingNameSpan,
+      return _elementInfoFromNodeAndCloseComplement(
+        node,
+        'template',
         attributes,
-        findTemplateAttribute(attributes),
+        node.closeComplement,
         parent,
-        isTemplate: true,
       );
-
-      for (final attribute in attributes) {
-        attribute.parent = element;
-      }
-
-      final children = _convertChildren(node, element);
-      element.childNodes.addAll(children);
-
-      if (!element.isSynthetic &&
-          element.openingSpanIsClosed &&
-          closingSpan != null &&
-          (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
-        element.childNodes.add(new TextInfo(
-            openingSpan.offset + openingSpan.length, '', element, [],
-            synthetic: true));
-      }
-
-      return element;
-    }
-    if (node is TextAst) {
+    } else if (node is TextAst) {
       final offset = node.sourceSpan.start.offset;
       final text = node.value;
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
-    }
-    if (node is InterpolationAst) {
+    } else if (node is InterpolationAst) {
       final offset = node.sourceSpan.start.offset;
       final text = '{{${node.value}}}';
       return new TextInfo(
           offset, text, parent, dartParser.findMustaches(text, offset));
+    } else {
+      assert(
+          node is CommentAst, 'Unknown node type ${node.runtimeType} ($node)');
     }
     return null;
   }
@@ -732,23 +612,40 @@ class HtmlTreeConverter {
     var propNameOffset = nameToken.offset;
 
     if (ast is ParsedPropertyAst) {
-      final name = ast.name;
+      // For some inputs, like `[class.foo]`, the [ast.name] here is actually
+      // not a name, but a prefix. If so, use the [ast.postfix] as the [name] of
+      // the [ExpressionBoundAttribute] we're creating here, by changing
+      // [propName].
+      final nameOrPrefix = ast.name;
+
       if (ast.postfix != null) {
-        var replacePropName = false;
-        if (name == 'class') {
+        var usePostfixForName = false;
+        var preserveUnitInName = false;
+
+        if (nameOrPrefix == 'class') {
           bound = ExpressionBoundType.clazz;
-          replacePropName = true;
-        } else if (name == 'attr') {
-          bound = ExpressionBoundType.attr;
-          replacePropName = true;
-        } else if (name == 'style') {
+          usePostfixForName = true;
+          preserveUnitInName = true;
+        } else if (nameOrPrefix == 'attr') {
+          if (ast.unit == 'if') {
+            bound = ExpressionBoundType.attrIf;
+          } else {
+            bound = ExpressionBoundType.attr;
+          }
+          usePostfixForName = true;
+        } else if (nameOrPrefix == 'style') {
           bound = ExpressionBoundType.style;
-          replacePropName = true;
+          usePostfixForName = true;
+          preserveUnitInName = ast.unit != null;
         }
-        if (replacePropName) {
-          final _unitName = ast.unit == null ? '' : '.${ast.unit}';
+
+        if (usePostfixForName) {
+          final _unitName =
+              preserveUnitInName && ast.unit != null ? '.${ast.unit}' : '';
           propName = '${ast.postfix}$_unitName';
-          propNameOffset = nameToken.offset + name.length + '.'.length;
+          propNameOffset = nameToken.offset + ast.name.length + '.'.length;
+        } else {
+          assert(!preserveUnitInName);
         }
       }
     } else {
@@ -884,6 +781,80 @@ class HtmlTreeConverter {
     }
 
     return templateAttribute;
+  }
+
+  /// There are four types of "tags" in angular_ast which don't implement a
+  /// common interface. But we need to generate source spans for all of them.
+  /// We can do this if we have the [node] (we can use its [beginToken]) and its
+  /// [closeComplement]. So this takes that info, plus a few other structural
+  /// things ([attributes], [parent], [tagName]), to handle all four cases.
+  ElementInfo _elementInfoFromNodeAndCloseComplement(
+      StandaloneTemplateAst node,
+      String tagName,
+      List<AttributeInfo> attributes,
+      CloseElementAst closeComplement,
+      ElementInfo parent) {
+    final isTemplate = tagName == 'template';
+    SourceRange openingSpan;
+    SourceRange openingNameSpan;
+    SourceRange closingSpan;
+    SourceRange closingNameSpan;
+
+    if (node.isSynthetic && closeComplement != null) {
+      // This code assumes that a synthetic node is a close tag with no open
+      // tag, ie, a dangling `</div>`.
+      openingSpan = _toSourceRange(closeComplement.beginToken.offset, 0);
+      openingNameSpan ??= openingSpan;
+    } else {
+      openingSpan = _toSourceRange(
+          node.beginToken.offset, node.endToken.end - node.beginToken.offset);
+      openingNameSpan ??=
+          new SourceRange(node.beginToken.offset + '<'.length, tagName.length);
+    }
+
+    if (closeComplement != null) {
+      if (!closeComplement.isSynthetic) {
+        closingSpan = _toSourceRange(closeComplement.beginToken.offset,
+            closeComplement.endToken.end - closeComplement.beginToken.offset);
+        closingNameSpan =
+            new SourceRange(closingSpan.offset + '</'.length, tagName.length);
+      } else {
+        // TODO(mfairhurst): generate a closingSpan for synthetic tags too. This
+        // can mess up autocomplete if we do it wrong.
+      }
+    }
+
+    final element = new ElementInfo(
+      tagName,
+      openingSpan,
+      closingSpan,
+      openingNameSpan,
+      closingNameSpan,
+      attributes,
+      findTemplateAttribute(attributes),
+      parent,
+      isTemplate: isTemplate,
+    );
+
+    for (final attribute in attributes) {
+      attribute.parent = element;
+    }
+
+    final children = _convertChildren(node, element);
+    element.childNodes.addAll(children);
+
+    // For empty tags, ie, `<div></div>`, generate a synthetic text entry
+    // between the two tags. This simplifies later autocomplete code.
+    if (!element.isSynthetic &&
+        element.openingSpanIsClosed &&
+        closingSpan != null &&
+        (openingSpan.offset + openingSpan.length) == closingSpan.offset) {
+      element.childNodes.add(new TextInfo(
+          openingSpan.offset + openingSpan.length, '', element, [],
+          synthetic: true));
+    }
+
+    return element;
   }
 
   SourceRange _toSourceRange(int offset, int length) =>

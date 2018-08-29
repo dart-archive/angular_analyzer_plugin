@@ -1,5 +1,13 @@
 ## Unpublished
 
+- Typecheck the results and input of pipe expressions and the existence of a
+  matching pipe. Optional arguments are not yet typechecked.
+- Add typechecking support for `[attr.foo.if]`, and ensure that a corresponding
+  `[attr.foo]` binding exists.
+- Fixed issues with `<ng-container>`, which resulted in the inner content simply
+  being ignored instead of being validated (and also caused some problems
+  with finding inner `<ng-content>` tags).
+
 ## 0.0.17+3
 
 - Fixed an issue where a cast error from certain top-level getters would crash

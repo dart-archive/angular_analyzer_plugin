@@ -212,6 +212,33 @@ class TextPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_navigate_attrIf() async {
+    code = r'''
+import 'package:angular/src/core/metadata.dart';
+
+@Component(selector: 'foo', template: r"""
+<div
+  [attr.foo]="123"
+  [attr.foo.if]="true">
+</div>
+""")
+class TextPanel {
+}
+''';
+    final source = newSource('/test.dart', code);
+    // compute navigation regions
+    final result = await resolveDart(source);
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
+        new AngularNavigationRequest(null, null, null, result), collector,
+        templatesOnly: false);
+    {
+      _findRegionString('foo', '.if');
+      expect(targetLocation.file, '/test.dart');
+      expect(targetLocation.offset, code.indexOf('foo]'));
+    }
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_navigateOnfocusin() async {
     code = r'''
 import 'package:angular/src/core/metadata.dart';

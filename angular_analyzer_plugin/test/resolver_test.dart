@@ -351,6 +351,92 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_attrNotBound() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  bool cond;
+}
+''');
+    final code = r"""
+<span [attr.foo.if]='cond'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.UNMATCHED_ATTR_IF_BINDING, code, 'foo');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_empty() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text1;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text1' [attr.foo.if]></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, '[attr.foo.if]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_emptyWithQuotes() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text1;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text1' [attr.foo.if]=''></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.EMPTY_BINDING, code, '[attr.foo.if]');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_typeError() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text1;
+  String text2;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text1' [attr.foo.if]='text2'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.ATTR_IF_BINDING_TYPE_ERROR, code, 'text2');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_attrBindingIf_valid() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String text;
+  bool cond;
+}
+''');
+    final code = r"""
+<span [attr.foo]='text' [attr.foo.if]='cond'></span>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expression_await_not_allowed() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1541,9 +1627,13 @@ class NamePanel {
   @Input() int value;
 }
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
-    directives: const [NamePanel])
+    directives: const [NamePanel], pipes: [Pipe1])
 class TestPanel {
   int value;
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  int transform(int x) => "";
 }
 ''');
     _addHtmlSource(r"""
@@ -1556,13 +1646,16 @@ class TestPanel {
   // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
 class TestPanel {
-  String name = "TestPanel";
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  String transform(int x) => "";
 }
 ''');
     final code = r"""
-<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (2 | pipe3:4:2))}}</p>
+<p>{{((1 | pipe1:(2+2):(5 | pipe1:1:2)) + (2 | pipe1:4:2))}}</p>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -1570,15 +1663,187 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_pipe_in_moustache_with_error() async {
+  Future test_expression_pipe_in_moustache_ambiguous() async {
     _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html',
+    pipes: [AmbiguousPipe1, AmbiguousPipe2])
 class TestPanel {
-  String name = "TestPanel";
+}
+
+@Pipe('ambiguous')
+class AmbiguousPipe1 extends PipeTransform {
+  String transform(String x => "";
+}
+
+@Pipe('ambiguous')
+class AmbiguousPipe2 extends PipeTransform {
+  String transform(String x => "";
 }
 ''');
     final code = r"""
-<p>{{((1 | pipe1:(2+2):(5 | pipe2:1:2)) + (error1 | pipe3:4:2))}}</p>
+{{"" | ambiguous}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.AMBIGUOUS_PIPE, code, 'ambiguous');
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_extraArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+{{"" | stringPipe: "extra"}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.EXTRA_POSITIONAL_ARGUMENTS, code, '"extra"');
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_extraExtraArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x, [String y]) => "";
+}
+''');
+    final code = r"""
+{{"" | stringPipe: "": "extra"}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.EXTRA_POSITIONAL_ARGUMENTS, code, '"extra"');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_noSuchPipe() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+}
+''');
+    final code = r"""
+{{1 | noSuchPipe}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.PIPE_NOT_FOUND, code, 'noSuchPipe');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_typeErrorInput() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+{{1 | stringPipe}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '1');
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_typeErrorOptionalArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
+class TestPanel {
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x, [String y]) => "";
+}
+''');
+    final code = r"""
+{{"" | stringPipe: 1}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '1');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_typeErrorResult() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
+class TestPanel {
+  String takeInt(int x) => "";
+}
+@Pipe('stringPipe')
+class StringPipe extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+{{takeInt("" | stringPipe)}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE,
+        code, '"" | stringPipe');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expression_pipe_in_moustache_with_error() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
+class TestPanel {
+  String name = "TestPanel";
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  int transform(int x) => "";
+}
+''');
+    final code = r"""
+<p>{{((1 | pipe1:(2+2):(5 | pipe1:1:2)) + (error1 | pipe1:4:2))}}</p>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        StaticWarningCode.UNDEFINED_IDENTIFIER, code, "error1");
+  }
+
+  // ignore: non_constant_identifier_names
+  @failingTest
+  Future test_expression_pipe_in_moustache_with_error_inArg() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
+class TestPanel {
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  String transform(String x) => "";
+}
+''');
+    final code = r"""
+<p>{{1 | pipe1:error1}}
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -1590,9 +1855,13 @@ class TestPanel {
   Future test_expression_pipe_in_ngFor() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
-    directives: const [NgFor])
+    directives: const [NgFor], pipes: [Pipe1])
 class TestPanel {
   List<String> operators = [];
+}
+@Pipe('pipe1')
+class Pipe1 extends PipeTransform {
+  List<String> transform(List<String> x) => [];
 }
 ''');
     _addHtmlSource(r"""
@@ -2406,6 +2675,21 @@ class TestPanel {
     errorListener.assertErrorsWithCodes([
       ScannerErrorCode.MISSING_DIGIT,
     ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_ngContainer_withStar() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {}
+''');
+    final htmlCode = r"""
+<ng-container *foo></ng-container>>
+""";
+    _addHtmlSource(htmlCode);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.TEMPLATE_ATTR_NOT_USED, htmlCode, '*foo');
   }
 
   // ignore: non_constant_identifier_names

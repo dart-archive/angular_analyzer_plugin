@@ -272,7 +272,7 @@ class ExpressionBoundAttribute extends BoundAttributeInfo {
   String toString() => '(${super.toString()}, [$bound, $expression])';
 }
 
-enum ExpressionBoundType { input, twoWay, attr, clazz, style }
+enum ExpressionBoundType { input, twoWay, attr, attrIf, clazz, style }
 
 /// An AngularAstNode which has directives, such as [ElementInfo] and
 /// [TemplateAttribute]. Contains an array of [DirectiveBinding]s because those

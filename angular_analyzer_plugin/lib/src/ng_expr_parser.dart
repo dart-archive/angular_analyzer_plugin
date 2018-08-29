@@ -5,6 +5,7 @@ import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/ast/token.dart';
 import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/src/generated/source.dart';
+import 'package:angular_analyzer_plugin/src/tuple.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(Source source, AnalysisErrorListener errorListener)
@@ -12,25 +13,26 @@ class NgExprParser extends Parser {
 
   Token get _currentToken => super.currentToken;
 
-  /// Parse a bitwise or expression to be treated as a pipe.
-  /// Return the resolved left-hand expression as a dynamic type.
+  /// Override the bitwise or operator to parse pipes instead
+  @override
+  Expression parseBitwiseOrExpression() => parsePipeExpression();
+
+  /// Parse pipe expression. Return the result as a cast expression `as dynamic`
+  /// with _ng_pipeXXX properties to be resolved specially later.
   ///
   ///     bitwiseOrExpression ::=
-  ///         bitwiseXorExpression ('|' pipeExpression)*
-  @override
-  Expression parseBitwiseOrExpression() {
+  ///         bitwiseXorExpression ('|' pipeName [: arg]*)*
+  Expression parsePipeExpression() {
     Expression expression;
     Token beforePipeToken;
     expression = parseBitwiseXorExpression();
     while (_currentToken.type == TokenType.BAR) {
       beforePipeToken ??= _currentToken.previous;
       getAndAdvance();
-      parsePipeExpression();
-    }
-    if (beforePipeToken != null) {
+      final pipeEntities = parsePipeExpressionEntities();
       final asToken = new KeywordToken(Keyword.AS, 0);
-      final dynamicIdToken =
-          new StringToken(TokenType.IDENTIFIER, "dynamic", 0);
+      final dynamicIdToken = new SyntheticStringToken(TokenType.IDENTIFIER,
+          "dynamic", _currentToken.offset - "dynamic".length);
 
       beforePipeToken.setNext(asToken);
       asToken.setNext(dynamicIdToken);
@@ -38,8 +40,15 @@ class NgExprParser extends Parser {
 
       final dynamicIdentifier = astFactory.simpleIdentifier(dynamicIdToken);
 
+      // TODO(mfairhurst) Now that we are resolving pipes, probably should store
+      // the result in a different expression type -- a function call, most
+      // likely. This will be required so that the pipeArgs become part of the
+      // tree, but it may create secondary fallout inside the analyzer
+      // resolution code if done wrong.
       expression = astFactory.asExpression(
-          expression, asToken, astFactory.typeName(dynamicIdentifier, null));
+          expression, asToken, astFactory.typeName(dynamicIdentifier, null))
+        ..setProperty('_ng_pipeName', pipeEntities.name)
+        ..setProperty('_ng_pipeArgs', pipeEntities.arguments);
     }
     return expression;
   }
@@ -48,11 +57,21 @@ class NgExprParser extends Parser {
   /// Return the resolved left-hand expression as a dynamic type.
   ///
   ///     pipeExpression ::= identifier[':' expression]*
-  void parsePipeExpression() {
-    parseIdentifierList();
+  _PipeEntities parsePipeExpressionEntities() {
+    final identifier = parseSimpleIdentifier();
+    final expressions = <Expression>[];
     while (_currentToken.type == TokenType.COLON) {
       getAndAdvance();
-      parseExpression2();
+      expressions.add(parseExpression2());
     }
+
+    return _PipeEntities(identifier, expressions);
   }
+}
+
+class _PipeEntities {
+  final SimpleIdentifier name;
+  final List<Expression> arguments;
+
+  _PipeEntities(this.name, this.arguments);
 }
