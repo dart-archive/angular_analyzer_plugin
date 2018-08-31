@@ -5,7 +5,6 @@ import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/ast/token.dart';
 import 'package:analyzer/src/generated/parser.dart';
 import 'package:analyzer/src/generated/source.dart';
-import 'package:angular_analyzer_plugin/src/tuple.dart';
 
 class NgExprParser extends Parser {
   NgExprParser(Source source, AnalysisErrorListener errorListener)
