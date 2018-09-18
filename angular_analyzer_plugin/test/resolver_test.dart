@@ -2090,6 +2090,22 @@ class TitleComponent {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_unaryMinus_allowed() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+{{-x}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expressionNotAllowed_as() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2195,6 +2211,23 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_minusEq() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x -= 1"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x -= 1');
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expressionNotAllowed_namedArgs() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2243,6 +2276,89 @@ class TestPanel {
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.DISALLOWED_EXPRESSION, code, "new String()");
+  }
+
+  Future test_expressionNotAllowed_plusEq() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x += 1"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x += 1');
+  }
+
+  Future test_expressionNotAllowed_postfixMinusMinus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x--"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x--');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_postfixPlusPlus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x++"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x++');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_prefixMinusMinus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="--x"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, '--x');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_prefixPlusPlus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="++x"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, '++x');
   }
 
   // ignore: non_constant_identifier_names

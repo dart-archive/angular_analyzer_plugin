@@ -146,6 +146,9 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
 
   @override
   void visitAssignmentExpression(AssignmentExpression exp) {
+    if (exp.operator.type != TokenType.EQ) {
+      _reportUnacceptableNode(exp, 'Compound assignment');
+    }
     // Only block reassignment of locals, not poperties. Resolve elements to
     // check that.
     exp.leftHandSide.accept(elementResolver);
@@ -181,6 +184,18 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
   @override
   void visitNamedExpression(NamedExpression exp) =>
       _reportUnacceptableNode(exp, "Named arguments");
+
+  @override
+  void visitPostfixExpression(PostfixExpression exp) {
+    _reportUnacceptableNode(exp, exp.operator.lexeme);
+  }
+
+  @override
+  void visitPrefixExpression(PrefixExpression exp) {
+    if (exp.operator.type != TokenType.MINUS) {
+      _reportUnacceptableNode(exp, exp.operator.lexeme);
+    }
+  }
 
   @override
   void visitSuperExpression(SuperExpression exp) =>
