@@ -7,6 +7,8 @@
 - Fixed issues with `<ng-container>`, which resulted in the inner content simply
   being ignored instead of being validated (and also caused some problems
   with finding inner `<ng-content>` tags).
+- More checks for rejected operators like `+=`, `++` other unary operators and
+  compound assignments.
 
 ## 0.0.17+3
 
