@@ -1565,7 +1565,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
         library,
         typeProvider,
         new InheritanceManager(library),
-        new InheritanceManager2(typeSystem),
+        new InheritanceManager2(typeSystem as StrongTypeSystemImpl),
         acceptAssignment: acceptAssignment)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
