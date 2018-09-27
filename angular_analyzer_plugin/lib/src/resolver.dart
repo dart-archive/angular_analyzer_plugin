@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/element/element.dart';
+import 'package:analyzer/src/dart/element/inheritance_manager2.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
@@ -44,12 +45,17 @@ class AngularErrorVerifier extends _IntermediateErrorVerifier
   @override
   TypeProvider typeProvider;
 
-  AngularErrorVerifier(ErrorReporter errorReporter, LibraryElement library,
-      TypeProvider typeProvider, InheritanceManager inheritanceManager,
+  AngularErrorVerifier(
+      ErrorReporter errorReporter,
+      LibraryElement library,
+      TypeProvider typeProvider,
+      InheritanceManager inheritanceManager,
+      InheritanceManager2 inheritanceManager2,
       {@required this.acceptAssignment})
       : errorReporter = errorReporter,
         typeProvider = typeProvider,
-        super(errorReporter, library, typeProvider, inheritanceManager);
+        super(errorReporter, library, typeProvider, inheritanceManager,
+            inheritanceManager2);
 
   @override
   void visitAssignmentExpression(AssignmentExpression exp) {
@@ -1555,7 +1561,11 @@ class SingleScopeResolver extends AngularScopeVisitor {
     astNode.accept(resolver);
     // verify
     final verifier = new AngularErrorVerifier(
-        errorReporter, library, typeProvider, new InheritanceManager(library),
+        errorReporter,
+        library,
+        typeProvider,
+        new InheritanceManager(library),
+        new InheritanceManager2(typeSystem as StrongTypeSystemImpl),
         acceptAssignment: acceptAssignment)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
@@ -1916,7 +1926,9 @@ class _IntermediateErrorVerifier extends ErrorVerifier {
     LibraryElement library,
     TypeProvider typeProvider,
     InheritanceManager inheritanceManager,
-  ) : super(errorReporter, library, typeProvider, inheritanceManager, false);
+    InheritanceManager2 inheritanceManager2,
+  ) : super(errorReporter, library, typeProvider, inheritanceManager,
+            inheritanceManager2, false);
 }
 
 /// Workaround for "This mixin application is invalid because all of the
