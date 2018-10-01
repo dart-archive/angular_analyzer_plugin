@@ -14,4 +14,3 @@ script:
   - ./tools/travis.sh
 env:
   - PACKAGE=angular_analyzer_plugin
-  - PACKAGE=old_plugin_loader

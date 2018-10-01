@@ -31,11 +31,6 @@ echo 'angular_analyzer_plugin:angular_analyzer_plugin/lib' >> .packages
 echo done
 echo
 
-echo Adding old plugin loader to .packages
-echo 'old_plugin_loader:old_plugin_loader/lib' >> .packages
-echo done
-echo
-
 echo Updating new plugin architecture .packages file
 echo Adding self hosting plugin architecture .packages file
 cd angular_analyzer_plugin/tools/analyzer_plugin
