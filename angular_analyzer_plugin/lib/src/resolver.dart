@@ -406,9 +406,8 @@ class DartVariableManager {
       int offset, String name, DartType type) {
     // ensure artificial Dart elements in the template source
     if (htmlMethodElement == null) {
-      htmlCompilationUnitElement =
-          new CompilationUnitElementImpl(templateSource.fullName)
-            ..source = templateSource;
+      htmlCompilationUnitElement = new CompilationUnitElementImpl()
+        ..source = templateSource;
       htmlClassElement = new ClassElementImpl('AngularTemplateClass', -1);
       htmlCompilationUnitElement.types = <ClassElement>[htmlClassElement];
       htmlMethodElement = new MethodElementImpl('angularTemplateMethod', -1);
