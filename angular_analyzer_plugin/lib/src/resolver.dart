@@ -114,10 +114,16 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
   final bool acceptAssignment;
   final List<Pipe> pipes;
 
-  AngularResolverVisitor(LibraryElement library, Source source,
-      TypeProvider typeProvider, AnalysisErrorListener errorListener,
-      {@required this.acceptAssignment, @required this.pipes})
-      : super(library, source, typeProvider, errorListener);
+  AngularResolverVisitor(
+      InheritanceManager2 inheritanceManager2,
+      LibraryElement library,
+      Source source,
+      TypeProvider typeProvider,
+      AnalysisErrorListener errorListener,
+      {@required this.acceptAssignment,
+      @required this.pipes})
+      : super(
+            inheritanceManager2, library, source, typeProvider, errorListener);
 
   @override
   void visitAsExpression(AsExpression exp) {
@@ -1545,8 +1551,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
           library, view.source, typeProvider, errorListener);
       astNode.accept(visitor);
     }
-    final resolver = new AngularResolverVisitor(
-        library, templateSource, typeProvider, errorListener,
+    final inheritanceManager2 =
+        new InheritanceManager2(typeSystem as StrongTypeSystemImpl);
+    final resolver = new AngularResolverVisitor(inheritanceManager2, library,
+        templateSource, typeProvider, errorListener,
         acceptAssignment: acceptAssignment, pipes: pipes);
     // fill the name scope
     final classScope = new ClassScope(resolver.nameScope, classElement);
@@ -1559,12 +1567,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    final verifier = new AngularErrorVerifier(
-        errorReporter,
-        library,
-        typeProvider,
-        new InheritanceManager(library),
-        new InheritanceManager2(typeSystem as StrongTypeSystemImpl),
+    final verifier = new AngularErrorVerifier(errorReporter, library,
+        typeProvider, new InheritanceManager(library), inheritanceManager2,
         acceptAssignment: acceptAssignment)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
@@ -1936,7 +1940,12 @@ class _IntermediateErrorVerifier extends ErrorVerifier {
 ///
 /// See https://github.com/dart-lang/sdk/issues/15101 for details
 class _IntermediateResolverVisitor extends ResolverVisitor {
-  _IntermediateResolverVisitor(LibraryElement library, Source source,
-      TypeProvider typeProvider, AnalysisErrorListener errorListener)
-      : super(library, source, typeProvider, errorListener);
+  _IntermediateResolverVisitor(
+      InheritanceManager2 inheritanceManager2,
+      LibraryElement library,
+      Source source,
+      TypeProvider typeProvider,
+      AnalysisErrorListener errorListener)
+      : super(
+            inheritanceManager2, library, source, typeProvider, errorListener);
 }
