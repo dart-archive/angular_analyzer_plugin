@@ -45,17 +45,12 @@ class AngularErrorVerifier extends _IntermediateErrorVerifier
   @override
   TypeProvider typeProvider;
 
-  AngularErrorVerifier(
-      ErrorReporter errorReporter,
-      LibraryElement library,
-      TypeProvider typeProvider,
-      InheritanceManager inheritanceManager,
-      InheritanceManager2 inheritanceManager2,
+  AngularErrorVerifier(ErrorReporter errorReporter, LibraryElement library,
+      TypeProvider typeProvider, InheritanceManager2 inheritanceManager2,
       {@required this.acceptAssignment})
       : errorReporter = errorReporter,
         typeProvider = typeProvider,
-        super(errorReporter, library, typeProvider, inheritanceManager,
-            inheritanceManager2);
+        super(errorReporter, library, typeProvider, inheritanceManager2);
 
   @override
   void visitAssignmentExpression(AssignmentExpression exp) {
@@ -1567,8 +1562,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    final verifier = new AngularErrorVerifier(errorReporter, library,
-        typeProvider, new InheritanceManager(library), inheritanceManager2,
+    final verifier = new AngularErrorVerifier(
+        errorReporter, library, typeProvider, inheritanceManager2,
         acceptAssignment: acceptAssignment)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
@@ -1928,10 +1923,8 @@ class _IntermediateErrorVerifier extends ErrorVerifier {
     ErrorReporter errorReporter,
     LibraryElement library,
     TypeProvider typeProvider,
-    InheritanceManager inheritanceManager,
     InheritanceManager2 inheritanceManager2,
-  ) : super(errorReporter, library, typeProvider, inheritanceManager,
-            inheritanceManager2, false);
+  ) : super(errorReporter, library, typeProvider, inheritanceManager2, false);
 }
 
 /// Workaround for "This mixin application is invalid because all of the
