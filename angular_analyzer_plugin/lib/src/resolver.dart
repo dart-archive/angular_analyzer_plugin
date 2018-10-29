@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/src/dart/element/element.dart';
+import 'package:analyzer/src/dart/element/inheritance_manager2.dart';
 import 'package:analyzer/src/error/codes.dart';
 import 'package:analyzer/src/generated/error_verifier.dart';
 import 'package:analyzer/src/generated/resolver.dart';
@@ -45,11 +46,11 @@ class AngularErrorVerifier extends _IntermediateErrorVerifier
   TypeProvider typeProvider;
 
   AngularErrorVerifier(ErrorReporter errorReporter, LibraryElement library,
-      TypeProvider typeProvider, InheritanceManager inheritanceManager,
+      TypeProvider typeProvider, InheritanceManager2 inheritanceManager2,
       {@required this.acceptAssignment})
       : errorReporter = errorReporter,
         typeProvider = typeProvider,
-        super(errorReporter, library, typeProvider, inheritanceManager);
+        super(errorReporter, library, typeProvider, inheritanceManager2);
 
   @override
   void visitAssignmentExpression(AssignmentExpression exp) {
@@ -108,10 +109,16 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
   final bool acceptAssignment;
   final List<Pipe> pipes;
 
-  AngularResolverVisitor(LibraryElement library, Source source,
-      TypeProvider typeProvider, AnalysisErrorListener errorListener,
-      {@required this.acceptAssignment, @required this.pipes})
-      : super(library, source, typeProvider, errorListener);
+  AngularResolverVisitor(
+      InheritanceManager2 inheritanceManager2,
+      LibraryElement library,
+      Source source,
+      TypeProvider typeProvider,
+      AnalysisErrorListener errorListener,
+      {@required this.acceptAssignment,
+      @required this.pipes})
+      : super(
+            inheritanceManager2, library, source, typeProvider, errorListener);
 
   @override
   void visitAsExpression(AsExpression exp) {
@@ -415,9 +422,8 @@ class DartVariableManager {
       int offset, String name, DartType type) {
     // ensure artificial Dart elements in the template source
     if (htmlMethodElement == null) {
-      htmlCompilationUnitElement =
-          new CompilationUnitElementImpl(templateSource.fullName)
-            ..source = templateSource;
+      htmlCompilationUnitElement = new CompilationUnitElementImpl()
+        ..source = templateSource;
       htmlClassElement = new ClassElementImpl('AngularTemplateClass', -1);
       htmlCompilationUnitElement.types = <ClassElement>[htmlClassElement];
       htmlMethodElement = new MethodElementImpl('angularTemplateMethod', -1);
@@ -1555,8 +1561,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
           library, view.source, typeProvider, errorListener);
       astNode.accept(visitor);
     }
-    final resolver = new AngularResolverVisitor(
-        library, templateSource, typeProvider, errorListener,
+    final inheritanceManager2 =
+        new InheritanceManager2(typeSystem as StrongTypeSystemImpl);
+    final resolver = new AngularResolverVisitor(inheritanceManager2, library,
+        templateSource, typeProvider, errorListener,
         acceptAssignment: acceptAssignment, pipes: pipes);
     // fill the name scope
     final classScope = new ClassScope(resolver.nameScope, classElement);
@@ -1570,7 +1578,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
     astNode.accept(resolver);
     // verify
     final verifier = new AngularErrorVerifier(
-        errorReporter, library, typeProvider, new InheritanceManager(library),
+        errorReporter, library, typeProvider, inheritanceManager2,
         acceptAssignment: acceptAssignment)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
@@ -1930,8 +1938,8 @@ class _IntermediateErrorVerifier extends ErrorVerifier {
     ErrorReporter errorReporter,
     LibraryElement library,
     TypeProvider typeProvider,
-    InheritanceManager inheritanceManager,
-  ) : super(errorReporter, library, typeProvider, inheritanceManager, false);
+    InheritanceManager2 inheritanceManager2,
+  ) : super(errorReporter, library, typeProvider, inheritanceManager2, false);
 }
 
 /// Workaround for "This mixin application is invalid because all of the
@@ -1940,7 +1948,12 @@ class _IntermediateErrorVerifier extends ErrorVerifier {
 ///
 /// See https://github.com/dart-lang/sdk/issues/15101 for details
 class _IntermediateResolverVisitor extends ResolverVisitor {
-  _IntermediateResolverVisitor(LibraryElement library, Source source,
-      TypeProvider typeProvider, AnalysisErrorListener errorListener)
-      : super(library, source, typeProvider, errorListener);
+  _IntermediateResolverVisitor(
+      InheritanceManager2 inheritanceManager2,
+      LibraryElement library,
+      Source source,
+      TypeProvider typeProvider,
+      AnalysisErrorListener errorListener)
+      : super(
+            inheritanceManager2, library, source, typeProvider, errorListener);
 }

@@ -3523,8 +3523,8 @@ component class can't be used with a prefix: {{prefixed.TestPanel}}
     await _resolveSingleTemplate(dartSource);
     expect(ranges, hasLength(2)); // the 'prefixed' prefixes only
     errorListener.assertErrorsWithCodes([
-      StaticWarningCode.UNDEFINED_GETTER,
-      StaticWarningCode.UNDEFINED_GETTER,
+      StaticTypeWarningCode.UNDEFINED_GETTER,
+      StaticTypeWarningCode.UNDEFINED_GETTER,
       StaticWarningCode.UNDEFINED_IDENTIFIER,
     ]);
   }
