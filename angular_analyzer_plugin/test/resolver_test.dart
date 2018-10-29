@@ -1893,7 +1893,10 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol",
+        additionalErrorCodes: [
+          StaticTypeWarningCode.INVOCATION_OF_NON_FUNCTION_EXPRESSION
+        ]);
   }
 
   Future
@@ -2147,16 +2150,16 @@ class TestPanel {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
-  String str;
+  bool val;
 }
 ''');
     final code = r"""
-<h1 [hidden]="str..x"></h1>
+<h1 [hidden]="val..toString"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str..x");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "val..toString");
   }
 
   // ignore: non_constant_identifier_names
@@ -2270,12 +2273,12 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 [hidden]="new String().isEmpty"></h1>
+<h1 [hidden]="new TestPanel() != null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "new String()");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "new TestPanel()");
   }
 
   Future test_expressionNotAllowed_plusEq() async {
@@ -2370,12 +2373,12 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 #h1 [hidden]="h1 = 4"></h1>
+    <h1 #h1 [hidden]="(h1 = null) == null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = null");
   }
 
   // ignore: non_constant_identifier_names
@@ -2392,7 +2395,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "rethrow");
+        CompileTimeErrorCode.RETHROW_OUTSIDE_CATCH, code, "rethrow");
   }
 
   // ignore: non_constant_identifier_names
@@ -2404,7 +2407,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 [hidden]="str = 'hey'"></h1>
+<h1 [hidden]="(str = 'hey') == null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -2421,12 +2424,12 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 #h1 (click)="h1 = 4"></h1>
+<h1 #h1 (click)="h1 = null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = null");
   }
 
   // ignore: non_constant_identifier_names
@@ -2443,7 +2446,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "super");
+        CompileTimeErrorCode.SUPER_IN_INVALID_CONTEXT, code, "super");
   }
 
   // ignore: non_constant_identifier_names
@@ -2455,7 +2458,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 [hidden]="#symbol"></h1>
+<h1 [hidden]="#symbol == null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -2477,7 +2480,7 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "this");
+        CompileTimeErrorCode.INVALID_REFERENCE_TO_THIS, code, "this");
   }
 
   // ignore: non_constant_identifier_names
