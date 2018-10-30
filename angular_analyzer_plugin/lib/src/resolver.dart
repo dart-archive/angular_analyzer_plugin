@@ -15,7 +15,6 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
-import 'package:angular_analyzer_plugin/src/facade/exports_library_element.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -199,15 +198,19 @@ class AngularScopeVisitor extends AngularAstVisitor {
   }
 }
 
-/// Find nodes which are not supported in angular, such as compound assignment
-/// and function expressions etc.
+/// Find nodes which are not supported in angular (such as compound assignment
+/// and function expressions etc.), as well as terms used in the template that
+/// weren't exported by the component.
 class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
   final bool acceptAssignment;
+  final Component owningComponent;
 
   final ErrorReporter errorReporter;
 
   AngularSubsetVisitor(
-      {@required this.errorReporter, @required this.acceptAssignment});
+      {@required this.errorReporter,
+      @required this.owningComponent,
+      @required this.acceptAssignment});
 
   @override
   void visitAsExpression(AsExpression exp) {
@@ -217,7 +220,9 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
       _reportDisallowedExpression(exp, "As expression", visitChildren: false);
     }
 
-    super.visitAsExpression(exp);
+    // Don't visit the TypeName or it may suggest exporting it, which is not
+    // possible.
+    exp.expression.accept(this);
   }
 
   @override
@@ -251,18 +256,112 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
   void visitFunctionExpression(FunctionExpression exp) =>
       _reportDisallowedExpression(exp, "Anonymous functions");
 
-  @override
-  void visitInstanceCreationExpression(InstanceCreationExpression exp) =>
-      _reportDisallowedExpression(exp, "Usage of new");
+  /// Only allow access to:
+  /// * current class members
+  /// * inherited class members
+  /// * methods
+  /// * angular references (ie `<h1 #ref id="foo"></h1> {{h1.id}}`)
+  /// * exported members
+  ///
+  /// Flag the rest and give the hint that they should be exported.
+  void visitIdentifier(Identifier id) {
+    final element = id.staticElement;
+    if (id is PrefixedIdentifier && id.prefix.staticElement is! PrefixElement) {
+      // Static methods, enums, etc. Check the LHS.
+      visitIdentifier(id.prefix);
+      return;
+    }
+    if (id.parent is PropertyAccess &&
+        identical(id, (id.parent as PropertyAccess).propertyName)) {
+      // Accessors are always allowed.
+      return;
+    }
+    if (element is PrefixElement) {
+      // Prefixes can't be exported, and analyzer reports a warning for dangling
+      // prefixes.
+      return;
+    }
+    if (element is MethodElement) {
+      // All methods are OK, as in `x.y()`. It's only `x` that may be hidden.
+      return;
+    }
+    if (element is ClassElement && element == owningComponent.classElement) {
+      // Static method calls on the current class are allowed
+      return;
+    }
+    if (element is DynamicElementImpl) {
+      // Usually indicates a resolution error, so don't double report it.
+      return;
+    }
+    if (element == null) {
+      // Also usually indicates an error, don't double report.
+      return;
+    }
+    if (element is LocalVariableElement) {
+      // `$event` variables, `ngFor` variables, these are OK.
+      return;
+    }
+    if (element is ParameterElement) {
+      // Named parameters: not allowed, but flagged in [visitNamedExpression].
+      return;
+    }
+    if (element is AngularElement) {
+      // Variables local to the template
+      return;
+    }
+    if ((element is PropertyInducingElement ||
+            element is PropertyAccessorElement) &&
+        (owningComponent.classElement.lookUpGetter(id.name, null) != null ||
+            owningComponent.classElement.lookUpSetter(id.name, null) != null)) {
+      // Part of the component interface.
+      return;
+    }
+
+    if (id is PrefixedIdentifier) {
+      if (owningComponent.exports.any((export) =>
+          export.prefix == id.prefix.name && id.name == export.identifier)) {
+        // Correct reference to exported prefix identifier
+        return;
+      }
+    } else {
+      if (owningComponent.exports.any(
+          (export) => export.prefix == null && id.name == export.identifier)) {
+        // Correct reference to exported simple identifier
+        return;
+      }
+    }
+
+    errorReporter.reportErrorForNode(
+        AngularWarningCode.IDENTIFIER_NOT_EXPORTED, id, [id]);
+  }
 
   @override
-  void visitIsExpression(IsExpression exp) =>
-      _reportDisallowedExpression(exp, "Is expression");
+  void visitInstanceCreationExpression(InstanceCreationExpression exp) {
+    _reportDisallowedExpression(exp, "Usage of new", visitChildren: false);
+    // Don't visit the TypeName or it may suggest exporting it, which is not
+    // possible.
+
+    exp.argumentList.accept(this);
+  }
+
+  @override
+  void visitIsExpression(IsExpression exp) {
+    _reportDisallowedExpression(exp, "Is expression", visitChildren: false);
+    // Don't visit the TypeName or it may suggest exporting it, which is not
+    // possible.
+
+    exp.expression.accept(this);
+  }
 
   @override
   void visitListLiteral(ListLiteral list) {
     if (list.typeArguments != null) {
-      _reportDisallowedExpression(list, "Typed list literals");
+      _reportDisallowedExpression(list, "Typed list literals",
+          visitChildren: false);
+      // Don't visit the TypeName or it may suggest exporting it, which is not
+      // possible.e.
+
+      list.elements.accept(this);
     } else {
       super.visitListLiteral(list);
     }
@@ -271,7 +370,12 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
   @override
   void visitMapLiteral(MapLiteral map) {
     if (map.typeArguments != null) {
-      _reportDisallowedExpression(map, "Typed map literals");
+      _reportDisallowedExpression(map, "Typed map literals",
+          visitChildren: false);
+      // Don't visit the TypeName or it may suggest exporting it, which is not
+      // possible.e.
+
+      map.entries.accept(this);
     } else {
       super.visitMapLiteral(map);
     }
@@ -287,11 +391,17 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
   }
 
   @override
+  void visitPrefixedIdentifier(PrefixedIdentifier id) => visitIdentifier(id);
+
+  @override
   void visitPrefixExpression(PrefixExpression exp) {
     if (exp.operator.type != TokenType.MINUS) {
       _reportDisallowedExpression(exp, exp.operator.lexeme);
     }
   }
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier id) => visitIdentifier(id);
 
   @override
   void visitSymbolLiteral(SymbolLiteral exp) =>
@@ -1538,8 +1648,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   /// Resolve the given [AstNode] ([expression] or [statement]) and report errors.
   void _resolveDartAstNode(AstNode astNode, bool acceptAssignment) {
     final classElement = view.classElement;
-    final library =
-        new ExportsLibraryFacade(classElement.library, view.component);
+    final library = classElement.library;
     {
       final visitor = new TypeResolverVisitor(
           library, view.source, typeProvider, errorListener);
@@ -1568,7 +1677,9 @@ class SingleScopeResolver extends AngularScopeVisitor {
     astNode.accept(verifier);
     // Check for concepts illegal to templates (for instance function literals).
     final angularSubsetChecker = new AngularSubsetVisitor(
-        errorReporter: errorReporter, acceptAssignment: acceptAssignment);
+        errorReporter: errorReporter,
+        acceptAssignment: acceptAssignment,
+        owningComponent: view.component);
     astNode.accept(angularSubsetChecker);
   }
 
