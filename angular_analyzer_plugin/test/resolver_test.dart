@@ -3569,9 +3569,18 @@ class MyClass {
 class TestPanel {
   static void componentStatic() {
   }
+  local();
+  int get getter => null;
+  set setter(int x) => null;
+  int field = null;
 }
 ''');
     final code = r'''
+methods/getters/setters on current class ok:
+{{local()}}
+{{getter}}
+{{field}}
+<div (click)="setter = null"></div>
 static on current class ok:
 {{TestPanel.componentStatic()}}
 exports ok:
@@ -3586,7 +3595,7 @@ exports ok:
 ''';
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(18));
+    expect(ranges, hasLength(23));
     _assertElement('TestPanel').dart.at('TestPanel {');
     _assertElement('componentStatic').dart.method.at('componentStatic() {');
     _assertElement('myAccessor').dart.getter.at('myAccessor = 1');
@@ -3726,20 +3735,19 @@ can't be exported:
 ''';
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(0));
     errorListener.assertErrorsWithCodes([
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticTypeWarningCode.UNDEFINED_METHOD,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
     ]);
   }
 
