@@ -32,25 +32,6 @@ bool isOnCustomTag(AttributeInfo node) {
   return parent is ElementInfo && parent.tagMatchedAsCustomTag;
 }
 
-/// Overrides standard [ErrorVerifier] to prevent issues with analyzing dangling
-/// angular nodes. Not intended as a long-term solution.
-class AngularErrorVerifier extends ErrorVerifier {
-  AngularErrorVerifier(
-      ErrorReporter errorReporter,
-      LibraryElement currentLibrary,
-      TypeProvider typeProvider,
-      InheritanceManager2 inheritanceManager,
-      {@required bool enableSuperMixins})
-      : super(errorReporter, currentLibrary, typeProvider, inheritanceManager,
-            enableSuperMixins);
-
-  @override
-  void visitFunctionExpression(FunctionExpression func) {
-    // Stop resolving or analyzer will crash.
-    // TODO(mfairhurst): fix the analyzer crash and remove this.
-  }
-}
-
 /// Overrides standard [ResolverVisitor] to prevent issues with analyzing
 /// dangling angular nodes, while also allowing custom resolution of pipes. Not
 /// intended as a long-term solution.
@@ -95,12 +76,6 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor {
         }
       }
     }
-  }
-
-  @override
-  void visitFunctionExpression(FunctionExpression func) {
-    // Stop resolving or analyzer will crash.
-    // TODO(mfairhurst): fix the analyzer crash and remove this.
   }
 }
 
@@ -1650,6 +1625,10 @@ class SingleScopeResolver extends AngularScopeVisitor {
     final classElement = view.classElement;
     final library = classElement.library;
     {
+      final visitor = new LocalElementBuilder.forDanglingExpression();
+      astNode.accept(visitor);
+    }
+    {
       final visitor = new TypeResolverVisitor(
           library, view.source, typeProvider, errorListener);
       astNode.accept(visitor);
@@ -1670,9 +1649,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // do resolve
     astNode.accept(resolver);
     // verify
-    final verifier = new AngularErrorVerifier(
-        errorReporter, library, typeProvider, inheritanceManager2,
-        enableSuperMixins: true)
+    final verifier = new ErrorVerifier(
+        errorReporter, library, typeProvider, inheritanceManager2, true)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
     // Check for concepts illegal to templates (for instance function literals).
