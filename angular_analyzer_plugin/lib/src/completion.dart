@@ -10,6 +10,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart';
+import 'package:analyzer/src/generated/type_system.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart'
     hide AnalysisError;
 import 'package:analyzer_plugin/src/utilities/completion/completion_core.dart';
@@ -179,8 +180,10 @@ class NgInheritedReferenceContributor extends CompletionContributor {
     final templates = request.templates;
 
     for (final template in templates) {
-      final typeProvider = template.view.component.classElement.enclosingElement
-          .enclosingElement.context.typeProvider;
+      final context = template.view.component.classElement.enclosingElement
+          .enclosingElement.context;
+      final typeProvider = context.typeProvider;
+      final typeSystem = context.typeSystem;
       final dartSnippet = request.dartSnippet;
 
       if (dartSnippet != null) {
@@ -193,7 +196,9 @@ class NgInheritedReferenceContributor extends CompletionContributor {
         final libraryElement = classElement.library;
 
         final dartResolveResult = new _ResolveResultShell(request.path,
-            libraryElement: libraryElement, typeProvider: typeProvider);
+            libraryElement: libraryElement,
+            typeProvider: typeProvider,
+            typeSystem: typeSystem);
         final dartRequest = new DartCompletionRequestImpl(
             request.resourceProvider, request.offset, dartResolveResult);
         await _inheritedReferenceContributor.computeSuggestionsForClass(
@@ -1190,9 +1195,13 @@ class _ResolveResultShell implements ResolveResult {
   TypeProvider typeProvider;
 
   @override
+  TypeSystem typeSystem;
+
+  @override
   final String path;
 
-  _ResolveResultShell(this.path, {this.libraryElement, this.typeProvider});
+  _ResolveResultShell(this.path,
+      {this.libraryElement, this.typeProvider, this.typeSystem});
 
   @override
   String get content => null;
