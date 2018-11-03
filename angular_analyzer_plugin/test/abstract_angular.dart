@@ -116,16 +116,22 @@ class AbstractAngularTest {
   AbstractAngularTest() : includeQueryList = true;
   AbstractAngularTest.future() : includeQueryList = false;
 
-  /// Assert that the [errCode] is reported for [code], highlighting the [snippet].
+  /// Assert that the [errCode] is reported for [code], highlighting the
+  /// [snippet]. Optionally, expect [additionalErrorCodes] to appear at any
+  /// location.
   void assertErrorInCodeAtPosition(
-      ErrorCode errCode, String code, String snippet) {
+      ErrorCode errCode, String code, String snippet,
+      {List<ErrorCode> additionalErrorCodes}) {
     final snippetIndex = code.indexOf(snippet);
     expect(snippetIndex, greaterThan(-1),
         reason: 'Error in test: snippet $snippet not part of code $code');
-    errorListener.assertErrorsWithCodes(<ErrorCode>[errCode]);
-    final error = errorListener.errors.single;
+    final expectedErrorCodes = (additionalErrorCodes ?? <ErrorCode>[])
+      ..add(errCode);
+    errorListener.assertErrorsWithCodes(expectedErrorCodes);
+    final error =
+        errorListener.errors.singleWhere((e) => e.errorCode == errCode);
     expect(error.offset, snippetIndex);
-    expect(errorListener.errors.single.length, snippet.length);
+    expect(error.length, snippet.length);
   }
 
   /// For [expectedErrors], it is a List of Tuple4 (1 per error):

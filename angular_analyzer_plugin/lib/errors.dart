@@ -56,6 +56,7 @@ const _angularWarningCodeValues = const <AngularWarningCode>[
   AngularWarningCode.MATCHED_LET_BINDING_HAS_WRONG_TYPE,
   AngularWarningCode.EXPORTS_MUST_BE_PLAIN_IDENTIFIERS,
   AngularWarningCode.DUPLICATE_EXPORT,
+  AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
   AngularWarningCode.COMPONENTS_CANT_EXPORT_THEMSELVES,
   AngularWarningCode.PIPE_SINGLE_NAME_REQUIRED,
   AngularWarningCode.TYPE_IS_NOT_A_PIPE,
@@ -449,6 +450,14 @@ class AngularWarningCode extends ErrorCode {
   /// An error code indicating that an identifier was exported multiple times
   static const DUPLICATE_EXPORT = const AngularWarningCode(
       'DUPLICATE_EXPORT', 'Duplicate export of identifier {0}');
+
+  /// An error code indicating that an identifier was used in a template, but
+  /// not exported in the component.
+  static const IDENTIFIER_NOT_EXPORTED = const AngularWarningCode(
+      'IDENTIFIER_NOT_EXPORTED',
+      'Identifier {0} was not exported by the component and therefore cannot be'
+      ' used in its template. Add it to the exports property on the component'
+      ' definition to use it here.');
 
   /// An error code indicating component Foo exports Foo, which is unnecessary
   static const COMPONENTS_CANT_EXPORT_THEMSELVES = const AngularWarningCode(

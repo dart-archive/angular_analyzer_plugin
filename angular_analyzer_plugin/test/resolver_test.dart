@@ -143,6 +143,7 @@ class TestPanel {}
 
   // ignore: non_constant_identifier_names
   Future test_catchPkgHtmlGithubBug44() async {
+    // see https://github.com/dart-lang/html/issues/44
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -284,40 +285,6 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_as_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1>{{str as String}}</h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str as String");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_assignment_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 #h1 [hidden]="h1 = 4"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_expression_attrBinding_expressionTypeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -434,43 +401,6 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_await_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="await str"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    //This actually gets parsed as an identifier, which is OK. Still fails!
-    errorListener.assertErrorsWithCodes([
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      AngularWarningCode.TRAILING_EXPRESSION
-    ]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_cascade_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="str..x"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str..x");
   }
 
   // ignore: non_constant_identifier_names
@@ -641,41 +571,6 @@ class TestPanel {
     _assertElement('handleClick()').dart.method.at('handleClick(MouseEvent');
   }
 
-  // ignore: non_constant_identifier_names
-  Future test_expression_func2_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="()=>x"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>x");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_func_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="(){}"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "(){}");
-  }
-
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_input_genericDirective_lowerBoundChainTypeError() async {
@@ -699,7 +594,6 @@ class GenericComponent<T extends O, O extends String> {
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notString");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_input_genericDirective_lowerBoundNestedTypeError() async {
@@ -723,7 +617,6 @@ class GenericComponent<T extends String> {
         AngularWarningCode.INPUT_BINDING_TYPE_ERROR, code, "notStringList");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_extendGenericUnbounded_ok() async {
@@ -753,7 +646,6 @@ class GenericComponent<T> extends Generic {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_genericDirective_chain_ok() async {
@@ -780,7 +672,6 @@ class GenericComponent<T extends E, E> {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_genericDirective_nested_ok() async {
@@ -832,7 +723,6 @@ class GenericComponent<T> {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_inputAndOutputBinding_genericDirectiveChild_ok() async {
@@ -1101,7 +991,6 @@ class TitleComponent {
         AngularWarningCode.EMPTY_BINDING, code, "[title]");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_inputBinding_genericDirective_lowerBoundTypeError() async {
@@ -1370,23 +1259,6 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_is_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="str is int"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str is int");
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_expression_keyupdownWithKeysOk() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -1438,23 +1310,6 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_named_args_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  bool callMe({String arg}) => true;
-}
-''');
-    final code = r"""
-<h1 [hidden]="callMe(arg: 'bob')"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "arg: 'bob'");
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_expression_nativeEventBindingOnComponent() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -1501,40 +1356,6 @@ class SomeComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_nested_as_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1>{{(str.isEmpty as String).isEmpty}}</h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(AngularWarningCode.DISALLOWED_EXPRESSION, code,
-        "str.isEmpty as String");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_new_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="new String().isEmpty"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "new String()");
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_expression_outputBinding_boundToNothing() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1551,7 +1372,6 @@ class TestPanel {
         AngularWarningCode.NONEXIST_OUTPUT_BOUND, code, "title");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_outputBinding_genericDirective_lowerBoundTypeError() async {
@@ -1689,8 +1509,8 @@ class AmbiguousPipe2 extends PipeTransform {
         AngularWarningCode.AMBIGUOUS_PIPE, code, 'ambiguous');
   }
 
-  // ignore: non_constant_identifier_names
   @failingTest
+  // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache_extraArg() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1710,8 +1530,8 @@ class StringPipe extends PipeTransform {
         StaticWarningCode.EXTRA_POSITIONAL_ARGUMENTS, code, '"extra"');
   }
 
-  // ignore: non_constant_identifier_names
   @failingTest
+  // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache_extraExtraArg() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -1767,8 +1587,8 @@ class StringPipe extends PipeTransform {
         StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '1');
   }
 
-  // ignore: non_constant_identifier_names
   @failingTest
+  // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache_typeErrorOptionalArg() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [StringPipe])
@@ -1830,8 +1650,8 @@ class Pipe1 extends PipeTransform {
         StaticWarningCode.UNDEFINED_IDENTIFIER, code, "error1");
   }
 
-  // ignore: non_constant_identifier_names
   @failingTest
+  // ignore: non_constant_identifier_names
   Future test_expression_pipe_in_moustache_with_error_inArg() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html', pipes: [Pipe1])
@@ -1890,40 +1710,6 @@ class TestPanel {
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
         AngularWarningCode.EVENT_REDUCTION_NOT_ALLOWED, code, '.whatever');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_rethrow_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="rethrow"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "rethrow");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_setter_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="str = 'hey'"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = 'hey'");
   }
 
   // ignore: non_constant_identifier_names
@@ -1997,6 +1783,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_invalidPropertyName() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2019,6 +1806,7 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_invalidUnitName() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2041,6 +1829,7 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_nonWidthOrHeightPercent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2057,6 +1846,7 @@ class TestPanel {
         AngularWarningCode.INVALID_CSS_UNIT_NAME, code, "%");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_typeError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2073,6 +1863,7 @@ class TestPanel {
         AngularWarningCode.CSS_UNIT_BINDING_NOT_NUMBER, code, "notNumber");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_styleBinding_withUnit_widthPercent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2088,22 +1879,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  Future test_expression_super_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="super.x"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "super");
-  }
-
+  // ignore: non_constant_identifier_names
   Future test_expression_symbol_invoked_noCrash() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2117,59 +1893,12 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol",
+        additionalErrorCodes: [
+          StaticTypeWarningCode.INVOCATION_OF_NON_FUNCTION_EXPRESSION
+        ]);
   }
 
-  Future test_expression_symbol_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="#symbol"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
-  }
-
-  Future test_expression_this_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="this"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "this");
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_expression_throw_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 [hidden]="throw str"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "throw str");
-  }
-
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_expression_twoWayBinding_genericDirective_lowerBoundTypeError() async {
@@ -2240,6 +1969,7 @@ class TitleComponent {
         AngularWarningCode.EMPTY_BINDING, code, "[(twoWay)]");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_noInputToBind() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', directives: const [TitleComponent],
@@ -2283,6 +2013,7 @@ class TitleComponent {
         AngularWarningCode.NONEXIST_TWO_WAY_OUTPUT_BOUND, code, "inputOnly");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_expression_twoWayBinding_notAssignableError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel',
@@ -2362,7 +2093,415 @@ class TitleComponent {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_typed_list_not_allowed() async {
+  Future test_expression_unaryMinus_allowed() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+{{-x}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_as() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1>{{str as String}}</h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str as String");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_await() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="await str"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    //This actually gets parsed as an identifier, which is OK. Still fails!
+    errorListener.assertErrorsWithCodes([
+      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      AngularWarningCode.TRAILING_EXPRESSION
+    ]);
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_cascade() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  bool val;
+}
+''');
+    final code = r"""
+<h1 [hidden]="val..toString"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "val..toString");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_func() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="(){}"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "(){}");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_func2() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="()=>x"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>x");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_is() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="str is int"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str is int");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_minusEq() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x -= 1"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x -= 1');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_namedArgs() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  bool callMe({String arg}) => true;
+}
+''');
+    final code = r"""
+<h1 [hidden]="callMe(arg: 'bob')"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "arg: 'bob'");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_nestedAs() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1>{{(str.isEmpty as String).isEmpty}}</h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(AngularWarningCode.DISALLOWED_EXPRESSION, code,
+        "str.isEmpty as String");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_new() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="new TestPanel() != null"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "new TestPanel()");
+  }
+
+  Future test_expressionNotAllowed_plusEq() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x += 1"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x += 1');
+  }
+
+  Future test_expressionNotAllowed_postfixMinusMinus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x--"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x--');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_postfixPlusPlus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="x++"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, 'x++');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_prefixMinusMinus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="--x"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, '--x');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_prefixPlusPlus() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  int x;
+}
+''');
+    final code = r"""
+<h1 (click)="++x"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, '++x');
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_referenceAssignment() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+    <h1 #h1 [hidden]="(h1 = null) == null"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = null");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_rethrow() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="rethrow"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        CompileTimeErrorCode.RETHROW_OUTSIDE_CATCH, code, "rethrow");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_setter() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="(str = 'hey') == null"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "str = 'hey'");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_statementAssignment() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 #h1 (click)="h1 = null"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = null");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_super() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="super.x"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        CompileTimeErrorCode.SUPER_IN_INVALID_CONTEXT, code, "super");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_symbol() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="#symbol == null"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "#symbol");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_this() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="this"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        CompileTimeErrorCode.INVALID_REFERENCE_TO_THIS, code, "this");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_throw() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  String str;
+}
+''');
+    final code = r"""
+<h1 [hidden]="throw str"></h1>
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    assertErrorInCodeAtPosition(
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "throw str");
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_expressionNotAllowed_typedList() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -2379,7 +2518,7 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_expression_typed_map_not_allowed() async {
+  Future test_expressionNotAllowed_typedMap() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
 class TestPanel {
@@ -2525,6 +2664,7 @@ class FoobarDirective {
     _assertElement("item").local.at('item [');
   }
 
+  // ignore: non_constant_identifier_names
   Future test_letVariable_in_nonTemplate() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -2539,6 +2679,7 @@ class TestPanel {}
         'let-value');
   }
 
+  // ignore: non_constant_identifier_names
   Future test_localVariable_camelCaseName() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -2563,6 +2704,7 @@ class MyDivComponent {
     _assertElement("myTargetElement.someString)").local.at("myTargetElement>");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_localVariable_exportAs() async {
     _addDartSource(r'''
 @Directive(selector: '[myDirective]', exportAs: 'exportedValue')
@@ -3280,6 +3422,31 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+//  Future test_ngFor_variousKinds_useLowerIdentifier() async {
+//    _addDartSource(r'''
+//@Component(selector: 'test-panel')
+//@View(templateUrl: 'test_panel.html', directives: const [NgFor])
+//class TestPanel {
+//  List<String> items = [];
+//}
+//''');
+//    _addHtmlSource(r"""
+//<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
+//  {{item1.length}}
+//</template>
+//<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
+//  {{item2.length}}
+//</li>
+//<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
+//  {{item3.length}}
+//</li>
+//<div #lowerEl></div>
+//""");
+//    await _resolveSingleTemplate(dartSource);
+//    errorListener.assertNoErrors();
+//  }
+
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_customTagNames() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -3337,31 +3504,6 @@ class TestPanel {
       AngularWarningCode.UNRESOLVED_TAG
     ]);
   }
-
-  // ignore: non_constant_identifier_names
-//  Future test_ngFor_variousKinds_useLowerIdentifier() async {
-//    _addDartSource(r'''
-//@Component(selector: 'test-panel')
-//@View(templateUrl: 'test_panel.html', directives: const [NgFor])
-//class TestPanel {
-//  List<String> items = [];
-//}
-//''');
-//    _addHtmlSource(r"""
-//<template ngFor let-item1 [ngForOf]='items' let-i='index' {{lowerEl}}>
-//  {{item1.length}}
-//</template>
-//<li template="ngFor let item2 of items; let i=index" {{lowerEl}}>
-//  {{item2.length}}
-//</li>
-//<li *ngFor="let item3 of items; let i=index" {{lowerEl}}>
-//  {{item3.length}}
-//</li>
-//<div #lowerEl></div>
-//""");
-//    await _resolveSingleTemplate(dartSource);
-//    errorListener.assertNoErrors();
-//  }
 
   // ignore: non_constant_identifier_names
   Future test_resolveTemplate_exportsCantUsePrefixes() async {
@@ -3427,9 +3569,18 @@ class MyClass {
 class TestPanel {
   static void componentStatic() {
   }
+  local();
+  int get getter => null;
+  set setter(int x) => null;
+  int field = null;
 }
 ''');
     final code = r'''
+methods/getters/setters on current class ok:
+{{local()}}
+{{getter}}
+{{field}}
+<div (click)="setter = null"></div>
 static on current class ok:
 {{TestPanel.componentStatic()}}
 exports ok:
@@ -3444,7 +3595,7 @@ exports ok:
 ''';
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(18));
+    expect(ranges, hasLength(23));
     _assertElement('TestPanel').dart.at('TestPanel {');
     _assertElement('componentStatic').dart.method.at('componentStatic() {');
     _assertElement('myAccessor').dart.getter.at('myAccessor = 1');
@@ -3492,7 +3643,6 @@ class TestPanel {
     ]);
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_noDashesAroundTranscludedContent_stillError() async {
@@ -3514,7 +3664,6 @@ class TranscludeAllAndKnowsTag {
         code, "shouldn't be allowed");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_noDashesAroundTranscludedContent_stillMatchesTag() async {
@@ -3586,24 +3735,22 @@ can't be exported:
 ''';
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(0));
     errorListener.assertErrorsWithCodes([
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticTypeWarningCode.UNDEFINED_METHOD,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
-      StaticWarningCode.UNDEFINED_IDENTIFIER,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
     ]);
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_componentNotElement() async {
@@ -3633,7 +3780,6 @@ class SomeComponent {
         "<some-component #contentChild></some-component>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_componentNotElementRef() async {
@@ -3662,7 +3808,6 @@ class SomeComponent {
         "<some-component #contentChild></some-component>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_componentNotTemplateRef() async {
@@ -3691,7 +3836,6 @@ class SomeComponent {
         "<some-component #contentChild></some-component>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElement() async {
@@ -3721,7 +3865,6 @@ class SomeDirective {
         "<div some-directive #contentChild=\"theDirective\"></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElement_deeplyNested() async {
@@ -3759,7 +3902,6 @@ class SomeDirective {
         "<div some-directive #contentChild=\"theDirective\"></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotElementRef() async {
@@ -3788,7 +3930,6 @@ class SomeDirective {
         "<div some-directive #contentChild=\"theDirective\"></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_directiveNotTemplateRef() async {
@@ -3817,7 +3958,6 @@ class SomeDirective {
         "<div some-directive #contentChild></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_element_directiveNotExported() async {
@@ -3846,7 +3986,6 @@ class SomeDirective {
         "<div some-directive #contentChild></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_elementNotComponent() async {
@@ -3875,7 +4014,6 @@ class SomeComponent {
         "<div #contentChild></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_elementNotDirective() async {
@@ -3904,7 +4042,6 @@ class SomeDirective {
         "<div #contentChild></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_elementNotTemplateRef() async {
@@ -3930,7 +4067,6 @@ class HasContentChild {
         "<div #contentChild></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_readValueIsAlwaysOk() async {
@@ -3953,8 +4089,6 @@ class HasContentChild {
     errorListener.assertNoErrors();
   }
 
-  // see https://github.com/dart-lang/html/issues/44
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotComponent() async {
@@ -3983,7 +4117,6 @@ class SomeComponent {
         "<template #contentChild></template>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotDirective() async {
@@ -4012,7 +4145,6 @@ class SomeDirective {
         "<template #contentChild></template>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotElement() async {
@@ -4039,7 +4171,6 @@ class HasContentChild {
         "<template #contentChild></template>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_templateNotElementRef() async {
@@ -4065,7 +4196,6 @@ class HasContentChild {
         "<template #contentChild></template>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_wrongComponent() async {
@@ -4098,7 +4228,6 @@ class SomeOtherComponent {
         "<some-other-component #contentChild></some-other-component>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentChildLetBound_wrongDirective() async {
@@ -4150,7 +4279,6 @@ class NoTransclude {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingHigherComponentsIsStillNotTranscludedError() async {
@@ -4203,7 +4331,6 @@ class TranscludeSome {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingSelectorsAndAllKnowsTag() async {
@@ -4249,7 +4376,6 @@ class TranscludeSome {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentMatchingSelectorsReportsUnknownTag() async {
@@ -4332,7 +4458,6 @@ class TranscludeSome {
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildElement() async {
@@ -4357,7 +4482,6 @@ class TranscludeSome {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsButMatchesContentChildElementRef() async {
@@ -4477,7 +4601,6 @@ class TranscludeSome {
         code, "<template></template>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNotMatchingSelectorsOrContentChildTemplateRef() async {
@@ -4502,7 +4625,6 @@ class TranscludeNone {
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_resolveTemplate_provideContentNoTransclusionsButMatchesContentChildDirective() async {
@@ -4767,6 +4889,7 @@ class TranscludeNone {
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "<div></div>");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideContentWhereInvalid() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -4786,6 +4909,7 @@ class NoTransclude {
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "doesn't belong");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -4812,6 +4936,7 @@ class HasContentChildElementRef {
         "<div second></div>");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildNestedOk() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -4837,6 +4962,7 @@ class HasContentChildElement {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideDuplicateContentChildrenOk() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -4861,6 +4987,7 @@ class HasContentChildrenElement {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_provideTextInfosDontMatchSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -4881,6 +5008,7 @@ class TranscludeSome {
         AngularWarningCode.CONTENT_NOT_TRANSCLUDED, code, "doesn't belong");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplate_resolvingBogusImportDoesntCrash() async {
     _addDartSource(r'''
 import ; // synthetic import
@@ -4930,6 +5058,7 @@ class HasContentChildTemplateRef {
         "<template second></template>");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_emptySelectorError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -4948,6 +5077,7 @@ class TestPanel {
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "\"\"");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_hasContentsError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -4969,6 +5099,7 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_noSelectorIsNull() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -4986,6 +5117,7 @@ class TestPanel {
     expect(template.view.component.ngContents.first.selector, isNull);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_noValueError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -5004,6 +5136,7 @@ class TestPanel {
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "select");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContent_selectorParseError() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -5022,6 +5155,7 @@ class TestPanel {
         AngularWarningCode.CANNOT_PARSE_SELECTOR, code, "+");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_resolveTemplateWithNgContentTracksSelectors() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -5038,6 +5172,7 @@ class TestPanel {
     expect(template.view.component.ngContents, hasLength(1));
   }
 
+  // ignore: non_constant_identifier_names
   Future test_standardHtmlComponent() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -5062,6 +5197,7 @@ class TestPanel {
     expect(ranges, hasLength(8));
   }
 
+  // ignore: non_constant_identifier_names
   Future test_standardHtmlComponentUsingRef() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
@@ -5086,6 +5222,7 @@ class TestPanel {
     expect(ranges, hasLength(8));
   }
 
+  // ignore: non_constant_identifier_names
   Future test_star_selectTemplateFunctionalDirectiveMatches() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -5103,6 +5240,7 @@ void myStarDirective(TemplateRef ref) {}
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
   Future test_star_selectTemplateMatches() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -5122,6 +5260,7 @@ class MyStarDirective {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
   Future test_starNoDirectives() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -5138,6 +5277,7 @@ class TestPanel {
         AngularWarningCode.TEMPLATE_ATTR_NOT_USED, code, "*foo");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_all_semicolons() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5155,6 +5295,7 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_double_statement() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5172,6 +5313,7 @@ class TestPanel {
     _assertElement('handleClick').dart.method.at('handleClick(MouseEvent');
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_error_on_assignment_statement() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5192,6 +5334,7 @@ class TestPanel {
         "String s");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_error_on_second_statement() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5210,6 +5353,7 @@ class TestPanel {
         StaticTypeWarningCode.UNDEFINED_METHOD, code, "unknownFunction");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_if_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5228,6 +5372,7 @@ class TestPanel {
         "if(true){}");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_if_statement_without_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5246,6 +5391,7 @@ class TestPanel {
         "if(true){}");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_return_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5284,6 +5430,7 @@ class TestPanel {
         "return 5");
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_single_statement_with_semicolon() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5301,7 +5448,6 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_statement_eventBinding_single_statement_without_semicolon() async {
@@ -5340,7 +5486,6 @@ class TestPanel {
     errorListener.assertNoErrors();
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_statement_eventBinding_typechecking_after_unexpected_bracket() async {
@@ -5364,6 +5509,7 @@ class TestPanel {
     ]);
   }
 
+  // ignore: non_constant_identifier_names
   Future test_statement_eventBinding_typeError() async {
     _addDartSource(r'''
 import 'dart:html';
@@ -5382,7 +5528,6 @@ class TestPanel {
         StaticWarningCode.ARGUMENT_TYPE_NOT_ASSIGNABLE, code, '"asdf"');
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_statement_eventBinding_unexpected_closing_brackets_at_end() async {
@@ -5402,7 +5547,6 @@ class TestPanel {
     assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}}}');
   }
 
-  // ignore: non_constant_identifier_names
   Future
       // ignore: non_constant_identifier_names
       test_statement_eventBinding_unexpected_closing_brackets_at_start() async {
@@ -5420,23 +5564,6 @@ class TestPanel {
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(ParserErrorCode.UNEXPECTED_TOKEN, code, '}}');
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_statements_assignment_not_allowed() async {
-    _addDartSource(r'''
-@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
-class TestPanel {
-  String str;
-}
-''');
-    final code = r"""
-<h1 #h1 (click)="h1 = 4"></h1>
-""";
-    _addHtmlSource(code);
-    await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "h1 = 4");
   }
 
   // ignore: non_constant_identifier_names
@@ -5565,6 +5692,7 @@ class TestPanel {
         AngularWarningCode.TEMPLATE_ATTR_NOT_USED, code, 'template');
   }
 
+  // ignore: non_constant_identifier_names
   Future test_templateTag_selectTemplateMatches() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel' templateUrl: 'test_panel.html',

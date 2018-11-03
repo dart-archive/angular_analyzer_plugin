@@ -15,7 +15,6 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
-import 'package:angular_analyzer_plugin/src/facade/exports_library_element.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -33,80 +32,29 @@ bool isOnCustomTag(AttributeInfo node) {
   return parent is ElementInfo && parent.tagMatchedAsCustomTag;
 }
 
-/// Override the standard [ErrorVerifier] class to report unacceptable nodes,
-/// while suppressing secondary errors that would have been raised by
-/// [ErrorVerifier] if we let it see the bogus definitions.
-class AngularErrorVerifier extends _IntermediateErrorVerifier
-    with ReportUnacceptableNodesMixin {
-  final bool acceptAssignment;
+/// Overrides standard [ErrorVerifier] to prevent issues with analyzing dangling
+/// angular nodes. Not intended as a long-term solution.
+class AngularErrorVerifier extends ErrorVerifier {
+  AngularErrorVerifier(
+      ErrorReporter errorReporter,
+      LibraryElement currentLibrary,
+      TypeProvider typeProvider,
+      InheritanceManager2 inheritanceManager,
+      {@required bool enableSuperMixins})
+      : super(errorReporter, currentLibrary, typeProvider, inheritanceManager,
+            enableSuperMixins);
 
   @override
-  ErrorReporter errorReporter;
-  @override
-  TypeProvider typeProvider;
-
-  AngularErrorVerifier(ErrorReporter errorReporter, LibraryElement library,
-      TypeProvider typeProvider, InheritanceManager2 inheritanceManager2,
-      {@required this.acceptAssignment})
-      : errorReporter = errorReporter,
-        typeProvider = typeProvider,
-        super(errorReporter, library, typeProvider, inheritanceManager2);
-
-  @override
-  void visitAssignmentExpression(AssignmentExpression exp) {
-    final variableElement = ErrorVerifier.getVariableElement(exp.leftHandSide);
-    if ((variableElement == null ||
-            variableElement is PropertyInducingElement) &&
-        acceptAssignment) {
-      super.visitAssignmentExpression(exp);
-    } else {
-      exp.visitChildren(this);
-    }
+  void visitFunctionExpression(FunctionExpression func) {
+    // Stop resolving or analyzer will crash.
+    // TODO(mfairhurst): fix the analyzer crash and remove this.
   }
-
-  @override
-  void visitFunctionExpression(FunctionExpression exp) {
-    // error reported in [AngularResolverVisitor] but [ErrorVerifier] crashes
-    // because it isn't resolved
-  }
-
-  @override
-  void visitInstanceCreationExpression(InstanceCreationExpression exp) =>
-      _reportUnacceptableNode(exp, "Usage of new");
-
-  @override
-  void visitListLiteral(ListLiteral list) {
-    if (list.typeArguments != null) {
-      _reportUnacceptableNode(list, "Typed list literals");
-    } else {
-      super.visitListLiteral(list);
-    }
-  }
-
-  @override
-  void visitMapLiteral(MapLiteral map) {
-    if (map.typeArguments != null) {
-      _reportUnacceptableNode(map, "Typed map literals");
-    } else {
-      super.visitMapLiteral(map);
-    }
-  }
-
-  @override
-  void visitRethrowExpression(RethrowExpression exp) =>
-      _reportUnacceptableNode(exp, "Rethrow");
-
-  @override
-  void visitThisExpression(ThisExpression exp) =>
-      _reportUnacceptableNode(exp, "This references");
 }
 
-/// Override the standard [ResolverVisitor] class to report unacceptable nodes,
-/// while suppressing secondary errors that would have been raised by
-/// [ResolverVisitor] if we let it see the bogus definitions.
-class AngularResolverVisitor extends _IntermediateResolverVisitor
-    with ReportUnacceptableNodesMixin {
-  final bool acceptAssignment;
+/// Overrides standard [ResolverVisitor] to prevent issues with analyzing
+/// dangling angular nodes, while also allowing custom resolution of pipes. Not
+/// intended as a long-term solution.
+class AngularResolverVisitor extends _IntermediateResolverVisitor {
   final List<Pipe> pipes;
 
   AngularResolverVisitor(
@@ -115,14 +63,14 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
       Source source,
       TypeProvider typeProvider,
       AnalysisErrorListener errorListener,
-      {@required this.acceptAssignment,
-      @required this.pipes})
+      {@required this.pipes})
       : super(
             inheritanceManager2, library, source, typeProvider, errorListener);
 
   @override
   void visitAsExpression(AsExpression exp) {
     // This means we generated this in a pipe, and its OK.
+    // TODO(mfairhurst): figure out an alternative approach to this.
     if (exp.asOperator.offset == 0) {
       super.visitAsExpression(exp);
       final pipeName = exp.getProperty<SimpleIdentifier>('_ng_pipeName');
@@ -146,60 +94,14 @@ class AngularResolverVisitor extends _IntermediateResolverVisitor
               [exp.expression.staticType, matchingPipe.requiredArgumentType]);
         }
       }
-    } else {
-      _reportUnacceptableNode(exp, "As expression");
     }
   }
 
   @override
-  void visitAssignmentExpression(AssignmentExpression exp) {
-    // Only block reassignment of locals, not poperties. Resolve elements to
-    // check that.
-    exp.leftHandSide.accept(elementResolver);
-    final variableElement = ErrorVerifier.getVariableElement(exp.leftHandSide);
-    if ((variableElement == null ||
-            variableElement is PropertyInducingElement) &&
-        acceptAssignment) {
-      super.visitAssignmentExpression(exp);
-    } else {
-      _reportUnacceptableNode(exp, "Assignment of locals");
-    }
+  void visitFunctionExpression(FunctionExpression func) {
+    // Stop resolving or analyzer will crash.
+    // TODO(mfairhurst): fix the analyzer crash and remove this.
   }
-
-  @override
-  void visitAwaitExpression(AwaitExpression exp) =>
-      _reportUnacceptableNode(exp, "Await");
-
-  @override
-  void visitCascadeExpression(CascadeExpression exp) {
-    _reportUnacceptableNode(exp, "Cascades", false);
-    // Only resolve the target, not the cascade sections.
-    exp.target.accept(this);
-  }
-
-  @override
-  void visitFunctionExpression(FunctionExpression exp) =>
-      _reportUnacceptableNode(exp, "Anonymous functions", false);
-
-  @override
-  void visitIsExpression(IsExpression exp) =>
-      _reportUnacceptableNode(exp, "Is expression");
-
-  @override
-  void visitNamedExpression(NamedExpression exp) =>
-      _reportUnacceptableNode(exp, "Named arguments");
-
-  @override
-  void visitSuperExpression(SuperExpression exp) =>
-      _reportUnacceptableNode(exp, "Super references");
-
-  @override
-  void visitSymbolLiteral(SymbolLiteral exp) =>
-      _reportUnacceptableNode(exp, "Symbol literal");
-
-  @override
-  void visitThrowExpression(ThrowExpression exp) =>
-      _reportUnacceptableNode(exp, "Throw");
 }
 
 /// Probably the most important visitor to understand in how we process angular
@@ -292,6 +194,230 @@ class AngularScopeVisitor extends AngularAstVisitor {
     // the children are in this scope, the template itself is borderlands
     for (var child in element.childNodes) {
       child.accept(this);
+    }
+  }
+}
+
+/// Find nodes which are not supported in angular (such as compound assignment
+/// and function expressions etc.), as well as terms used in the template that
+/// weren't exported by the component.
+class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
+  final bool acceptAssignment;
+  final Component owningComponent;
+
+  final ErrorReporter errorReporter;
+
+  AngularSubsetVisitor(
+      {@required this.errorReporter,
+      @required this.owningComponent,
+      @required this.acceptAssignment});
+
+  @override
+  void visitAsExpression(AsExpression exp) {
+    if (exp.asOperator.offset == 0) {
+      // This means we generated this in a pipe, and its OK.
+    } else {
+      _reportDisallowedExpression(exp, "As expression", visitChildren: false);
+    }
+
+    // Don't visit the TypeName or it may suggest exporting it, which is not
+    // possible.
+    exp.expression.accept(this);
+  }
+
+  @override
+  void visitAssignmentExpression(AssignmentExpression exp) {
+    if (exp.operator.type != TokenType.EQ) {
+      _reportDisallowedExpression(exp, 'Compound assignment',
+          visitChildren: false);
+    }
+    // Only block reassignment of locals, not poperties. Resolve elements to
+    // check that.
+    final variableElement = ErrorVerifier.getVariableElement(exp.leftHandSide);
+    final isLocal =
+        variableElement != null && variableElement is! PropertyInducingElement;
+    if (!acceptAssignment || isLocal) {
+      _reportDisallowedExpression(exp, 'Assignment of locals',
+          visitChildren: false);
+    }
+
+    super.visitAssignmentExpression(exp);
+  }
+
+  @override
+  void visitAwaitExpression(AwaitExpression exp) =>
+      _reportDisallowedExpression(exp, "Await");
+
+  @override
+  void visitCascadeExpression(CascadeExpression exp) =>
+      _reportDisallowedExpression(exp, "Cascades");
+
+  @override
+  void visitFunctionExpression(FunctionExpression exp) =>
+      _reportDisallowedExpression(exp, "Anonymous functions");
+
+  /// Only allow access to:
+  /// * current class members
+  /// * inherited class members
+  /// * methods
+  /// * angular references (ie `<h1 #ref id="foo"></h1> {{h1.id}}`)
+  /// * exported members
+  ///
+  /// Flag the rest and give the hint that they should be exported.
+  void visitIdentifier(Identifier id) {
+    final element = id.staticElement;
+    if (id is PrefixedIdentifier && id.prefix.staticElement is! PrefixElement) {
+      // Static methods, enums, etc. Check the LHS.
+      visitIdentifier(id.prefix);
+      return;
+    }
+    if (id.parent is PropertyAccess &&
+        identical(id, (id.parent as PropertyAccess).propertyName)) {
+      // Accessors are always allowed.
+      return;
+    }
+    if (element is PrefixElement) {
+      // Prefixes can't be exported, and analyzer reports a warning for dangling
+      // prefixes.
+      return;
+    }
+    if (element is MethodElement) {
+      // All methods are OK, as in `x.y()`. It's only `x` that may be hidden.
+      return;
+    }
+    if (element is ClassElement && element == owningComponent.classElement) {
+      // Static method calls on the current class are allowed
+      return;
+    }
+    if (element is DynamicElementImpl) {
+      // Usually indicates a resolution error, so don't double report it.
+      return;
+    }
+    if (element == null) {
+      // Also usually indicates an error, don't double report.
+      return;
+    }
+    if (element is LocalVariableElement) {
+      // `$event` variables, `ngFor` variables, these are OK.
+      return;
+    }
+    if (element is ParameterElement) {
+      // Named parameters: not allowed, but flagged in [visitNamedExpression].
+      return;
+    }
+    if (element is AngularElement) {
+      // Variables local to the template
+      return;
+    }
+    if ((element is PropertyInducingElement ||
+            element is PropertyAccessorElement) &&
+        (owningComponent.classElement.lookUpGetter(id.name, null) != null ||
+            owningComponent.classElement.lookUpSetter(id.name, null) != null)) {
+      // Part of the component interface.
+      return;
+    }
+
+    if (id is PrefixedIdentifier) {
+      if (owningComponent.exports.any((export) =>
+          export.prefix == id.prefix.name && id.name == export.identifier)) {
+        // Correct reference to exported prefix identifier
+        return;
+      }
+    } else {
+      if (owningComponent.exports.any(
+          (export) => export.prefix == null && id.name == export.identifier)) {
+        // Correct reference to exported simple identifier
+        return;
+      }
+    }
+
+    errorReporter.reportErrorForNode(
+        AngularWarningCode.IDENTIFIER_NOT_EXPORTED, id, [id]);
+  }
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression exp) {
+    _reportDisallowedExpression(exp, "Usage of new", visitChildren: false);
+    // Don't visit the TypeName or it may suggest exporting it, which is not
+    // possible.
+
+    exp.argumentList.accept(this);
+  }
+
+  @override
+  void visitIsExpression(IsExpression exp) {
+    _reportDisallowedExpression(exp, "Is expression", visitChildren: false);
+    // Don't visit the TypeName or it may suggest exporting it, which is not
+    // possible.
+
+    exp.expression.accept(this);
+  }
+
+  @override
+  void visitListLiteral(ListLiteral list) {
+    if (list.typeArguments != null) {
+      _reportDisallowedExpression(list, "Typed list literals",
+          visitChildren: false);
+      // Don't visit the TypeName or it may suggest exporting it, which is not
+      // possible.e.
+
+      list.elements.accept(this);
+    } else {
+      super.visitListLiteral(list);
+    }
+  }
+
+  @override
+  void visitMapLiteral(MapLiteral map) {
+    if (map.typeArguments != null) {
+      _reportDisallowedExpression(map, "Typed map literals",
+          visitChildren: false);
+      // Don't visit the TypeName or it may suggest exporting it, which is not
+      // possible.e.
+
+      map.entries.accept(this);
+    } else {
+      super.visitMapLiteral(map);
+    }
+  }
+
+  @override
+  void visitNamedExpression(NamedExpression exp) =>
+      _reportDisallowedExpression(exp, "Named arguments");
+
+  @override
+  void visitPostfixExpression(PostfixExpression exp) {
+    _reportDisallowedExpression(exp, exp.operator.lexeme);
+  }
+
+  @override
+  void visitPrefixedIdentifier(PrefixedIdentifier id) => visitIdentifier(id);
+
+  @override
+  void visitPrefixExpression(PrefixExpression exp) {
+    if (exp.operator.type != TokenType.MINUS) {
+      _reportDisallowedExpression(exp, exp.operator.lexeme);
+    }
+  }
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier id) => visitIdentifier(id);
+
+  @override
+  void visitSymbolLiteral(SymbolLiteral exp) =>
+      _reportDisallowedExpression(exp, "Symbol literal");
+
+  @override
+  void visitThrowExpression(ThrowExpression exp) =>
+      _reportDisallowedExpression(exp, "Throw");
+
+  void _reportDisallowedExpression(Expression node, String description,
+      {bool visitChildren = true}) {
+    errorReporter.reportErrorForNode(
+        AngularWarningCode.DISALLOWED_EXPRESSION, node, [description]);
+
+    if (visitChildren) {
+      node.visitChildren(this);
     }
   }
 }
@@ -1172,23 +1298,6 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
       type.lookUpInheritedGetter(name)?.returnType;
 }
 
-abstract class ReportUnacceptableNodesMixin
-    implements RecursiveAstVisitor<Object> {
-  ErrorReporter get errorReporter;
-  TypeProvider get typeProvider;
-  void _reportUnacceptableNode(Expression node, String description,
-      [bool visitChildren = true]) {
-    errorReporter.reportErrorForNode(
-        AngularWarningCode.DISALLOWED_EXPRESSION, node, [description]);
-
-    // "resolve" the node, a null type causes later errors.
-    node.propagatedType = node.staticType = typeProvider.dynamicType;
-    if (visitChildren) {
-      node.visitChildren(this);
-    }
-  }
-}
-
 /// Once all the scopes for all the expressions & statements are prepared, we're
 /// ready to resolve all the expressions inside and typecheck everything.
 ///
@@ -1539,8 +1648,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
   /// Resolve the given [AstNode] ([expression] or [statement]) and report errors.
   void _resolveDartAstNode(AstNode astNode, bool acceptAssignment) {
     final classElement = view.classElement;
-    final library =
-        new ExportsLibraryFacade(classElement.library, view.component);
+    final library = classElement.library;
     {
       final visitor = new TypeResolverVisitor(
           library, view.source, typeProvider, errorListener);
@@ -1550,7 +1658,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
         new InheritanceManager2(typeSystem as StrongTypeSystemImpl);
     final resolver = new AngularResolverVisitor(inheritanceManager2, library,
         templateSource, typeProvider, errorListener,
-        acceptAssignment: acceptAssignment, pipes: pipes);
+        pipes: pipes);
     // fill the name scope
     final classScope = new ClassScope(resolver.nameScope, classElement);
     final localScope = new EnclosedScope(classScope);
@@ -1564,9 +1672,15 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // verify
     final verifier = new AngularErrorVerifier(
         errorReporter, library, typeProvider, inheritanceManager2,
-        acceptAssignment: acceptAssignment)
+        enableSuperMixins: true)
       ..enclosingClass = classElement;
     astNode.accept(verifier);
+    // Check for concepts illegal to templates (for instance function literals).
+    final angularSubsetChecker = new AngularSubsetVisitor(
+        errorReporter: errorReporter,
+        acceptAssignment: acceptAssignment,
+        owningComponent: view.component);
+    astNode.accept(angularSubsetChecker);
   }
 
   /// Resolve the Dart expression with the given [code] at [offset].
@@ -1911,20 +2025,6 @@ class _DartReferencesRecorder extends RecursiveAstVisitor {
       template.addRange(range, angularElement);
     }
   }
-}
-
-/// Workaround for "This mixin application is invalid because all of the
-/// constructors in the base class 'ErrorVerifier' have optional parameters."
-/// in the definition of [AngularErrorVerifier].
-///
-/// See https://github.com/dart-lang/sdk/issues/15101 for details
-class _IntermediateErrorVerifier extends ErrorVerifier {
-  _IntermediateErrorVerifier(
-    ErrorReporter errorReporter,
-    LibraryElement library,
-    TypeProvider typeProvider,
-    InheritanceManager2 inheritanceManager2,
-  ) : super(errorReporter, library, typeProvider, inheritanceManager2, false);
 }
 
 /// Workaround for "This mixin application is invalid because all of the
