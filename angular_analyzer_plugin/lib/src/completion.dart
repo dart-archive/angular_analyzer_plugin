@@ -1185,9 +1185,9 @@ class TemplateCompleter {
   }
 }
 
-/// Used to create a shell [ResolveResult] class for usage in
+/// Used to create a shell [ResolvedUnitResult] class for usage in
 /// [TypeMemberContributor] and [InheritedReferenceContributor].
-class _ResolveResultShell implements ResolveResult {
+class _ResolveResultShell implements ResolvedUnitResult {
   @override
   LibraryElement libraryElement;
 
