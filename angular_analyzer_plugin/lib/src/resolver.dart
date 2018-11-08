@@ -1532,7 +1532,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
         attribute.valueOffset,
         attribute.value.length,
         AngularWarningCode.UNSAFE_BINDING,
-        [securityContext.safeType.toString()]));
+        [securityContext.safeTypes.join(' or ')]));
     return false;
   }
 
@@ -1854,7 +1854,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       final securityContext = input.securityContext;
 
       if (securityContext != null) {
-        if (typeSystem.isAssignableTo(attrType, securityContext.safeType)) {
+        if (securityContext.safeTypes
+            .any((safeType) => typeSystem.isAssignableTo(attrType, safeType))) {
           return;
         } else if (!securityContext.sanitizationAvailable) {
           errorListener.onError(new AnalysisError(
@@ -1862,7 +1863,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
               attr.valueOffset,
               attr.value.length,
               AngularWarningCode.UNSAFE_BINDING,
-              [securityContext.safeType.toString()]));
+              [securityContext.safeTypes.join(' or ')]));
           return;
         }
       }

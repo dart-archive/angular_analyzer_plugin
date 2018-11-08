@@ -382,25 +382,24 @@ class AngularDriver
 
   Future<StandardAngular> getStandardAngular() async {
     if (standardAngular == null) {
-      final source = _sourceFactory.resolveUri(
-          null,
-          _hasAngularImported
-              ? "package:angular/angular.dart"
-              : "package:angular2/angular2.dart");
+      final source =
+          _sourceFactory.resolveUri(null, "package:angular/angular.dart");
 
       if (source == null) {
         return standardAngular;
       }
 
-      final securitySource = _sourceFactory.resolveUri(
-          null,
-          _hasAngularImported
-              ? "package:angular/security.dart"
-              : "package:angular2/security.dart");
+      final securitySource =
+          _sourceFactory.resolveUri(null, "package:angular/security.dart");
+      final protoSecuritySource = _sourceFactory.resolveUri(
+          null, 'package:webutil.html.types.proto/html.pb.dart');
 
       standardAngular = new StandardAngular.fromAnalysis(
-          await dartDriver.getResult(source.fullName),
-          await dartDriver.getResult(securitySource.fullName));
+          angularResult: await dartDriver.getResult(source.fullName),
+          securityResult: await dartDriver.getResult(securitySource.fullName),
+          protoSecurityResult: protoSecuritySource == null
+              ? null
+              : await dartDriver.getResult(protoSecuritySource.fullName));
     }
 
     return standardAngular;
