@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -321,7 +322,7 @@ class StandardAngular {
       this.securitySchema});
 
   factory StandardAngular.fromAnalysis(
-      AnalysisResult ngResult, AnalysisResult securityResult) {
+      ResolvedUnitResult ngResult, ResolvedUnitResult securityResult) {
     final ng = ngResult.unit.element.library.exportNamespace;
     final security = securityResult.unit.element.library.exportNamespace;
 
