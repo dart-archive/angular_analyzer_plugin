@@ -234,10 +234,10 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 }
 
 class SecurityContext {
-  final DartType safeType;
+  final List<DartType> safeTypes;
   final bool sanitizationAvailable;
 
-  SecurityContext(this.safeType, {this.sanitizationAvailable = true});
+  SecurityContext(this.safeTypes, {this.sanitizationAvailable = true});
 }
 
 class SecuritySchema {
@@ -322,23 +322,29 @@ class StandardAngular {
       this.securitySchema});
 
   factory StandardAngular.fromAnalysis(
-      ResolvedUnitResult ngResult, ResolvedUnitResult securityResult) {
-    final ng = ngResult.unit.element.library.exportNamespace;
+      {ResolvedUnitResult angularResult,
+      ResolvedUnitResult securityResult,
+      ResolvedUnitResult protoSecurityResult}) {
+    final ng = angularResult.unit.element.library.exportNamespace;
     final security = securityResult.unit.element.library.exportNamespace;
+    final protoSecurity = protoSecurityResult == null
+        ? null
+        : protoSecurityResult.unit.element.library.exportNamespace;
 
-    SecurityContext makeSecurityContext(Element element,
-            {bool sanitizationAvailable: true}) =>
-        new SecurityContext((element as ClassElement)?.type,
-            sanitizationAvailable: sanitizationAvailable);
+    List<DartType> safeTypes(String id) =>
+        [security.get('Safe$id'), protoSecurity?.get('Safe${id}Proto')]
+            .whereType<ClassElement>()
+            .map((e) => e?.type)
+            .where((e) => e != null)
+            .toList();
 
     final securitySchema = new SecuritySchema(
-        htmlSecurityContext: makeSecurityContext(security.get('SafeHtml')),
-        urlSecurityContext: makeSecurityContext(security.get('SafeUrl')),
-        styleSecurityContext: makeSecurityContext(security.get('SafeStyle')),
-        scriptSecurityContext: makeSecurityContext(security.get('SafeScript'),
-            sanitizationAvailable: false),
-        resourceUrlSecurityContext: makeSecurityContext(
-            security.get('SafeResourceUrl'),
+        htmlSecurityContext: SecurityContext(safeTypes('Html')),
+        urlSecurityContext: SecurityContext(safeTypes('Url')),
+        styleSecurityContext: SecurityContext(safeTypes('Style')),
+        scriptSecurityContext:
+            SecurityContext(safeTypes('Script'), sanitizationAvailable: false),
+        resourceUrlSecurityContext: SecurityContext(safeTypes('ResourceUrl'),
             sanitizationAvailable: false));
 
     return new StandardAngular(

@@ -131,37 +131,37 @@ class BuildStandardAngularTest extends AbstractAngularTest {
 
     final imgSrcSecurity = ng.securitySchema.lookup('img', 'src');
     expect(imgSrcSecurity, isNotNull);
-    expect(imgSrcSecurity.safeType.toString(), 'SafeUrl');
+    expect(imgSrcSecurity.safeTypes[0].toString(), 'SafeUrl');
     expect(imgSrcSecurity.sanitizationAvailable, true);
 
     final aHrefSecurity = ng.securitySchema.lookup('a', 'href');
     expect(aHrefSecurity, isNotNull);
-    expect(aHrefSecurity.safeType.toString(), 'SafeUrl');
+    expect(aHrefSecurity.safeTypes[0].toString(), 'SafeUrl');
     expect(aHrefSecurity.sanitizationAvailable, true);
 
     final innerHtmlSecurity = ng.securitySchema.lookupGlobal('innerHTML');
     expect(innerHtmlSecurity, isNotNull);
-    expect(innerHtmlSecurity.safeType.toString(), 'SafeHtml');
+    expect(innerHtmlSecurity.safeTypes[0].toString(), 'SafeHtml');
     expect(innerHtmlSecurity.sanitizationAvailable, true);
 
     final iframeSrcdocSecurity = ng.securitySchema.lookup('iframe', 'srcdoc');
     expect(iframeSrcdocSecurity, isNotNull);
-    expect(iframeSrcdocSecurity.safeType.toString(), 'SafeHtml');
+    expect(iframeSrcdocSecurity.safeTypes[0].toString(), 'SafeHtml');
     expect(iframeSrcdocSecurity.sanitizationAvailable, true);
 
     final styleSecurity = ng.securitySchema.lookupGlobal('style');
     expect(styleSecurity, isNotNull);
-    expect(styleSecurity.safeType.toString(), 'SafeStyle');
+    expect(styleSecurity.safeTypes[0].toString(), 'SafeStyle');
     expect(styleSecurity.sanitizationAvailable, true);
 
     final iframeSrcSecurity = ng.securitySchema.lookup('iframe', 'src');
     expect(iframeSrcSecurity, isNotNull);
-    expect(iframeSrcSecurity.safeType.toString(), 'SafeResourceUrl');
+    expect(iframeSrcSecurity.safeTypes[0].toString(), 'SafeResourceUrl');
     expect(iframeSrcSecurity.sanitizationAvailable, false);
 
     final scriptSrcSecurity = ng.securitySchema.lookup('script', 'src');
     expect(scriptSrcSecurity, isNotNull);
-    expect(scriptSrcSecurity.safeType.toString(), 'SafeResourceUrl');
+    expect(scriptSrcSecurity.safeTypes[0].toString(), 'SafeResourceUrl');
     expect(scriptSrcSecurity.sanitizationAvailable, false);
   }
 }
@@ -192,7 +192,7 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
       expect(input.setter, isNotNull);
       expect(input.setterType.toString(), equals('String'));
       expect(input.securityContext, isNotNull);
-      expect(input.securityContext.safeType.toString(), equals('SafeHtml'));
+      expect(input.securityContext.safeTypes[0].toString(), equals('SafeHtml'));
       expect(input.securityContext.sanitizationAvailable, equals(true));
     }
   }
@@ -283,7 +283,8 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("String"));
         expect(input.securityContext, isNotNull);
-        expect(input.securityContext.safeType.toString(), equals('SafeUrl'));
+        expect(
+            input.securityContext.safeTypes[0].toString(), equals('SafeUrl'));
         expect(input.securityContext.sanitizationAvailable, equals(true));
       }
       expect(outputElements, hasLength(0));
@@ -319,7 +320,7 @@ class BuildStandardHtmlComponentsTest extends AbstractAngularTest {
         expect(input.setter, isNotNull);
         expect(input.setterType.toString(), equals("String"));
         expect(input.securityContext, isNotNull);
-        expect(input.securityContext.safeType.toString(),
+        expect(input.securityContext.safeTypes[0].toString(),
             equals('SafeResourceUrl'));
         expect(input.securityContext.sanitizationAvailable, equals(false));
       }
