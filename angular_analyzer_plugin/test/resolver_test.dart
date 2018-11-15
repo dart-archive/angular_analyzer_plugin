@@ -2109,6 +2109,22 @@ class TestPanel {
   }
 
   // ignore: non_constant_identifier_names
+  Future test_expression_unaryNegate_allowed() async {
+    _addDartSource(r'''
+@Component(selector: 'test-panel', templateUrl: 'test_panel.html')
+class TestPanel {
+  bool x;
+}
+''');
+    final code = r"""
+{{!x}}
+""";
+    _addHtmlSource(code);
+    await _resolveSingleTemplate(dartSource);
+    errorListener.assertNoErrors();
+  }
+
+  // ignore: non_constant_identifier_names
   Future test_expressionNotAllowed_as() async {
     _addDartSource(r'''
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html')
