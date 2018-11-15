@@ -302,7 +302,7 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
       return;
     }
     if (element is ParameterElement) {
-      // Named parameters: not allowed, but flagged in [visitNamedExpression].
+      // Named parameters always allowed
       return;
     }
     if (element is AngularElement) {
@@ -380,10 +380,6 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
       super.visitMapLiteral(map);
     }
   }
-
-  @override
-  void visitNamedExpression(NamedExpression exp) =>
-      _reportDisallowedExpression(exp, "Named arguments");
 
   @override
   void visitPostfixExpression(PostfixExpression exp) {

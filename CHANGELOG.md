@@ -10,6 +10,8 @@
   with finding inner `<ng-content>` tags).
 - More checks for rejected operators like `+=`, `++` other unary operators and
   compound assignments.
+- Named arguments are no longer reported as disallowed as angular now supports
+  them.
 
 ## 0.0.17+3
 
