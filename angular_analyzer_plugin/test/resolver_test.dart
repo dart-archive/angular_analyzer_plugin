@@ -2259,8 +2259,7 @@ class TestPanel {
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "arg: 'bob'");
+    errorListener.assertNoErrors();
   }
 
   // ignore: non_constant_identifier_names
