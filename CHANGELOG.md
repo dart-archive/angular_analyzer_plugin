@@ -1,4 +1,4 @@
-## Unpublished
+## 0.0.17+4
 
 - Refactored how non-angular expressions (`new`, `+=`, `..`, etc.) are detected.
 - Refactored how `exports` are handled in a fairly major way.
