@@ -272,7 +272,7 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
       visitIdentifier(id.prefix);
       return;
     }
-    if (parent is PropertyAccess && identical(id, parent.propertyName)) {
+    if (parent is PropertyAccess && id == parent.propertyName) {
       // Accessors are always allowed.
       return;
     }
@@ -326,7 +326,7 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
         return;
       }
     } else {
-      if (parent is MethodInvocation && identical(parent.methodName, id)) {
+      if (parent is MethodInvocation && parent.methodName == id) {
         final target = parent.target;
         if (target is SimpleIdentifier &&
             target.staticElement is PrefixElement &&
