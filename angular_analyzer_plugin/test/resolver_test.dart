@@ -3539,8 +3539,8 @@ const double otherAccessor = 2.0;
 enum OtherEnum { otherVal }
 void otherFunction() {}
 class OtherClass {
-  static void otherStatic() {
-  }
+  static void otherStaticMethod() {}
+  static String get otherStaticGetter => null;
 }
 ''');
     _addDartSource(r'''
@@ -3549,8 +3549,8 @@ const int myAccessor = 1;
 enum MyEnum { myVal }
 void myFunction() {}
 class MyClass {
-  static void myStatic() {
-  }
+  static void myStaticMethod() {}
+  static String get myStaticGetter => null;
 }
 
 @Component(
@@ -3587,15 +3587,18 @@ exports ok:
 {{myAccessor}}
 {{MyEnum.myVal}}
 {{myFunction()}}
-{{MyClass.myStatic()}}
+{{MyClass.myStaticMethod()}}
+{{MyClass.myStaticGetter}}
 {{prefixed.otherAccessor}}
 {{prefixed.OtherEnum.otherVal}}
 {{prefixed.otherFunction()}} 
-{{prefixed.OtherClass.otherStatic()}}
+{{prefixed.OtherClass.otherStaticMethod()}}
+{{prefixed.OtherClass.otherStaticGetter}}
 ''';
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
-    expect(ranges, hasLength(23));
+    errorListener.assertNoErrors();
+    expect(ranges, hasLength(28));
     _assertElement('TestPanel').dart.at('TestPanel {');
     _assertElement('componentStatic').dart.method.at('componentStatic() {');
     _assertElement('myAccessor').dart.getter.at('myAccessor = 1');
@@ -3603,7 +3606,8 @@ exports ok:
     _assertElement('myVal').dart.at('myVal }');
     _assertElement('myFunction').dart.at('myFunction() {');
     _assertElement('MyClass').dart.at('MyClass {');
-    _assertElement('myStatic').dart.at('myStatic() {');
+    _assertElement('myStaticMethod').dart.at('myStaticMethod() {');
+    _assertElement('myStaticGetter').dart.at('myStaticGetter =>');
     _assertElement('prefixed').dart.prefix.at('prefixed;');
     _assertElement('otherAccessor')
         .dart
@@ -3620,10 +3624,14 @@ exports ok:
         .dart
         .inFile('/prefixed.dart')
         .at('OtherClass {');
-    _assertElement('otherStatic')
+    _assertElement('otherStaticMethod')
         .dart
         .inFile('/prefixed.dart')
-        .at('otherStatic() {');
+        .at('otherStaticMethod() {');
+    _assertElement('otherStaticGetter')
+        .dart
+        .inFile('/prefixed.dart')
+        .at('otherStaticGetter =>');
   }
 
   // ignore: non_constant_identifier_names
@@ -3698,7 +3706,10 @@ typedef void OtherFnTypedef();
 class OtherClass {
   static void otherStatic() {
   }
+  static String sameNameAsComponentGetter;
 }
+
+String sameNameAsComponentGetter;
 ''');
     _addDartSource(r'''
 import '/prefixed.dart' as prefixed;
@@ -3710,11 +3721,13 @@ typedef void MyFnTypedef();
 class MyClass {
   static void myStatic() {
   }
+  static String sameNameAsComponentGetter;
 }
 
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
     exports: const [])
 class TestPanel {
+  String get sameNameAsComponentGetter => null;
 }
 ''');
     final code = r'''
@@ -3723,10 +3736,13 @@ not exported:
 {{MyEnum.otherVal}}
 {{myFunction()}}
 {{MyClass.myStatic()}}
+{{MyClass.sameNameAsComponentGetter}}
 {{prefixed.otherAccessor}}
+{{prefixed.sameNameAsComponentGetter}}
 {{prefixed.OtherEnum.otherVal}}
 {{prefixed.otherFunction()}} 
 {{prefixed.OtherClass.otherStatic()}}
+{{prefixed.OtherClass.sameNameAsComponentGetter}}
 can't be exported:
 {{myTopLevel}}
 {{MyFnTypedef}}
@@ -3736,6 +3752,9 @@ can't be exported:
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     errorListener.assertErrorsWithCodes([
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
+      AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
       AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
       AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
       AngularWarningCode.IDENTIFIER_NOT_EXPORTED,
