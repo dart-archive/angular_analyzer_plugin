@@ -395,7 +395,8 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
 
   @override
   void visitPrefixExpression(PrefixExpression exp) {
-    if (exp.operator.type != TokenType.MINUS) {
+    if (exp.operator.type != TokenType.MINUS &&
+        exp.operator.type != TokenType.BANG) {
       _reportDisallowedExpression(exp, exp.operator.lexeme);
     }
   }
