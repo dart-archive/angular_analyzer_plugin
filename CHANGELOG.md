@@ -1,5 +1,6 @@
-## Unpublished
+## 0.0.17+4
 
+- Refactored how non-angular expressions (`new`, `+=`, `..`, etc.) are detected.
 - Refactored how `exports` are handled in a fairly major way.
 - Typecheck the results and input of pipe expressions and the existence of a
   matching pipe. Optional arguments are not yet typechecked.
@@ -10,6 +11,8 @@
   with finding inner `<ng-content>` tags).
 - More checks for rejected operators like `+=`, `++` other unary operators and
   compound assignments.
+- Named arguments are no longer reported as disallowed as angular now supports
+  them.
 
 ## 0.0.17+3
 

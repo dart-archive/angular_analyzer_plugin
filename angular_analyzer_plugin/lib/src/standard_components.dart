@@ -330,12 +330,14 @@ class StandardAngular {
         ? null
         : protoSecurityResult.unit.element.library.exportNamespace;
 
-    List<DartType> safeTypes(String id) =>
-        [security.get('Safe$id'), protoSecurity?.get('Safe${id}Proto')]
-            .whereType<ClassElement>()
-            .map((e) => e?.type)
-            .where((e) => e != null)
-            .toList();
+    List<DartType> interfaceTypes(List<Element> elements) => elements
+        .whereType<ClassElement>()
+        .map((e) => e?.type)
+        .where((e) => e != null)
+        .toList();
+
+    List<DartType> safeTypes(String id) => interfaceTypes(
+        [security.get('Safe$id'), protoSecurity?.get('Safe${id}Proto')]);
 
     final securitySchema = new SecuritySchema(
         htmlSecurityContext: SecurityContext(safeTypes('Html')),
@@ -343,7 +345,11 @@ class StandardAngular {
         styleSecurityContext: SecurityContext(safeTypes('Style')),
         scriptSecurityContext:
             SecurityContext(safeTypes('Script'), sanitizationAvailable: false),
-        resourceUrlSecurityContext: SecurityContext(safeTypes('ResourceUrl'),
+        resourceUrlSecurityContext: SecurityContext(
+            interfaceTypes([
+              security.get('SafeResourceUrl'),
+              protoSecurity?.get('TrustedResourceUrlProto')
+            ]),
             sanitizationAvailable: false));
 
     return new StandardAngular(

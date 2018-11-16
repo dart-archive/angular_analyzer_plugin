@@ -242,13 +242,13 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
   /// Flag the rest and give the hint that they should be exported.
   void visitIdentifier(Identifier id) {
     final element = id.staticElement;
+    final parent = id.parent;
     if (id is PrefixedIdentifier && id.prefix.staticElement is! PrefixElement) {
       // Static methods, enums, etc. Check the LHS.
       visitIdentifier(id.prefix);
       return;
     }
-    if (id.parent is PropertyAccess &&
-        identical(id, (id.parent as PropertyAccess).propertyName)) {
+    if (parent is PropertyAccess && id == parent.propertyName) {
       // Accessors are always allowed.
       return;
     }
@@ -278,14 +278,15 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
       return;
     }
     if (element is ParameterElement) {
-      // Named parameters: not allowed, but flagged in [visitNamedExpression].
+      // Named parameters always allowed
       return;
     }
     if (element is AngularElement) {
       // Variables local to the template
       return;
     }
-    if ((element is PropertyInducingElement ||
+    if (id is SimpleIdentifier &&
+        (element is PropertyInducingElement ||
             element is PropertyAccessorElement) &&
         (owningComponent.classElement.lookUpGetter(id.name, null) != null ||
             owningComponent.classElement.lookUpSetter(id.name, null) != null)) {
@@ -295,13 +296,25 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
 
     if (id is PrefixedIdentifier) {
       if (owningComponent.exports.any((export) =>
-          export.prefix == id.prefix.name && id.name == export.identifier)) {
+          export.prefix == id.prefix.name &&
+          id.identifier.name == export.identifier)) {
         // Correct reference to exported prefix identifier
         return;
       }
     } else {
+      if (parent is MethodInvocation && parent.methodName == id) {
+        final target = parent.target;
+        if (target is SimpleIdentifier &&
+            target.staticElement is PrefixElement &&
+            owningComponent.exports.any((export) =>
+                export.prefix == target.name && export.identifier == id.name)) {
+          // Invocation of a top-level function behind a prefix, which is stored
+          // as a [MethodInvocation].
+          return;
+        }
+      }
       if (owningComponent.exports.any(
-          (export) => export.prefix == null && id.name == export.identifier)) {
+          (export) => export.prefix == '' && id.name == export.identifier)) {
         // Correct reference to exported simple identifier
         return;
       }
@@ -358,10 +371,6 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
   }
 
   @override
-  void visitNamedExpression(NamedExpression exp) =>
-      _reportDisallowedExpression(exp, "Named arguments");
-
-  @override
   void visitPostfixExpression(PostfixExpression exp) {
     _reportDisallowedExpression(exp, exp.operator.lexeme);
   }
@@ -371,7 +380,8 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
 
   @override
   void visitPrefixExpression(PrefixExpression exp) {
-    if (exp.operator.type != TokenType.MINUS) {
+    if (exp.operator.type != TokenType.MINUS &&
+        exp.operator.type != TokenType.BANG) {
       _reportDisallowedExpression(exp, exp.operator.lexeme);
     }
   }

@@ -343,6 +343,9 @@ class ExportedIdentifier {
 
   ExportedIdentifier(this.identifier, this.span,
       {this.element, this.prefix: ''});
+
+  @override
+  String toString() => '{$prefix, $identifier}';
 }
 
 /// A functional directive is applied when the directive is linked, but does
