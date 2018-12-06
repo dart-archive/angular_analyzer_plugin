@@ -1644,8 +1644,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
           library, view.source, typeProvider, errorListener);
       astNode.accept(visitor);
     }
-    final inheritanceManager2 =
-        new InheritanceManager2(typeSystem as StrongTypeSystemImpl);
+    final inheritanceManager2 = new InheritanceManager2(typeSystem);
     final resolver = new AngularResolverVisitor(inheritanceManager2, library,
         templateSource, typeProvider, errorListener,
         pipes: pipes);
