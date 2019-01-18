@@ -1,5 +1,7 @@
 ## Unpublished
 
+## 0.0.17+5
+
 - Fixed an issue where a corrupt URI would crash the plugin on windows.
 
 ## 0.0.17+4
