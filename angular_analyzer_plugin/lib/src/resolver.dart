@@ -1645,7 +1645,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // half-complete-code case: ensure the expression is actually there
     if (attribute.expression != null &&
         !typeSystem.isAssignableTo(
-            attribute.expression.staticType, typeProvider.boolType)) {
+            attribute.expression.staticType ?? typeProvider.dynamicType,
+            typeProvider.boolType)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         attribute.valueOffset,
@@ -1787,7 +1788,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       // half-complete-code case: ensure the expression is actually there
       if (attribute.expression != null &&
           !typeSystem.isAssignableTo(
-              attribute.expression.staticType, typeProvider.numType)) {
+              attribute.expression.staticType ?? typeProvider.dynamicType,
+              typeProvider.numType)) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.valueOffset,
@@ -1830,13 +1832,17 @@ class SingleScopeResolver extends AngularScopeVisitor {
           // half-complete-code case: ensure the expression is actually there
           if (attribute.expression != null &&
               !typeSystem.isAssignableTo(
-                  eventType, attribute.expression.staticType)) {
+                  eventType,
+                  attribute.expression.staticType ??
+                      typeProvider.dynamicType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.valueOffset,
                 attribute.value.length,
-                AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
-                [output.eventType, attribute.expression.staticType]));
+                AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, [
+              output.eventType,
+              attribute.expression.staticType ?? typeProvider.dynamicType
+            ]));
           }
         }
       }
@@ -1858,7 +1864,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       ExpressionBoundAttribute attr, InputElement input) {
     // half-complete-code case: ensure the expression is actually there
     if (attr.expression != null) {
-      final attrType = attr.expression.staticType;
+      final attrType = attr.expression.staticType ?? typeProvider.dynamicType;
       final inputType = input.setterType;
       final securityContext = input.securityContext;
 
