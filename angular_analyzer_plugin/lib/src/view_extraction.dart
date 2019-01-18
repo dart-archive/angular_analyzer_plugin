@@ -213,7 +213,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
     final views = <View>[];
     for (final unitMember in unit.declarations) {
       if (unitMember is ast.ClassDeclaration) {
-        final classElement = unitMember.element;
+        final classElement = unitMember.declaredElement;
         ast.Annotation componentAnnotation;
 
         for (final annotation in unitMember.metadata) {

@@ -8,7 +8,6 @@ analyzer:
 
 linter:
   rules:
-    - prefer_final_locals
     - always_declare_return_types
     - always_put_control_body_on_new_line
     - always_require_non_null_named_parameters

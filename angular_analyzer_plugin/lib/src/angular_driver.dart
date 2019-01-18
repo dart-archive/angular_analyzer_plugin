@@ -227,9 +227,9 @@ class AngularDriver
       return null;
     }
 
-    final context = dartResult.unit.element.context;
+    final context = dartResult.unit.declaredElement.context;
     final ast = dartResult.unit;
-    final source = dartResult.unit.element.source;
+    final source = dartResult.unit.declaredElement.source;
     final extractor =
         new DirectiveExtractor(ast, context.typeProvider, source, context);
     final topLevels = extractor.getAngularTopLevels();

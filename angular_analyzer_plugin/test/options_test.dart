@@ -193,7 +193,7 @@ analyzer:
       custom_tag_names: true
 ''', null);
     expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, const isInstanceOf<List>());
+    expect(options.customTagNames, const TypeMatcher<List>());
     expect(options.customTagNames, isEmpty);
   }
 
@@ -242,7 +242,7 @@ angular:
   custom_tag_names: true
 ''', null);
     expect(options.customTagNames, isNotNull);
-    expect(options.customTagNames, const isInstanceOf<List>());
+    expect(options.customTagNames, const TypeMatcher<List>());
     expect(options.customTagNames, isEmpty);
   }
 
