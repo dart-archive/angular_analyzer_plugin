@@ -58,7 +58,7 @@ class TemplateParser {
     final exceptionHandler = new ng_ast.RecoveringExceptionHandler();
     rawAst = ng_ast.parse(
       content,
-      sourceUrl: source.toString(),
+      sourceUrl: source.uri.toString(),
       desugar: false,
       parseExpressions: false,
       exceptionHandler: exceptionHandler,
