@@ -18,7 +18,7 @@ class AngularNavigation implements NavigationContributor {
       NavigationRequest baseRequest, NavigationCollector collector,
       {bool templatesOnly: false}) {
     // cast this
-    final AngularNavigationRequest request = baseRequest;
+    final request = baseRequest as AngularNavigationRequest;
     final length = request.length;
     final offset = request.offset;
     final result = request.result;

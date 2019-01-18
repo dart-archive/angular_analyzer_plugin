@@ -966,14 +966,14 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
 
     expect(children.directive, equals(directives[1]));
 
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
     expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
+    final child = childs.first.query as DirectiveQueriedChildType;
 
     expect(child.directive, equals(directives[1]));
     // validate
@@ -1000,7 +1000,7 @@ class ContentChildComp {}
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
     expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
+    final child = childs.first.query as DirectiveQueriedChildType;
 
     expect(child.directive, equals(directives[1]));
     // validate
@@ -1027,7 +1027,7 @@ class ContentChildComp {}
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
     expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
+    final child = childs.first.query as DirectiveQueriedChildType;
 
     expect(child.directive, equals(directives[1]));
     // validate
@@ -1077,7 +1077,7 @@ class ContentChildComp {}
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
     expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
+    final child = childs.first.query as DirectiveQueriedChildType;
     expect(child.directive, equals(directives[1]));
 
     // validate
@@ -1151,7 +1151,7 @@ class ContentChildCompSub extends ContentChildComp {}
     final childs = component.contentChilds;
     expect(childs, hasLength(1));
     expect(childs.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType child = childs.first.query;
+    final child = childs.first.query as DirectiveQueriedChildType;
     expect(child.directive, equals(directives[1]));
 
     // validate
@@ -1237,43 +1237,44 @@ class ContentChildComp {}
     final childs = component.contentChilds;
     expect(childs, hasLength(6));
 
-    final LetBoundQueriedChildType childDirective = childs
+    final childDirective = childs
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childDirective, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childDirective.letBoundName, equals("foo"));
     expect(childDirective.containerType.toString(), equals("ContentChildComp"));
 
-    final LetBoundQueriedChildType childTemplate =
-        childs.singleWhere((c) => c.field.fieldName == "contentChildTpl").query;
+    final childTemplate = childs
+        .singleWhere((c) => c.field.fieldName == "contentChildTpl")
+        .query as LetBoundQueriedChildType;
     expect(childTemplate, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childTemplate.letBoundName, equals("fooTpl"));
     expect(childTemplate.containerType.toString(), equals("TemplateRef"));
 
-    final LetBoundQueriedChildType childElement = childs
+    final childElement = childs
         .singleWhere((c) => c.field.fieldName == "contentChildElem")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childElement.letBoundName, equals("fooElem"));
     expect(childElement.containerType.toString(), equals("Element"));
 
-    final LetBoundQueriedChildType childHtmlElement = childs
+    final childHtmlElement = childs
         .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childHtmlElement.letBoundName, equals("fooHtmlElem"));
     expect(childHtmlElement.containerType.toString(), equals("HtmlElement"));
 
-    final LetBoundQueriedChildType childElementRef = childs
+    final childElementRef = childs
         .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childElementRef, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childElementRef.letBoundName, equals("fooElemRef"));
     expect(childElementRef.containerType.toString(), equals("ElementRef"));
 
-    final LetBoundQueriedChildType childDynamic = childs
+    final childDynamic = childs
         .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childDynamic, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childDynamic.letBoundName, equals("fooDynamic"));
     expect(childDynamic.containerType.toString(), equals("dynamic"));
@@ -1303,7 +1304,7 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
 
     expect(children.directive, equals(directives[1]));
     // validate
@@ -1331,7 +1332,7 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
 
     expect(children.directive, equals(directives[1]));
     // validate
@@ -1359,7 +1360,7 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
 
     expect(children.directive, equals(directives[1]));
     // validate
@@ -1387,7 +1388,7 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
 
     expect(children.directive, equals(directives[1]));
     // validate
@@ -1437,7 +1438,7 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
 
     expect(children.directive, equals(directives[1]));
     // validate
@@ -1487,7 +1488,7 @@ class ContentChildComp {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
     expect(children.directive, equals(directives[1]));
 
     // validate
@@ -1521,7 +1522,7 @@ abstract class CannotSubtypeList extends List {}
     expect(childrens, hasLength(1));
     expect(
         childrens.first.query, const isInstanceOf<DirectiveQueriedChildType>());
-    final DirectiveQueriedChildType children = childrens.first.query;
+    final children = childrens.first.query as DirectiveQueriedChildType;
     expect(children.directive, equals(directives[1]));
 
     // validate
@@ -1638,52 +1639,52 @@ class ContentChildComp {}
     final childrens = component.contentChildren;
     expect(childrens, hasLength(7));
 
-    final LetBoundQueriedChildType childrenDirective = childrens
+    final childrenDirective = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDirective")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenDirective, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenDirective.letBoundName, equals("foo"));
     expect(
         childrenDirective.containerType.toString(), equals("ContentChildComp"));
 
-    final LetBoundQueriedChildType childrenTemplate = childrens
+    final childrenTemplate = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildTpl")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenTemplate, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenTemplate.letBoundName, equals("fooTpl"));
     expect(childrenTemplate.containerType.toString(), equals("TemplateRef"));
 
-    final LetBoundQueriedChildType childrenElement = childrens
+    final childrenElement = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildElem")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenElement.letBoundName, equals("fooElem"));
     expect(childrenElement.containerType.toString(), equals("Element"));
 
-    final LetBoundQueriedChildType childrenHtmlElement = childrens
+    final childrenHtmlElement = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildHtmlElem")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenHtmlElement, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenHtmlElement.letBoundName, equals("fooHtmlElem"));
     expect(childrenHtmlElement.containerType.toString(), equals("HtmlElement"));
 
-    final LetBoundQueriedChildType childrenElementRef = childrens
+    final childrenElementRef = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildElemRef")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenElementRef, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenElementRef.letBoundName, equals("fooElemRef"));
     expect(childrenElementRef.containerType.toString(), equals("ElementRef"));
 
-    final LetBoundQueriedChildType childrenDynamic = childrens
+    final childrenDynamic = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildDynamic")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenDynamic, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenDynamic.letBoundName, equals("fooDynamic"));
     expect(childrenDynamic.containerType.toString(), equals("dynamic"));
 
-    final LetBoundQueriedChildType childrenQueryList = childrens
+    final childrenQueryList = childrens
         .singleWhere((c) => c.field.fieldName == "contentChildQueryList")
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(childrenQueryList, const isInstanceOf<LetBoundQueriedChildType>());
     expect(childrenQueryList.letBoundName, equals("fooQueryList"));
     expect(
@@ -1776,22 +1777,23 @@ class ComponentA {
     final children = component.contentChilds;
     expect(children, hasLength(3));
 
-    final LetBoundQueriedChildType objectNotElem =
-        children.singleWhere((c) => c.field.fieldName == 'objectNotElem').query;
+    final objectNotElem = children
+        .singleWhere((c) => c.field.fieldName == 'objectNotElem')
+        .query as LetBoundQueriedChildType;
     expect(objectNotElem, const isInstanceOf<LetBoundQueriedChildType>());
     expect(objectNotElem.letBoundName, equals('el'));
     expect(objectNotElem.containerType.toString(), equals('Element'));
 
-    final LetBoundQueriedChildType elemNotHtmlElem = children
+    final elemNotHtmlElem = children
         .singleWhere((c) => c.field.fieldName == 'elemNotHtmlElem')
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(elemNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
     expect(elemNotHtmlElem.letBoundName, equals('el'));
     expect(elemNotHtmlElem.containerType.toString(), equals('HtmlElement'));
 
-    final LetBoundQueriedChildType objectNotHtmlElem = children
+    final objectNotHtmlElem = children
         .singleWhere((c) => c.field.fieldName == 'objectNotHtmlElem')
-        .query;
+        .query as LetBoundQueriedChildType;
     expect(objectNotHtmlElem, const isInstanceOf<LetBoundQueriedChildType>());
     expect(objectNotHtmlElem.letBoundName, equals('el'));
     expect(objectNotHtmlElem.containerType.toString(), equals('HtmlElement'));
@@ -3124,7 +3126,7 @@ class ComponentA {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final Component component = directives.first;
+    final component = directives.first as Component;
     expect(component.view, isNotNull);
     expect(component.view.exports, hasLength(3));
     {
@@ -3959,7 +3961,7 @@ class ComponentA {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final Component component = directives.first;
+    final component = directives.first as Component;
     expect(component.view, isNotNull);
     expect(component.view.exports, hasLength(2));
     {
@@ -4740,7 +4742,7 @@ class ComponentA {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final Component component = directives.first;
+    final component = directives.first as Component;
     expect(component.view, isNotNull);
     expect(component.view.exports, hasLength(3));
     {
@@ -5038,7 +5040,7 @@ class ComponentA {
 ''';
     final source = newSource('/test.dart', code);
     await getDirectives(source);
-    final Component component = directives.first;
+    final component = directives.first as Component;
     expect(component.view, isNotNull);
     expect(component.view.exports, hasLength(2));
     {

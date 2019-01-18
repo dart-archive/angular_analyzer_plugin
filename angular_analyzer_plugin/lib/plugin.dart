@@ -153,7 +153,7 @@ class AngularAnalyzerPlugin extends ServerPlugin
   @override
   Future<NavigationRequest> getNavigationRequest(
       plugin.AnalysisGetNavigationParams parameters) async {
-    final AngularDriver driver = driverForPath(parameters.file);
+    final driver = driverForPath(parameters.file) as AngularDriver;
     final isHtml = parameters.file.endsWith('.html');
     final result = isHtml
         ? await driver.requestHtmlResult(parameters.file)

@@ -86,7 +86,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
     missingOutputs.forEach((name, type) {
       final namespace = unit.element.library.publicNamespace;
-      final ClassElement eventClass = namespace.get(type);
+      final eventClass = namespace.get(type) as ClassElement;
       events[name] = new OutputElement(
           name, null, null, unit.element.source, null, null, eventClass.type);
     });
