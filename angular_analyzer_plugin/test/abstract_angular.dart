@@ -28,15 +28,15 @@ import 'mock_sdk.dart';
 
 void assertComponentReference(
     ResolvedRange resolvedRange, Component component) {
-  final ElementNameSelector selector = component.selector;
+  final selector = component.selector as ElementNameSelector;
   final element = resolvedRange.element;
   expect(element, selector.nameElement);
   expect(resolvedRange.range.length, selector.nameElement.name.length);
 }
 
 PropertyAccessorElement assertGetter(ResolvedRange resolvedRange) {
-  final PropertyAccessorElement element =
-      (resolvedRange.element as DartElement).element;
+  final element =
+      (resolvedRange.element as DartElement).element as PropertyAccessorElement;
   expect(element.isGetter, isTrue);
   return element;
 }

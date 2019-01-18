@@ -139,7 +139,7 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver() {
     enableAnalyzerPluginsAngular();
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final driver = plugin.createAnalysisDriver(root) as AngularDriver;
 
     expect(driver, isNotNull);
     expect(driver.byteStore, isNotNull);
@@ -148,7 +148,7 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver_containsDartDriver() {
     enableAnalyzerPluginsAngular();
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final driver = plugin.createAnalysisDriver(root) as AngularDriver;
 
     expect(driver, isNotNull);
     expect(driver.dartDriver, isNotNull);
@@ -167,7 +167,7 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
       '  - bar',
       '  - baz',
     ]);
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final driver = plugin.createAnalysisDriver(root) as AngularDriver;
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
@@ -183,7 +183,7 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
       '  - bar',
       '  - baz',
     ]);
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final driver = plugin.createAnalysisDriver(root) as AngularDriver;
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);
@@ -194,7 +194,7 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver_defaultOptions() {
     enableAnalyzerPluginsAngular();
-    final AngularDriver driver = plugin.createAnalysisDriver(root);
+    final driver = plugin.createAnalysisDriver(root) as AngularDriver;
 
     expect(driver, isNotNull);
     expect(driver.options, isNotNull);

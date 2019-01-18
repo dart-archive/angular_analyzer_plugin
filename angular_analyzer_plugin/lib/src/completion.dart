@@ -1011,7 +1011,7 @@ class TemplateCompleter {
         continue;
       }
 
-      final Component component = directive;
+      final component = directive as Component;
       final view = component?.view;
       if (view == null) {
         continue;

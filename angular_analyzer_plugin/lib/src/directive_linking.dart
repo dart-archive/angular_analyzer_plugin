@@ -849,7 +849,7 @@ class ExportLinker {
       return;
     }
 
-    final Component component = directive;
+    final component = directive as Component;
 
     if (component?.view?.exports == null) {
       return;

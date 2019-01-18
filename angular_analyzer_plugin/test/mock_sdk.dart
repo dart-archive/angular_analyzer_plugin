@@ -545,7 +545,7 @@ class MockSdk implements DartSdk {
       : provider = resourceProvider ?? new resource.MemoryResourceProvider(),
         sdkLibraries = dartAsync ? _LIBRARIES : [_LIB_CORE],
         uriMap = dartAsync ? FULL_URI_MAP : NO_ASYNC_URI_MAP {
-    for (_MockSdkLibrary library in sdkLibraries) {
+    for (var library in sdkLibraries.cast<_MockSdkLibrary>()) {
       provider.newFile(provider.convertPath(library.path), library.content);
       library.parts.forEach((path, content) {
         provider.newFile(provider.convertPath(path), content);
@@ -592,7 +592,7 @@ class MockSdk implements DartSdk {
       final libraryPath = provider.convertPath(library.path);
       if (filePath == libraryPath) {
         try {
-          final resource.File file = provider.getResource(filePath);
+          final file = provider.getResource(filePath) as resource.File;
           final dartUri = Uri.parse(library.shortName);
           return file.createSource(dartUri);
         } catch (exception) {
@@ -606,7 +606,7 @@ class MockSdk implements DartSdk {
         final pathInLibrary = filePath.substring(libraryRootPath.length);
         final uriStr = '${library.shortName}/$pathInLibrary';
         try {
-          final resource.File file = provider.getResource(filePath);
+          final file = provider.getResource(filePath) as resource.File;
           final dartUri = Uri.parse(uriStr);
           return file.createSource(dartUri);
         } catch (exception) {
@@ -647,8 +647,8 @@ class MockSdk implements DartSdk {
   Source mapDartUri(String dartUri) {
     final path = uriMap[dartUri];
     if (path != null) {
-      final resource.File file =
-          provider.getResource(provider.convertPath(path));
+      final file =
+          provider.getResource(provider.convertPath(path)) as resource.File;
       final uri = new Uri(scheme: 'dart', path: dartUri.substring(5));
       return file.createSource(uri);
     }
