@@ -23,7 +23,7 @@ void main() {
 
 void assertPropertyElement(AngularElement element,
     {nameMatcher, sourceMatcher}) {
-  expect(element, const isInstanceOf<InputElement>());
+  expect(element, const TypeMatcher<InputElement>());
   final inputElement = element;
   if (nameMatcher != null) {
     expect(inputElement.name, nameMatcher);

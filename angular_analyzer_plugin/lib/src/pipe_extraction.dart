@@ -1,4 +1,3 @@
-import 'package:analyzer/analyzer.dart' as analyzer;
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/dart/ast/utilities.dart' as utils;
@@ -60,7 +59,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
     }
     for (final parameter in parameters) {
       // If named or positional
-      if (parameter.parameterKind == analyzer.ParameterKind.NAMED) {
+      if (parameter.isNamed) {
         errorReporter.reportErrorForElement(
             AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS, parameter);
         continue;
@@ -77,7 +76,7 @@ class PipeExtractor extends AnnotationProcessorMixin {
   /// Returns an Angular [Pipe] for the given [node].
   /// Returns `null` if not an Angular @Pipe annotation.
   Pipe _createPipe(ast.ClassDeclaration classDeclaration, ast.Annotation node) {
-    _currentClassElement = classDeclaration.element;
+    _currentClassElement = classDeclaration.declaredElement;
     if (isAngularAnnotation(node, 'Pipe')) {
       String pipeName;
       int pipeNameOffset;

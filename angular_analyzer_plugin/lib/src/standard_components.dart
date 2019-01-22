@@ -1,8 +1,8 @@
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
-import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -52,7 +52,7 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
 
   @override
   void visitClassDeclaration(ast.ClassDeclaration node) {
-    classElement = node.element;
+    classElement = node.declaredElement;
     super.visitClassDeclaration(node);
     if (classElement.name == 'HtmlElement') {
       final outputElements = _buildOutputs(true);
@@ -85,10 +85,10 @@ class BuildStandardHtmlComponentsVisitor extends RecursiveAstVisitor {
     super.visitCompilationUnit(unit);
 
     missingOutputs.forEach((name, type) {
-      final namespace = unit.element.library.publicNamespace;
+      final namespace = unit.declaredElement.library.publicNamespace;
       final eventClass = namespace.get(type) as ClassElement;
-      events[name] = new OutputElement(
-          name, null, null, unit.element.source, null, null, eventClass.type);
+      events[name] = new OutputElement(name, null, null,
+          unit.declaredElement.source, null, null, eventClass.type);
     });
   }
 
@@ -321,14 +321,15 @@ class StandardAngular {
       this.securitySchema});
 
   factory StandardAngular.fromAnalysis(
-      {AnalysisResult angularResult,
-      AnalysisResult securityResult,
-      AnalysisResult protoSecurityResult}) {
-    final ng = angularResult.unit.element.library.exportNamespace;
-    final security = securityResult.unit.element.library.exportNamespace;
+      {ResolvedUnitResult angularResult,
+      ResolvedUnitResult securityResult,
+      ResolvedUnitResult protoSecurityResult}) {
+    final ng = angularResult.unit.declaredElement.library.exportNamespace;
+    final security =
+        securityResult.unit.declaredElement.library.exportNamespace;
     final protoSecurity = protoSecurityResult == null
         ? null
-        : protoSecurityResult.unit.element.library.exportNamespace;
+        : protoSecurityResult.unit.declaredElement.library.exportNamespace;
 
     List<DartType> interfaceTypes(List<Element> elements) => elements
         .whereType<ClassElement>()

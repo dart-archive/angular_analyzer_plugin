@@ -165,7 +165,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
   /// Returns `null` if not an Angular annotation.
   AngularAnnotatedClass _getAngularAnnotatedClass(
       ast.ClassDeclaration classDeclaration) {
-    _currentClassElement = classDeclaration.element;
+    _currentClassElement = classDeclaration.declaredElement;
     _bindingTypeSynthesizer = new BindingTypeSynthesizer(
         _currentClassElement, _typeProvider, _context, errorReporter);
     // TODO(scheglov) add support for all the arguments
@@ -237,7 +237,7 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
   /// Returns `null` if not an Angular annotation.
   FunctionalDirective _getFunctionalDirective(
       ast.FunctionDeclaration functionDeclaration) {
-    var functionElement = functionDeclaration.element;
+    final functionElement = functionDeclaration.declaredElement;
     if (functionElement is FunctionElement) {
       final annotationNode = functionDeclaration.metadata.firstWhere(
           (ann) => isAngularAnnotation(ann, 'Directive'),
@@ -516,13 +516,13 @@ class DirectiveExtractor extends AnnotationProcessorMixin {
     PropertyAccessorElement property;
     if (node is ast.FieldDeclaration && node.fields.variables.length == 1) {
       final variable = node.fields.variables.first;
-      final fieldElement = variable.element as FieldElement;
+      final fieldElement = variable.declaredElement as FieldElement;
       property = isInput ? fieldElement.setter : fieldElement.getter;
     } else if (node is ast.MethodDeclaration) {
       if (isInput && node.isSetter) {
-        property = node.element as PropertyAccessorElement;
+        property = node.declaredElement as PropertyAccessorElement;
       } else if (isOutput && node.isGetter) {
-        property = node.element as PropertyAccessorElement;
+        property = node.declaredElement as PropertyAccessorElement;
       }
     }
 
