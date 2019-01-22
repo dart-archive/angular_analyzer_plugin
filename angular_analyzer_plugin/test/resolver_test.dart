@@ -2187,7 +2187,7 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 [hidden]="(){}"></h1>
+<h1 [hidden]="(){} == null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
@@ -2204,12 +2204,12 @@ class TestPanel {
 }
 ''');
     final code = r"""
-<h1 [hidden]="()=>x"></h1>
+<h1 [hidden]="null == ()=>null"></h1>
 """;
     _addHtmlSource(code);
     await _resolveSingleTemplate(dartSource);
     assertErrorInCodeAtPosition(
-        AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>x");
+        AngularWarningCode.DISALLOWED_EXPRESSION, code, "()=>null");
   }
 
   // ignore: non_constant_identifier_names
