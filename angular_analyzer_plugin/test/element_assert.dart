@@ -90,7 +90,7 @@ class ElementAssert {
 
   DartElementAssert get dart {
     expect(element, const isInstanceOf<DartElement>());
-    final DartElement dartElement = element;
+    final dartElement = element as DartElement;
     return new DartElementAssert(dartElement.element, _dartSource, _dartCode);
   }
 

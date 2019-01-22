@@ -930,11 +930,11 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_and() {
-    final AndSelector selector =
-        new SelectorParser(source, 10, '[ng-for][ng-for-of]').parse();
+    final selector = new SelectorParser(source, 10, '[ng-for][ng-for-of]')
+        .parse() as AndSelector;
     expect(selector.selectors, hasLength(2));
     {
-      final AttributeSelector subSelector = selector.selectors[0];
+      final subSelector = selector.selectors[0] as AttributeSelector;
       final nameElement = subSelector.nameElement;
       expect(nameElement.source, source);
       expect(nameElement.name, 'ng-for');
@@ -942,7 +942,7 @@ class SelectorParserTest {
       expect(nameElement.nameLength, 'ng-for'.length);
     }
     {
-      final AttributeSelector subSelector = selector.selectors[1];
+      final subSelector = selector.selectors[1] as AttributeSelector;
       final nameElement = subSelector.nameElement;
       expect(nameElement.source, source);
       expect(nameElement.name, 'ng-for-of');
@@ -977,8 +977,8 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_attribute_hasValue() {
-    final AttributeSelector selector =
-        new SelectorParser(source, 10, '[kind=pretty]').parse();
+    final selector = new SelectorParser(source, 10, '[kind=pretty]').parse()
+        as AttributeSelector;
     {
       final nameElement = selector.nameElement;
       expect(nameElement.source, source);
@@ -991,12 +991,12 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_attribute_hasValueWithQuotes() {
-    final AndSelector selector =
+    final selector =
         new SelectorParser(source, 10, '''[single='quotes'][double="quotes"]''')
-            .parse();
+            .parse() as AndSelector;
     expect(selector.selectors, hasLength(2));
     {
-      final AttributeSelector subSelector = selector.selectors[0];
+      final subSelector = selector.selectors[0] as AttributeSelector;
       {
         final nameElement = subSelector.nameElement;
         expect(nameElement.source, source);
@@ -1006,7 +1006,7 @@ class SelectorParserTest {
       expect(subSelector.value, 'quotes');
     }
     {
-      final AttributeSelector subSelector = selector.selectors[1];
+      final subSelector = selector.selectors[1] as AttributeSelector;
       {
         final nameElement = subSelector.nameElement;
         expect(nameElement.source, source);
@@ -1019,8 +1019,8 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_attribute_hasWildcard() {
-    final AttributeContainsSelector selector =
-        new SelectorParser(source, 10, '[kind*=pretty]').parse();
+    final selector = new SelectorParser(source, 10, '[kind*=pretty]').parse()
+        as AttributeContainsSelector;
     {
       final nameElement = selector.nameElement;
       expect(nameElement.source, source);
@@ -1033,8 +1033,8 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_attribute_noValue() {
-    final AttributeSelector selector =
-        new SelectorParser(source, 10, '[ng-for]').parse();
+    final selector =
+        new SelectorParser(source, 10, '[ng-for]').parse() as AttributeSelector;
     {
       final nameElement = selector.nameElement;
       expect(nameElement.source, source);
@@ -1059,24 +1059,24 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_attribute_startsWith() {
-    final AttributeStartsWithSelector selector =
-        new SelectorParser(source, 10, '[foo^=bar]').parse();
+    final selector = new SelectorParser(source, 10, '[foo^=bar]').parse()
+        as AttributeStartsWithSelector;
     expect(selector.nameElement.name, 'foo');
     expect(selector.value, 'bar');
   }
 
   // ignore: non_constant_identifier_names
   void test_attribute_startsWith_quoted() {
-    final AttributeStartsWithSelector selector =
-        new SelectorParser(source, 10, '[foo^="bar"]').parse();
+    final selector = new SelectorParser(source, 10, '[foo^="bar"]').parse()
+        as AttributeStartsWithSelector;
     expect(selector.nameElement.name, 'foo');
     expect(selector.value, 'bar');
   }
 
   // ignore: non_constant_identifier_names
   void test_attribute_textRegex() {
-    final AttributeValueRegexSelector selector =
-        new SelectorParser(source, 10, '[*=/pretty/]').parse();
+    final selector = new SelectorParser(source, 10, '[*=/pretty/]').parse()
+        as AttributeValueRegexSelector;
     expect(selector.regexpStr, 'pretty');
   }
 
@@ -1092,8 +1092,8 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_class() {
-    final ClassSelector selector =
-        new SelectorParser(source, 10, '.nice').parse();
+    final selector =
+        new SelectorParser(source, 10, '.nice').parse() as ClassSelector;
     final nameElement = selector.nameElement;
     expect(nameElement.source, source);
     expect(nameElement.name, 'nice');
@@ -1103,66 +1103,68 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_complex_ast() {
-    final OrSelector selector = new SelectorParser(
+    final selector = new SelectorParser(
             source, 10, 'aaa, bbb:not(ccc), :not(:not(ddd)[eee], fff[ggg])')
-        .parse();
+        .parse() as OrSelector;
 
     expect(
         selector.toString(),
         equals('aaa || bbb && :not(ccc) || '
             ':not(:not(ddd) && [eee] || fff && [ggg])'));
     {
-      final ElementNameSelector subSelector = selector.selectors[0];
+      final subSelector = selector.selectors[0] as ElementNameSelector;
       expect(subSelector.toString(), "aaa");
     }
     {
-      final AndSelector subSelector = selector.selectors[1];
+      final subSelector = selector.selectors[1] as AndSelector;
       expect(subSelector.toString(), "bbb && :not(ccc)");
       {
-        final ElementNameSelector subSelector2 = subSelector.selectors[0];
+        final subSelector2 = subSelector.selectors[0] as ElementNameSelector;
         expect(subSelector2.toString(), "bbb");
       }
       {
-        final NotSelector subSelector2 = subSelector.selectors[1];
+        final subSelector2 = subSelector.selectors[1] as NotSelector;
         expect(subSelector2.toString(), ":not(ccc)");
         {
-          final ElementNameSelector subSelector3 = subSelector2.condition;
+          final subSelector3 = subSelector2.condition as ElementNameSelector;
           expect(subSelector3.toString(), "ccc");
         }
       }
     }
     {
-      final NotSelector subSelector = selector.selectors[2];
+      final subSelector = selector.selectors[2] as NotSelector;
       expect(
           subSelector.toString(), ":not(:not(ddd) && [eee] || fff && [ggg])");
       {
-        final OrSelector subSelector2 = subSelector.condition;
+        final subSelector2 = subSelector.condition as OrSelector;
         expect(subSelector2.toString(), ":not(ddd) && [eee] || fff && [ggg]");
         {
-          final AndSelector subSelector3 = subSelector2.selectors[0];
+          final subSelector3 = subSelector2.selectors[0] as AndSelector;
           expect(subSelector3.toString(), ":not(ddd) && [eee]");
           {
-            final NotSelector subSelector4 = subSelector3.selectors[0];
+            final subSelector4 = subSelector3.selectors[0] as NotSelector;
             expect(subSelector4.toString(), ":not(ddd)");
             {
-              final ElementNameSelector subSelector5 = subSelector4.condition;
+              final subSelector5 =
+                  subSelector4.condition as ElementNameSelector;
               expect(subSelector5.toString(), "ddd");
             }
           }
           {
-            final AttributeSelector subSelector4 = subSelector3.selectors[1];
+            final subSelector4 = subSelector3.selectors[1] as AttributeSelector;
             expect(subSelector4.toString(), "[eee]");
           }
         }
         {
-          final AndSelector subSelector3 = subSelector2.selectors[1];
+          final subSelector3 = subSelector2.selectors[1] as AndSelector;
           expect(subSelector3.toString(), "fff && [ggg]");
           {
-            final ElementNameSelector subSelector4 = subSelector3.selectors[0];
+            final subSelector4 =
+                subSelector3.selectors[0] as ElementNameSelector;
             expect(subSelector4.toString(), "fff");
           }
           {
-            final AttributeSelector subSelector4 = subSelector3.selectors[1];
+            final subSelector4 = subSelector3.selectors[1] as AttributeSelector;
             expect(subSelector4.toString(), "[ggg]");
           }
         }
@@ -1172,15 +1174,15 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_contains() {
-    final ContainsSelector selector =
-        new SelectorParser(source, 10, ':contains(/aaa/)').parse();
+    final selector = new SelectorParser(source, 10, ':contains(/aaa/)').parse()
+        as ContainsSelector;
     expect(selector.regex, 'aaa');
   }
 
   // ignore: non_constant_identifier_names
   void test_elementName() {
-    final ElementNameSelector selector =
-        new SelectorParser(source, 10, 'text-panel').parse();
+    final selector = new SelectorParser(source, 10, 'text-panel').parse()
+        as ElementNameSelector;
     final nameElement = selector.nameElement;
     expect(nameElement.source, source);
     expect(nameElement.name, 'text-panel');
@@ -1190,10 +1192,10 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_not() {
-    final NotSelector selector =
-        new SelectorParser(source, 10, ':not(aaa)').parse();
+    final selector =
+        new SelectorParser(source, 10, ':not(aaa)').parse() as NotSelector;
     {
-      final ElementNameSelector condition = selector.condition;
+      final condition = selector.condition as ElementNameSelector;
       final nameElement = condition.nameElement;
       expect(nameElement.source, source);
       expect(nameElement.name, 'aaa');
@@ -1204,11 +1206,11 @@ class SelectorParserTest {
 
   // ignore: non_constant_identifier_names
   void test_or() {
-    final OrSelector selector =
-        new SelectorParser(source, 10, 'aaa,bbb').parse();
+    final selector =
+        new SelectorParser(source, 10, 'aaa,bbb').parse() as OrSelector;
     expect(selector.selectors, hasLength(2));
     {
-      final ElementNameSelector subSelector = selector.selectors[0];
+      final subSelector = selector.selectors[0] as ElementNameSelector;
       final nameElement = subSelector.nameElement;
       expect(nameElement.source, source);
       expect(nameElement.name, 'aaa');
@@ -1216,7 +1218,7 @@ class SelectorParserTest {
       expect(nameElement.nameLength, 'aaa'.length);
     }
     {
-      final ElementNameSelector subSelector = selector.selectors[1];
+      final subSelector = selector.selectors[1] as ElementNameSelector;
       final nameElement = subSelector.nameElement;
       expect(nameElement.source, source);
       expect(nameElement.name, 'bbb');

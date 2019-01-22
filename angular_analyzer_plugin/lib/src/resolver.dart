@@ -1265,7 +1265,7 @@ class PrepareScopeVisitor extends AngularScopeVisitor {
   }
 
   DartType _getIterableItemType(Expression expression) {
-    final itemsType = expression.bestType;
+    final itemsType = expression.staticType;
     if (itemsType is InterfaceType) {
       final iteratorType = _lookupGetterReturnType(itemsType, 'iterator');
       if (iteratorType is InterfaceType) {
@@ -1621,7 +1621,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
     // half-complete-code case: ensure the expression is actually there
     if (attribute.expression != null &&
         !typeSystem.isAssignableTo(
-            attribute.expression.bestType, typeProvider.boolType)) {
+            attribute.expression.staticType ?? typeProvider.dynamicType,
+            typeProvider.boolType)) {
       errorListener.onError(new AnalysisError(
         templateSource,
         attribute.valueOffset,
@@ -1766,7 +1767,8 @@ class SingleScopeResolver extends AngularScopeVisitor {
       // half-complete-code case: ensure the expression is actually there
       if (attribute.expression != null &&
           !typeSystem.isAssignableTo(
-              attribute.expression.bestType, typeProvider.numType)) {
+              attribute.expression.staticType ?? typeProvider.dynamicType,
+              typeProvider.numType)) {
         errorListener.onError(new AnalysisError(
             templateSource,
             attribute.valueOffset,
@@ -1809,13 +1811,17 @@ class SingleScopeResolver extends AngularScopeVisitor {
           // half-complete-code case: ensure the expression is actually there
           if (attribute.expression != null &&
               !typeSystem.isAssignableTo(
-                  eventType, attribute.expression.bestType)) {
+                  eventType,
+                  attribute.expression.staticType ??
+                      typeProvider.dynamicType)) {
             errorListener.onError(new AnalysisError(
                 templateSource,
                 attribute.valueOffset,
                 attribute.value.length,
-                AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR,
-                [output.eventType, attribute.expression.bestType]));
+                AngularWarningCode.TWO_WAY_BINDING_OUTPUT_TYPE_ERROR, [
+              output.eventType,
+              attribute.expression.staticType ?? typeProvider.dynamicType
+            ]));
           }
         }
       }
@@ -1837,7 +1843,7 @@ class SingleScopeResolver extends AngularScopeVisitor {
       ExpressionBoundAttribute attr, InputElement input) {
     // half-complete-code case: ensure the expression is actually there
     if (attr.expression != null) {
-      final attrType = attr.expression.bestType;
+      final attrType = attr.expression.staticType ?? typeProvider.dynamicType;
       final inputType = input.setterType;
       final securityContext = input.securityContext;
 
@@ -2006,7 +2012,7 @@ class _DartReferencesRecorder extends RecursiveAstVisitor {
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
-    final dartElement = node.bestElement;
+    final dartElement = node.staticElement;
     if (dartElement != null) {
       final angularElement =
           dartToAngularMap[dartElement] ?? new DartElement(dartElement);
