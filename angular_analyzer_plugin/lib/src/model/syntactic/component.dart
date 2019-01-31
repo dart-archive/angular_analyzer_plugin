@@ -1,0 +1,89 @@
+import 'package:analyzer/src/generated/source.dart' show Source;
+import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
+import 'package:angular_analyzer_plugin/src/model/syntactic/base_class_directive.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/content_child.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/element.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/input.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/output.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/reference.dart'
+    as reference_to;
+import 'package:angular_analyzer_plugin/src/selector.dart';
+
+/// Syntactic model of an Angular component. It is usable as a directive, must
+/// be a class, and has "view" information.
+///
+/// ```dart
+/// @Component(
+///   selector: 'my-selector', // required
+///   exportAs: 'foo', // optional
+///   directives: [SubDirectiveA, SubDirectiveB], // optional
+///   pipes: [PipeA, PipeB], // optional
+///   exports: [foo, bar], // optional
+///
+///   // Template required. May be an inline body or a URI
+///   template: '...', // or
+///   templateUri: '...',
+/// )
+/// class MyComponent { // must be a class
+///   @Input() input; // may have inputs
+///   @Output() output; // may have outputs
+///
+///   // may have content child(ren).
+///   @ContentChild(...) child;
+///   @ContentChildren(...) children;
+///
+///   MyComponent(
+///     @Attribute() String attr, // may have attributes
+///   );
+/// }
+/// ```
+class Component extends BaseClassDirective {
+  /// Directives references. May be `directives: LIST_OF_DIRECTIVES`, or
+  /// `directives: [DirectiveA, DirectiveB, ...]`.
+  final reference_to.List<reference_to.Directive> directives;
+
+  /// Pipe references. May be `pipes: LIST_OF_PIPES`, or
+  /// `pipes: [PipeA, PipeB, ...]`.
+  final reference_to.List<reference_to.Pipe> pipes;
+
+  /// Export references. May be `exports: LIST_OF_CONST_VALUES`, or
+  /// `exports: [foo, bar, ...]`.
+  final reference_to.List<reference_to.Export> exports;
+
+  final String templateText;
+  final int templateOffset;
+  final Source templateUriSource;
+  final SourceRange templateUrlRange;
+
+  // TODO(mfairhurst) is this needed?
+  //final dart.Annotation annotation;
+
+  Component(String className, Source source,
+      {AngularElement exportAs,
+      List<Input> inputs,
+      List<Output> outputs,
+      Selector selector,
+      List<ElementNameSelector> elementTags,
+      List<ContentChild> contentChilds,
+      List<ContentChild> contentChildren,
+      this.directives,
+      this.pipes,
+      this.exports,
+      this.templateText,
+      this.templateOffset: 0,
+      this.templateUriSource,
+      this.templateUrlRange})
+      : super(className, source,
+            exportAs: exportAs,
+            inputs: inputs,
+            outputs: outputs,
+            selector: selector,
+            elementTags: elementTags,
+            contentChilds: contentChilds,
+            contentChildren: contentChildren);
+
+  int get end => templateOffset + templateText.length;
+
+  /// The source that contains this template, [source] or [templateUriSource].
+  Source get templateSource => templateUriSource ?? source;
+}
