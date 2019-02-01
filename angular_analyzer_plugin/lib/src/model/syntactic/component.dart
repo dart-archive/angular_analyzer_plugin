@@ -5,8 +5,7 @@ import 'package:angular_analyzer_plugin/src/model/syntactic/content_child.dart';
 import 'package:angular_analyzer_plugin/src/model/syntactic/element.dart';
 import 'package:angular_analyzer_plugin/src/model/syntactic/input.dart';
 import 'package:angular_analyzer_plugin/src/model/syntactic/output.dart';
-import 'package:angular_analyzer_plugin/src/model/syntactic/reference.dart'
-    as reference_to;
+import 'package:angular_analyzer_plugin/src/model/syntactic/reference.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 
 /// Syntactic model of an Angular component. It is usable as a directive, must
@@ -40,15 +39,15 @@ import 'package:angular_analyzer_plugin/src/selector.dart';
 class Component extends BaseClassDirective {
   /// Directives references. May be `directives: LIST_OF_DIRECTIVES`, or
   /// `directives: [DirectiveA, DirectiveB, ...]`.
-  final reference_to.List<reference_to.Directive> directives;
+  final ListOrReference directives;
 
   /// Pipe references. May be `pipes: LIST_OF_PIPES`, or
   /// `pipes: [PipeA, PipeB, ...]`.
-  final reference_to.List<reference_to.Pipe> pipes;
+  final ListOrReference pipes;
 
   /// Export references. May be `exports: LIST_OF_CONST_VALUES`, or
   /// `exports: [foo, bar, ...]`.
-  final reference_to.List<reference_to.Export> exports;
+  final ListOrReference exports;
 
   final String templateText;
   final int templateOffset;

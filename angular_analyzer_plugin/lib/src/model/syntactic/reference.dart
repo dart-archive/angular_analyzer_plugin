@@ -1,39 +1,13 @@
-/// References are very weak in the syntactic stage. At link time, what's
-/// referenced by one prefix or identifier may change. In practice, most all
-/// references are essentially the same class, however, const lists have some
-/// special treatment. We also split up [Pipe], [Directive], and [Export]
-/// references into different classes so that they can be treated as different
-/// concepts by the type system even though they are structurally equivalent
-import 'dart:core' hide List;
-import 'dart:core' as core show List;
-
-import 'package:analyzer/src/generated/source.dart' show SourceRange;
-
-/// A reference to a directive.
-class Directive extends _Reference {
-  Directive(String name, String prefix, SourceRange range)
-      : super(name, prefix, range);
-}
-
-/// A reference to an export.
-class Export extends _Reference {
-  Export(String name, String prefix, SourceRange range)
-      : super(name, prefix, range);
-}
-
-/// A const list identifier reference of some inner type [T]. Due to the way
-/// Dart implements annotations, anything meant to be a list literal could be
-/// given a simple variable. It makes error reporting less clean, but we can
-/// handle it. Track the [SourceRange] for what little reporting we can do.
+/// References are the ways that directives refer to each other, or pipes, or
+/// their exports. References are very weak in the syntactic stage. At link
+/// time, what's referenced by one prefix or identifier may change, so we can
+/// only track Strings and offsets here.
 ///
-/// ```dart
-///   foo
-/// ```
-class FromConstIdentifier<T extends _Reference> implements List<T> {
-  final SourceRange sourceRange;
-
-  FromConstIdentifier(this.sourceRange);
-}
+/// Track list literals specially, however, with [ListLiteral].
+///
+/// TODO(mfairhurst): consider adding a type parameter referring to the type
+/// that the references should resolve to.
+import 'package:analyzer/src/generated/source.dart' show SourceRange;
 
 /// A const list literal reference of some inner type [T]:
 ///
@@ -42,33 +16,31 @@ class FromConstIdentifier<T extends _Reference> implements List<T> {
 /// ```
 ///
 /// By tracking each identifier individually, we can give better error reporting
-/// than [FromConstIdentifier].
-class FromConstLiteral<T extends _Reference> implements List<T> {
-  final core.List<T> references;
+class ListLiteral implements ListOrReference {
+  final List<Reference> items;
 
-  FromConstLiteral(this.references);
+  ListLiteral(this.items);
 }
 
-/// A list reference of some inner type [T]. Implemented by [FromConstLiteral]
-/// or [FromConstIdentifier], because either is valid.
-abstract class List<T extends _Reference> {}
-
-/// A reference to a pipe.
-class Pipe extends _Reference {
-  Pipe(String name, String prefix, SourceRange range)
-      : super(name, prefix, range);
-}
+/// A list reference of some inner type [T]. Implemented by [ListLiteral]
+/// or [Reference], because either is valid.
+///
+/// ```dart
+///   directives: [ A, B, C, ... ] // this is valid
+///   directives: myList // but so is this
+/// ```
+abstract class ListOrReference {}
 
 /// A referenced identifier. We must know its name and prefix to be able to
 /// locate it at link time. Track a [SourceRange] for error reporting reasons.
 ///
-/// This is private, users should use [Pipe], [Directive], or [Export]. That
-/// gives some type safety that a reference to one can't be accidentally used
-/// as a reference to another.
-class _Reference {
+/// Any given reference may be intended to refer to a Pipe, Directive, or
+/// Export (or a list of them, which get unnested in a similar way to how the
+/// spread operator will work).
+class Reference implements ListOrReference {
   String name;
   String prefix;
   SourceRange range;
 
-  _Reference(this.name, this.prefix, this.range);
+  Reference(this.name, this.prefix, this.range);
 }
