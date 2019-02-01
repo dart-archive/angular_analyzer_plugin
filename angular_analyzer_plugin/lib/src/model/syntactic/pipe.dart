@@ -21,5 +21,5 @@ class Pipe extends AngularElementImpl {
 
   Pipe(String pipeName, int pipeNameOffset, this.className, Source source)
       : pipeName = pipeName,
-        super(pipeName, pipeNameOffset, pipeName.length, source);
+        super(pipeName, pipeNameOffset, pipeName?.length, source);
 }

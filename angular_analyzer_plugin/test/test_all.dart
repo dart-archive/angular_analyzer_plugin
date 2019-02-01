@@ -11,6 +11,7 @@ import 'offsetting_constant_value_visitor_test.dart'
 import 'plugin_test.dart' as plugin_test;
 import 'resolver_test.dart' as resolver_test;
 import 'selector_test.dart' as selector_test;
+import 'syntactic_discovery_test.dart' as syntactic_discovery;
 
 /// Utility for manually running all tests.
 void main() {
@@ -26,5 +27,6 @@ void main() {
     occurrences_test.main();
     completion_contributor_test.main();
     file_tracker_test.main();
+    syntactic_discovery.main();
   }, name: 'Angular Plugin tests');
 }

@@ -18,6 +18,10 @@ import 'package:analyzer/src/generated/source_io.dart';
 import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/angular_driver.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/base_directive.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/component.dart'
+    as syntactic;
 import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tuple.dart';
@@ -76,6 +80,16 @@ ResolvedRange getResolvedRangeAtString(
         'ResolvedRange at $offset of $str was not found in [\n${ranges.join('\n')}]');
   });
 }
+
+syntactic.Component getSyntacticComponentByName(
+        List<syntactic.BaseDirective> directives, String name) =>
+    getSyntacticDirectiveByName(directives, name) as syntactic.Component;
+
+syntactic.BaseDirective getSyntacticDirectiveByName(
+        List<syntactic.BaseDirective> directives, String name) =>
+    directives.firstWhere((directive) => directive.name == name, orElse: () {
+      fail('DirectiveMetadata with the class "$name" was not found.');
+    });
 
 View getViewByClassName(List<View> views, String className) =>
     views.firstWhere((view) => view.classElement.name == className, orElse: () {
