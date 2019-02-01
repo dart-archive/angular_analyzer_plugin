@@ -27,13 +27,13 @@ abstract class BaseClassDirective extends AnnotatedClass
       List<Output> outputs,
       this.selector,
       this.elementTags,
-      List<ContentChild> contentChilds,
-      List<ContentChild> contentChildren})
+      List<ContentChild> contentChildFields,
+      List<ContentChild> contentChildrenFields})
       : super(className, source,
             inputs: inputs,
             outputs: outputs,
-            contentChilds: contentChilds,
-            contentChildren: contentChildren);
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 
   @override
   String get name => className;

@@ -40,11 +40,11 @@ class FunctionalDirective implements BaseDirective {
 
   /// Functional directives cannot have contentChildren
   @override
-  List<ContentChild> get contentChildren => const [];
+  List<ContentChild> get contentChildrenFields => const [];
 
   /// Functional directives cannot have contentChildren
   @override
-  List<ContentChild> get contentChilds => const [];
+  List<ContentChild> get contentChildFields => const [];
 
   // Functional directives cannot be exported
   @override

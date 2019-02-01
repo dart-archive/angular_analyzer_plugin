@@ -19,16 +19,16 @@ class AnnotatedClass extends TopLevel {
   /// summary, so that at link time we can report errors discovered in the model
   /// against the range we saw in the AST.
   @override
-  final List<ContentChild> contentChilds;
+  final List<ContentChild> contentChildFields;
 
   @override
-  final List<ContentChild> contentChildren;
+  final List<ContentChild> contentChildrenFields;
 
   AnnotatedClass(this.className, this.source,
       {List<Input> inputs,
       List<Output> outputs,
-      this.contentChilds,
-      this.contentChildren})
+      this.contentChildFields,
+      this.contentChildrenFields})
       : super(inputs: inputs, outputs: outputs);
 
   @override

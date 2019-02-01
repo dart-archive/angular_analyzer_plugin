@@ -60,8 +60,8 @@ class Component extends BaseClassDirective {
       List<Output> outputs,
       Selector selector,
       List<ElementNameSelector> elementTags,
-      List<ContentChild> contentChilds,
-      List<ContentChild> contentChildren,
+      List<ContentChild> contentChildFields,
+      List<ContentChild> contentChildrenFields,
       this.directives,
       this.pipes,
       this.exports,
@@ -75,8 +75,8 @@ class Component extends BaseClassDirective {
             outputs: outputs,
             selector: selector,
             elementTags: elementTags,
-            contentChilds: contentChilds,
-            contentChildren: contentChildren);
+            contentChilds: contentChildFields,
+            contentChildren: contentChildrenFields);
 
   int get end => templateOffset + templateText.length;
 }
