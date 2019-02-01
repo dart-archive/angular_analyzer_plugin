@@ -1,6 +1,6 @@
 import 'package:analyzer/src/generated/source.dart' show SourceRange;
 
-/// Syntactic model of `ContentChild`/`ContentChlidren`. This may appear as:
+/// Syntactic model of `ContentChild`/`ContentChildren`. This may appear as:
 ///
 /// ```dart
 ///   @ContentChild(...) Type contentChildField;

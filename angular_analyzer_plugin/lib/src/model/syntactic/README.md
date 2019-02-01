@@ -92,7 +92,7 @@ References also have an interesting quirk in that they may at times be list
 literals, ie, `directives: [A, B, C]`, or they may be some other arbitrary
 expression (normally a simple identifier `foo`). The latter can only be built
 out of the element model itself, and contains no offset information that we can
-use to present good errors. The former can be specializated to track the
+use to present good errors. The former can be specialized to track the
 individual items in the list in order to have better errors for them. This is
 defined as `List<T extends _Reference>` in `reference.dart` and has two
 implementations: `FromConstExpression` and `FromConstLiteral`.
