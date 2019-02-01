@@ -1,4 +1,5 @@
 import 'package:analyzer/src/generated/source.dart' show Source;
+import 'package:angular_analyzer_plugin/src/model/syntactic/content_child.dart';
 import 'package:angular_analyzer_plugin/src/model/syntactic/input.dart';
 import 'package:angular_analyzer_plugin/src/model/syntactic/output.dart';
 import 'package:angular_analyzer_plugin/src/model/syntactic/top_level.dart';
@@ -16,12 +17,12 @@ class AnnotatedClass extends TopLevel {
   /// Which fields have been marked `@ContentChild`, and the range of the type
   /// argument. The element model contains the rest. This should be stored in the
   /// summary, so that at link time we can report errors discovered in the model
-  /// against the range we saw it the AST.
+  /// against the range we saw in the AST.
   @override
-  final contentChilds;
+  final List<ContentChild> contentChilds;
 
   @override
-  final contentChildren;
+  final List<ContentChild> contentChildren;
 
   AnnotatedClass(this.className, this.source,
       {List<Input> inputs,
