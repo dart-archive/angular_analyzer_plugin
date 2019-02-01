@@ -52,11 +52,8 @@ class Component extends BaseClassDirective {
 
   final String templateText;
   final int templateOffset;
-  final Source templateUriSource;
+  final String templateUrl;
   final SourceRange templateUrlRange;
-
-  // TODO(mfairhurst) is this needed?
-  //final dart.Annotation annotation;
 
   Component(String className, Source source,
       {AngularElement exportAs,
@@ -71,7 +68,7 @@ class Component extends BaseClassDirective {
       this.exports,
       this.templateText,
       this.templateOffset: 0,
-      this.templateUriSource,
+      this.templateUrl,
       this.templateUrlRange})
       : super(className, source,
             exportAs: exportAs,
@@ -83,7 +80,4 @@ class Component extends BaseClassDirective {
             contentChildren: contentChildren);
 
   int get end => templateOffset + templateText.length;
-
-  /// The source that contains this template, [source] or [templateUriSource].
-  Source get templateSource => templateUriSource ?? source;
 }
