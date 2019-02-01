@@ -21,9 +21,9 @@ abstract class TopLevel {
     this.outputs,
   });
 
-  List<ContentChild> get contentChildren;
+  List<ContentChild> get contentChildrenFields;
 
-  List<ContentChild> get contentChilds;
+  List<ContentChild> get contentChildFields;
 
   Source get source;
 }

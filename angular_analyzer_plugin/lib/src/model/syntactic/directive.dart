@@ -35,14 +35,14 @@ class Directive extends BaseClassDirective {
       List<Output> outputs,
       Selector selector,
       List<ElementNameSelector> elementTags,
-      List<ContentChild> contentChilds,
-      List<ContentChild> contentChildren})
+      List<ContentChild> contentChildFields,
+      List<ContentChild> contentChildrenFields})
       : super(className, source,
             exportAs: exportAs,
             inputs: inputs,
             outputs: outputs,
             selector: selector,
             elementTags: elementTags,
-            contentChilds: contentChilds,
-            contentChildren: contentChildren);
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 }
