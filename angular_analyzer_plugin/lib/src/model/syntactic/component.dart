@@ -75,8 +75,8 @@ class Component extends BaseClassDirective {
             outputs: outputs,
             selector: selector,
             elementTags: elementTags,
-            contentChilds: contentChildFields,
-            contentChildren: contentChildrenFields);
+            contentChildFields: contentChildFields,
+            contentChildrenFields: contentChildrenFields);
 
   int get end => templateOffset + templateText.length;
 }
