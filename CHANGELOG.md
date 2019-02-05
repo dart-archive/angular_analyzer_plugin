@@ -1,5 +1,10 @@
 ## Unpublished
 
+- Change analyzer API for forwards compatibility with part files. The old API
+  could have caused out-of-date errors to be cached for a file. The new API,
+  however, introduces extra asynchrony. Manual testing seemed to show everything
+  working properly however this _may_ cause race conditions or hurt performance. 
+
 ## 0.0.17+5
 
 - Fixed an issue where a corrupt URI would crash the plugin on windows.
