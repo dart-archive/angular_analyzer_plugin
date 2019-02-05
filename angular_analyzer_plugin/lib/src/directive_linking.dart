@@ -12,17 +12,198 @@ import 'package:analyzer/src/dart/ast/token.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
 import 'package:analyzer/src/generated/constant.dart';
 import 'package:analyzer/src/generated/engine.dart';
+import 'package:analyzer/src/generated/resolver.dart' show TypeProvider;
 import 'package:analyzer/src/generated/source.dart' show SourceRange, Source;
 import 'package:angular_analyzer_plugin/errors.dart';
-import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/ng_content.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 
 import 'summary/idl.dart';
 
+/// Looks for a 'transform' function, and if found, finds all the
+/// important type information needed for resolution of pipe.
+Pipe linkPipe(
+    Pipe pipe, ErrorReporter errorReporter, StandardAngular standardAngular) {
+  final classElement = pipe.classElement;
+  if (classElement == null) {
+    return pipe;
+  }
+
+  // Check if 'extends PipeTransform' exists.
+  var allSupertypes = classElement.allSupertypes ?? [];
+  allSupertypes = allSupertypes
+      .where((t) => standardAngular.pipeTransform.type.isSupertypeOf(t))
+      .toList();
+  if (allSupertypes.isEmpty) {
+    errorReporter.reportErrorForOffset(
+        AngularWarningCode.PIPE_REQUIRES_PIPETRANSFORM,
+        pipe.pipeNameOffset,
+        pipe.pipeName.length);
+  }
+
+  final transformMethod =
+      classElement.lookUpMethod('transform', classElement.library);
+  if (transformMethod == null) {
+    errorReporter.reportErrorForElement(
+        AngularWarningCode.PIPE_REQUIRES_TRANSFORM_METHOD, classElement);
+    return pipe;
+  }
+
+  pipe.transformReturnType = transformMethod.returnType;
+  final parameters = transformMethod.parameters;
+  if (parameters == null || parameters.isEmpty) {
+    errorReporter.reportErrorForElement(
+        AngularWarningCode.PIPE_TRANSFORM_REQ_ONE_ARG, transformMethod);
+  }
+  for (final parameter in parameters) {
+    // If named or positional
+    if (parameter.isNamed) {
+      errorReporter.reportErrorForElement(
+          AngularWarningCode.PIPE_TRANSFORM_NO_NAMED_ARGS, parameter);
+      continue;
+    }
+    if (parameters.first == parameter) {
+      pipe.requiredArgumentType = parameter.type;
+    } else {
+      pipe.optionalArgumentTypes.add(parameter.type);
+    }
+  }
+  return pipe;
+}
+
+List<Pipe> linkPipes(
+    List<SummarizedPipe> pipeSummaries,
+    ErrorReporter errorReporter,
+    CompilationUnitElement unit,
+    StandardAngular standardAngular) {
+  final pipes = <Pipe>[];
+
+  for (final dirSum in pipeSummaries) {
+    final classElem = unit.getType(dirSum.decoratedClassName);
+    pipes.add(linkPipe(
+        new Pipe(dirSum.pipeName, dirSum.pipeNameOffset, classElem,
+            isPure: dirSum.isPure),
+        errorReporter,
+        standardAngular));
+  }
+
+  return pipes;
+}
+
 typedef DartType TransformSetterTypeFn(
     DartType setterType, ContentChildField field, String annotationName);
+
+class AttributeAnnotationValidator {
+  final ErrorReporter errorReporter;
+
+  AttributeAnnotationValidator(this.errorReporter);
+
+  void validate(AbstractClassDirective directive) {
+    final classElement = directive.classElement;
+    for (final constructor in classElement.constructors) {
+      for (final parameter in constructor.parameters) {
+        for (final annotation in parameter.metadata) {
+          if (annotation.element?.enclosingElement?.name != "Attribute") {
+            continue;
+          }
+
+          final attributeName = annotation
+              .computeConstantValue()
+              ?.getField("attributeName")
+              ?.toStringValue();
+          if (attributeName == null) {
+            continue;
+            // TODO do we ever need to report an error here, or will DAS?
+          }
+
+          if (parameter.type.name != "String") {
+            errorReporter.reportErrorForOffset(
+                AngularWarningCode.ATTRIBUTE_PARAMETER_MUST_BE_STRING,
+                parameter.nameOffset,
+                parameter.name.length);
+          }
+
+          directive.attributes.add(new AngularElementImpl(attributeName,
+              parameter.nameOffset, parameter.nameLength, parameter.source));
+        }
+      }
+    }
+  }
+}
+
+class BindingTypeSynthesizer {
+  final InterfaceType _instantiatedClassType;
+  final TypeProvider _typeProvider;
+  final AnalysisContext _context;
+  final ErrorReporter _errorReporter;
+
+  BindingTypeSynthesizer(ClassElement classElem, TypeProvider typeProvider,
+      this._context, this._errorReporter)
+      : _instantiatedClassType = _instantiateClass(classElem, typeProvider),
+        _typeProvider = typeProvider;
+
+  DartType getEventType(PropertyAccessorElement getter, String name) {
+    if (getter != null) {
+      // ignore: parameter_assignments
+      getter = _instantiatedClassType.lookUpInheritedGetter(getter.name,
+          thisType: true);
+    }
+
+    if (getter != null && getter.type != null) {
+      final returnType = getter.type.returnType;
+      if (returnType != null && returnType is InterfaceType) {
+        final streamType = _typeProvider.streamType;
+        final streamedType = _context.typeSystem
+            .mostSpecificTypeArgument(returnType, streamType);
+        if (streamedType != null) {
+          return streamedType;
+        } else {
+          _errorReporter.reportErrorForOffset(
+              AngularWarningCode.OUTPUT_MUST_BE_STREAM,
+              getter.nameOffset,
+              getter.name.length,
+              [name]);
+        }
+      } else {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.OUTPUT_MUST_BE_STREAM,
+            getter.nameOffset,
+            getter.name.length,
+            [name]);
+      }
+    }
+
+    return _typeProvider.dynamicType;
+  }
+
+  DartType getSetterType(PropertyAccessorElement setter) {
+    if (setter != null) {
+      // ignore: parameter_assignments
+      setter = _instantiatedClassType.lookUpInheritedSetter(setter.name,
+          thisType: true);
+    }
+
+    if (setter != null && setter.type.parameters.length == 1) {
+      return setter.type.parameters[0].type;
+    }
+
+    return null;
+  }
+
+  static InterfaceType _instantiateClass(
+      ClassElement classElement, TypeProvider typeProvider) {
+    // TODO use `insantiateToBounds` for better all around support
+    // See #91 for discussion about bugs related to bounds
+    DartType getBound(TypeParameterElement p) => p.bound == null
+        ? typeProvider.dynamicType
+        : p.bound.resolveToBound(typeProvider.dynamicType);
+
+    final bounds = classElement.typeParameters.map(getBound).toList();
+    return classElement.type.instantiate(bounds);
+  }
+}
 
 class ChildDirectiveLinker implements DirectiveMatcher {
   final FileDirectiveProvider _fileDirectiveProvider;
@@ -84,7 +265,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
       exportLinker.linkExportsFor(directive);
       if (directive is AbstractClassDirective) {
-        await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
+        await new InheritedMetadataLinker(
+                directive, _fileDirectiveProvider, _errorReporter)
             .link();
 
         await new ContentChildLinker(directive, this, _standardAngular,
@@ -113,7 +295,8 @@ class ChildDirectiveLinker implements DirectiveMatcher {
     if (directive is AbstractClassDirective) {
       // Important: Link inherited metadata before content child fields, as
       // the directive may import unlinked content childs
-      await new InheritedMetadataLinker(directive, _fileDirectiveProvider)
+      await new InheritedMetadataLinker(
+              directive, _fileDirectiveProvider, _errorReporter)
           .link();
 
       // ignore errors from linking subcomponents content childs
@@ -141,9 +324,15 @@ class ChildDirectiveLinker implements DirectiveMatcher {
 
   Future lookupDirectiveFromLibrary(DirectiveReference reference,
       LibraryScope scope, List<AbstractDirective> directives) async {
+    final nameIdentifier = astFactory.simpleIdentifier(
+        new StringToken(TokenType.IDENTIFIER, reference.name, 0));
+    final prefixIdentifier = astFactory.simpleIdentifier(
+        new StringToken(TokenType.IDENTIFIER, reference.prefix, 0));
     final element = scope.lookup(
-        astFactory.simpleIdentifier(
-            new StringToken(TokenType.IDENTIFIER, reference.name, 0)),
+        reference.prefix == ""
+            ? nameIdentifier
+            : astFactory.prefixedIdentifier(
+                prefixIdentifier, null, nameIdentifier),
         null);
 
     if (element != null && element.source != null) {
@@ -572,8 +761,10 @@ class ContentChildLinker {
 class DirectiveLinker {
   final DirectiveLinkerEnablement _directiveLinkerEnablement;
   final StandardAngular standardAngular;
+  final ErrorReporter _errorReporter;
 
-  DirectiveLinker(this._directiveLinkerEnablement, this.standardAngular);
+  DirectiveLinker(this._directiveLinkerEnablement, this.standardAngular,
+      this._errorReporter);
 
   List<ContentChildField> deserializeContentChildFields(
           List<SummarizedContentChildField> fieldSums) =>
@@ -604,6 +795,11 @@ class DirectiveLinker {
       final setter =
           classElem.lookUpSetter(inputSum.propName, classElem.library);
       if (setter == null) {
+        _errorReporter.reportErrorForOffset(
+            AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+            inputSum.nameOffset,
+            inputSum.name.length,
+            [inputSum.name]);
         continue;
       }
       inputs.add(new InputElement(
@@ -699,10 +895,7 @@ class DirectiveLinker {
       }
       final classElem = unit.getType(dirSum.classAnnotations.className);
       final bindingSynthesizer = new BindingTypeSynthesizer(
-          classElem,
-          unit.context.typeProvider,
-          unit.context,
-          new ErrorReporter(new IgnoringErrorListener(), unit.source));
+          classElem, unit.context.typeProvider, unit.context, _errorReporter);
       final exportAs = dirSum.exportAs == ""
           ? null
           : new AngularElementImpl(dirSum.exportAs, dirSum.exportAsOffset,
@@ -738,8 +931,15 @@ class DirectiveLinker {
         Source templateUriSource;
         SourceRange templateUrlRange;
         if (dirSum.templateUrl != '') {
-          templateUriSource =
-              _directiveLinkerEnablement.getSource(dirSum.templateUrl);
+          templateUriSource = unit.context.sourceFactory
+              .resolveUri(unit.library.source, dirSum.templateUrl);
+          if (!templateUriSource.exists()) {
+            _errorReporter.reportErrorForOffset(
+              AngularWarningCode.REFERENCED_HTML_FILE_DOESNT_EXIST,
+              dirSum.templateUrlOffset,
+              dirSum.templateUrlLength,
+            );
+          }
           templateUrlRange = new SourceRange(
               dirSum.templateUrlOffset, dirSum.templateUrlLength);
         }
@@ -896,8 +1096,10 @@ class InheritedMetadataLinker {
   AbstractClassDirective directive;
   FileDirectiveProvider _fileDirectiveProvider;
   BindingTypeSynthesizer bindingSynthesizer;
+  ErrorReporter _errorReporter;
 
-  InheritedMetadataLinker(this.directive, this._fileDirectiveProvider)
+  InheritedMetadataLinker(
+      this.directive, this._fileDirectiveProvider, this._errorReporter)
       : bindingSynthesizer = new BindingTypeSynthesizer(
             directive.classElement,
             directive.classElement.library.definingCompilationUnit.context
@@ -929,9 +1131,11 @@ class InheritedMetadataLinker {
     final setter = directive.classElement
         .lookUpSetter(input.setter.displayName, directive.classElement.library);
     if (setter == null) {
-      // Happens when an interface with an input isn't implemented correctly.
-      // This will be accompanied by a dart error, so we can just return the
-      // original without transformation to prevent cascading errors.
+      _errorReporter.reportErrorForOffset(
+          AngularWarningCode.INPUT_ANNOTATION_PLACEMENT_INVALID,
+          input.nameOffset,
+          input.name.length,
+          [input.name]);
       return input;
     }
     return new InputElement(

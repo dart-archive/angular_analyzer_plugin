@@ -11,6 +11,7 @@ import 'package:analyzer/src/generated/source.dart' show Source, SourceRange;
 import 'package:analyzer/src/generated/utilities_general.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/ng_content.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 
@@ -516,26 +517,6 @@ class LetBoundQueriedChildType extends AbstractQueriedChildType {
           [letBoundName, containerType, matchTypes]);
     }
   }
-}
-
-class NgContent {
-  final int offset;
-  final int length;
-
-  /// NOTE: May contain Null. Null in this case means no selector (all content).
-  final Selector selector;
-  final int selectorOffset;
-  final int selectorLength;
-
-  NgContent(this.offset, this.length)
-      : selector = null,
-        selectorOffset = null,
-        selectorLength = null;
-
-  NgContent.withSelector(this.offset, this.length, this.selector,
-      this.selectorOffset, this.selectorLength);
-
-  bool get matchesAll => selector == null;
 }
 
 /// The model for an Angular output.

@@ -18,17 +18,31 @@ import 'package:analyzer_plugin/utilities/completion/completion_core.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_analyzer_plugin/notification_manager.dart';
 import 'package:angular_analyzer_plugin/src/converter.dart';
-import 'package:angular_analyzer_plugin/src/directive_extraction.dart';
 import 'package:angular_analyzer_plugin/src/directive_linking.dart';
 import 'package:angular_analyzer_plugin/src/file_tracker.dart';
 import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/model/syntactic/annotated_class.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/base_directive.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/component.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/component_with_contents.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/ng_content.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/pipe.dart'
+    as syntactic;
+import 'package:angular_analyzer_plugin/src/model/syntactic/top_level.dart'
+    as syntactic;
 import 'package:angular_analyzer_plugin/src/options.dart';
-import 'package:angular_analyzer_plugin/src/pipe_extraction.dart';
 import 'package:angular_analyzer_plugin/src/resolver.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
 import 'package:angular_analyzer_plugin/src/summary/format.dart';
 import 'package:angular_analyzer_plugin/src/summary/idl.dart';
+import 'package:angular_analyzer_plugin/src/summary/summarize.dart';
+import 'package:angular_analyzer_plugin/src/syntactic_discovery.dart';
 import 'package:angular_analyzer_plugin/src/view_extraction.dart';
 import 'package:crypto/crypto.dart';
 
@@ -213,13 +227,8 @@ class AngularDriver
     final key = '$baseKey.ngunlinked';
     final bytes = byteStore.get(key);
     if (bytes != null) {
-      final summary = new UnlinkedDartSummary.fromBuffer(bytes);
-      return new DirectivesResult(
-        path,
-        await resynthesizeDirectives(summary, path),
-        await resynthesizePipes(summary, path),
-        deserializeErrors(getSource(path), summary.errors),
-      );
+      final source = getSource(path);
+      return link(new UnlinkedDartSummary.fromBuffer(bytes), source, path);
     }
 
     final dartResult = await dartDriver.getResult(path);
@@ -227,56 +236,48 @@ class AngularDriver
       return null;
     }
 
-    final context = dartResult.unit.declaredElement.context;
     final ast = dartResult.unit;
     final source = dartResult.unit.declaredElement.source;
-    final extractor =
-        new DirectiveExtractor(ast, context.typeProvider, source, context);
-    final topLevels = extractor.getAngularTopLevels();
+    final extractor = new SyntacticDiscovery(ast, source);
+    final topLevels = extractor.discoverAngularTopLevels();
 
-    final directives = new List<AbstractDirective>.from(
-        topLevels.where((c) => c is AbstractDirective));
-
-    final viewExtractor = new ViewExtractor(
-        ast, directives, context, source, await getStandardAngular())
-      ..getViews();
+    final directives = topLevels.whereType<syntactic.BaseDirective>().toList();
 
     final tplErrorListener = new RecordingErrorListener();
     final errorReporter = new ErrorReporter(tplErrorListener, source);
 
+    final withNgContents = <syntactic.BaseDirective>[];
+
     // collect inline ng-content tags
     for (final directive in directives) {
-      if (directive is Component && directive?.view != null) {
-        final view = directive.view;
-        if ((view.templateText ?? "") != "") {
-          final template = new Template(view);
-          view.template = template;
-
+      if (directive is syntactic.Component) {
+        final ngContents = <syntactic.NgContent>[];
+        if ((directive.templateText ?? "") != "") {
           final tplParser = new TemplateParser()
-            ..parse(view.templateText, source, offset: view.templateOffset);
+            ..parse(directive.templateText, source,
+                offset: directive.templateOffset);
 
           final parser =
               new EmbeddedDartParser(source, tplErrorListener, errorReporter);
 
-          template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
-              .convertFromAstList(tplParser.rawAst);
-          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+          new HtmlTreeConverter(parser, source, tplErrorListener)
+              .convertFromAstList(tplParser.rawAst)
+              .accept(new NgContentRecorder(ngContents, source, errorReporter));
         }
+        withNgContents.add(directive.withNgContents(ngContents));
+      } else {
+        withNgContents.add(directive);
       }
     }
 
     // collect Pipes
-    final pipeExtractor =
-        new PipeExtractor(ast, source, await getStandardAngular());
-    final pipes = pipeExtractor.getPipes();
-    final errors = new List<AnalysisError>.from(extractor.errorListener.errors)
-      ..addAll(viewExtractor.errorListener.errors)
-      ..addAll(pipeExtractor.errorListener.errors);
-    final result = new DirectivesResult(path, topLevels, pipes, errors);
-    final summary = serializeDartResult(result);
+    final pipes = extractor.discoverPipes();
+    final errors = new List<AnalysisError>.from(extractor.errorListener.errors);
+    final summary = summarizeDartResult(withNgContents, pipes,
+        topLevels.whereType<syntactic.AnnotatedClass>().toList(), errors);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
-    return result;
+    return link(summary, source, path);
   }
 
   @override
@@ -344,14 +345,15 @@ class AngularDriver
   }
 
   @override
-  Future<List<NgContent>> getHtmlNgContent(String path) async {
+  Future<List<syntactic.NgContent>> getHtmlNgContent(String path) async {
     final baseKey = _fileTracker.getContentSignature(path).toHex();
     final key = '$baseKey.ngunlinked';
     final bytes = byteStore.get(key);
     final source = getSource(path);
     if (bytes != null) {
-      return new DirectiveLinker(this, standardAngular).deserializeNgContents(
-          new UnlinkedHtmlSummary.fromBuffer(bytes).ngContents, source);
+      return new DirectiveLinker(this, standardAngular, null)
+          .deserializeNgContents(
+              new UnlinkedHtmlSummary.fromBuffer(bytes).ngContents, source);
     }
 
     final htmlContent = getFileContent(path);
@@ -365,11 +367,11 @@ class AngularDriver
 
     final ast = new HtmlTreeConverter(parser, source, tplErrorListener)
         .convertFromAstList(tplParser.rawAst);
-    final contents = <NgContent>[];
-    ast.accept(new NgContentRecorder.forFile(contents, source, errorReporter));
+    final contents = <syntactic.NgContent>[];
+    ast.accept(new NgContentRecorder(contents, source, errorReporter));
 
     final summary = new UnlinkedHtmlSummaryBuilder()
-      ..ngContents = serializeNgContents(contents);
+      ..ngContents = summarizeNgContents(contents);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
@@ -480,6 +482,18 @@ class AngularDriver
   @override
   Future<List<Pipe>> getUnlinkedPipes(path) async =>
       (await getAngularTopLevels(path)).pipes;
+
+  Future<DirectivesResult> link(
+      UnlinkedDartSummary unlinked, Source source, String path) async {
+    final errorListener = new RecordingErrorListener();
+    final errorReporter = new ErrorReporter(errorListener, source);
+    return new DirectivesResult(
+        path,
+        await resynthesizeDirectives(unlinked, path, errorReporter),
+        await resynthesizePipes(unlinked, path, errorReporter),
+        deserializeErrors(source, unlinked.errors)
+          ..addAll(errorListener.errors));
+  }
 
   @override
   Future<Null> performWork() async {
@@ -614,216 +628,21 @@ class AngularDriver
   }
 
   Future<List<AngularTopLevel>> resynthesizeDirectives(
-          UnlinkedDartSummary unlinked, String path) async =>
-      new DirectiveLinker(this, standardAngular)
+          UnlinkedDartSummary unlinked,
+          String path,
+          ErrorReporter errorReporter) async =>
+      new DirectiveLinker(this, await getStandardAngular(), errorReporter)
           .resynthesizeDirectives(unlinked, path);
 
-  Future<List<Pipe>> resynthesizePipes(
-      UnlinkedDartSummary unlinked, String path) async {
+  Future<List<Pipe>> resynthesizePipes(UnlinkedDartSummary unlinked,
+      String path, ErrorReporter errorReporter) async {
     if (unlinked == null) {
       return [];
     }
     final unit = await getUnit(path);
-    final pipes = <Pipe>[];
-
-    for (final dirSum in unlinked.pipeSummaries) {
-      final classElem = unit.getType(dirSum.decoratedClassName);
-      pipes.add(new Pipe(dirSum.pipeName, dirSum.pipeNameOffset, classElem,
-          isPure: dirSum.isPure));
-    }
-
-    final pipeExtractor = new PipeExtractor(null, unit.source, null);
-    pipes.forEach(pipeExtractor.loadTransformInformation);
-    return pipes;
+    return linkPipes(unlinked.pipeSummaries, errorReporter, unit,
+        await getStandardAngular());
   }
-
-  SummarizedClassAnnotationsBuilder serializeAnnotatedClass(
-      AngularAnnotatedClass clazz) {
-    final className = clazz.classElement.name;
-    final inputs = <SummarizedBindableBuilder>[];
-    final outputs = <SummarizedBindableBuilder>[];
-    final contentChildFields = <SummarizedContentChildFieldBuilder>[];
-    final contentChildrenFields = <SummarizedContentChildFieldBuilder>[];
-    for (final input in clazz.inputs) {
-      final name = input.name;
-      final nameOffset = input.nameOffset;
-      final propName = input.setter.name.replaceAll('=', '');
-      final propNameOffset = input.setterRange.offset;
-      inputs.add(new SummarizedBindableBuilder()
-        ..name = name
-        ..nameOffset = nameOffset
-        ..propName = propName
-        ..propNameOffset = propNameOffset);
-    }
-    for (final output in clazz.outputs) {
-      final name = output.name;
-      final nameOffset = output.nameOffset;
-      final propName = output.getter.name.replaceAll('=', '');
-      final propNameOffset = output.getterRange.offset;
-      outputs.add(new SummarizedBindableBuilder()
-        ..name = name
-        ..nameOffset = nameOffset
-        ..propName = propName
-        ..propNameOffset = propNameOffset);
-    }
-    for (final childField in clazz.contentChildFields) {
-      contentChildFields.add(new SummarizedContentChildFieldBuilder()
-        ..fieldName = childField.fieldName
-        ..nameOffset = childField.nameRange.offset
-        ..nameLength = childField.nameRange.length
-        ..typeOffset = childField.typeRange.offset
-        ..typeLength = childField.typeRange.length);
-    }
-    for (final childrenField in clazz.contentChildrenFields) {
-      contentChildrenFields.add(new SummarizedContentChildFieldBuilder()
-        ..fieldName = childrenField.fieldName
-        ..nameOffset = childrenField.nameRange.offset
-        ..nameLength = childrenField.nameRange.length
-        ..typeOffset = childrenField.typeRange.offset
-        ..typeLength = childrenField.typeRange.length);
-    }
-    return new SummarizedClassAnnotationsBuilder()
-      ..className = className
-      ..inputs = inputs
-      ..outputs = outputs
-      ..contentChildFields = contentChildFields
-      ..contentChildrenFields = contentChildrenFields;
-  }
-
-  UnlinkedDartSummaryBuilder serializeDartResult(DirectivesResult result) {
-    final dirSums = serializeDirectives(result.directives);
-    final pipeSums = serializePipes(result.pipes);
-    final classSums = result.angularAnnotatedClasses
-        .where((c) => c is! AbstractDirective)
-        .map(serializeAnnotatedClass)
-        .toList();
-    final summary = new UnlinkedDartSummaryBuilder()
-      ..directiveSummaries = dirSums
-      ..pipeSummaries = pipeSums
-      ..annotatedClasses = classSums
-      ..errors = summarizeErrors(result.errors);
-    return summary;
-  }
-
-  List<SummarizedDirectiveBuilder> serializeDirectives(
-      List<AbstractDirective> directives) {
-    final dirSums = <SummarizedDirectiveBuilder>[];
-    for (final directive in directives) {
-      final selector = directive.selector.originalString;
-      final selectorOffset = directive.selector.offset;
-      final exportAs = directive?.exportAs?.name;
-      final exportAsOffset = directive?.exportAs?.nameOffset;
-      final exports = <SummarizedExportedIdentifierBuilder>[];
-      if (directive is Component) {
-        for (final export in directive?.view?.exports ?? <Null>[]) {
-          exports.add(new SummarizedExportedIdentifierBuilder()
-            ..name = export.identifier
-            ..prefix = export.prefix
-            ..offset = export.span.offset
-            ..length = export.span.length);
-        }
-      }
-      List<SummarizedDirectiveUseBuilder> dirUseSums;
-      List<SummarizedPipesUseBuilder> pipeUseSums;
-      final ngContents = <SummarizedNgContentBuilder>[];
-      String templateUrl;
-      int templateUrlOffset;
-      int templateUrlLength;
-      String templateText;
-      int templateTextOffset;
-      SourceRange constDirectivesSourceRange;
-      if (directive is Component && directive.view != null) {
-        templateUrl = directive.view?.templateUriSource?.fullName;
-        templateUrlOffset = directive.view?.templateUrlRange?.offset;
-        templateUrlLength = directive.view?.templateUrlRange?.length;
-        templateText = directive.view.templateText;
-        templateTextOffset = directive.view.templateOffset;
-
-        dirUseSums = directive.view.directivesStrategy.resolve(
-            (references) => references
-                .map((reference) => new SummarizedDirectiveUseBuilder()
-                  ..name = reference.name
-                  ..prefix = reference.prefix
-                  ..offset = reference.range.offset
-                  ..length = reference.range.length)
-                .toList(),
-            (constValue, _) => null);
-
-        pipeUseSums = directive.view.pipeReferences
-            .map((pipe) => new SummarizedPipesUseBuilder()
-              ..name = pipe.identifier
-              ..prefix = pipe.prefix)
-            .toList();
-
-        constDirectivesSourceRange = directive.view.directivesStrategy.resolve(
-            (references) => null, (constValue, sourceRange) => sourceRange);
-
-        if (directive.ngContents != null) {
-          ngContents.addAll(serializeNgContents(directive.ngContents));
-        }
-      }
-
-      dirSums.add(new SummarizedDirectiveBuilder()
-        ..classAnnotations = directive is AbstractClassDirective
-            ? serializeAnnotatedClass(directive)
-            : null
-        ..isComponent = directive is Component
-        ..functionName =
-            directive is FunctionalDirective ? directive.name : null
-        ..selectorStr = selector
-        ..selectorOffset = selectorOffset
-        ..exportAs = exportAs
-        ..exportAsOffset = exportAsOffset
-        ..templateText = templateText
-        ..templateOffset = templateTextOffset
-        ..templateUrl = templateUrl
-        ..templateUrlOffset = templateUrlOffset
-        ..templateUrlLength = templateUrlLength
-        ..ngContents = ngContents
-        ..exports = exports
-        ..usesArrayOfDirectiveReferencesStrategy = dirUseSums != null
-        ..subdirectives = dirUseSums
-        ..pipesUse = pipeUseSums
-        ..constDirectiveStrategyOffset = constDirectivesSourceRange?.offset
-        ..constDirectiveStrategyLength = constDirectivesSourceRange?.length);
-    }
-
-    return dirSums;
-  }
-
-  List<SummarizedNgContentBuilder> serializeNgContents(
-          List<NgContent> ngContents) =>
-      ngContents
-          .map((ngContent) => new SummarizedNgContentBuilder()
-            ..selectorStr = ngContent.selector?.originalString
-            ..selectorOffset = ngContent.selector?.offset
-            ..offset = ngContent.offset
-            ..length = ngContent.length)
-          .toList();
-
-  List<SummarizedPipeBuilder> serializePipes(List<Pipe> pipes) {
-    final pipeSums = <SummarizedPipeBuilder>[];
-    for (final pipe in pipes) {
-      pipeSums.add(new SummarizedPipeBuilder(
-          pipeName: pipe.pipeName,
-          pipeNameOffset: pipe.pipeNameOffset,
-          decoratedClassName: pipe.classElement.name,
-          isPure: pipe.isPure));
-    }
-    return pipeSums;
-  }
-
-  SummarizedAnalysisErrorBuilder summarizeError(AnalysisError error) =>
-      new SummarizedAnalysisErrorBuilder(
-          offset: error.offset,
-          length: error.length,
-          errorCode: error.errorCode.uniqueName,
-          message: error.message,
-          correction: error.correction);
-
-  List<SummarizedAnalysisErrorBuilder> summarizeErrors(
-          List<AnalysisError> errors) =>
-      errors.map(summarizeError).toList();
 
   bool _ownsFile(String path) =>
       path.endsWith('.dart') || path.endsWith('.html');
@@ -917,7 +736,8 @@ class AngularDriver
 
           template.ast = new HtmlTreeConverter(parser, source, tplErrorListener)
               .convertFromAstList(tplParser.rawAst);
-          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+          template.ast.accept(new NgContentRecorder(
+              directive.ngContents, source, errorReporter));
           setIgnoredErrors(template, document);
           new TemplateResolver(
                   context.typeProvider,
@@ -1063,7 +883,8 @@ class AngularDriver
           template.ast =
               new HtmlTreeConverter(parser, htmlSource, tplErrorListener)
                   .convertFromAstList(tplParser.rawAst);
-          template.ast.accept(new NgContentRecorder(directive, errorReporter));
+          template.ast.accept(new NgContentRecorder(
+              directive.ngContents, dartSource, errorReporter));
           setIgnoredErrors(template, document);
           new TemplateResolver(
                   context.typeProvider,
@@ -1131,4 +952,27 @@ class DirectivesResult {
 
   List<AbstractDirective> get directives => new List<AbstractDirective>.from(
       angularTopLevels.where((c) => c is AbstractDirective));
+}
+
+class SyntacticDirectivesResult {
+  final String filename;
+  final List<syntactic.TopLevel> topLevels;
+  List<AnalysisError> errors;
+  List<syntactic.Pipe> pipes;
+  bool cacheResult;
+  SyntacticDirectivesResult(
+      this.filename, this.topLevels, this.pipes, this.errors)
+      : cacheResult = false;
+
+  SyntacticDirectivesResult.fromCache(this.filename, this.errors)
+      : topLevels = const [],
+        cacheResult = true;
+
+  List<AngularAnnotatedClass> get angularAnnotatedClasses =>
+      new List<AngularAnnotatedClass>.from(
+          topLevels.where((c) => c is syntactic.AnnotatedClass));
+
+  List<syntactic.BaseDirective> get directives =>
+      new List<syntactic.BaseDirective>.from(
+          topLevels.where((c) => c is syntactic.BaseDirective));
 }

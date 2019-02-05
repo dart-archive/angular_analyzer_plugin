@@ -16,7 +16,8 @@ import 'package:analyzer/src/generated/resolver.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
-import 'package:angular_analyzer_plugin/src/model.dart';
+import 'package:angular_analyzer_plugin/src/model.dart' hide NgContent;
+import 'package:angular_analyzer_plugin/src/model/syntactic/ng_content.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/standard_components.dart';
@@ -815,10 +816,9 @@ class NgContentRecorder extends AngularScopeVisitor {
   final Source source;
   final ErrorReporter errorReporter;
 
-  NgContentRecorder(Component component, this.errorReporter)
-      : ngContents = component.ngContents,
-        source = component.view.templateSource;
+  NgContentRecorder(this.ngContents, this.source, this.errorReporter);
 
+  @deprecated
   NgContentRecorder.forFile(this.ngContents, this.source, this.errorReporter);
 
   @override

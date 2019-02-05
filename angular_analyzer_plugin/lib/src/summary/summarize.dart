@@ -220,6 +220,8 @@ List<Reference> toReferenceList(ListOrReference listOrReference) {
     return [listOrReference];
   } else if (listOrReference is ListLiteral) {
     return listOrReference.items;
+  } else if (listOrReference == null) {
+    return [];
   }
   throw 'unreachable';
 }

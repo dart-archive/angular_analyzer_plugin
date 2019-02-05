@@ -5880,6 +5880,7 @@ $code
     final result = await angularDriver.requestDartResult(dartSource.fullName);
     bool finder(AbstractDirective d) =>
         d is Component && d.view.templateUriSource != null;
+
     fillErrorListener(result.errors);
     errorListener.assertNoErrors();
     directives = result.directives;
