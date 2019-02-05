@@ -338,8 +338,8 @@ class AngularDriver
       ((Source source) => // ignore: avoid_types_on_closure_parameters
           source.exists() ? source.contents.data : "")(getSource(path));
 
-  String getHtmlKey(String htmlPath) {
-    final key = _fileTracker.getHtmlSignature(htmlPath);
+  Future<String> getHtmlKey(String htmlPath) async {
+    final key = await _fileTracker.getHtmlSignature(htmlPath);
     return '${key.toHex()}.ngresolved';
   }
 
@@ -470,8 +470,8 @@ class AngularDriver
       (await dartDriver.getUnitElement(path)).element;
 
   @override
-  ApiSignature getUnitElementHash(String path) =>
-      dartDriver.getUnitKeyByPath(path);
+  Future<String> getUnitElementSignature(String path) =>
+      dartDriver.getUnitElementSignature(path);
 
   @override
   Future<List<AngularTopLevel>> getUnlinkedAngularTopLevels(path) async =>
@@ -838,7 +838,7 @@ class AngularDriver
       return null;
     }
 
-    final baseKey = _fileTracker.getUnitElementSignature(path).toHex();
+    final baseKey = (await _fileTracker.getUnitElementSignature(path)).toHex();
     final key = '$baseKey.ngresolved';
 
     if (lastSignatures[path] == key && onlyIfChangedSignature) {
@@ -970,7 +970,7 @@ class AngularDriver
     String htmlPath, {
     bool ignoreCache: false,
   }) async {
-    final key = getHtmlKey(htmlPath);
+    final key = await getHtmlKey(htmlPath);
     final bytes = byteStore.get(key);
     final htmlSource = _sourceFactory.forUri('file:$htmlPath');
     if (!ignoreCache && bytes != null) {

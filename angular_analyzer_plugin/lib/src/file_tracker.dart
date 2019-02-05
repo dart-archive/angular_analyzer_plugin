@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:analyzer/src/summary/api_signature.dart';
@@ -5,7 +6,7 @@ import 'package:angular_analyzer_plugin/src/options.dart';
 
 abstract class FileHasher {
   ApiSignature getContentHash(String path);
-  ApiSignature getUnitElementHash(String path);
+  Future<String> getUnitElementSignature(String path);
 }
 
 class FileTracker {
@@ -60,10 +61,10 @@ class FileTracker {
   List<String> getDartPathsReferencingHtml(String htmlPath) =>
       _dartToHtml.getFilesReferencingFile(htmlPath);
 
-  ApiSignature getDartSignature(String dartPath) {
+  Future<ApiSignature> getDartSignature(String dartPath) async {
     final signature = new ApiSignature()
       ..addInt(salt)
-      ..addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
+      ..addString(await _fileHasher.getUnitElementSignature(dartPath));
     for (final htmlPath in getHtmlPathsAffectingDart(dartPath)) {
       signature.addBytes(_getContentHash(htmlPath));
     }
@@ -101,12 +102,12 @@ class FileTracker {
       .fold<List<String>>(<String>[], (list, acc) => list..addAll(acc))
       .toList();
 
-  ApiSignature getHtmlSignature(String htmlPath) {
+  Future<ApiSignature> getHtmlSignature(String htmlPath) async {
     final signature = new ApiSignature()
       ..addInt(salt)
       ..addBytes(_getContentHash(htmlPath));
     for (final dartPath in getDartPathsReferencingHtml(htmlPath)) {
-      signature.addBytes(_fileHasher.getUnitElementHash(dartPath).toByteList());
+      signature.addString(await _fileHasher.getUnitElementSignature(dartPath));
       for (final subHtmlPath in getHtmlPathsAffectingDartContext(dartPath)) {
         signature.addBytes(_getContentHash(subHtmlPath));
       }
@@ -120,9 +121,10 @@ class FileTracker {
     return signature;
   }
 
-  ApiSignature getUnitElementSignature(String path) => new ApiSignature()
-    ..addInt(salt)
-    ..addBytes(_fileHasher.getUnitElementHash(path).toByteList());
+  Future<ApiSignature> getUnitElementSignature(String path) async =>
+      new ApiSignature()
+        ..addInt(salt)
+        ..addString(await _fileHasher.getUnitElementSignature(path));
 
   void rehashContents(String path) {
     final signature = _fileHasher.getContentHash(path);
