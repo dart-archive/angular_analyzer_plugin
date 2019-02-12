@@ -257,10 +257,6 @@ import 'dart:async';
 abstract class Directive {
   const Directive(
       {String selector,
-      List<String> inputs,
-      List<String> outputs,
-      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
-      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
       Map<String, String> host,
       @Deprecated('Use `providers` instead') List bindings,
       List providers,
@@ -269,8 +265,6 @@ abstract class Directive {
       Map<String, dynamic> queries})
       : super(
             selector: selector,
-            inputs: inputs,
-            outputs: outputs,
             properties: properties,
             events: events,
             host: host,
@@ -285,10 +279,6 @@ class Component extends Directive {
   final List<Object> directives;
   const Component(
       {String selector,
-      List<String> inputs,
-      List<String> outputs,
-      @Deprecated('Use `inputs` or `@Input` instead') List<String> properties,
-      @Deprecated('Use `outputs` or `@Output` instead') List<String> events,
       Map<String, String> host,
       @Deprecated('Use `providers` instead') List bindings,
       List providers,
@@ -397,8 +387,9 @@ class EventEmitter<T> extends Stream<T> {
     newSource('/angular/src/core/ng_if.dart', r'''
 import 'metadata.dart';
 
-@Directive(selector: "[ngIf]", inputs: const ["ngIf"])
+@Directive(selector: "[ngIf]")
 class NgIf {
+  @Input()
   NgIf(TemplateRef tpl);
 
   @Input()
@@ -409,11 +400,13 @@ class NgIf {
 import 'metadata.dart';
 
 @Directive(
-    selector: "[ngFor][ngForOf]",
-    inputs: const ["ngForOf", "ngForTemplate", "ngForTrackBy"])
+    selector: "[ngFor][ngForOf]")
 class NgFor {
+  @Input()
   NgFor(TemplateRef tpl);
+  @Input()
   set ngForOf(dynamic value) {}
+  @Input()
   set ngForTrackBy(TrackByFn value) {}
 }
 
