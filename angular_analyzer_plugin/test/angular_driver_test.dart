@@ -2791,23 +2791,6 @@ class MyNonDirective {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_finalPropertyInputStringError() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', template: '<p></p>', inputs: const ['immutable'])
-class MyComponent {
-  final int immutable = 1;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    // validate. Can't easily assert position though because its all 'immutable'
-    errorListener
-        .assertErrorsWithCodes([StaticTypeWarningCode.UNDEFINED_SETTER]);
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_FunctionalDirective() async {
     final source = newSource('/test.dart', r'''
 import 'package:angular2/angular2.dart';
@@ -3058,59 +3041,6 @@ class ComponentA {
   }
 
   // ignore: non_constant_identifier_names
-  Future test_hasError_UndefinedSetter_fullSyntax() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', inputs: const ['noSetter: no-setter'], template: '')
-class ComponentA {
-}
-''');
-    await getDirectives(source);
-    final component = directives.single;
-    final inputs = component.inputs;
-    // the bad input should NOT show up, it is not usable see github #183
-    expect(inputs, hasLength(0));
-    // validate
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_UndefinedSetter_shortSyntax() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', inputs: const ['noSetter'], template: '')
-class ComponentA {
-}
-''');
-    await getDirectives(source);
-    // validate
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_hasError_UndefinedSetter_shortSyntax_noInputMade() async {
-    final source = newSource('/test.dart', r'''
-import 'package:angular2/angular2.dart';
-
-@Component(selector: 'my-component', inputs: const ['noSetter'], template: '')
-class ComponentA {
-}
-''');
-    await getDirectives(source);
-    final component = directives.single;
-    final inputs = component.inputs;
-    // the bad input should NOT show up, it is not usable see github #183
-    expect(inputs, hasLength(0));
-    // validate
-    errorListener.assertErrorsWithCodes(
-        <ErrorCode>[StaticTypeWarningCode.UNDEFINED_SETTER]);
-  }
-
-  // ignore: non_constant_identifier_names
   Future test_hasExports() async {
     final code = r'''
 import 'package:angular2/angular2.dart';
@@ -3216,11 +3146,8 @@ import 'package:angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
-    template: '<p></p>',
-    inputs: const ['leadingText', 'trailingText: tailText'])
+    template: '<p></p>')
 class MyComponent {
-  String leadingText;
-  int trailingText;
   @Input()
   bool firstField;
   @Input('secondInput')
@@ -3233,31 +3160,9 @@ class MyComponent {
     await getDirectives(source);
     final component = directives.single;
     final inputs = component.inputs;
-    expect(inputs, hasLength(5));
+    expect(inputs, hasLength(3));
     {
       final input = inputs[0];
-      expect(input.name, 'leadingText');
-      expect(input.nameOffset, code.indexOf("leadingText',"));
-      expect(input.setterRange.offset, input.nameOffset);
-      expect(input.setterRange.length, 'leadingText'.length);
-      expect(input.setter, isNotNull);
-      expect(input.setter.isSetter, isTrue);
-      expect(input.setter.displayName, 'leadingText');
-      expect(input.setterType.toString(), equals("String"));
-    }
-    {
-      final input = inputs[1];
-      expect(input.name, 'tailText');
-      expect(input.nameOffset, code.indexOf("tailText']"));
-      expect(input.setterRange.offset, code.indexOf("trailingText: "));
-      expect(input.setterRange.length, 'trailingText'.length);
-      expect(input.setter, isNotNull);
-      expect(input.setter.isSetter, isTrue);
-      expect(input.setter.displayName, 'trailingText');
-      expect(input.setterType.toString(), equals("int"));
-    }
-    {
-      final input = inputs[2];
       expect(input.name, 'firstField');
       expect(input.nameOffset, code.indexOf('firstField'));
       expect(input.nameLength, 'firstField'.length);
@@ -3269,7 +3174,7 @@ class MyComponent {
       expect(input.setterType.toString(), equals("bool"));
     }
     {
-      final input = inputs[3];
+      final input = inputs[1];
       expect(input.name, 'secondInput');
       expect(input.nameOffset, code.indexOf('secondInput'));
       expect(input.setterRange.offset, code.indexOf('secondField'));
@@ -3280,7 +3185,7 @@ class MyComponent {
       expect(input.setterType.toString(), equals("String"));
     }
     {
-      final input = inputs[4];
+      final input = inputs[2];
       expect(input.name, 'someSetter');
       expect(input.nameOffset, code.indexOf('someSetter'));
       expect(input.setterRange.offset, input.nameOffset);
@@ -3293,47 +3198,6 @@ class MyComponent {
 
     // assert no syntax errors, etc
     errorListener.assertNoErrors();
-  }
-
-  // ignore: non_constant_identifier_names
-  Future test_inputs_deprecatedProperties() async {
-    final code = r'''
-import 'package:angular2/angular2.dart';
-
-@Component(
-    selector: 'my-component',
-    template: '<p></p>',
-    properties: const ['leadingText', 'trailingText: tailText'])
-class MyComponent {
-  String leadingText;
-  String trailingText;
-}
-''';
-    final source = newSource('/test.dart', code);
-    await getDirectives(source);
-    final component = directives.single;
-    final inputs = component.inputs;
-    expect(inputs, hasLength(2));
-    {
-      final input = inputs[0];
-      expect(input.name, 'leadingText');
-      expect(input.nameOffset, code.indexOf("leadingText',"));
-      expect(input.setterRange.offset, input.nameOffset);
-      expect(input.setterRange.length, 'leadingText'.length);
-      expect(input.setter, isNotNull);
-      expect(input.setter.isSetter, isTrue);
-      expect(input.setter.displayName, 'leadingText');
-    }
-    {
-      final input = inputs[1];
-      expect(input.name, 'tailText');
-      expect(input.nameOffset, code.indexOf("tailText']"));
-      expect(input.setterRange.offset, code.indexOf("trailingText: "));
-      expect(input.setterRange.length, 'trailingText'.length);
-      expect(input.setter, isNotNull);
-      expect(input.setter.isSetter, isTrue);
-      expect(input.setter.displayName, 'trailingText');
-    }
   }
 
   // ignore: non_constant_identifier_names
@@ -3372,15 +3236,12 @@ import 'package:angular2/angular2.dart';
 
 @Component(
     selector: 'my-component',
-    template: '<p></p>',
-    outputs: const ['outputOne', 'secondOutput: outputTwo'])
+    template: '<p></p>')
 class MyComponent {
-  EventEmitter<MyComponent> outputOne;
-  EventEmitter<String> secondOutput;
   @Output()
-  EventEmitter<int> outputThree;
-  @Output('outputFour')
-  EventEmitter fourthOutput;
+  EventEmitter<int> outputOne;
+  @Output('outputTwo')
+  EventEmitter secondOutput;
   @Output()
   EventEmitter get someGetter => null;
 }
@@ -3389,58 +3250,34 @@ class MyComponent {
     await getDirectives(source);
     final component = directives.single;
     final compOutputs = component.outputs;
-    expect(compOutputs, hasLength(5));
+    expect(compOutputs, hasLength(3));
     {
       final output = compOutputs[0];
       expect(output.name, 'outputOne');
-      expect(output.nameOffset, code.indexOf("outputOne"));
+      expect(output.nameOffset, code.indexOf('outputOne'));
+      expect(output.nameLength, 'outputOne'.length);
       expect(output.getterRange.offset, output.nameOffset);
-      expect(output.getterRange.length, 'outputOne'.length);
+      expect(output.getterRange.length, output.nameLength);
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'outputOne');
       expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("MyComponent"));
+      expect(output.eventType.toString(), equals("int"));
     }
     {
       final output = compOutputs[1];
       expect(output.name, 'outputTwo');
-      expect(output.nameOffset, code.indexOf("outputTwo']"));
-      expect(output.getterRange.offset, code.indexOf("secondOutput: "));
+      expect(output.nameOffset, code.indexOf('outputTwo'));
+      expect(output.getterRange.offset, code.indexOf('secondOutput'));
       expect(output.getterRange.length, 'secondOutput'.length);
       expect(output.getter, isNotNull);
       expect(output.getter.isGetter, isTrue);
       expect(output.getter.displayName, 'secondOutput');
       expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("String"));
-    }
-    {
-      final output = compOutputs[2];
-      expect(output.name, 'outputThree');
-      expect(output.nameOffset, code.indexOf('outputThree'));
-      expect(output.nameLength, 'outputThree'.length);
-      expect(output.getterRange.offset, output.nameOffset);
-      expect(output.getterRange.length, output.nameLength);
-      expect(output.getter, isNotNull);
-      expect(output.getter.isGetter, isTrue);
-      expect(output.getter.displayName, 'outputThree');
-      expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("int"));
-    }
-    {
-      final output = compOutputs[3];
-      expect(output.name, 'outputFour');
-      expect(output.nameOffset, code.indexOf('outputFour'));
-      expect(output.getterRange.offset, code.indexOf('fourthOutput'));
-      expect(output.getterRange.length, 'fourthOutput'.length);
-      expect(output.getter, isNotNull);
-      expect(output.getter.isGetter, isTrue);
-      expect(output.getter.displayName, 'fourthOutput');
-      expect(output.eventType, isNotNull);
       expect(output.eventType.isDynamic, isTrue);
     }
     {
-      final output = compOutputs[4];
+      final output = compOutputs[2];
       expect(output.name, 'someGetter');
       expect(output.nameOffset, code.indexOf('someGetter'));
       expect(output.getterRange.offset, output.nameOffset);
@@ -4365,19 +4202,13 @@ class FinalComponent
 import 'package:angular2/angular2.dart';
 
 class Generic<T> {
-  T inputViaChildDecl;
-  EventEmitter<T> outputViaChildDecl;
   @Input()
   T inputViaParentDecl;
   @Output()
   EventEmitter<T> outputViaParentDecl;
 }
 
-@Component(
-    selector: 'my-component',
-    template: '<p></p>',
-    inputs: const ['inputViaChildDecl'],
-    outputs: const ['outputViaChildDecl'])
+@Component(selector: 'my-component', template: '<p></p>')
 class MyComponent extends Generic {
 }
 ''';
@@ -4385,14 +4216,7 @@ class MyComponent extends Generic {
     await getDirectives(source);
     final component = directives.single;
     final compInputs = component.inputs;
-    expect(compInputs, hasLength(2));
-    {
-      final input =
-          compInputs.singleWhere((i) => i.name == 'inputViaChildDecl');
-      expect(input, isNotNull);
-      expect(input.setterType, isNotNull);
-      expect(input.setterType.toString(), equals("dynamic"));
-    }
+    expect(compInputs, hasLength(1));
     {
       final input =
           compInputs.singleWhere((i) => i.name == 'inputViaParentDecl');
@@ -4402,14 +4226,7 @@ class MyComponent extends Generic {
     }
 
     final compOutputs = component.outputs;
-    expect(compOutputs, hasLength(2));
-    {
-      final output =
-          compOutputs.singleWhere((o) => o.name == 'outputViaChildDecl');
-      expect(output, isNotNull);
-      expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("dynamic"));
-    }
+    expect(compOutputs, hasLength(1));
     {
       final output =
           compOutputs.singleWhere((o) => o.name == 'outputViaParentDecl');
@@ -4425,19 +4242,13 @@ class MyComponent extends Generic {
 import 'package:angular2/angular2.dart';
 
 class Generic<T> {
-  T inputViaChildDecl;
-  EventEmitter<T> outputViaChildDecl;
   @Input()
   T inputViaParentDecl;
   @Output()
   EventEmitter<T> outputViaParentDecl;
 }
 
-@Component(
-    selector: 'my-component',
-    template: '<p></p>',
-    inputs: const ['inputViaChildDecl'],
-    outputs: const ['outputViaChildDecl'])
+@Component(selector: 'my-component', template: '<p></p>')
 class MyComponent extends Generic<String> {
 }
 ''';
@@ -4445,14 +4256,7 @@ class MyComponent extends Generic<String> {
     await getDirectives(source);
     final component = directives.single;
     final compInputs = component.inputs;
-    expect(compInputs, hasLength(2));
-    {
-      final input =
-          compInputs.singleWhere((i) => i.name == 'inputViaChildDecl');
-      expect(input, isNotNull);
-      expect(input.setterType, isNotNull);
-      expect(input.setterType.toString(), equals("String"));
-    }
+    expect(compInputs, hasLength(1));
     {
       final input =
           compInputs.singleWhere((i) => i.name == 'inputViaParentDecl');
@@ -4462,14 +4266,7 @@ class MyComponent extends Generic<String> {
     }
 
     final compOutputs = component.outputs;
-    expect(compOutputs, hasLength(2));
-    {
-      final output =
-          compOutputs.singleWhere((o) => o.name == 'outputViaChildDecl');
-      expect(output, isNotNull);
-      expect(output.eventType, isNotNull);
-      expect(output.eventType.toString(), equals("String"));
-    }
+    expect(compOutputs, hasLength(1));
     {
       final output =
           compOutputs.singleWhere((o) => o.name == 'outputViaParentDecl');
@@ -4672,9 +4469,9 @@ class TextPanel {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text'],
-    template: r"<div>some text</div>")
+@Component(selector: 'text-panel', template: r"<div>some text</div>")
 class TextPanel {
+  @Input()
   String text;
 }
 
@@ -4867,9 +4664,9 @@ class TodoList {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text'],
-    template: r"<div>some text</div>")
+@Component(selector: 'text-panel', template: r"<div>some text</div>")
 class TextPanel {
+  @Input()
   String text;
 }
 
@@ -4928,11 +4725,12 @@ import 'package:angular2/angular2.dart';
 
 @Component(
     selector: 'comp-a',
-    inputs: const ['firstValue', 'vtoroy: second'],
     template: r"<div>AAA</div>")
 class ComponentA {
+  @Input()
   int firstValue;
-  int vtoroy;
+  @Input()
+  int second;
 }
 
 @Component(selector: 'comp-b', template: r"""
@@ -5230,7 +5028,7 @@ class TextPanel {
     final code = r'''
 import 'package:angular2/angular2.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text'],
+@Component(selector: 'text-panel',
     template: r"<div> <h2> {{text}}  </h2> and {{text.length}} </div>")
 class TextPanel {
   String text; // 1
