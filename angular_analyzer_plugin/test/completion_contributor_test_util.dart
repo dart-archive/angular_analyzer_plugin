@@ -167,7 +167,6 @@ abstract class BaseCompletionContributorTest extends AbstractAngularTest {
     } else {
       expect(cs.relevance, equals(relevance), reason: completion);
     }
-    expect(cs.importUri, importUri);
     expect(cs.selectionOffset, equals(completion.length));
     expect(cs.selectionLength, equals(0));
     expect(cs.isDeprecated, equals(isDeprecated));
