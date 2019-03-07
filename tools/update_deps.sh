@@ -7,7 +7,7 @@ echo
 echo Updating the sdk with depot_tools
 gclient sync
 cd sdk
-git checkout analyzer
+git checkout master
 cd ..
 echo done
 echo
