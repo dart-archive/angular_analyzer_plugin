@@ -350,7 +350,7 @@ class AngularSubsetVisitor extends RecursiveAstVisitor<Object> {
       // Don't visit the TypeName or it may suggest exporting it, which is not
       // possible.e.
 
-      list.elements.accept(this);
+      list.elements2.accept(this);
     } else {
       super.visitListLiteral(list);
     }
