@@ -10,7 +10,6 @@ import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
 import 'package:angular_analyzer_plugin/src/tasks.dart';
-import 'package:angular_analyzer_plugin/src/tuple.dart';
 
 class AttributeAnnotationValidator {
   final ErrorReporter errorReporter;
