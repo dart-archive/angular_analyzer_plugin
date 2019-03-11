@@ -627,14 +627,17 @@ class TestPanel {
   String string;
 }
 class Generic<T> {
+  @Output()
   EventEmitter<T> output;
+  @Input()
   T input;
 
+  @Output()
   EventEmitter<T> twoWayChange;
+  @Input()
   T twoWay;
 }
-@Component(selector: 'generic-comp', template: '', inputs: ['input', 'twoWay'],
-    outputs: ['output', 'twoWayChange'])
+@Component(selector: 'generic-comp', template: '')
 class GenericComponent<T> extends Generic {
 }
 ''');
@@ -733,14 +736,17 @@ class TestPanel {
   String string;
 }
 class Generic<T> {
+  @Output()
   EventEmitter<T> output;
+  @Input()
   T input;
 
+  @Output()
   EventEmitter<T> twoWayChange;
+  @Input()
   T twoWay;
 }
-@Component(selector: 'generic-comp', template: '', inputs: ['input', 'twoWay'],
-    outputs: ['output', 'twoWayChange'])
+@Component(selector: 'generic-comp', template: '')
 class GenericComponent<T> extends Generic<T> {
 }
 ''');
@@ -977,7 +983,7 @@ class MyTagComponent {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() int title;
 }
@@ -1073,7 +1079,7 @@ class TestPanel {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() int title;
 }
@@ -1134,7 +1140,7 @@ class TestPanel {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() int title;
 }
@@ -1192,7 +1198,7 @@ class TestPanel {
 class TestPanel {
   String text; // 1
 }
-@Directive(selector: '[titled]', template: '', inputs: 'title')
+@Directive(selector: '[titled]', template: '')
 class TitleComponent {
   @Input() String title;
 }
@@ -1403,7 +1409,7 @@ class GenericComponent<T extends String> {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Output() EventEmitter<int> title;
 }
@@ -1931,7 +1937,7 @@ class GenericComponent<T extends String> {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() int title;
   @Output() EventEmitter<String> titleChange;
@@ -1954,7 +1960,7 @@ class TitleComponent {
 class TestPanel {
   String text; // 1
 }
-@Directive(selector: '[titled]', template: '', inputs: 'title')
+@Directive(selector: '[titled]', template: '')
 class TitleComponent {
   @Input() String twoWay;
   @Output() EventEmitter<String> twoWayChange;
@@ -1977,7 +1983,7 @@ class TitleComponent {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Output() EventEmitter<String> noInputChange;
 }
@@ -1999,7 +2005,7 @@ class TitleComponent {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() String inputOnly;
 }
@@ -2021,7 +2027,7 @@ class TitleComponent {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() String title;
   @Output() EventEmitter<String> titleChange;
@@ -2046,7 +2052,7 @@ class TitleComponent {
 class TestPanel {
   String text; // 1
 }
-@Component(selector: 'title-comp', template: '', inputs: 'title')
+@Component(selector: 'title-comp', template: '')
 class TitleComponent {
   @Input() String title;
   @Output() EventEmitter<int> titleChange;
@@ -2069,7 +2075,7 @@ class TitleComponent {
 class TestPanel {
   String text; // 1
 }
-@Directive(selector: '[titled]', template: '', inputs: 'title')
+@Directive(selector: '[titled]', template: '')
 class TitleComponent {
   @Input() String title;
   @Output() EventEmitter<String> titleChange;
@@ -2622,11 +2628,13 @@ class TestPanel extends BaseComponent {
   // ignore: non_constant_identifier_names
   Future test_inputReference() async {
     _addDartSource(r'''
-@Component(selector: 'name-panel', inputs: const ['aaa', 'bbb', 'ccc'],
-  template: r"<div>AAA</div>")
+@Component(selector: 'name-panel', template: r"<div>AAA</div>")
 class NamePanel {
+  @Input()
   int aaa;
+  @Input()
   int bbb;
+  @Input()
   int ccc;
 }
 @Component(selector: 'test-panel', templateUrl: 'test_panel.html',
@@ -2637,9 +2645,9 @@ class TestPanel {}
 <name-panel aaa='1' [bbb]='2' bind-ccc='3' id="someid"></name-panel>
 """);
     await _resolveSingleTemplate(dartSource);
-    _assertElement("aaa=").input.at("aaa', ");
-    _assertElement("bbb]=").input.at("bbb', ");
-    _assertElement("ccc=").input.at("ccc']");
+    _assertElement("aaa=").input.at("aaa;");
+    _assertElement("bbb]=").input.at("bbb;");
+    _assertElement("ccc=").input.at("ccc;");
     _assertElement("id=").input.inCoreHtml;
   }
 
@@ -2792,8 +2800,9 @@ class TestPanel {}
     _addDartSource(r'''
 import 'dart:html';
 
-@Component(selector: 'aaa', inputs: const ['target'], template: '')
+@Component(selector: 'aaa', template: '')
 class ComponentA {
+  @Input()
   void set target(ComponentB b) {}
 }
 

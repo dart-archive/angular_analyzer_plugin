@@ -227,8 +227,7 @@ import 'package:angular2/angular2.dart';
 @Component(template: '<child-tag ^<div></div>', selector: 'my-tag',
 directives: const [MyChildComponent])
 class MyComponent {}
-@Component(template: '', selector: 'child-tag', 
-    inputs: const ['myDynamicInput'])
+@Component(template: '', selector: 'child-tag')
 class MyChildComponent {
   @Input() String stringInput;
   @Input() int intInput;
@@ -236,6 +235,7 @@ class MyChildComponent {
   
   bool _myDynamicInput = false;
   bool get myDynamicInput => _myDynamicInput;
+  @Input()
   void set myDynamicInput(value) {}
 }
     ''');
@@ -1816,13 +1816,14 @@ import 'package:angular2/angular2.dart';
     directives: const [OtherComp])
 class MyComp {
 }
-@Component(template: '', selector: 'my-tag', inputs: const ['myDynamicInput'])
+@Component(template: '', selector: 'my-tag')
 class OtherComp {
   @Input() String name;
   @Input() int intInput;
   
   bool _myDynamicInput = false;
   bool get myDynamicInput => _myDynamicInput;
+  @Input()
   void set myDynamicInput(value) {}
 }
     ''');
@@ -1848,13 +1849,14 @@ import 'package:angular2/angular2.dart';
     directives: const [OtherComp])
 class MyComp {
 }
-@Component(template: '', selector: 'my-tag', inputs: const ['myDynamicInput'])
+@Component(template: '', selector: 'my-tag')
 class OtherComp {
   @Input() String name;
   @Input() int intInput;
   
   bool _myDynamicInput = false;
   bool get myDynamicInput => _myDynamicInput;
+  @Input()
   void set myDynamicInput(value) {}
 }
     ''');

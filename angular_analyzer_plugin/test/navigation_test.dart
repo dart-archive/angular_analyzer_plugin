@@ -80,10 +80,9 @@ class AngularNavigationTest extends AbstractAngularTest {
     code = r'''
 import '/angular/src/core/metadata.dart';
 
-@Component(selector: 'text-panel', inputs: const ['text: my-text'],
-    template: r"<div>some text</div>")
+@Component(selector: 'text-panel', template: r"<div>some text</div>")
 class TextPanel {
-  String text; // 1
+  @Input('my-text') String text; // 1
   @Input() longform; // 4
 }
 
@@ -106,34 +105,26 @@ class User {
     new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(null, null, null, result), collector,
         templatesOnly: false);
-    // input references setter
-    {
-      _findRegionString('text', ': my-text');
-      // TODO: reenable this check
-      //expect(region.targetKind, protocol.ElementKind.SETTER);
-      expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf('text; // 1'));
-    }
     // template references component (open tag)
     {
       _findRegionString('text-panel', ' [my-text]');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf("text-panel', inputs"));
+      expect(targetLocation.offset, code.indexOf("text-panel', template"));
     }
     // template references component (close tag)
     {
       _findRegionString('text-panel', '> // close');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf("text-panel', inputs"));
+      expect(targetLocation.offset, code.indexOf("text-panel', template"));
     }
     // template references input
     {
       _findRegionString('my-text', ']=');
       expect(region.targetKind, protocol.ElementKind.UNKNOWN);
       expect(targetLocation.file, '/test.dart');
-      expect(targetLocation.offset, code.indexOf("my-text'],"));
+      expect(targetLocation.offset, code.indexOf("my-text"));
     }
     // template references field
     {
