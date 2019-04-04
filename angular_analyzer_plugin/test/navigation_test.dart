@@ -40,8 +40,7 @@ class AngularNavigationTest extends AbstractAngularTest {
   Future<DirectivesResult> resolveDart(Source dartSource) async =>
       await angularDriver.requestDartResult(dartSource.fullName);
 
-  /// Compute all the views declared in the given [dartSource], and resolve the
-  /// external template of all the views.
+  /// Resolve the external templates of the views declared in the [dartSource].
   Future<DirectivesResult> resolveLinkedHtml(Source dartSource) async {
     final result = await angularDriver.requestDartResult(dartSource.fullName);
     for (var d in result.directives) {
@@ -170,6 +169,24 @@ class TextPanel {}
       expect(targetLocation.file, '/text_panel.html');
       expect(targetLocation.offset, 0);
     }
+  }
+
+  // ignore: non_constant_identifier_names
+  Future test_dart_view_templateUrl_notForTemplateOnly() async {
+    code = r'''
+import 'package:angular/src/core/metadata.dart';
+
+@Component(selector: 'text-panel', templateUrl: 'test.html')
+class TextPanel {}
+''';
+    final dartSource = newSource('/test.dart', code);
+    newSource('/test.html', ''); // empty template HTML file.
+    final result = await resolveLinkedHtml(dartSource);
+    new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
+        new AngularNavigationRequest(null, null, null, result), collector,
+        templatesOnly: true);
+    // no resolved ranges.
+    expect(regions, isEmpty);
   }
 
   // ignore: non_constant_identifier_names

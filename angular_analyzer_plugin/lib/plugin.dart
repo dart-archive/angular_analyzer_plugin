@@ -260,8 +260,8 @@ class AngularAnalyzerPlugin extends ServerPlugin
 
     new AngularNavigation(driver.contentOverlay)
       ..computeNavigation(
-          new AngularNavigationRequest(filename, null, null, result),
-          collector);
+          new AngularNavigationRequest(filename, null, null, result), collector,
+          templatesOnly: isHtml);
     collector.createRegions();
     channel.sendNotification(new plugin.AnalysisNavigationParams(
             filename, collector.regions, collector.targets, collector.files)
