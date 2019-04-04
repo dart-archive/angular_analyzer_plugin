@@ -223,7 +223,7 @@ class AbstractAngularTest {
         ngOptions);
 
     errorListener = new GatheringErrorListener();
-    addAngularSources(newSource);
+    addAngularSources(newSource, includeQueryList: includeQueryList);
   }
 }
 
