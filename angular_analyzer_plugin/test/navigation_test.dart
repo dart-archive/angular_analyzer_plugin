@@ -176,11 +176,11 @@ class TextPanel {}
     code = r'''
 import 'package:angular/src/core/metadata.dart';
 
-@Component(selector: 'text-panel', templateUrl: 'text_panel.html')
+@Component(selector: 'text-panel', templateUrl: 'test.html')
 class TextPanel {}
 ''';
     final dartSource = newSource('/test.dart', code);
-    await resolveDart(dartSource);
+    newSource('/test.html', ''); // empty template HTML file.
     final result = await resolveLinkedHtml(dartSource);
     new AngularNavigation(angularDriver.contentOverlay).computeNavigation(
         new AngularNavigationRequest(null, null, null, result), collector,
