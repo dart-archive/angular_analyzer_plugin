@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:developer';
+
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/memory_file_system.dart';
+import 'package:analyzer_plugin/channel/channel.dart';
+import 'package:analyzer_plugin/protocol/protocol.dart' as protocol;
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as protocol;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as protocol;
 import 'package:angular_analyzer_plugin/plugin.dart';
@@ -8,22 +13,20 @@ import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
+import 'mock_angular.dart';
 import 'mock_sdk.dart';
 
 void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(PluginIntegrationTest);
+    defineReflectiveTests(PluginCreateDriverTest);
     defineReflectiveTests(AnalysisOptionsUtilsTest);
   });
 }
 
 /// Unfortunately, package:yaml doesn't support dumping to yaml. So this is
 /// what we are stuck with, for now. Put it in a base class so we can test it
-class AnalysisOptionsUtilsBase {
-  AngularAnalyzerPlugin plugin;
-  MemoryResourceProvider resourceProvider;
-  protocol.ContextRoot root;
-
+class AnalysisOptionsUtilsBase extends PluginIntegrationTestBase {
   String optionsHeader = '''
 analyzer:
   plugins:
@@ -46,17 +49,6 @@ analyzer:
 
   void setOptionsFileContent(String content) {
     resourceProvider.newFile('/test/analysis_options.yaml', content);
-  }
-
-  void setUp() {
-    resourceProvider = new MemoryResourceProvider();
-    new MockSdk(resourceProvider: resourceProvider);
-    plugin = new AngularAnalyzerPlugin(resourceProvider);
-    final versionCheckParams = new protocol.PluginVersionCheckParams(
-        "~/.dartServer/.analysis-driver", "/sdk", "1.0.0");
-    plugin.handlePluginVersionCheck(versionCheckParams);
-    root = new protocol.ContextRoot("/test", [],
-        optionsFile: '/test/analysis_options.yaml');
   }
 }
 
@@ -132,10 +124,35 @@ analyzer:
   }
 }
 
+class MockPluginCommunicationChannel extends Mock
+    implements PluginCommunicationChannel {}
+
 class MockResourceProvider extends Mock implements ResourceProvider {}
 
+class NamedNavigationNotificationMatcher implements Matcher {
+  final String filename;
+
+  NamedNavigationNotificationMatcher(this.filename);
+
+  @override
+  Description describe(Description description) =>
+      description..add('that is a navigation notification for file $filename');
+
+  @override
+  Description describeMismatch(item, Description mismatchDescription,
+          Map matchState, bool verbose) =>
+      mismatchDescription
+        ..add('is not a navigation notification for file $filename');
+
+  @override
+  bool matches(item, Map matchState) =>
+      item is protocol.Notification &&
+      item.event == 'analysis.navigation' &&
+      item.params['file'] == filename;
+}
+
 @reflectiveTest
-class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
+class PluginCreateDriverTest extends AnalysisOptionsUtilsBase {
   // ignore: non_constant_identifier_names
   void test_createAnalysisDriver() {
     enableAnalyzerPluginsAngular();
@@ -200,5 +217,90 @@ class PluginIntegrationTest extends AnalysisOptionsUtilsBase {
     expect(driver.options, isNotNull);
     expect(driver.options.customTagNames, isNotNull);
     expect(driver.options.customTagNames, isEmpty);
+  }
+}
+
+@reflectiveTest
+class PluginIntegrationTest extends PluginIntegrationTestBase {
+  @override
+  void setUp() async {
+    super.setUp();
+
+    addAngularSources((filename, [contents = ""]) =>
+        resourceProvider.newFile(filename, contents));
+    resourceProvider.newFile('/test/.packages', 'angular:/angular/');
+    plugin.start(mockChannel);
+    await plugin.handleAnalysisSetContextRoots(
+        new protocol.AnalysisSetContextRootsParams([root]));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_navigation_dart() async {
+    resourceProvider.newFile('/test/test.dart', r'''
+import 'package:angular/angular.dart';
+@Component(
+  selector: 'foo'
+)
+class MyComponent {}
+''');
+
+    await (plugin.driverForPath('/test/test.dart') as AngularDriver)
+        .requestDartResult('/test/test.dart');
+    verifyNever(mockChannel.sendNotification(
+        argThat(new NamedNavigationNotificationMatcher('/test/test.dart'))));
+
+    await plugin.handleAnalysisSetSubscriptions(
+        new protocol.AnalysisSetSubscriptionsParams({
+      protocol.AnalysisService.NAVIGATION: ['/test/test.dart']
+    }));
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    verify(mockChannel.sendNotification(
+        argThat(new NamedNavigationNotificationMatcher('/test/test.dart'))));
+  }
+
+  // ignore: non_constant_identifier_names
+  void test_navigation_html() async {
+    resourceProvider..newFile('/test/test.dart', r'''
+import 'package:angular/angular.dart';
+@Component(
+  selector: 'foo'
+  templateUrl: 'test.html';
+)
+class MyComponent {}
+''')..newFile('/test/test.html', '');
+
+    final driver = (plugin.driverForPath('/test/test.dart') as AngularDriver);
+    await driver.requestDartResult('/test/test.dart');
+    await driver.requestHtmlResult('/test/test.html');
+    verifyNever(mockChannel.sendNotification(
+        argThat(new NamedNavigationNotificationMatcher('/test/test.html'))));
+
+    await plugin.handleAnalysisSetSubscriptions(
+        new protocol.AnalysisSetSubscriptionsParams({
+      protocol.AnalysisService.NAVIGATION: ['/test/test.html']
+    }));
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    verify(mockChannel.sendNotification(
+        argThat(new NamedNavigationNotificationMatcher('/test/test.html'))));
+  }
+}
+
+class PluginIntegrationTestBase {
+  AngularAnalyzerPlugin plugin;
+  MemoryResourceProvider resourceProvider;
+  PluginCommunicationChannel mockChannel;
+  protocol.ContextRoot root;
+  void setUp() {
+    resourceProvider = new MemoryResourceProvider();
+    new MockSdk(resourceProvider: resourceProvider);
+    plugin = new AngularAnalyzerPlugin(resourceProvider);
+    final versionCheckParams = new protocol.PluginVersionCheckParams(
+        "~/.dartServer/.analysis-driver", "/sdk", "1.0.0");
+    plugin.handlePluginVersionCheck(versionCheckParams);
+    root = new protocol.ContextRoot("/test", [],
+        optionsFile: '/test/analysis_options.yaml');
+    mockChannel = new MockPluginCommunicationChannel();
   }
 }

@@ -1,5 +1,8 @@
-## Unpublished
+## 0.0.17+6
 
+- Fixed an issue where an unnecessary navigation range was added to HTML files.
+- Fixed an issue where navigation would be delayed in IntelliJ and other IDEs
+  that use the notification pattern for navigation.
 - Change analyzer API for forwards compatibility with part files. The old API
   could have caused out-of-date errors to be cached for a file. The new API,
   however, introduces extra asynchrony. Manual testing seemed to show everything
