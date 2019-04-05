@@ -187,39 +187,24 @@ class AngularAnalyzerPlugin extends ServerPlugin
     _handleResultNavigation(result, driver, isHtml: isHtml);
   }
 
-  void sendNotificationForSubscription(
-      String fileName, plugin.AnalysisService service, AnalysisResult result) {
-    switch (service) {
-      case plugin.AnalysisService.FOLDING:
-        // TODO(brianwilkerson) Implement this.
-        break;
-      case plugin.AnalysisService.HIGHLIGHTS:
-        // TODO(brianwilkerson) Implement this.
-        break;
-      case plugin.AnalysisService.NAVIGATION:
-        // TODO(brianwilkerson) Implement this.
-        break;
-      case plugin.AnalysisService.OCCURRENCES:
-        // TODO(brianwilkerson) Implement this.
-        break;
-      case plugin.AnalysisService.OUTLINE:
-        // TODO(brianwilkerson) Implement this.
-        break;
-      default:
-        // Ignore unhandled service types.
-        break;
-    }
-  }
-
+  /// This method is used when the set of subscribed notifications has been
+  /// changed and notifications need to be sent even when the specified files
+  /// have already been analyzed.
   @override
   void sendNotificationsForSubscriptions(
       Map<String, List<plugin.AnalysisService>> subscriptions) {
     subscriptions.forEach((filePath, services) {
-      // TODO(brianwilkerson) Get the results for this file.
-      AnalysisResult result;
-      for (final service in services) {
-        sendNotificationForSubscription(filePath, service, result);
+      final driver = angularDriverForPath(filePath);
+      if (driver == null) {
+        return;
       }
+
+      // Kick off a full reanalysis of files with subscriptions. This will add
+      // a resolved result to the stream which will send the new necessary
+      // notifications.
+      filePath.endsWith('.dart')
+          ? driver.requestDartResult(filePath)
+          : driver.requestHtmlResult(filePath);
     });
   }
 
