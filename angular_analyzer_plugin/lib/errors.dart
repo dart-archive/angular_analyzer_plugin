@@ -98,7 +98,7 @@ class AngularHintCode extends AngularWarningCode {
   static const OFFSETS_CANNOT_BE_CREATED = const AngularHintCode(
       'OFFSETS_CANNOT_BE_CREATED',
       'Errors cannot be tracked for the constant expression because it is too'
-      ' complex for errors to be mapped to locations in the file');
+          ' complex for errors to be mapped to locations in the file');
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given
@@ -171,14 +171,14 @@ class AngularWarningCode extends ErrorCode {
   static const TYPE_IS_NOT_A_DIRECTIVE = const AngularWarningCode(
       'TYPE_IS_NOT_A_DIRECTIVE',
       'The type "{0}" is included in the directives list, but is not a'
-      ' directive');
+          ' directive');
 
   /// An error code indicating that a function not annotated with @Directive was
   /// used as one.
   static const FUNCTION_IS_NOT_A_DIRECTIVE = const AngularWarningCode(
       'FUNCTION_IS_NOT_A_DIRECTIVE',
       'The function "{0}" is included in the directives list, but is not a'
-      ' functional directive');
+          ' functional directive');
 
   /// An error code indicating that the value of type is not a Pipe.
   static const TYPE_IS_NOT_A_PIPE = const AngularWarningCode(
@@ -206,7 +206,7 @@ class AngularWarningCode extends ErrorCode {
   static const NONEXIST_OUTPUT_BOUND = const AngularWarningCode(
       'NONEXIST_OUTPUT_BOUND',
       'The bound output {0} does not exist on any directives or on the'
-      ' element');
+          ' element');
 
   /// An error code indicating that a nonexist output was bound
   static const EMPTY_BINDING = const AngularWarningCode(
@@ -224,14 +224,14 @@ class AngularWarningCode extends ErrorCode {
   static const TWO_WAY_BINDING_OUTPUT_TYPE_ERROR = const AngularWarningCode(
       'TWO_WAY_BINDING_OUTPUT_TYPE_ERROR',
       'Output event in two-way binding (of type {0}) is not assignable to'
-      ' component input (of type {1})');
+          ' component input (of type {1})');
 
   /// An error code indicating that an input was bound with a incorrectly
   /// typed expression
   static const INPUT_BINDING_TYPE_ERROR = const AngularWarningCode(
       'INPUT_BINDING_TYPE_ERROR',
       'Attribute value expression (of type {0}) is not assignable to component'
-      ' input (of type {1})');
+          ' input (of type {1})');
 
   /// An error code indicating that an [attr.foo.if] binding was bound to an
   /// expression that was not of type bool
@@ -244,7 +244,7 @@ class AngularWarningCode extends ErrorCode {
   static const UNMATCHED_ATTR_IF_BINDING = const AngularWarningCode(
       'UNMATCHED_ATTR_IF_BINDING',
       'attr-if binding for attr {0} does not have a corresponding'
-      ' [attr.{0}] binding for it to affect');
+          ' [attr.{0}] binding for it to affect');
 
   /// An error code indicating that an expression did not correctly
   /// end with an EOF token.
@@ -312,14 +312,14 @@ class AngularWarningCode extends ErrorCode {
   static const INVALID_BINDING_NAME = const AngularWarningCode(
       'INVALID_BINDING_NAME',
       'The binding {} is not a valid dart identifer, attribute, style, or class'
-      ' binding');
+          ' binding');
 
   /// An error code indicating that ngIf or ngFor were used without a template
   static const STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE =
       const AngularWarningCode(
           'STRUCTURAL_DIRECTIVES_REQUIRE_TEMPLATE',
           'Structural directive {0} requires a template. Did you mean'
-          ' *{0}="..." or template="{0} ..." or <template {0} ...>?');
+              ' *{0}="..." or template="{0} ..." or <template {0} ...>?');
 
   /// An error code indicating in #y="x", x was not an exported name
   static const NO_DIRECTIVE_EXPORTED_BY_SPECIFIED_NAME =
@@ -337,15 +337,15 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode(
           'CUSTOM_DIRECTIVE_MAY_REQUIRE_TEMPLATE',
           'The directive {0} accepts a TemplateRef in its constructor, so it'
-          ' may require a *-style-attr to work correctly.');
+              ' may require a *-style-attr to work correctly.');
 
   /// An error code indicating that a custom component appears to require a star.
   static const AngularWarningCode TEMPLATE_ATTR_NOT_USED =
       const AngularWarningCode(
           'TEMPLATE_ATTR_NOT_USED',
           'This template attr does not match any directives that use the'
-          ' resulting hidden template. Check that all directives are being'
-          ' imported and used correctly.');
+              ' resulting hidden template. Check that all directives are being'
+              ' imported and used correctly.');
 
   /// An error code indicating that an output-bound statement
   /// must be an [ExpressionStatement].
@@ -362,7 +362,7 @@ class AngularWarningCode extends ErrorCode {
   static const CONTENT_NOT_TRANSCLUDED = const AngularWarningCode(
       'CONTENT_NOT_TRANSCLUDED',
       'The content does not match any transclusion selectors of the surrounding'
-      ' component');
+          ' component');
 
   /// An error code indicating that an <ng-content> tag had content, which is not
   /// allowed.
@@ -381,8 +381,8 @@ class AngularWarningCode extends ErrorCode {
   static const STRING_STYLE_INPUT_BINDING_INVALID = const AngularWarningCode(
       'STRING_STYLE_INPUT_BINDING_INVALID',
       'Input {0} is not a string input, but is not bound with [bracket] syntax.'
-      ' This binds the String attribute value directly, resulting  in a type '
-      'error.');
+          ' This binds the String attribute value directly, resulting  in a type '
+          'error.');
 
   /// An error code indicating that a @ContentChild or @ContentChildren field
   /// either mismatched types in the definition, or where it was used (ie
@@ -391,21 +391,21 @@ class AngularWarningCode extends ErrorCode {
   static const INVALID_TYPE_FOR_CHILD_QUERY = const AngularWarningCode(
       'INVALID_TYPE_FOR_CHILD_QUERY',
       'The field {0} marked with @{1} referencing type {2} expects a member'
-      ' referencing type {2}, but got a {3}');
+          ' referencing type {2}, but got a {3}');
 
   /// An error code indicating that a @ContentChild or @ContentChildren field
   /// didn't have an expected value
   static const UNKNOWN_CHILD_QUERY_TYPE = const AngularWarningCode(
       'UNKNOWN_CHILD_QUERY_TYPE',
       'The field {0} marked with @{1} must reference a directive, a string'
-      ' let-binding name, TemplateRef, or ElementRef');
+          ' let-binding name, TemplateRef, or ElementRef');
 
   /// An error code indicating that a @ContentChild or @ContentChildren field
   /// didn't have an expected value
   static const CHILD_QUERY_TYPE_REQUIRES_READ = const AngularWarningCode(
       'CHILD_QUERY_TYPE_REQUIRES_READ',
       'The field {0} marked with @{1} cannot reference type {2} unless the @{1}'
-      ' annotation includes `read: {2}`');
+          ' annotation includes `read: {2}`');
 
   /// An error code indicating that @ContentChildren or @ViewChildren was used
   /// but the property wasn't a `QueryList`.
@@ -413,7 +413,7 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode(
           'CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST',
           'The field {0} marked with @{1} expects a member of type List,'
-          ' but got {2}');
+              ' but got {2}');
 
   /// Here for backwards compatibility. Should not be used. Use
   /// [CONTENT_OR_VIEW_CHILDREN_REQUIRES_LIST] instead. Note: we can remove this
@@ -423,7 +423,7 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode(
           'CONTENT_OR_VIEW_CHILDREN_REQUIRES_QUERY_LIST',
           'The field {0} marked with @{1} expects a member of type QueryList,'
-          ' but got {2}');
+              ' but got {2}');
 
   /// An error code indicating that @ContentChild or @ViewChild with a string
   /// let-binding query was matched in a way that's not assignable to the
@@ -431,8 +431,8 @@ class AngularWarningCode extends ErrorCode {
   static const MATCHED_LET_BINDING_HAS_WRONG_TYPE = const AngularWarningCode(
       'MATCHED_LET_BINDING_HAS_WRONG_TYPE',
       'Marking this with #{0} here expects the element to be of type {1}, (but'
-      ' is of type {2}) because an enclosing element marks {0} as a content'
-      ' child field of type {1}.');
+          ' is of type {2}) because an enclosing element marks {0} as a content'
+          ' child field of type {1}.');
 
   /// An error code indicating that @ContentChild or @ViewChild was matched
   /// multiple times.
@@ -440,8 +440,8 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode(
           'SINGULAR_CHILD_QUERY_MATCHED_MULTIPLE_TIMES',
           'A containing {0} expects a single child matching {1}, but this is'
-          ' not the first match. Use (Content or View)Children to allow'
-          ' multiple matches.');
+              ' not the first match. Use (Content or View)Children to allow'
+              ' multiple matches.');
 
   /// An error code indicating that the exports array got a non-identifier
   static const EXPORTS_MUST_BE_PLAIN_IDENTIFIERS = const AngularWarningCode(
@@ -456,14 +456,14 @@ class AngularWarningCode extends ErrorCode {
   static const IDENTIFIER_NOT_EXPORTED = const AngularWarningCode(
       'IDENTIFIER_NOT_EXPORTED',
       'Identifier {0} was not exported by the component and therefore cannot be'
-      ' used in its template. Add it to the exports property on the component'
-      ' definition to use it here.');
+          ' used in its template. Add it to the exports property on the component'
+          ' definition to use it here.');
 
   /// An error code indicating component Foo exports Foo, which is unnecessary
   static const COMPONENTS_CANT_EXPORT_THEMSELVES = const AngularWarningCode(
       'COMPONENTS_CANT_EXPORT_THEMSELVES',
       'Components export their class by default, and therefore should not be'
-      ' specified in the exports list');
+          ' specified in the exports list');
 
   /// An error code indicating that the Pipe class cannot be abstract.
   static const PIPE_CANNOT_BE_ABSTRACT = const AngularWarningCode(
@@ -474,7 +474,7 @@ class AngularWarningCode extends ErrorCode {
   static const PIPE_SINGLE_NAME_REQUIRED = const AngularWarningCode(
       'PIPE_NAME_MISSING',
       r'@Pipe declarations must contain exactly one'
-      r' non-named argument of String type for pipe name');
+          r' non-named argument of String type for pipe name');
 
   /// An error code indicating that a declared Pipe does not extend
   /// [PipeTransform] class.
@@ -506,21 +506,21 @@ class AngularWarningCode extends ErrorCode {
   static const PIPE_NOT_FOUND = const AngularWarningCode(
       'PIPE_NOT_FOUND',
       "Pipe by name of {0} not found. Did you reference it in your @Component"
-      " configuration?");
+          " configuration?");
 
   /// An error indicating that pipe syntax was used in an angular template, but
   /// the name of the pipe doesn't match one defined in the component
   static const AMBIGUOUS_PIPE = const AngularWarningCode(
       'AMBIGUOUS_PIPE',
       "Multiple pipes by name of {0} found. Check the `pipes` field of your "
-      "@Component annotation for duplicates and/or conflicts.");
+          "@Component annotation for duplicates and/or conflicts.");
 
   /// An error indicating that a security exception will be thrown by this input
   /// binding
   static const UNSAFE_BINDING = const AngularWarningCode(
       'UNSAFE_BINDING',
       'A security exception will be thrown by this binding. You must use the '
-      ' security service to get an instance of {0} and bind that result.');
+          ' security service to get an instance of {0} and bind that result.');
 
   /// An error indicating that an event other than `(keyup.x)` or `(keydown.+)`
   /// etc, had reduction suffixes in that style, which is not allowed.
@@ -534,7 +534,7 @@ class AngularWarningCode extends ErrorCode {
       const AngularWarningCode(
           'FUNCTIONAL_DIRECTIVES_CANT_BE_EXPORTED',
           'Function directives cannot have an exportAs setting, because they'
-          " can't be exported");
+              " can't be exported");
 
   /// Initialize a newly created error code to have the given [name].
   /// The message associated with the error will be created from the given
