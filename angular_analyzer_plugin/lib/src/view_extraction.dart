@@ -95,7 +95,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
         getNamedArgument(annotation, 'directives');
     if (listExpression is ast.ListLiteral) {
       final directiveReferences = <DirectiveReference>[];
-      for (final item in listExpression.elements2) {
+      for (final item in listExpression.elements) {
         if (item is ast.Identifier) {
           final name = item.name;
           var prefix = "";
@@ -131,7 +131,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
         getNamedArgument(annotation, 'exports');
     final alreadyExported = new HashSet<String>();
     if (listExpression is ast.ListLiteral) {
-      for (final item in listExpression.elements2) {
+      for (final item in listExpression.elements) {
         if (item is ast.Identifier) {
           // Be wary: item.name includes prefix for PrefixedIdentifier.
           var name = item.name;
@@ -173,7 +173,7 @@ class ViewExtractor extends AnnotationProcessorMixin {
     // ignore: omit_local_variable_types
     final ast.Expression listExpression = getNamedArgument(annotation, 'pipes');
     if (listExpression is ast.ListLiteral) {
-      for (final item in listExpression.elements2) {
+      for (final item in listExpression.elements) {
         if (item is ast.Identifier) {
           final name = item.name;
           var prefix = "";
