@@ -168,13 +168,6 @@ class AngularDriver
           .where((e) => e != null)
           .toList();
 
-  List<AnalysisError> deserializeFromPathErrors(
-          Source source, List<SummarizedAnalysisErrorFromPath> errors) =>
-      errors
-          .map((error) => deserializeError(source, error.originalError))
-          .where((e) => e != null)
-          .toList();
-
   /// Notify the driver that the client is going to stop using it.
   @override
   void dispose() {
@@ -968,9 +961,7 @@ class AngularDriver
     final htmlSource = _sourceFactory.forUri('file:$htmlPath');
     if (!ignoreCache && bytes != null) {
       final summary = new LinkedHtmlSummary.fromBuffer(bytes);
-      final errors = new List<AnalysisError>.from(
-          deserializeErrors(htmlSource, summary.errors))
-        ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
+      final errors = deserializeErrors(htmlSource, summary.errors);
       final result = new DirectivesResult.fromCache(htmlPath, errors);
       _htmlResultsController.add(result);
       return result;
