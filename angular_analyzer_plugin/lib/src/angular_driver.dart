@@ -168,20 +168,6 @@ class AngularDriver
           .where((e) => e != null)
           .toList();
 
-  List<AnalysisError> deserializeFromPathErrors(
-          Source source, List<SummarizedAnalysisErrorFromPath> errors) =>
-      errors
-          .map((error) {
-            final originalError = deserializeError(source, error.originalError);
-            if (originalError == null) {
-              return null;
-            }
-            return new FromFilePrefixedError.fromPath(
-                error.path, error.classname, originalError);
-          })
-          .where((e) => e != null)
-          .toList();
-
   /// Notify the driver that the client is going to stop using it.
   @override
   void dispose() {
@@ -975,9 +961,7 @@ class AngularDriver
     final htmlSource = _sourceFactory.forUri('file:$htmlPath');
     if (!ignoreCache && bytes != null) {
       final summary = new LinkedHtmlSummary.fromBuffer(bytes);
-      final errors = new List<AnalysisError>.from(
-          deserializeErrors(htmlSource, summary.errors))
-        ..addAll(deserializeFromPathErrors(htmlSource, summary.errorsFromPath));
+      final errors = deserializeErrors(htmlSource, summary.errors);
       final result = new DirectivesResult.fromCache(htmlPath, errors);
       _htmlResultsController.add(result);
       return result;
@@ -994,17 +978,7 @@ class AngularDriver
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(result.errors
-          .where((error) => error is! FromFilePrefixedError)
-          .toList())
-      ..errorsFromPath = result.errors
-          .where((error) => error is FromFilePrefixedError)
-          .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
-            ..path = (error as FromFilePrefixedError).fromSourcePath
-            ..classname = (error as FromFilePrefixedError).classname
-            ..originalError =
-                summarizeError((error as FromFilePrefixedError).originalError))
-          .toList();
+      ..errors = summarizeErrors(result.errors);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
@@ -1089,8 +1063,8 @@ class AngularDriver
           if (shorten(view.source.fullName) !=
               shorten(view.templateSource.fullName)) {
             errors.addAll(tplErrorListener.errors.where(rightErrorType).map(
-                (e) => new FromFilePrefixedError(
-                    view.source, directive.classElement.name, e)));
+                (e) =>
+                    prefixError(view.source, directive.classElement.name, e)));
           } else {
             errors.addAll(tplErrorListener.errors.where(rightErrorType));
           }
