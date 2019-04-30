@@ -171,14 +171,7 @@ class AngularDriver
   List<AnalysisError> deserializeFromPathErrors(
           Source source, List<SummarizedAnalysisErrorFromPath> errors) =>
       errors
-          .map((error) {
-            final originalError = deserializeError(source, error.originalError);
-            if (originalError == null) {
-              return null;
-            }
-            return new FromFilePrefixedError.fromPath(
-                error.path, error.classname, originalError);
-          })
+          .map((error) => deserializeError(source, error.originalError))
           .where((e) => e != null)
           .toList();
 
@@ -994,17 +987,7 @@ class AngularDriver
     }
 
     final summary = new LinkedHtmlSummaryBuilder()
-      ..errors = summarizeErrors(result.errors
-          .where((error) => error is! FromFilePrefixedError)
-          .toList())
-      ..errorsFromPath = result.errors
-          .where((error) => error is FromFilePrefixedError)
-          .map((error) => new SummarizedAnalysisErrorFromPathBuilder()
-            ..path = (error as FromFilePrefixedError).fromSourcePath
-            ..classname = (error as FromFilePrefixedError).classname
-            ..originalError =
-                summarizeError((error as FromFilePrefixedError).originalError))
-          .toList();
+      ..errors = summarizeErrors(result.errors);
     final newBytes = summary.toBuffer();
     byteStore.put(key, newBytes);
 
@@ -1089,8 +1072,8 @@ class AngularDriver
           if (shorten(view.source.fullName) !=
               shorten(view.templateSource.fullName)) {
             errors.addAll(tplErrorListener.errors.where(rightErrorType).map(
-                (e) => new FromFilePrefixedError(
-                    view.source, directive.classElement.name, e)));
+                (e) =>
+                    prefixError(view.source, directive.classElement.name, e)));
           } else {
             errors.addAll(tplErrorListener.errors.where(rightErrorType));
           }

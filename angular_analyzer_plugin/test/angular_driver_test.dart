@@ -8,7 +8,6 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:angular_analyzer_plugin/ast.dart';
 import 'package:angular_analyzer_plugin/errors.dart';
 import 'package:angular_analyzer_plugin/src/directive_linking.dart';
-import 'package:angular_analyzer_plugin/src/from_file_prefixed_error.dart';
 import 'package:angular_analyzer_plugin/src/model.dart';
 import 'package:angular_analyzer_plugin/src/options.dart';
 import 'package:angular_analyzer_plugin/src/selector.dart';
@@ -5200,7 +5199,6 @@ class WeirdComponent {
     await getDirectives(htmlSource, dartSource);
     final errors = errorListener.errors;
     expect(errors, hasLength(1));
-    expect(errors.first, const isInstanceOf<FromFilePrefixedError>());
     expect(
         errors.first.message,
         equals('In WeirdComponent:'
