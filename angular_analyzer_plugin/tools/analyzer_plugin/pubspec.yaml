@@ -1,8 +1,0 @@
-name: analyzed_angular_plugin_loader
-version: 0.0.0
-description: Self-loader of the plugin for people using an exact version.
-environment:
-  sdk: '>=2.0.0-dev.0.0 < 3.0.0'
-dependencies:
-  angular_analyzer_plugin: '0.0.17+4'
-dev_dependencies:
